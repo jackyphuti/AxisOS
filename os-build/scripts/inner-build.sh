@@ -48,6 +48,15 @@ cp "$WORKSPACE_DIR/shell/package.json" config/includes.chroot/opt/axisos-shell/ 
 
 # 3. System binaries & scripts
 mkdir -p config/includes.chroot/usr/local/bin
+mkdir -p config/includes.chroot/usr/bin
+mkdir -p config/includes.chroot/etc/axis
+mkdir -p config/includes.chroot/var/lib/axis/cache
+
+# Deploy Axis Package Manager CLI
+cp "$WORKSPACE_DIR/pkg-mgr/bin/axis" config/includes.chroot/usr/bin/axis
+chmod +x config/includes.chroot/usr/bin/axis
+cp "$WORKSPACE_DIR/pkg-mgr/configs/axis.conf" config/includes.chroot/etc/axis/axis.conf
+
 cp "$SCRIPTS_DIR/axisos-install.sh" config/includes.chroot/usr/local/bin/axisos-installer.sh
 cp "$CHROOT_CONFIG_DIR/cage-session/axisos-daemon.cjs" config/includes.chroot/usr/local/bin/axisos-daemon.cjs
 cp "$CHROOT_CONFIG_DIR/cage-session/axisos-kiosk.sh" config/includes.chroot/usr/local/bin/axisos-kiosk.sh

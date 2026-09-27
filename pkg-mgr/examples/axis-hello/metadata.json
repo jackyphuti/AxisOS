@@ -1,0 +1,10 @@
+{
+  "name": "axis-hello",
+  "version": "1.0.0",
+  "description": "Welcome utility and demonstration package for AxisOS",
+  "maintainer": "AxisOS Core Team <dev@axisos.org>",
+  "dependencies": [],
+  "pre_install": "echo 'Installing axis-hello core utility...'",
+  "post_install": "echo 'axis-hello successfully deployed to /usr/bin/axis-hello'",
+  "pre_remove": "echo 'Removing axis-hello package...'"
+}

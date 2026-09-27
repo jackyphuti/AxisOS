@@ -1,0 +1,5 @@
+#!/bin/sh
+echo "Axis Tools Suite v1.2.0"
+uname -a
+free -h
+df -h

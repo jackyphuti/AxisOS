@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Axis Hello
+Comment=AxisOS Welcome Utility
+Exec=/usr/bin/axis-hello
+Icon=utilities-terminal
+Terminal=true
+Categories=Utility;

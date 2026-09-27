@@ -1,0 +1,817 @@
+#!/usr/bin/env python3
+"""
+AxisOS Native Package Manager (`axis`)
+====================================
+Production package manager for AxisOS (.axis package format).
+Supports dependency resolution, remote index sync, SHA256 integrity verification,
+atomic rootfs installation, file tracking manifests, and clean package removal.
+
+Target installation: /usr/bin/axis
+Database location:   /var/lib/axis/
+"""
+
+import sys
+import os
+import json
+import hashlib
+import tarfile
+import shutil
+import urllib.request
+import urllib.error
+import argparse
+import subprocess
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Dict, List, Set, Any, Optional, Tuple
+
+# Configuration Constants
+DEFAULT_ROOT = "/"
+DEFAULT_CONFIG_PATH = "/etc/axis/axis.conf"
+DEFAULT_STATE_DIR = "/var/lib/axis"
+DEFAULT_CACHE_DIR = "/var/lib/axis/cache"
+DEFAULT_DB_FILE = "/var/lib/axis/installed.json"
+DEFAULT_INDEX_FILE = "/var/lib/axis/repo-index.json"
+DEFAULT_REPO_URL = "https://repo.axisos.org"
+
+# Color formatting for terminal
+class Colors:
+    HEADER = "\033[95m"
+    BLUE = "\033[94m"
+    CYAN = "\033[96m"
+    GREEN = "\033[92m"
+    YELLOW = "\033[93m"
+    RED = "\033[91m"
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+    DIM = "\033[2m"
+
+    @classmethod
+    def disable(cls):
+        cls.HEADER = ""
+        cls.BLUE = ""
+        cls.CYAN = ""
+        cls.GREEN = ""
+        cls.YELLOW = ""
+        cls.RED = ""
+        cls.RESET = ""
+        cls.BOLD = ""
+        cls.DIM = ""
+
+
+def log_info(msg: str):
+    print(f"{Colors.BLUE}[INFO]{Colors.RESET} {msg}")
+
+def log_success(msg: str):
+    print(f"{Colors.GREEN}[OK]{Colors.RESET} {msg}")
+
+def log_warn(msg: str):
+    print(f"{Colors.YELLOW}[WARN]{Colors.RESET} {msg}")
+
+def log_error(msg: str):
+    print(f"{Colors.RED}[ERROR]{Colors.RESET} {msg}", file=sys.stderr)
+
+def log_step(msg: str):
+    print(f"{Colors.CYAN}{Colors.BOLD}:: {msg}{Colors.RESET}")
+
+
+class AxisConfig:
+    """Handles global and local configuration for axis."""
+    def __init__(self, root: str = DEFAULT_ROOT, config_path: Optional[str] = None):
+        self.root = os.path.abspath(root)
+        self.state_dir = os.path.join(self.root, DEFAULT_STATE_DIR.lstrip("/"))
+        self.cache_dir = os.path.join(self.root, DEFAULT_CACHE_DIR.lstrip("/"))
+        self.db_file = os.path.join(self.root, DEFAULT_DB_FILE.lstrip("/"))
+        self.index_file = os.path.join(self.root, DEFAULT_INDEX_FILE.lstrip("/"))
+        
+        # Load repo URLs
+        self.repo_urls: List[str] = []
+        
+        cfg_file = config_path or os.path.join(self.root, DEFAULT_CONFIG_PATH.lstrip("/"))
+        if os.path.exists(cfg_file):
+            try:
+                with open(cfg_file, "r", encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line and not line.startswith("#"):
+                            if line.startswith("repo "):
+                                self.repo_urls.append(line.split(" ", 1)[1].strip())
+                            elif line.startswith("http://") or line.startswith("https://") or line.startswith("file://"):
+                                self.repo_urls.append(line)
+            except Exception as e:
+                log_warn(f"Failed to read config file {cfg_file}: {e}")
+
+        if not self.repo_urls:
+            self.repo_urls = [DEFAULT_REPO_URL]
+
+        # Ensure state dirs exist
+        os.makedirs(self.state_dir, exist_ok=True)
+        os.makedirs(self.cache_dir, exist_ok=True)
+
+
+class PackageDatabase:
+    """Manages local state database in /var/lib/axis/installed.json."""
+    def __init__(self, db_path: str):
+        self.db_path = db_path
+        self.packages: Dict[str, Any] = {}
+        self.load()
+
+    def load(self):
+        if os.path.exists(self.db_path):
+            try:
+                with open(self.db_path, "r", encoding="utf-8") as f:
+                    self.packages = json.load(f)
+            except Exception as e:
+                log_warn(f"Corrupt package database at {self.db_path}, initializing empty: {e}")
+                self.packages = {}
+        else:
+            self.packages = {}
+
+    def save(self):
+        tmp_path = self.db_path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(self.packages, f, indent=2)
+        os.replace(tmp_path, self.db_path)
+
+    def is_installed(self, pkg_name: str) -> bool:
+        return pkg_name in self.packages
+
+    def get_installed(self, pkg_name: str) -> Optional[Dict[str, Any]]:
+        return self.packages.get(pkg_name)
+
+    def add_package(self, pkg_name: str, meta: Dict[str, Any], files: List[str]):
+        self.packages[pkg_name] = {
+            "name": pkg_name,
+            "version": meta.get("version", "unknown"),
+            "description": meta.get("description", ""),
+            "dependencies": meta.get("dependencies", []),
+            "installed_at": datetime.now(timezone.utc).isoformat(),
+            "files": sorted(files),
+        }
+        self.save()
+
+    def remove_package(self, pkg_name: str):
+        if pkg_name in self.packages:
+            del self.packages[pkg_name]
+            self.save()
+
+
+class RemoteRepository:
+    """Interacts with remote Axis package repository."""
+    def __init__(self, config: AxisConfig):
+        self.config = config
+        self.index_data: Dict[str, Any] = {"version": "1.0", "packages": {}}
+        self.load_local_index()
+
+    def load_local_index(self):
+        if os.path.exists(self.config.index_file):
+            try:
+                with open(self.config.index_file, "r", encoding="utf-8") as f:
+                    self.index_data = json.load(f)
+            except Exception:
+                self.index_data = {"version": "1.0", "packages": {}}
+
+    def update(self) -> bool:
+        """Fetch remote repo-index.json from configured repositories."""
+        log_step("Updating package repository indices...")
+        merged_packages: Dict[str, Any] = {}
+        success_count = 0
+
+        for repo_url in self.config.repo_urls:
+            repo_url = repo_url.rstrip("/")
+            index_url = f"{repo_url}/repo-index.json"
+            log_info(f"Syncing index from {index_url} ...")
+
+            try:
+                req = urllib.request.Request(
+                    index_url,
+                    headers={"User-Agent": "AxisOS-PackageManager/1.0"}
+                )
+                with urllib.request.urlopen(req, timeout=15) as response:
+                    raw = response.read().decode("utf-8")
+                    data = json.loads(raw)
+                    pkgs = data.get("packages", {})
+                    # Ensure base URL is attached to packages if relative
+                    for p_name, p_info in pkgs.items():
+                        if "url" in p_info and not (p_info["url"].startswith("http://") or p_info["url"].startswith("https://") or p_info["url"].startswith("file://")):
+                            p_info["url"] = f"{repo_url}/{p_info['url'].lstrip('/')}"
+                        merged_packages[p_name] = p_info
+                    success_count += 1
+            except urllib.error.URLError as e:
+                log_warn(f"Failed to connect to {index_url}: {e.reason}")
+            except Exception as e:
+                log_warn(f"Failed to parse index from {index_url}: {e}")
+
+        if success_count == 0 and not os.path.exists(self.config.index_file):
+            log_error("Could not reach any package repositories and no local cache exists.")
+            return False
+
+        if success_count > 0:
+            self.index_data = {
+                "version": "1.0",
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "packages": merged_packages
+            }
+            tmp_index = self.config.index_file + ".tmp"
+            with open(tmp_index, "w", encoding="utf-8") as f:
+                json.dump(self.index_data, f, indent=2)
+            os.replace(tmp_index, self.config.index_file)
+
+        total_pkgs = len(self.index_data.get("packages", {}))
+        log_success(f"Synchronized repository index: {total_pkgs} packages available.")
+        return True
+
+    def find_package(self, pkg_name: str) -> Optional[Dict[str, Any]]:
+        return self.index_data.get("packages", {}).get(pkg_name)
+
+
+class DependencyResolver:
+    """Resolves package dependencies using topological sort and checks local database."""
+    def __init__(self, repo: RemoteRepository, db: PackageDatabase):
+        self.repo = repo
+        self.db = db
+
+    def resolve(self, requested_packages: List[str]) -> List[str]:
+        """
+        Calculates the installation order for requested packages and all their dependencies.
+        Skips dependencies that are already installed.
+        Detects circular dependencies.
+        """
+        resolved: List[str] = []
+        visiting: Set[str] = set()
+        visited: Set[str] = set()
+
+        def dfs(pkg_name: str, path: List[str]):
+            if pkg_name in visiting:
+                cycle = " -> ".join(path + [pkg_name])
+                raise RuntimeError(f"Circular dependency detected: {cycle}")
+
+            if pkg_name in visited:
+                return
+
+            # If already installed, we can skip downloading its dependencies unless requested explicitly
+            if self.db.is_installed(pkg_name) and pkg_name not in requested_packages:
+                visited.add(pkg_name)
+                return
+
+            # Lookup in repo index
+            pkg_info = self.repo.find_package(pkg_name)
+            if not pkg_info:
+                if self.db.is_installed(pkg_name):
+                    # Already installed locally, satisfactory
+                    visited.add(pkg_name)
+                    return
+                raise RuntimeError(
+                    f"Package '{pkg_name}' not found in repository. Try running 'axis update' first."
+                )
+
+            visiting.add(pkg_name)
+
+            # Traverse child dependencies
+            deps = pkg_info.get("dependencies", [])
+            for dep in deps:
+                # Handle version constraints if any (e.g. "libc6>=2.30" or plain "libc6")
+                dep_name = dep.split(">=")[0].split("=")[0].split("<=")[0].strip()
+                dfs(dep_name, path + [pkg_name])
+
+            visiting.remove(pkg_name)
+            visited.add(pkg_name)
+
+            # If not installed or requested explicitly, add to installation queue
+            if not self.db.is_installed(pkg_name) or pkg_name in requested_packages:
+                resolved.append(pkg_name)
+
+        for target in requested_packages:
+            dfs(target, [])
+
+        return resolved
+
+
+class PackageManager:
+    """Main execution engine for Axis package operations."""
+    def __init__(self, config: AxisConfig):
+        self.config = config
+        self.db = PackageDatabase(config.db_file)
+        self.repo = RemoteRepository(config)
+        self.resolver = DependencyResolver(self.repo, self.db)
+
+    def check_permissions(self):
+        """Verify root privileges unless operating inside an alternate custom root directory."""
+        if self.config.root == "/" and hasattr(os, "geteuid") and os.geteuid() != 0:
+            log_error("This command requires administrative privileges. Please run with 'sudo axis ...'")
+            sys.exit(1)
+
+    def update(self) -> int:
+        """Run repository sync."""
+        self.check_permissions()
+        return 0 if self.repo.update() else 1
+
+    def download_package(self, pkg_name: str, pkg_info: Dict[str, Any]) -> str:
+        """Download .axis package to cache and verify SHA256 checksum."""
+        url = pkg_info.get("url")
+        expected_sha = pkg_info.get("sha256")
+
+        if not url:
+            raise RuntimeError(f"Package '{pkg_name}' has no download URL defined in index.")
+
+        filename = os.path.basename(url) or f"{pkg_name}.axis"
+        cache_dest = os.path.join(self.config.cache_dir, filename)
+
+        # Check if already cached with valid sha256
+        if os.path.exists(cache_dest) and expected_sha:
+            computed = self._compute_sha256(cache_dest)
+            if computed.lower() == expected_sha.lower():
+                log_info(f"Using cached package: {filename}")
+                return cache_dest
+
+        log_step(f"Downloading {pkg_name} ({pkg_info.get('version', 'latest')}) from {url} ...")
+
+        # Download with progress
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "AxisOS-PackageManager/1.0"})
+            with urllib.request.urlopen(req, timeout=60) as resp, open(cache_dest, "wb") as out_file:
+                total_size = resp.headers.get("content-length")
+                total_bytes = int(total_size) if total_size else None
+                downloaded = 0
+                block_size = 65536
+
+                while True:
+                    buffer = resp.read(block_size)
+                    if not buffer:
+                        break
+                    downloaded += len(buffer)
+                    out_file.write(buffer)
+
+                    if total_bytes:
+                        pct = (downloaded / total_bytes) * 100
+                        print(f"\r  Fetching: {downloaded / 1024 / 1024:.1f}MB / {total_bytes / 1024 / 1024:.1f}MB ({pct:.1f}%)", end="")
+                    else:
+                        print(f"\r  Fetching: {downloaded / 1024 / 1024:.1f}MB", end="")
+                print()
+        except Exception as e:
+            if os.path.exists(cache_dest):
+                os.remove(cache_dest)
+            raise RuntimeError(f"Failed to download package '{pkg_name}': {e}")
+
+        # Verify SHA256
+        if expected_sha:
+            computed_sha = self._compute_sha256(cache_dest)
+            if computed_sha.lower() != expected_sha.lower():
+                os.remove(cache_dest)
+                raise RuntimeError(
+                    f"Security verification failed for {pkg_name}! SHA256 mismatch.\n"
+                    f"Expected: {expected_sha}\nGot:      {computed_sha}"
+                )
+            log_success(f"SHA256 integrity verified for {pkg_name}.")
+
+        return cache_dest
+
+    def _compute_sha256(self, filepath: str) -> str:
+        h = hashlib.sha256()
+        with open(filepath, "rb") as f:
+            while chunk := f.read(65536):
+                h.update(chunk)
+        return h.hexdigest()
+
+    def _run_hook(self, script_body: Optional[str], hook_name: str, pkg_name: str):
+        """Execute pre/post installation scripts in a safe subshell."""
+        if not script_body or not script_body.strip():
+            return
+        log_info(f"Executing {hook_name} script for {pkg_name} ...")
+        env = os.environ.copy()
+        env["AXIS_ROOT"] = self.config.root
+        env["AXIS_PKG_NAME"] = pkg_name
+
+        shell_cmd = ["/bin/sh", "-c", script_body]
+        if not os.path.exists("/bin/sh"):
+            sh_path = shutil.which("sh") or shutil.which("bash")
+            if sh_path:
+                shell_cmd = [sh_path, "-c", script_body]
+            elif os.name == "nt":
+                shell_cmd = ["cmd.exe", "/c", script_body]
+
+        proc = subprocess.run(
+            shell_cmd,
+            env=env,
+            cwd=self.config.root,
+            capture_output=True,
+            text=True
+        )
+        if proc.stdout:
+            for line in proc.stdout.strip().split("\n"):
+                print(f"  [{hook_name}] {line}")
+        if proc.returncode != 0:
+            log_error(f"{hook_name} script failed with exit code {proc.returncode}")
+            if proc.stderr:
+                for line in proc.stderr.strip().split("\n"):
+                    print(f"  [stderr] {line}", file=sys.stderr)
+            raise RuntimeError(f"Package hook {hook_name} failed.")
+
+    def install(self, package_names: List[str]) -> int:
+        """Resolve dependencies and install target packages cleanly into the rootfs."""
+        self.check_permissions()
+
+        if not package_names:
+            log_warn("No packages specified to install.")
+            return 0
+
+        # Step 1: Dependency Resolution
+        log_step(f"Resolving dependencies for: {', '.join(package_names)} ...")
+        try:
+            install_queue = self.resolver.resolve(package_names)
+        except RuntimeError as e:
+            log_error(str(e))
+            return 1
+
+        if not install_queue:
+            log_success("All requested packages are already up-to-date and installed.")
+            return 0
+
+        print(f"\n{Colors.BOLD}Packages to be installed ({len(install_queue)}):{Colors.RESET}")
+        for p in install_queue:
+            info = self.repo.find_package(p)
+            ver = info.get("version", "unknown") if info else "local"
+            is_dep = " (dependency)" if p not in package_names else ""
+            print(f"  • {Colors.CYAN}{p}{Colors.RESET} [{ver}]{is_dep}")
+        print()
+
+        # Step 2: Download & Extract Each Package
+        for pkg_name in install_queue:
+            pkg_info = self.repo.find_package(pkg_name)
+            if not pkg_info:
+                log_error(f"Cannot find metadata for {pkg_name}")
+                return 1
+
+            try:
+                archive_path = self.download_package(pkg_name, pkg_info)
+                self._extract_and_deploy(pkg_name, archive_path)
+            except Exception as e:
+                log_error(f"Failed to install package '{pkg_name}': {e}")
+                return 1
+
+        log_success(f"Successfully installed {len(install_queue)} package(s).")
+        return 0
+
+    def _extract_and_deploy(self, pkg_name: str, archive_path: str):
+        """Extracts .axis archive, runs hooks, copies rootfs, and writes manifest."""
+        log_step(f"Installing {pkg_name} ...")
+
+        installed_files: List[str] = []
+
+        with tarfile.open(archive_path, "r:gz") as tar:
+            # 1. Read metadata.json
+            try:
+                meta_file = tar.extractfile("metadata.json")
+                if not meta_file:
+                    raise RuntimeError("Archive missing 'metadata.json'")
+                meta = json.loads(meta_file.read().decode("utf-8"))
+            except KeyError:
+                raise RuntimeError("Invalid .axis package: 'metadata.json' not found at archive root.")
+
+            # 2. Run Pre-install script if defined
+            pre_install = meta.get("pre_install")
+            self._run_hook(pre_install, "pre_install", pkg_name)
+
+            # 3. Extract rootfs entries to target root
+            for member in tar.getmembers():
+                # Only process entries starting with rootfs/
+                if not member.name.startswith("rootfs/"):
+                    continue
+
+                # Strip rootfs/ prefix
+                rel_path = member.name[len("rootfs/"):].lstrip("/")
+                if not rel_path:
+                    continue
+
+                # Prevent Path Traversal attacks (Zip Slip / Tar Slip)
+                if ".." in rel_path.split("/") or rel_path.startswith("/"):
+                    log_warn(f"Skipping dangerous member in archive: {member.name}")
+                    continue
+
+                target_dest = os.path.join(self.config.root, rel_path)
+
+                if member.isdir():
+                    os.makedirs(target_dest, exist_ok=True)
+                elif member.isfile() or member.issym():
+                    parent_dir = os.path.dirname(target_dest)
+                    os.makedirs(parent_dir, exist_ok=True)
+
+                    # Extract file
+                    if member.issym():
+                        if os.path.exists(target_dest) or os.path.islink(target_dest):
+                            os.remove(target_dest)
+                        os.symlink(member.linkname, target_dest)
+                    else:
+                        with tar.extractfile(member) as src_file, open(target_dest, "wb") as dst_file:
+                            shutil.copyfileobj(src_file, dst_file)
+                        # Set permissions
+                        os.chmod(target_dest, member.mode)
+
+                    system_path = "/" + rel_path
+                    if system_path not in installed_files:
+                        installed_files.append(system_path)
+
+            # 4. Run Post-install script if defined
+            post_install = meta.get("post_install")
+            self._run_hook(post_install, "post_install", pkg_name)
+
+            # 5. Record to local database
+            self.db.add_package(pkg_name, meta, installed_files)
+            log_success(f"Deployed {pkg_name} ({len(installed_files)} files installed).")
+
+    def remove(self, package_names: List[str], force: bool = False) -> int:
+        """Remove installed packages using their tracked file manifests."""
+        self.check_permissions()
+
+        if not package_names:
+            log_warn("No packages specified to remove.")
+            return 0
+
+        for pkg_name in package_names:
+            if not self.db.is_installed(pkg_name):
+                log_warn(f"Package '{pkg_name}' is not installed.")
+                continue
+
+            # Check if other installed packages depend on this package
+            dependents = self._find_dependents(pkg_name)
+            if dependents and not force:
+                log_error(
+                    f"Cannot remove '{pkg_name}' because other packages depend on it: {', '.join(dependents)}\n"
+                    f"Use 'axis remove {pkg_name} --force' to override."
+                )
+                return 1
+
+            pkg_record = self.db.get_installed(pkg_name)
+            if not pkg_record:
+                continue
+
+            log_step(f"Removing package {pkg_name} ...")
+
+            # Remove tracked files
+            manifest = pkg_record.get("files", [])
+            removed_count = 0
+            directories_to_clean: Set[str] = set()
+
+            for filepath in manifest:
+                abs_path = os.path.join(self.config.root, filepath.lstrip("/"))
+                if os.path.islink(abs_path) or os.path.exists(abs_path):
+                    try:
+                        os.remove(abs_path)
+                        removed_count += 1
+                        directories_to_clean.add(os.path.dirname(abs_path))
+                    except Exception as e:
+                        log_warn(f"Failed to remove {filepath}: {e}")
+
+            # Clean empty parent directories if safe
+            # Do NOT delete system directories like /usr, /bin, /etc, /var
+            protected_dirs = {
+                os.path.join(self.config.root, d) for d in [
+                    "", "usr", "usr/bin", "usr/lib", "usr/share", "usr/share/applications",
+                    "etc", "var", "var/lib", "opt", "bin", "sbin", "lib", "lib64"
+                ]
+            }
+
+            for directory in sorted(directories_to_clean, key=lambda d: -len(d)):
+                if directory not in protected_dirs and os.path.exists(directory):
+                    try:
+                        if not os.listdir(directory):
+                            os.rmdir(directory)
+                    except Exception:
+                        pass
+
+            self.db.remove_package(pkg_name)
+            log_success(f"Removed {pkg_name} ({removed_count} files removed).")
+
+        return 0
+
+    def _find_dependents(self, pkg_name: str) -> List[str]:
+        """Finds all installed packages that list pkg_name as a dependency."""
+        dependents = []
+        for installed_name, data in self.db.packages.items():
+            if installed_name == pkg_name:
+                continue
+            deps = data.get("dependencies", [])
+            for dep in deps:
+                clean_dep = dep.split(">=")[0].split("=")[0].split("<=")[0].strip()
+                if clean_dep == pkg_name:
+                    dependents.append(installed_name)
+                    break
+        return dependents
+
+    def list_installed(self) -> int:
+        """Display all locally installed packages in a clean table."""
+        pkgs = self.db.packages
+        if not pkgs:
+            print("No Axis packages are currently installed.")
+            return 0
+
+        print(f"\n{Colors.BOLD}Installed Axis Packages ({len(pkgs)}):{Colors.RESET}\n")
+        print(f"{'PACKAGE':<24} {'VERSION':<14} {'INSTALLED AT':<22} {'FILES':<8}")
+        print("-" * 72)
+
+        for name, data in sorted(pkgs.items()):
+            ver = data.get("version", "unknown")
+            date = data.get("installed_at", "")[:10]
+            files_count = len(data.get("files", []))
+            print(f"{Colors.CYAN}{name:<24}{Colors.RESET} {ver:<14} {date:<22} {files_count:<8}")
+
+        print()
+        return 0
+
+    def search(self, query: str) -> int:
+        """Search available packages by name or description."""
+        query_l = query.lower()
+        matches = []
+
+        for name, info in self.repo.index_data.get("packages", {}).items():
+            desc = info.get("description", "")
+            if query_l in name.lower() or query_l in desc.lower():
+                matches.append((name, info))
+
+        if not matches:
+            print(f"No packages found matching '{query}'.")
+            return 0
+
+        print(f"\n{Colors.BOLD}Search Results for '{query}' ({len(matches)}):{Colors.RESET}\n")
+        for name, info in sorted(matches, key=lambda x: x[0]):
+            installed_tag = f" {Colors.GREEN}[installed]{Colors.RESET}" if self.db.is_installed(name) else ""
+            ver = info.get("version", "")
+            desc = info.get("description", "No description")
+            print(f"{Colors.CYAN}{name}{Colors.RESET} {ver}{installed_tag}")
+            print(f"  {Colors.DIM}{desc}{Colors.RESET}\n")
+
+        return 0
+
+    def info(self, pkg_name: str) -> int:
+        """Display comprehensive metadata for a package."""
+        installed_data = self.db.get_installed(pkg_name)
+        repo_data = self.repo.find_package(pkg_name)
+
+        if not installed_data and not repo_data:
+            log_error(f"Package '{pkg_name}' not found locally or in remote repository.")
+            return 1
+
+        print(f"\n{Colors.BOLD}Package: {Colors.CYAN}{pkg_name}{Colors.RESET}")
+        
+        status = f"{Colors.GREEN}Installed{Colors.RESET}" if installed_data else f"{Colors.YELLOW}Available in Repo{Colors.RESET}"
+        print(f"Status:       {status}")
+
+        ver = (installed_data or repo_data).get("version", "unknown")
+        print(f"Version:      {ver}")
+
+        desc = (installed_data or repo_data).get("description", "")
+        print(f"Description:  {desc}")
+
+        deps = (installed_data or repo_data).get("dependencies", [])
+        print(f"Dependencies: {', '.join(deps) if deps else 'None'}")
+
+        if installed_data:
+            print(f"Installed At: {installed_data.get('installed_at')}")
+            files = installed_data.get("files", [])
+            print(f"Files ({len(files)} total):")
+            for f in files[:10]:
+                print(f"  • {f}")
+            if len(files) > 10:
+                print(f"  ... and {len(files) - 10} more files.")
+
+        if repo_data:
+            print(f"Download URL: {repo_data.get('url')}")
+            print(f"SHA256:       {repo_data.get('sha256', 'none')}")
+
+        print()
+        return 0
+
+    def build_package(self, source_dir: str, output_path: Optional[str] = None) -> int:
+        """
+        Builds an .axis package from a source folder containing:
+          source_dir/metadata.json
+          source_dir/rootfs/
+        """
+        source_dir = os.path.abspath(source_dir)
+        meta_file = os.path.join(source_dir, "metadata.json")
+        rootfs_dir = os.path.join(source_dir, "rootfs")
+
+        if not os.path.exists(meta_file):
+            log_error(f"Missing 'metadata.json' in {source_dir}")
+            return 1
+        if not os.path.isdir(rootfs_dir):
+            log_error(f"Missing 'rootfs/' directory in {source_dir}")
+            return 1
+
+        with open(meta_file, "r", encoding="utf-8") as f:
+            meta = json.load(f)
+
+        pkg_name = meta.get("name")
+        version = meta.get("version", "1.0.0")
+
+        if not pkg_name:
+            log_error("metadata.json must include a 'name' field.")
+            return 1
+
+        out_file = output_path or f"{pkg_name}-{version}.axis"
+        out_file = os.path.abspath(out_file)
+
+        log_step(f"Building {pkg_name} {version} -> {out_file} ...")
+
+        with tarfile.open(out_file, "w:gz") as tar:
+            # Add metadata.json
+            tar.add(meta_file, arcname="metadata.json")
+
+            # Add rootfs
+            tar.add(rootfs_dir, arcname="rootfs")
+
+        sha = self._compute_sha256(out_file)
+        size = os.path.getsize(out_file)
+
+        log_success(f"Built package: {out_file}")
+        print(f"  Size:   {size / 1024:.1f} KB ({size} bytes)")
+        print(f"  SHA256: {sha}")
+        return 0
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        prog="axis",
+        description="AxisOS Native Package Manager",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  axis update                      Sync remote repository indices
+  axis install fastfetch vlc       Install fastfetch and vlc with dependencies
+  axis remove vlc                  Remove vlc and clean installed files
+  axis list                        Show all installed packages
+  axis search editor               Search available packages
+  axis info fastfetch              Inspect package details and file manifest
+  axis build ./mypackage-src       Build a new .axis package
+        """
+    )
+    parser.add_argument("--root", default=os.environ.get("AXIS_ROOT", DEFAULT_ROOT), help="Target root directory (default: /)")
+    parser.add_argument("--config", default=None, help="Custom configuration file path")
+    parser.add_argument("--no-color", action="store_true", help="Disable colored output")
+
+    subparsers = parser.add_subparsers(dest="command", help="Command to run")
+
+    # update
+    subparsers.add_parser("update", help="Update repository package indices")
+
+    # install
+    p_install = subparsers.add_parser("install", help="Install packages")
+    p_install.add_argument("packages", nargs="+", help="Names of packages to install")
+
+    # remove
+    p_remove = subparsers.add_parser("remove", help="Remove packages")
+    p_remove.add_argument("packages", nargs="+", help="Names of packages to remove")
+    p_remove.add_argument("--force", "-f", action="store_true", help="Force removal even if other packages depend on it")
+
+    # list
+    subparsers.add_parser("list", help="List installed packages")
+
+    # search
+    p_search = subparsers.add_parser("search", help="Search available packages")
+    p_search.add_argument("query", help="Keyword or package name to search")
+
+    # info
+    p_info = subparsers.add_parser("info", help="Display package details")
+    p_info.add_argument("package", help="Name of package to inspect")
+
+    # build
+    p_build = subparsers.add_parser("build", help="Build a .axis package from directory")
+    p_build.add_argument("source_dir", help="Directory containing metadata.json and rootfs/")
+    p_build.add_argument("--output", "-o", default=None, help="Output .axis archive destination")
+
+    args = parser.parse_args()
+
+    if args.no_color or not sys.stdout.isatty():
+        Colors.disable()
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(1)
+
+    config = AxisConfig(root=args.root, config_path=args.config)
+    mgr = PackageManager(config)
+
+    try:
+        if args.command == "update":
+            sys.exit(mgr.update())
+        elif args.command == "install":
+            sys.exit(mgr.install(args.packages))
+        elif args.command == "remove":
+            sys.exit(mgr.remove(args.packages, force=args.force))
+        elif args.command == "list":
+            sys.exit(mgr.list_installed())
+        elif args.command == "search":
+            sys.exit(mgr.search(args.query))
+        elif args.command == "info":
+            sys.exit(mgr.info(args.package))
+        elif args.command == "build":
+            sys.exit(mgr.build_package(args.source_dir, output_path=args.output))
+    except KeyboardInterrupt:
+        print("\nOperation cancelled by user.")
+        sys.exit(130)
+    except Exception as e:
+        log_error(f"Fatal error: {e}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

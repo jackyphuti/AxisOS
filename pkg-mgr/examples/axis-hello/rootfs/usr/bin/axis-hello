@@ -1,0 +1,5 @@
+#!/bin/sh
+echo "========================================="
+echo "   Welcome to AxisOS Linux 1.0 Horizon   "
+echo "========================================="
+echo "Native Package Manager 'axis' is working!"

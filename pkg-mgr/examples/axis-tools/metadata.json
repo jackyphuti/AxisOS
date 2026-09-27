@@ -1,0 +1,9 @@
+{
+  "name": "axis-tools",
+  "version": "1.2.0",
+  "description": "Essential CLI utilities for AxisOS power users",
+  "maintainer": "AxisOS Core Team <dev@axisos.org>",
+  "dependencies": ["axis-hello"],
+  "pre_install": "echo 'Preparing axis-tools installation...'",
+  "post_install": "echo 'axis-tools installed successfully!'"
+}

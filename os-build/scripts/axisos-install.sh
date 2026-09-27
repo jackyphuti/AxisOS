@@ -309,6 +309,9 @@ Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
 Unattended-Upgrade::Automatic-Reboot "false";
 EOF
 
+# Ensure native Axis package manager is executable in installed system
+[ -f /mnt/usr/bin/axis ] && chmod +x /mnt/usr/bin/axis
+
 # Enable apt-daily background timers
 chroot /mnt systemctl enable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
 

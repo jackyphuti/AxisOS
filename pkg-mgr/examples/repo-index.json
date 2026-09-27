@@ -1,0 +1,28 @@
+{
+  "version": "1.0",
+  "updated_at": "2026-09-27T14:55:00.455989Z",
+  "packages": {
+    "axis-hello": {
+      "name": "axis-hello",
+      "version": "1.0.0",
+      "description": "Welcome utility and demonstration package for AxisOS",
+      "dependencies": [],
+      "sha256": "814d4c18755d5955ccd4b308e9fa8d9818230d9b23a1fb6ecbfa011af8fcc28d",
+      "size": 914,
+      "url": "file:///c:/Users/jacky/Documents/GitHub/AxisOS/pkg-mgr/examples/axis-hello-1.0.0.axis",
+      "maintainer": "AxisOS Core Team <dev@axisos.org>"
+    },
+    "axis-tools": {
+      "name": "axis-tools",
+      "version": "1.2.0",
+      "description": "Essential CLI utilities for AxisOS power users",
+      "dependencies": [
+        "axis-hello"
+      ],
+      "sha256": "bbf73d272fc21376065d15bfa59dd87c22734f66357dd5b504d2a5977f45e312",
+      "size": 583,
+      "url": "file:///c:/Users/jacky/Documents/GitHub/AxisOS/pkg-mgr/examples/axis-tools-1.2.0.axis",
+      "maintainer": "AxisOS Core Team <dev@axisos.org>"
+    }
+  }
+}
