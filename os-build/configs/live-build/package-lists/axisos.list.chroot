@@ -1,0 +1,51 @@
+# AxisOS Core Kernel & System Packages
+linux-image-amd64
+systemd
+systemd-sysv
+udev
+dbus
+seatd
+sudo
+
+# Networking & Connectivity
+network-manager
+wpasupplicant
+iproute2
+curl
+wget
+
+# Audio Stack
+pipewire
+pipewire-pulse
+pipewire-audio
+wireplumber
+
+# Wayland Compositor & Graphics
+cage
+xwayland
+mesa-va-drivers
+mesa-vulkan-drivers
+
+# Shell Runtime (Chromium kiosk / Electron)
+chromium
+
+# Filesystems & Partitioning Tools
+btrfs-progs
+dosfstools
+e2fsprogs
+parted
+gdisk
+
+# Bootloader
+grub-efi-amd64-signed
+grub-pc-bin
+efibootmgr
+
+# Utilities
+bash
+coreutils
+pciutils
+usbutils
+nano
+htop
+neofetch

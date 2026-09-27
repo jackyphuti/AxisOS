@@ -1,0 +1,23 @@
+[Unit]
+Description=AxisOS Desktop Shell Session
+After=systemd-user-sessions.service network.target sound.target
+Wants=network.target sound.target
+Conflicts=getty@tty1.service
+
+[Service]
+User=axis
+Group=axis
+PAMName=login
+Type=simple
+TTYPath=/dev/tty1
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+UtmpIdentifier=tty1
+UtmpMode=user
+ExecStart=/usr/local/bin/axisos-kiosk.sh
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical.target

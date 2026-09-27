@@ -1,0 +1,68 @@
+export type AppId =
+  | 'installer'
+  | 'settings'
+  | 'terminal'
+  | 'file-manager'
+  | 'text-editor'
+  | 'system-monitor'
+  | 'browser'
+  | 'calculator'
+  | 'about';
+
+export interface AppDefinition {
+  id: AppId;
+  title: string;
+  category: 'system' | 'utilities' | 'accessories';
+  description: string;
+  defaultWidth: number;
+  defaultHeight: number;
+  isPinned: boolean;
+}
+
+export interface WindowState {
+  id: string;
+  appId: AppId;
+  title: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  isMinimized: boolean;
+  isMaximized: boolean;
+  zIndex: number;
+}
+
+export type SystemTheme = 'dark' | 'light';
+
+export type AccentColor = 'blue' | 'cyan' | 'purple' | 'emerald' | 'amber' | 'rose';
+
+export interface SystemInfo {
+  osName: string;
+  osVersion: string;
+  kernelVersion: string;
+  architecture: string;
+  compositor: string;
+  initSystem: string;
+  shellVersion: string;
+  cpuModel: string;
+  cpuCores: number;
+  gpuModel: string;
+  totalMemory: string;
+  freeMemory: string;
+  storageCapacity: string;
+  hostname: string;
+  username: string;
+  uptime: string;
+}
+
+export interface InstallerData {
+  language: string;
+  keyboardLayout: string;
+  targetDisk: string;
+  eraseDisk: boolean;
+  userFullName: string;
+  username: string;
+  computerName: string;
+  password: string;
+  autoLogin: boolean;
+}
