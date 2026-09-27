@@ -78,21 +78,26 @@ if (-not (Test-Path $IsoPath)) {
     }
 }
 
-# Ensure virtual hard disk exists for installation testing
+# Ensure KVM permissions and virtual disk exist
+wsl -d Ubuntu-26.04 -u root bash -c "chmod 666 /dev/kvm 2>/dev/null || true"
 wsl -d Ubuntu-26.04 bash -c "if [ ! -f '$WslDiskPath' ]; then qemu-img create -f qcow2 '$WslDiskPath' 20G; fi"
 
 Write-Host ""
-Write-Host "Launching QEMU with KVM hardware acceleration..." -ForegroundColor Green
+Write-Host "Launching QEMU Virtual Machine..." -ForegroundColor Green
 Write-Host "A GUI window will appear shortly." -ForegroundColor Cyan
 Write-Host ""
 
-# Launch QEMU with GTK or SDL display with KVM acceleration
-$QemuCmd = "qemu-system-x86_64 -enable-kvm -cpu host -m $RamMB -smp $Cores " +
+# Check KVM availability
+$HasKvm = (wsl -d Ubuntu-26.04 bash -c "test -r /dev/kvm -a -w /dev/kvm && echo 'yes'") -eq "yes"
+$AccelFlag = if ($HasKvm) { "-enable-kvm -cpu host" } else { "-cpu max" }
+
+$QemuArgs = "$AccelFlag -m $RamMB -smp $Cores " +
     "-drive file='$WslDiskPath',if=virtio,format=qcow2 " +
     "-cdrom '$WslIsoPath' -boot d " +
-    "-vga virtio -display gtk,gl=on " +
+    "-vga virtio -display gtk " +
     "-device virtio-net-pci,netdev=net0 -netdev user,id=net0 " +
     "-device intel-hda -device hda-duplex " +
     "-usb -device usb-tablet"
 
-wsl -d Ubuntu-26.04 bash -c "export DISPLAY=:0; $QemuCmd || qemu-system-x86_64 -enable-kvm -cpu host -m $RamMB -smp $Cores -drive file='$WslDiskPath',if=virtio,format=qcow2 -cdrom '$WslIsoPath' -boot d -vga virtio -display sdl -device virtio-net-pci,netdev=net0 -netdev user,id=net0 -device intel-hda -device hda-duplex -usb -device usb-tablet"
+wsl -d Ubuntu-26.04 bash -c "export DISPLAY=:0; qemu-system-x86_64 $QemuArgs || qemu-system-x86_64 -cpu max -m $RamMB -smp $Cores -drive file='$WslDiskPath',if=virtio,format=qcow2 -cdrom '$WslIsoPath' -boot d -vga virtio -display sdl -device virtio-net-pci,netdev=net0 -netdev user,id=net0 -device intel-hda -device hda-duplex -usb -device usb-tablet"
+
