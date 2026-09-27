@@ -20,6 +20,11 @@ echo "Build Dir: $BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
+# Patch legacy live-build 3.0 /updates URL to Debian 12 Bookworm -security
+if [ -f /usr/lib/live/build/lb_chroot_archives ]; then
+    sed -i 's|/updates|-security|g' /usr/lib/live/build/lb_chroot_archives 2>/dev/null || true
+fi
+
 # Clean any previous build artifacts
 lb clean --purge || true
 
