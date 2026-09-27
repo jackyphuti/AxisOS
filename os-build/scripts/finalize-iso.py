@@ -11,7 +11,7 @@ print("=== Generating SHA256 Checksums ===")
 subprocess.run(["sh", "-c", "cd /build/binary && find . -type f ! -name SHA256SUMS | sort | xargs sha256sum > SHA256SUMS"], check=True)
 
 print("=== Building Hybrid ISO with live-build ===")
-subprocess.run(["sh", "-c", "cd /build && rm -f binary.hybrid.iso binary.iso chroot/binary.hybrid.iso && lb binary_iso"], check=True)
+subprocess.run(["sh", "-c", "cd /build && rm -f .build/binary_iso binary.hybrid.iso binary.iso chroot/binary.hybrid.iso && lb binary_iso"], check=True)
 
 # Find generated ISO
 candidates = [

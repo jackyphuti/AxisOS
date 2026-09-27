@@ -18,6 +18,7 @@ UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=AxisOS
 Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=always
 RestartSec=2
