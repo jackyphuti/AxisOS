@@ -313,8 +313,6 @@ EOF
 [ -f /mnt/usr/bin/axis ] && chmod +x /mnt/usr/bin/axis
 
 # Enable apt-daily background timers
-chroot /mnt systemctl enable apt-daily.timer apt-daily-upgrade.timer 2>/dev/null || true
-
 report 90 "Installing and generating GRUB EFI bootloader..."
 if [[ "$IS_UEFI" == "true" ]]; then
     chroot /mnt grub-install \
@@ -325,6 +323,11 @@ if [[ "$IS_UEFI" == "true" ]]; then
             log "Warning: EFI grub-install failed, trying fallback removable target..."
             chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=AxisOS --removable || true
         }
+    # Always ensure standard UEFI fallback /EFI/BOOT/BOOTX64.EFI exists for Lenovo, HP, Dell, Acer motherboards
+    mkdir -p /mnt/boot/efi/EFI/BOOT
+    if [[ -f /mnt/boot/efi/EFI/AxisOS/grubx64.efi ]]; then
+        cp /mnt/boot/efi/EFI/AxisOS/grubx64.efi /mnt/boot/efi/EFI/BOOT/BOOTX64.EFI
+    fi
 else
     chroot /mnt grub-install --target=i386-pc "$TARGET_DISK" || true
 fi

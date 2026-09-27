@@ -3,9 +3,21 @@
 <div align="center">
   <h3>▲ AxisOS 1.0 "Horizon"</h3>
   <p>A modern, fluid, glassmorphic Linux operating system combining the Linux kernel, Cage Wayland compositor, and a hardware-accelerated desktop shell.</p>
+
+  <p>
+    <a href="./INSTALLATION_GUIDE.md"><b>📖 Read the Installation Guide</b></a> •
+    <a href="https://github.com/jackyphuti/AxisOS/releases"><b>⬇️ Download ISO</b></a> •
+    <a href="#-quick-start"><b>🚀 Quick Start</b></a>
+  </p>
 </div>
 
 ---
+
+## 📖 Installation & Hardware Deployment
+
+For full, step-by-step instructions on creating a bootable USB drive, configuring motherboard BIOS (Lenovo, Dell, HP, ASUS), booting live, and installing AxisOS permanently to an internal or external drive, please see:
+
+👉 **[Complete AxisOS Installation Guide](INSTALLATION_GUIDE.md)**
 
 ## 🌟 Overview
 
