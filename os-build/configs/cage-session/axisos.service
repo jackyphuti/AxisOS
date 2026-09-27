@@ -1,7 +1,7 @@
 [Unit]
 Description=AxisOS Desktop Shell Session
-After=systemd-user-sessions.service network.target sound.target axisos-daemon.service
-Wants=network.target sound.target axisos-daemon.service
+After=systemd-user-sessions.service network.target sound.target axisos-daemon.service seatd.service
+Wants=network.target sound.target axisos-daemon.service seatd.service
 Conflicts=getty@tty1.service
 
 [Service]
@@ -9,12 +9,9 @@ User=axis
 Group=axis
 PAMName=login
 Type=simple
-TTYPath=/dev/tty1
-StandardInput=tty
+StandardInput=null
 StandardOutput=journal
 StandardError=journal
-UtmpIdentifier=tty1
-UtmpMode=user
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=AxisOS
 Environment=WAYLAND_DISPLAY=wayland-0
