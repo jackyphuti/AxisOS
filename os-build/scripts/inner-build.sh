@@ -80,7 +80,7 @@ lb config \
     --cache-packages true \
     --cache-stages none \
     --bootloader syslinux \
-    --bootappend-live "boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash" \
+    --bootappend-live "boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash init=/lib/systemd/systemd systemd.default_unit=graphical.target autologin" \
     --security true \
     --iso-application "AxisOS Linux 1.0 Horizon" \
     --iso-publisher "AxisOS Project" \

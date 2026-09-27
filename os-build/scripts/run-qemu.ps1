@@ -96,8 +96,8 @@ $QemuArgs = "$AccelFlag -m $RamMB -smp $Cores " +
     "-cdrom '$WslIsoPath' -boot d " +
     "-vga virtio -display gtk " +
     "-device virtio-net-pci,netdev=net0 -netdev user,id=net0 " +
-    "-device intel-hda -device hda-duplex " +
+    "-audiodev pa,id=snd0,server=unix:/mnt/wslg/PulseServer -device intel-hda -device hda-duplex,audiodev=snd0 " +
     "-usb -device usb-tablet"
 
-wsl -d Ubuntu-26.04 bash -c "export DISPLAY=:0; qemu-system-x86_64 $QemuArgs || qemu-system-x86_64 -cpu max -m $RamMB -smp $Cores -drive file='$WslDiskPath',if=virtio,format=qcow2 -cdrom '$WslIsoPath' -boot d -vga virtio -display sdl -device virtio-net-pci,netdev=net0 -netdev user,id=net0 -device intel-hda -device hda-duplex -usb -device usb-tablet"
+wsl -d Ubuntu-26.04 bash -c "export DISPLAY=:0; export PULSE_SERVER=unix:/mnt/wslg/PulseServer; qemu-system-x86_64 $QemuArgs || qemu-system-x86_64 -cpu max -m $RamMB -smp $Cores -drive file='$WslDiskPath',if=virtio,format=qcow2 -cdrom '$WslIsoPath' -boot d -vga virtio -display sdl -device virtio-net-pci,netdev=net0 -netdev user,id=net0 -audiodev pa,id=snd0,server=unix:/mnt/wslg/PulseServer -device intel-hda -device hda-duplex,audiodev=snd0 -usb -device usb-tablet"
 

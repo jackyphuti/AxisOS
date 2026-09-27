@@ -15,6 +15,9 @@ firmware-linux-free
 # Init & Base System
 systemd
 systemd-sysv
+libpam-systemd
+libnss-systemd
+dbus-user-session
 udev
 dbus
 seatd
