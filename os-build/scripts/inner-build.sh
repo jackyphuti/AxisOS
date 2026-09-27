@@ -34,12 +34,25 @@ lb config \
     --distribution bookworm \
     --architecture amd64 \
     --archive-areas "main contrib non-free non-free-firmware" \
+    --mirror-bootstrap "http://deb.debian.org/debian/" \
+    --parent-mirror-bootstrap "http://deb.debian.org/debian/" \
+    --mirror-chroot "http://deb.debian.org/debian/" \
+    --parent-mirror-chroot "http://deb.debian.org/debian/" \
+    --mirror-chroot-security "http://deb.debian.org/debian-security/" \
+    --parent-mirror-chroot-security "http://deb.debian.org/debian-security/" \
+    --mirror-binary "http://deb.debian.org/debian/" \
+    --parent-mirror-binary "http://deb.debian.org/debian/" \
+    --mirror-binary-security "http://deb.debian.org/debian-security/" \
+    --parent-mirror-binary-security "http://deb.debian.org/debian-security/" \
+    --cache false \
     --bootloader syslinux \
     --bootappend-live "boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash" \
     --security true \
     --iso-application "AxisOS Linux 1.0 Horizon" \
     --iso-publisher "AxisOS Project" \
     --iso-volume "AXISOS_LIVE" \
+    --firmware-chroot false \
+    --firmware-binary false \
     --memtest none
 
 # 1. Package lists
