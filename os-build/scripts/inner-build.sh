@@ -180,6 +180,13 @@ if [ -d "$BUILD_DIR/chroot" ]; then
     mkdir -p "$BUILD_DIR/chroot/usr/lib/syslinux"
     cp /usr/lib/ISOLINUX/isolinux.bin "$BUILD_DIR/chroot/usr/lib/syslinux/isolinux.bin" 2>/dev/null || true
     cp /usr/lib/syslinux/modules/bios/*.c32 "$BUILD_DIR/chroot/usr/lib/syslinux/" 2>/dev/null || true
+    which isohybrid && cp $(which isohybrid) "$BUILD_DIR/chroot/usr/bin/isohybrid" 2>/dev/null || true
+fi
+
+# Ensure isohybrid binary is packaged into chroot
+if which isohybrid >/dev/null 2>&1; then
+    cp $(which isohybrid) config/includes.chroot/usr/bin/isohybrid 2>/dev/null || true
+    chmod +x config/includes.chroot/usr/bin/isohybrid 2>/dev/null || true
 fi
 
 # 7. Execute live-build
@@ -187,8 +194,9 @@ echo "=== Running lb build ==="
 lb build
 
 # 7. Copy output ISO
-OUTPUT_ISO=$(ls live-image-amd64.hybrid.iso 2>/dev/null || ls *.iso 2>/dev/null | head -n1)
+OUTPUT_ISO=$(ls live-image-amd64.hybrid.iso binary.hybrid.iso chroot/binary.hybrid.iso *.iso 2>/dev/null | head -n1)
 if [ -n "$OUTPUT_ISO" ] && [ -f "$OUTPUT_ISO" ]; then
+    which isohybrid >/dev/null 2>&1 && isohybrid "$OUTPUT_ISO" 2>/dev/null || true
     cp "$OUTPUT_ISO" "$WORKSPACE_DIR/axisos-live-amd64.iso"
     echo "=================================================="
     echo " SUCCESS: AxisOS Bootable Hybrid ISO generated!"

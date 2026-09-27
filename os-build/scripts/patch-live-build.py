@@ -1,34 +1,26 @@
 #!/usr/bin/env python3
 import sys
 
-def patch_file(path, search_str, replace_str):
-    with open(path, "r") as f:
-        content = f.read()
-    if search_str in content:
-        content = content.replace(search_str, replace_str, 1)
-        with open(path, "w") as f:
-            f.write(content)
-        print(f"Patched: {path}")
-        return True
-    print(f"Already patched or pattern not found: {path}")
-    return False
+path = "/usr/lib/live/build/lb_binary_syslinux"
+with open(path, "r") as f:
+    content = f.read()
 
-# 1. Patch lb_binary_syslinux for bootlogo
-search_bootlogo = """tmpdir="$(mktemp -d)"
-(cd "$tmpdir" && cpio -i) < ${_TARGET}/bootlogo"""
+# 1. Safe bootlogo extraction
+target = '(cd "$tmpdir" && cpio -i) < ${_TARGET}/bootlogo'
+safe_target = 'if [ -e "${_TARGET}/bootlogo" ]; then\n(cd "$tmpdir" && cpio -i) < ${_TARGET}/bootlogo'
+end_target = '(cd "$tmpdir" && ls -1 | cpio --quiet -o) > ${_TARGET}/bootlogo\nrm -rf "$tmpdir"'
+safe_end_target = '(cd "$tmpdir" && ls -1 | cpio --quiet -o) > ${_TARGET}/bootlogo\nrm -rf "$tmpdir"\nfi'
 
-replace_bootlogo = """if [ -e "${_TARGET}/bootlogo" ]; then
-tmpdir="$(mktemp -d)"
-(cd "$tmpdir" && cpio -i) < ${_TARGET}/bootlogo"""
+if 'if [ -e "${_TARGET}/bootlogo" ]; then' not in content:
+    if target in content and end_target in content:
+        content = content.replace(target, safe_target, 1)
+        content = content.replace(end_target, safe_end_target, 1)
 
-search_rm = """rm -rf "$tmpdir"
+# 2. Idempotent vmlinuz and initrd rename
+content = content.replace("mv binary/live/vmlinuz-* binary/live/vmlinuz", "mv binary/live/vmlinuz-* binary/live/vmlinuz 2>/dev/null || true")
+content = content.replace("mv binary/live/initrd.img-* binary/live/initrd.img", "mv binary/live/initrd.img-* binary/live/initrd.img 2>/dev/null || true")
 
-case "${LB_BUILD_WITH_CHROOT}" in"""
+with open(path, "w") as f:
+    f.write(content)
 
-replace_rm = """rm -rf "$tmpdir"
-fi
-
-case "${LB_BUILD_WITH_CHROOT}" in"""
-
-patch_file("/usr/lib/live/build/lb_binary_syslinux", search_bootlogo, replace_bootlogo)
-patch_file("/usr/lib/live/build/lb_binary_syslinux", search_rm, replace_rm)
+print("lb_binary_syslinux patched successfully.")

@@ -71,6 +71,7 @@ efibootmgr
 isolinux
 syslinux
 syslinux-common
+syslinux-utils
 
 # System Diagnostics & Utilities
 bash
