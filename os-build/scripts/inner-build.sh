@@ -48,15 +48,17 @@ cp /usr/lib/syslinux/modules/bios/ldlinux.c32 /usr/share/live/build/bootloaders/
 cp /usr/lib/syslinux/modules/bios/libutil.c32 /usr/share/live/build/bootloaders/syslinux/libutil.c32 2>/dev/null || true
 cp /usr/lib/syslinux/modules/bios/libcom32.c32 /usr/share/live/build/bootloaders/syslinux/libcom32.c32 2>/dev/null || true
 
-# Smart clean: Preserve fully built chroot if available
-if [ -f "$BUILD_DIR/.build/chroot_package-lists.live" ] && [ -d "$BUILD_DIR/chroot/boot" ]; then
-    echo "Found verified chroot. Cleaning only binary stage to avoid re-downloading packages..."
-    lb clean --binary || true
-    rm -rf binary chroot/root/isolinux* .build/binary_*
-else
-    echo "Performing clean live-build initialization..."
-    lb clean --purge || true
-fi
+# Save existing downloaded deb packages to save download time
+mkdir -p /tmp/axisos-deb-cache
+cp -r "$BUILD_DIR"/cache/packages.* /tmp/axisos-deb-cache/ 2>/dev/null || true
+
+# Clean any previous broken stages to ensure deterministic build
+lb clean --purge || true
+rm -rf "$BUILD_DIR"/chroot "$BUILD_DIR"/binary "$BUILD_DIR"/.build "$BUILD_DIR"/config "$BUILD_DIR"/.lock
+
+# Restore package cache into fresh build directory
+mkdir -p "$BUILD_DIR"/cache
+cp -r /tmp/axisos-deb-cache/* "$BUILD_DIR"/cache/ 2>/dev/null || true
 
 # Configure live-build with live-boot parameters and UEFI+BIOS hybrid bootloader
 lb config \
@@ -74,7 +76,9 @@ lb config \
     --parent-mirror-binary "http://deb.debian.org/debian/" \
     --mirror-binary-security "http://deb.debian.org/debian-security/" \
     --parent-mirror-binary-security "http://deb.debian.org/debian-security/" \
-    --cache false \
+    --cache true \
+    --cache-packages true \
+    --cache-stages none \
     --bootloader syslinux \
     --bootappend-live "boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash" \
     --security true \
@@ -84,6 +88,12 @@ lb config \
     --firmware-chroot false \
     --firmware-binary false \
     --memtest none
+
+# Bootloader custom template setup
+mkdir -p config/bootloaders/isolinux
+cp -r /usr/share/live/build/bootloaders/isolinux/* config/bootloaders/isolinux/
+mkdir -p config/bootloaders/syslinux
+cp -r /usr/share/live/build/bootloaders/syslinux/* config/bootloaders/syslinux/
 
 # 1. Package lists
 mkdir -p config/package-lists
