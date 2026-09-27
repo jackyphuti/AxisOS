@@ -235,6 +235,155 @@ export const MacIcon: React.FC<MacIconProps> = ({ id, size = 54, className = '' 
         </div>
       );
 
+    case 'music':
+      // Apple Music Style Icon
+      return (
+        <div
+          style={containerStyle}
+          className={`relative rounded-[22%] shadow-lg shadow-rose-950/40 overflow-hidden flex items-center justify-center ${className}`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#fb7185] via-[#f43f5e] to-[#e11d48]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
+          {/* Musical Notes SVG */}
+          <svg viewBox="0 0 60 60" className="w-[65%] h-[65%] z-10 text-white drop-shadow-md">
+            <path
+              fill="currentColor"
+              d="M24 12 L44 8 L44 38 A 7 7 0 1 1 38 32 L38 20 L24 23 L24 44 A 7 7 0 1 1 18 38 L18 12 Z"
+            />
+          </svg>
+          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+        </div>
+      );
+
+    case 'photos':
+      // Apple Photos Flower / Petals Style Icon
+      return (
+        <div
+          style={containerStyle}
+          className={`relative rounded-[22%] shadow-lg shadow-black/40 overflow-hidden flex items-center justify-center bg-white ${className}`}
+        >
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white to-transparent pointer-events-none"></div>
+          {/* Flower Petals */}
+          <div className="relative w-[75%] h-[75%] flex items-center justify-center z-10">
+            <span className="text-3xl">🌸</span>
+          </div>
+          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-black/10 pointer-events-none"></div>
+        </div>
+      );
+
+    case 'notes':
+      // macOS Notes App Icon
+      return (
+        <div
+          style={containerStyle}
+          className={`relative rounded-[22%] shadow-lg shadow-amber-950/40 overflow-hidden flex items-center justify-center ${className}`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#fef08a] via-[#fde047] to-[#eab308]"></div>
+          <div className="absolute inset-x-0 top-0 h-3.5 bg-gradient-to-r from-amber-600 to-amber-700 border-b border-amber-800"></div>
+          <div className="w-[78%] h-[60%] mt-3 flex flex-col justify-around z-10">
+            <div className="h-[1.5px] bg-amber-500/80 w-full"></div>
+            <div className="h-[1.5px] bg-amber-500/80 w-full"></div>
+            <div className="h-[1.5px] bg-amber-500/80 w-3/4"></div>
+          </div>
+          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+        </div>
+      );
+
+    case 'software':
+      // macOS App Store Icon
+      return (
+        <div
+          style={containerStyle}
+          className={`relative rounded-[22%] shadow-lg shadow-blue-950/50 overflow-hidden flex items-center justify-center ${className}`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#38bdf8] via-[#0284c7] to-[#1e40af]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
+          {/* App Store 'A' made of ruler/pencil rods */}
+          <svg viewBox="0 0 64 64" className="w-[68%] h-[68%] z-10 drop-shadow-md">
+            <line x1="16" y1="52" x2="32" y2="14" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+            <line x1="48" y1="52" x2="32" y2="14" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+            <line x1="12" y1="42" x2="52" y2="42" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+          </svg>
+          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+        </div>
+      );
+
+    case 'clock':
+      // macOS Clock Icon
+      return (
+        <div
+          style={containerStyle}
+          className={`relative rounded-[22%] shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#1e293b] to-[#0f172a]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"></div>
+          {/* Clock face */}
+          <div className="relative w-[78%] h-[78%] rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center shadow-inner">
+            {/* Ticks */}
+            <div className="absolute top-1 w-0.5 h-1.5 bg-slate-300"></div>
+            <div className="absolute bottom-1 w-0.5 h-1.5 bg-slate-300"></div>
+            <div className="absolute left-1 w-1.5 h-0.5 bg-slate-300"></div>
+            <div className="absolute right-1 w-1.5 h-0.5 bg-slate-300"></div>
+            {/* Hands */}
+            <div className="absolute w-0.75 h-5 bg-white -translate-y-2 rounded-full origin-bottom rotate-45"></div>
+            <div className="absolute w-0.5 h-7 bg-orange-400 -translate-y-3 rounded-full origin-bottom -rotate-45"></div>
+            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 z-10 border border-white"></div>
+          </div>
+          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/25 pointer-events-none"></div>
+        </div>
+      );
+
+    case 'weather':
+      // macOS Weather Icon
+      return (
+        <div
+          style={containerStyle}
+          className={`relative rounded-[22%] shadow-lg shadow-sky-950/40 overflow-hidden flex items-center justify-center ${className}`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#38bdf8] via-[#0284c7] to-[#0369a1]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
+          {/* Sun & Cloud */}
+          <div className="relative w-[75%] h-[75%] flex items-center justify-center">
+            {/* Sun */}
+            <div className="absolute -top-1 right-1 w-7 h-7 rounded-full bg-amber-400 shadow-md shadow-amber-500/50"></div>
+            {/* Cloud */}
+            <svg viewBox="0 0 40 40" className="w-[85%] h-[85%] z-10 drop-shadow-md">
+              <path
+                d="M10,28 Q6,28 6,24 Q6,20 10,20 Q11,14 17,14 Q22,14 24,18 Q28,18 28,22 Q30,22 30,25 Q30,28 26,28 Z"
+                fill="#ffffff"
+                opacity="0.95"
+              />
+            </svg>
+          </div>
+          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+        </div>
+      );
+
+    case 'camera':
+      // macOS Camera / Photo Booth Icon
+      return (
+        <div
+          style={containerStyle}
+          className={`relative rounded-[22%] shadow-lg shadow-slate-950/60 overflow-hidden flex items-center justify-center ${className}`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-b from-[#64748b] via-[#475569] to-[#334155]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent"></div>
+          {/* Camera body and lens */}
+          <div className="relative w-[78%] h-[70%] rounded-xl bg-gradient-to-b from-slate-800 to-slate-950 border border-slate-600 flex items-center justify-center shadow-md">
+            {/* Lens outer */}
+            <div className="w-8 h-8 rounded-full bg-gradient-to-b from-slate-900 to-black border-2 border-slate-500 flex items-center justify-center shadow-inner">
+              {/* Lens glass reflection */}
+              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-sky-900 to-blue-500 opacity-80 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-white/70 -translate-x-0.5 -translate-y-0.5"></div>
+              </div>
+            </div>
+            {/* Flash / Tally dot */}
+            <div className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-sm shadow-red-500"></div>
+          </div>
+          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+        </div>
+      );
+
     case 'trash':
       // macOS Trash Can
       return (

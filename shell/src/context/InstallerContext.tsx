@@ -1,14 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { InstallerData } from '../types/os';
-import { systemService } from '../services/systemService';
-
-export interface DiskDrive {
-  id: string;
-  name: string;
-  size: string;
-  type: string;
-  freeSpace: string;
-}
+import { systemService, DiskDrive } from '../services/systemService';
 
 export const INSTALL_STEPS = [
   'Welcome',
@@ -33,8 +25,11 @@ interface InstallerContextType {
   isInstalling: boolean;
   installProgress: number;
   installStatusText: string;
+  installLogs: string[];
+  installError: string | null;
   startInstallation: () => void;
   resetInstaller: () => void;
+  refreshDisks: () => void;
 }
 
 const defaultInstallerData: InstallerData = {
@@ -42,48 +37,47 @@ const defaultInstallerData: InstallerData = {
   keyboardLayout: 'English (US) - Standard',
   targetDisk: '/dev/nvme0n1',
   eraseDisk: true,
-  userFullName: 'Jacky Mpoka',
-  username: 'jackympoka',
-  computerName: 'axis-macbook',
+  userFullName: 'AxisOS User',
+  username: 'axis',
+  computerName: 'axis-pc',
   password: '',
   autoLogin: true,
 };
-
-const defaultDisks: DiskDrive[] = [
-  {
-    id: '/dev/nvme0n1',
-    name: 'Wodposit NVMe SSD (238.5 GB)',
-    size: '238.5 GB',
-    type: 'NVMe High-Speed Solid State Drive',
-    freeSpace: '190.2 GB Available',
-  },
-  {
-    id: '/dev/sda',
-    name: 'Samsung SSD 750 EVO (120 GB)',
-    size: '111.8 GB',
-    type: 'SATA Solid State Drive',
-    freeSpace: '92.4 GB Available',
-  },
-];
 
 const InstallerContext = createContext<InstallerContextType | null>(null);
 
 export const InstallerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentStep, setCurrentStep] = useState<InstallStepIndex>(0);
-  const [availableDisks, setAvailableDisks] = useState<DiskDrive[]>(defaultDisks);
+  const [availableDisks, setAvailableDisks] = useState<DiskDrive[]>([]);
   const [installerData, setInstallerData] = useState<InstallerData>(defaultInstallerData);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
   const [installProgress, setInstallProgress] = useState<number>(0);
   const [installStatusText, setInstallStatusText] = useState<string>('Preparing storage...');
+  const [installLogs, setInstallLogs] = useState<string[]>([]);
+  const [installError, setInstallError] = useState<string | null>(null);
 
-  useEffect(() => {
-    systemService.getSystemInfo().then((info) => {
-      if (info.storageDevices && info.storageDevices.length > 0) {
-        setAvailableDisks(info.storageDevices);
+  const pollIntervalRef = useRef<any>(null);
+
+  const refreshDisks = async () => {
+    try {
+      const disks = await systemService.getDisks();
+      if (disks && disks.length > 0) {
+        setAvailableDisks(disks);
         setInstallerData((prev) => ({
           ...prev,
-          targetDisk: info.storageDevices[0].id,
-          username: info.username || prev.username,
+          targetDisk: disks[0].id,
+        }));
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    refreshDisks();
+    systemService.getSystemInfo().then((info) => {
+      if (info.username && info.username !== 'axis') {
+        setInstallerData((prev) => ({
+          ...prev,
+          username: info.username,
         }));
       }
     });
@@ -106,49 +100,69 @@ export const InstallerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const resetInstaller = () => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     setCurrentStep(0);
     setIsInstalling(false);
     setInstallProgress(0);
     setInstallStatusText('Preparing storage...');
+    setInstallLogs([]);
+    setInstallError(null);
   };
 
-  const startInstallation = () => {
+  const startInstallation = async () => {
     setCurrentStep(5);
     setIsInstalling(true);
-    setInstallProgress(0);
+    setInstallProgress(2);
+    setInstallStatusText('Connecting to installation engine...');
+    setInstallLogs([`Initializing deployment on target device ${installerData.targetDisk}...`]);
+    setInstallError(null);
+
+    try {
+      const res = await systemService.startInstall(installerData);
+      if (!res.success && res.message) {
+        setInstallError(res.message);
+      }
+    } catch (e: any) {
+      setInstallError(e.message);
+    }
+
+    // Poll real engine progress
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const status = await systemService.getInstallStatus();
+        if (status.log && status.log.length > 0) {
+          setInstallLogs(status.log);
+        }
+        if (status.statusText) {
+          setInstallStatusText(status.statusText);
+        }
+        if (status.progress !== undefined) {
+          setInstallProgress(status.progress);
+        }
+
+        if (status.completed) {
+          clearInterval(pollIntervalRef.current);
+          setIsInstalling(false);
+          setInstallProgress(100);
+          setInstallStatusText('Installation complete!');
+          setCurrentStep(6);
+        } else if (status.error) {
+          clearInterval(pollIntervalRef.current);
+          setIsInstalling(false);
+          setInstallError(status.error);
+        }
+      } catch (err) {
+        // Continue polling
+      }
+    }, 800);
   };
 
-  // Simulate installation steps when currentStep is 5 (Installing)
   useEffect(() => {
-    if (!isInstalling || currentStep !== 5) return;
-
-    const stages = [
-      { progress: 10, text: `Partitioning ${installerData.targetDisk} (GPT, ESP, Btrfs)...` },
-      { progress: 25, text: 'Formatting root subvolumes with zstd compression...' },
-      { progress: 42, text: 'Unpacking Linux Kernel & base system packages...' },
-      { progress: 60, text: 'Installing Wayland graphics stack and hardware drivers...' },
-      { progress: 75, text: 'Deploying AxisOS Desktop Shell and macOS UI environment...' },
-      { progress: 88, text: 'Configuring user account, hostname, and networking...' },
-      { progress: 95, text: 'Generating GRUB bootloader EFI binaries...' },
-      { progress: 100, text: 'AxisOS installation complete!' },
-    ];
-
-    let currentStageIndex = 0;
-
-    const interval = setInterval(() => {
-      currentStageIndex += 1;
-      if (currentStageIndex < stages.length) {
-        setInstallProgress(stages[currentStageIndex].progress);
-        setInstallStatusText(stages[currentStageIndex].text);
-      } else {
-        clearInterval(interval);
-        setIsInstalling(false);
-        setCurrentStep(6);
-      }
-    }, 1800);
-
-    return () => clearInterval(interval);
-  }, [isInstalling, currentStep, installerData.targetDisk]);
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, []);
 
   return (
     <InstallerContext.Provider
@@ -163,8 +177,11 @@ export const InstallerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isInstalling,
         installProgress,
         installStatusText,
+        installLogs,
+        installError,
         startInstallation,
         resetInstaller,
+        refreshDisks,
       }}
     >
       {children}

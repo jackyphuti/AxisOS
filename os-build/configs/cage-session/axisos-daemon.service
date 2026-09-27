@@ -1,0 +1,19 @@
+[Unit]
+Description=AxisOS Linux System Daemon & API Service
+After=network.target local-fs.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/axisos-shell
+ExecStart=/usr/bin/node /usr/local/bin/axisos-daemon.cjs
+Restart=always
+RestartSec=2
+StandardOutput=journal
+StandardError=journal
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+[Install]
+WantedBy=multi-user.target

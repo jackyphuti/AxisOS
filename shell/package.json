@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "serve": "node server.cjs",
     "start": "tsc && vite build && electron electron/main.cjs"
   },
   "keywords": [

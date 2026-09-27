@@ -1,51 +1,83 @@
-# AxisOS Core Kernel & System Packages
+# ==============================================================================
+# AxisOS Linux - Live ISO Package Manifest (Debian 12 Bookworm Core)
+# ==============================================================================
+
+# Core Linux Kernel & Live Boot Architecture
 linux-image-amd64
+linux-headers-amd64
+live-boot
+live-boot-initramfs-tools
+live-config
+live-config-systemd
+live-tools
+firmware-linux-free
+
+# Init & Base System
 systemd
 systemd-sysv
 udev
 dbus
 seatd
+libseat1
 sudo
+polkitd
+unattended-upgrades
+apt-listchanges
 
-# Networking & Connectivity
+# Networking & Connectivity Stack
 network-manager
 wpasupplicant
 iproute2
 curl
 wget
+ca-certificates
 
-# Audio Stack
+# PipeWire Audio Infrastructure
 pipewire
 pipewire-pulse
 pipewire-audio
 wireplumber
 
-# Wayland Compositor & Graphics
+# Wayland Compositor & Modern Graphics Acceleration
 cage
 xwayland
 mesa-va-drivers
 mesa-vulkan-drivers
+libgl1-mesa-dri
+libglx-mesa0
+xserver-xorg-video-all
+libinput-bin
 
-# Shell Runtime (Chromium kiosk / Electron)
+# Desktop Shell Runtimes
 chromium
+nodejs
+npm
+python3
 
-# Filesystems & Partitioning Tools
+# Storage, Filesystems & Real Partitioning Tools
 btrfs-progs
 dosfstools
 e2fsprogs
 parted
 gdisk
+fdisk
+rsync
+util-linux
 
-# Bootloader
+# GRUB & EFI Bootloader Suite
 grub-efi-amd64-signed
 grub-pc-bin
 efibootmgr
+isolinux
+syslinux
+syslinux-common
 
-# Utilities
+# System Diagnostics & Utilities
 bash
 coreutils
 pciutils
 usbutils
-nano
+procps
 htop
+nano
 neofetch

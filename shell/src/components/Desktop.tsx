@@ -20,6 +20,13 @@ import { SystemMonitorApp } from '../apps/SystemMonitor/SystemMonitorApp';
 import { BrowserApp } from '../apps/Browser/BrowserApp';
 import { CalculatorApp } from '../apps/Calculator/CalculatorApp';
 import { AboutApp } from '../apps/About/AboutApp';
+import { MusicApp } from '../apps/Music/MusicApp';
+import { PhotosApp } from '../apps/Photos/PhotosApp';
+import { NotesApp } from '../apps/Notes/NotesApp';
+import { SoftwareApp } from '../apps/Software/SoftwareApp';
+import { ClockApp } from '../apps/Clock/ClockApp';
+import { WeatherApp } from '../apps/Weather/WeatherApp';
+import { CameraApp } from '../apps/Camera/CameraApp';
 import { AppId } from '../types/os';
 
 export const Desktop: React.FC = () => {
@@ -56,6 +63,20 @@ export const Desktop: React.FC = () => {
         return <FileManagerApp />;
       case 'browser':
         return <BrowserApp />;
+      case 'music':
+        return <MusicApp />;
+      case 'photos':
+        return <PhotosApp />;
+      case 'notes':
+        return <NotesApp />;
+      case 'software':
+        return <SoftwareApp />;
+      case 'clock':
+        return <ClockApp />;
+      case 'weather':
+        return <WeatherApp />;
+      case 'camera':
+        return <CameraApp />;
       case 'calculator':
         return <CalculatorApp />;
       case 'text-editor':

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Power, RotateCcw, Lock, Moon, X } from 'lucide-react';
+import { Power, RotateCcw, Lock, X } from 'lucide-react';
 import { useSystemState } from '../context/SystemStateContext';
+import { systemService } from '../services/systemService';
 
 export const PowerModal: React.FC = () => {
   const { powerModalOpen, setPowerModalOpen } = useSystemState();
@@ -8,12 +9,18 @@ export const PowerModal: React.FC = () => {
 
   if (!powerModalOpen) return null;
 
-  const handleAction = (action: string) => {
+  const handleAction = async (action: string) => {
     setPoweringOff(action);
-    setTimeout(() => {
-      setPoweringOff(null);
-      setPowerModalOpen(false);
-    }, 2500);
+    if (action === 'poweroff') {
+      await systemService.powerOff();
+    } else if (action === 'reboot') {
+      await systemService.reboot();
+    } else {
+      setTimeout(() => {
+        setPoweringOff(null);
+        setPowerModalOpen(false);
+      }, 1500);
+    }
   };
 
   return (
@@ -30,7 +37,7 @@ export const PowerModal: React.FC = () => {
           <div className="py-8 flex flex-col items-center gap-4">
             <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
             <div className="text-base font-semibold text-slate-100">
-              {poweringOff === 'poweroff' ? 'Shutting down AxisOS...' : 'Rebooting AxisOS system...'}
+              {poweringOff === 'poweroff' ? 'Shutting down AxisOS...' : (poweringOff === 'reboot' ? 'Rebooting AxisOS system...' : 'Locking session...')}
             </div>
             <div className="text-xs text-slate-400 font-mono">systemd: syncing disks & stopping services</div>
           </div>

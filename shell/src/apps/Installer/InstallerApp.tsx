@@ -13,10 +13,14 @@ import {
   Layers,
   Cpu,
   Monitor,
+  AlertTriangle,
+  Terminal,
+  RefreshCw,
 } from 'lucide-react';
 import { useInstaller, INSTALL_STEPS } from '../../context/InstallerContext';
 import { useSystemState, ACCENT_COLOR_MAP } from '../../context/SystemStateContext';
 import { useWindowManager } from '../../context/WindowManagerContext';
+import { systemService } from '../../services/systemService';
 
 export const InstallerApp: React.FC = () => {
   const {
@@ -29,19 +33,26 @@ export const InstallerApp: React.FC = () => {
     isInstalling,
     installProgress,
     installStatusText,
+    installLogs,
+    installError,
     startInstallation,
     resetInstaller,
+    refreshDisks,
   } = useInstaller();
 
   const { accentColor, setIsLiveEnvironment } = useSystemState();
   const { closeWindow, windows } = useWindowManager();
+  const [showLogConsole, setShowLogConsole] = useState(false);
   const accent = ACCENT_COLOR_MAP[accentColor];
 
-  const handleFinish = (action: 'restart' | 'continue') => {
+  const handleFinish = async (action: 'restart' | 'continue') => {
     setIsLiveEnvironment(false);
     const installerWindow = windows.find((w) => w.appId === 'installer');
     if (installerWindow) {
       closeWindow(installerWindow.id);
+    }
+    if (action === 'restart') {
+      await systemService.reboot();
     }
   };
 
@@ -98,7 +109,7 @@ export const InstallerApp: React.FC = () => {
 
         {/* Footer Note */}
         <div className="text-[10px] text-slate-500 border-t border-white/5 pt-3">
-          Kernel 6.12 • EFI Bootloader • Debian Core
+          Kernel 6.12 • EFI Bootloader • Btrfs Root
         </div>
       </div>
 
@@ -114,22 +125,22 @@ export const InstallerApp: React.FC = () => {
               Welcome to AxisOS 1.0 "Horizon"
             </h1>
             <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-              AxisOS combines the security, power, and stability of the Linux kernel with a fluid,
-              glassmorphic modern desktop interface. This installer will guide you through setting up
-              AxisOS on your machine.
+              AxisOS is a full-featured, bootable Linux operating system combining a high-performance Linux kernel,
+              modern Wayland compositor, and an interactive desktop shell. This installer will partition your selected drive
+              and install a clean, complete operating system.
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-3 w-full">
               <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-left">
                 <div className="text-xs font-semibold text-cyan-400">Wayland Native</div>
                 <div className="text-[11px] text-slate-400 mt-1">
-                  Built for modern GPU acceleration and tear-free fluid rendering.
+                  DRM/KMS acceleration with Cage compositor and seamless rendering.
                 </div>
               </div>
               <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-left">
                 <div className="text-xs font-semibold text-emerald-400">Btrfs Subvolumes</div>
                 <div className="text-[11px] text-slate-400 mt-1">
-                  Snapshots and zstd compression enabled by default.
+                  Automatic subvolume layout with zstd compression and instant snapshots.
                 </div>
               </div>
             </div>
@@ -141,7 +152,7 @@ export const InstallerApp: React.FC = () => {
           <div className="flex flex-col gap-5 max-w-lg mx-auto my-auto w-full">
             <div>
               <h2 className="text-xl font-bold text-slate-100">Language & Keyboard</h2>
-              <p className="text-xs text-slate-400 mt-1">Select your preferred system language and layout.</p>
+              <p className="text-xs text-slate-400 mt-1">Select your preferred system language and keyboard layout.</p>
             </div>
 
             <div className="flex flex-col gap-3">
@@ -180,47 +191,63 @@ export const InstallerApp: React.FC = () => {
         {/* Step 2: Storage & Partitioning */}
         {currentStep === 2 && (
           <div className="flex flex-col gap-5 max-w-xl mx-auto my-auto w-full">
-            <div>
-              <h2 className="text-xl font-bold text-slate-100">Storage Destination</h2>
-              <p className="text-xs text-slate-400 mt-1">Select the drive where AxisOS will be installed.</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-slate-100">Storage Destination</h2>
+                <p className="text-xs text-slate-400 mt-1">Select the target drive to install AxisOS.</p>
+              </div>
+              <button
+                onClick={refreshDisks}
+                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition-colors flex items-center gap-1.5 text-xs"
+                title="Rescan drives"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Rescan</span>
+              </button>
             </div>
 
             {/* Drives List */}
-            <div className="flex flex-col gap-2.5">
-              {availableDisks.map((disk) => {
-                const isSelected = installerData.targetDisk === disk.id;
-                return (
-                  <button
-                    key={disk.id}
-                    onClick={() => updateInstallerData({ targetDisk: disk.id })}
-                    className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
-                      isSelected
-                        ? `${accent.bg} ${accent.border} text-white`
-                        : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10'
-                    }`}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center ${
-                          isSelected ? accent.primary + ' text-white' : 'bg-slate-800 text-slate-400'
-                        }`}
-                      >
-                        <HardDrive className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-semibold">{disk.name}</div>
-                        <div className="text-[11px] text-slate-400">
-                          {disk.id} • {disk.type}
+            <div className="flex flex-col gap-2.5 max-h-60 overflow-y-auto pr-1">
+              {availableDisks.length === 0 ? (
+                <div className="p-4 rounded-xl bg-slate-900 border border-white/10 text-center text-xs text-slate-400">
+                  Scanning storage devices...
+                </div>
+              ) : (
+                availableDisks.map((disk) => {
+                  const isSelected = installerData.targetDisk === disk.id;
+                  return (
+                    <button
+                      key={disk.id}
+                      onClick={() => updateInstallerData({ targetDisk: disk.id })}
+                      className={`flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
+                        isSelected
+                          ? `${accent.bg} ${accent.border} text-white`
+                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className={`w-9 h-9 rounded-lg flex items-center justify-center ${
+                            isSelected ? accent.primary + ' text-white' : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          <HardDrive className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold">{disk.name}</div>
+                          <div className="text-[11px] text-slate-400">
+                            {disk.id} • {disk.type}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs font-mono font-semibold">{disk.size}</div>
-                      <div className="text-[10px] text-emerald-400">{disk.freeSpace}</div>
-                    </div>
-                  </button>
-                );
-              })}
+                      <div className="text-right">
+                        <div className="text-xs font-mono font-semibold">{disk.size}</div>
+                        <div className="text-[10px] text-emerald-400">{disk.freeSpace}</div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
 
             {/* Installation Scheme */}
@@ -235,10 +262,10 @@ export const InstallerApp: React.FC = () => {
                 />
                 <div>
                   <div className="text-xs font-semibold text-slate-200">
-                    Erase disk and install AxisOS (Recommended)
+                    Erase disk and install AxisOS (Full Clean Install)
                   </div>
                   <div className="text-[11px] text-slate-400 mt-0.5">
-                    Partitions disk automatically with 1GB ESP (/boot/efi), 4GB Swap, and Btrfs root with subvolumes (@, @home, @snapshots).
+                    Partitions disk automatically with GPT: 512MB ESP (/boot/efi), 4GB Swap, and Btrfs root with subvolumes (@, @home, @snapshots, @var_log) and zstd compression.
                   </div>
                 </div>
               </label>
@@ -251,7 +278,7 @@ export const InstallerApp: React.FC = () => {
           <div className="flex flex-col gap-4 max-w-lg mx-auto my-auto w-full">
             <div>
               <h2 className="text-xl font-bold text-slate-100">User Setup</h2>
-              <p className="text-xs text-slate-400 mt-1">Configure your primary administrative user account.</p>
+              <p className="text-xs text-slate-400 mt-1">Configure your primary user account and machine identity.</p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -261,7 +288,7 @@ export const InstallerApp: React.FC = () => {
                   type="text"
                   value={installerData.userFullName}
                   onChange={(e) => updateInstallerData({ userFullName: e.target.value })}
-                  placeholder="e.g. Alex Hunter"
+                  placeholder="e.g. Jacky"
                   className="px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
@@ -324,17 +351,17 @@ export const InstallerApp: React.FC = () => {
           <div className="flex flex-col gap-5 max-w-lg mx-auto my-auto w-full">
             <div>
               <h2 className="text-xl font-bold text-slate-100">Ready to Install</h2>
-              <p className="text-xs text-slate-400 mt-1">Review your installation configuration before proceeding.</p>
+              <p className="text-xs text-slate-400 mt-1">Review your installation configuration before writing changes.</p>
             </div>
 
             <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 flex flex-col gap-3 text-xs">
               <div className="flex justify-between py-1.5 border-b border-white/5">
                 <span className="text-slate-400">Target Disk</span>
-                <span className="font-semibold text-slate-200">{installerData.targetDisk} (All data will be erased)</span>
+                <span className="font-semibold text-slate-200 font-mono">{installerData.targetDisk} (All data will be erased)</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-white/5">
                 <span className="text-slate-400">Filesystem</span>
-                <span className="font-semibold text-cyan-400">Btrfs (zstd compression)</span>
+                <span className="font-semibold text-cyan-400">Btrfs (zstd compression) + EFI FAT32</span>
               </div>
               <div className="flex justify-between py-1.5 border-b border-white/5">
                 <span className="text-slate-400">Primary User</span>
@@ -349,10 +376,15 @@ export const InstallerApp: React.FC = () => {
                 <span className="font-semibold text-slate-200">{installerData.language} / {installerData.keyboardLayout}</span>
               </div>
             </div>
+
+            <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-center gap-3 text-amber-300 text-xs">
+              <AlertTriangle className="w-5 h-5 shrink-0" />
+              <span>Warning: Proceeding will erase all partitions and data on {installerData.targetDisk}.</span>
+            </div>
           </div>
         )}
 
-        {/* Step 5: Installing Animation & Progress */}
+        {/* Step 5: Real Installing Progress & Live Log */}
         {currentStep === 5 && (
           <div className="flex flex-col items-center justify-center my-auto max-w-lg mx-auto w-full text-center">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-xl shadow-cyan-950/50 mb-6 animate-pulse">
@@ -361,8 +393,25 @@ export const InstallerApp: React.FC = () => {
 
             <h2 className="text-xl font-bold text-slate-100">Installing AxisOS 1.0</h2>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              Please wait while the Linux kernel, system packages, and the AxisOS desktop shell are deployed.
+              Deploying kernel, Btrfs subvolumes, base system, and desktop shell.
             </p>
+
+            {/* Error Message if any */}
+            {installError && (
+              <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs text-left w-full">
+                <div className="font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 text-rose-400" />
+                  <span>Installation Error</span>
+                </div>
+                <div className="mt-1 font-mono text-[11px]">{installError}</div>
+                <button
+                  onClick={resetInstaller}
+                  className="mt-2.5 px-3 py-1 bg-white/10 hover:bg-white/20 rounded text-slate-200 text-xs font-semibold"
+                >
+                  Restart Installer
+                </button>
+              </div>
+            )}
 
             {/* Progress Bar */}
             <div className="w-full mt-6 bg-slate-900 border border-white/10 rounded-full h-3 overflow-hidden p-0.5">
@@ -376,6 +425,27 @@ export const InstallerApp: React.FC = () => {
               <span className="truncate max-w-[80%] text-left">{installStatusText}</span>
               <span className="font-bold text-cyan-400">{installProgress}%</span>
             </div>
+
+            {/* Live Log Console Toggle */}
+            <div className="w-full mt-4 flex flex-col items-start">
+              <button
+                onClick={() => setShowLogConsole(!showLogConsole)}
+                className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-cyan-400 transition-colors"
+              >
+                <Terminal className="w-3.5 h-3.5" />
+                <span>{showLogConsole ? 'Hide Console Output' : 'View Live Installation Logs'}</span>
+              </button>
+
+              {showLogConsole && (
+                <div className="w-full h-40 mt-2 p-3 bg-black/80 border border-white/10 rounded-xl overflow-y-auto font-mono text-[10px] text-slate-300 text-left space-y-1">
+                  {installLogs.map((log, i) => (
+                    <div key={i} className="leading-tight break-all font-mono">
+                      {log}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -388,7 +458,7 @@ export const InstallerApp: React.FC = () => {
 
             <h2 className="text-2xl font-black text-slate-100">Installation Finished!</h2>
             <p className="text-xs text-slate-400 mt-2 max-w-md leading-relaxed">
-              AxisOS has been successfully installed on <span className="font-semibold text-slate-200">{installerData.targetDisk}</span>. You can now reboot your system into your new operating system or continue testing in the live environment.
+              AxisOS has been successfully installed to <span className="font-semibold text-slate-200">{installerData.targetDisk}</span>. The GRUB EFI bootloader and Btrfs root filesystem are fully configured.
             </p>
 
             <div className="flex items-center gap-3 mt-8">

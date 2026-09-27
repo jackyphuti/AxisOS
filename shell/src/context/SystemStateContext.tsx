@@ -125,21 +125,22 @@ interface SystemStateContextType {
 
 const initialSystemInfo: SystemInfo = {
   osName: 'AxisOS Linux 1.0',
-  osVersion: 'Horizon (Sonoma Edition)',
-  kernelVersion: '7.2.7-200.fc44.x86_64',
+  osVersion: 'Horizon',
+  kernelVersion: '6.12.0-axisos-amd64',
   architecture: 'x86_64',
   compositor: 'Wayland (Cage / AxisShell)',
   initSystem: 'systemd 256',
-  shellVersion: 'AxisShell v1.0.0 (macOS Flavour)',
-  cpuModel: 'Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz',
+  shellVersion: 'AxisShell v1.0.0',
+  cpuModel: 'Intel/AMD 64-bit Processor',
   cpuCores: 8,
-  gpuModel: 'Intel Corporation UHD Graphics 620',
-  totalMemory: '11.8 GB Unified Memory',
-  freeMemory: '7.8 GB Available',
-  storageCapacity: 'Wodposit NVMe SSD 238.5 GB',
-  hostname: 'fedora',
-  username: 'jackympoka',
-  uptime: 'up 2 hours, 14 mins',
+  gpuModel: 'Hardware Accelerated GPU',
+  totalMemory: '16.0 GB Unified Memory',
+  freeMemory: '12.4 GB Available',
+  storageCapacity: 'NVMe Solid State Drive 256 GB',
+  hostname: 'axis-pc',
+  username: 'axis',
+  uptime: 'up 1 hour',
+  homeDir: '/home/axis',
 };
 
 const SystemStateContext = createContext<SystemStateContextType | null>(null);
@@ -171,12 +172,12 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (!isMounted) return;
       setSystemInfo({
         osName: real.osName || 'AxisOS Linux 1.0',
-        osVersion: real.osVersion || 'Horizon (Sonoma Edition)',
-        kernelVersion: real.kernelVersion || '7.2.7-200.fc44.x86_64',
+        osVersion: real.osVersion || 'Horizon',
+        kernelVersion: real.kernelVersion || '6.12.0-axisos-amd64',
         architecture: real.architecture || 'x86_64',
         compositor: 'Wayland (Cage / AxisShell)',
         initSystem: 'systemd 256',
-        shellVersion: 'AxisShell v1.0.0 (macOS Flavour)',
+        shellVersion: 'AxisShell v1.0.0',
         cpuModel: real.cpuModel || initialSystemInfo.cpuModel,
         cpuCores: real.cpuCores || 8,
         gpuModel: real.gpuModel || initialSystemInfo.gpuModel,
@@ -186,6 +187,7 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         hostname: real.hostname || initialSystemInfo.hostname,
         username: real.username || initialSystemInfo.username,
         uptime: real.uptime || initialSystemInfo.uptime,
+        homeDir: real.homeDir || `/home/${real.username || 'axis'}`,
       });
     });
     return () => {

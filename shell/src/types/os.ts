@@ -7,7 +7,14 @@ export type AppId =
   | 'system-monitor'
   | 'browser'
   | 'calculator'
-  | 'about';
+  | 'about'
+  | 'music'
+  | 'photos'
+  | 'notes'
+  | 'software'
+  | 'clock'
+  | 'weather'
+  | 'camera';
 
 export interface AppDefinition {
   id: AppId;
@@ -53,6 +60,7 @@ export interface SystemInfo {
   hostname: string;
   username: string;
   uptime: string;
+  homeDir?: string;
 }
 
 export interface InstallerData {

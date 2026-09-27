@@ -39,6 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     squashfs-tools \
     xorriso \
     isolinux \
+    syslinux-common \
     syslinux-efi \
     grub-pc-bin \
     grub-efi-amd64-bin \
@@ -46,25 +47,34 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dosfstools \
     ca-certificates \
     curl \
+    rsync \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
 CMD ["bash"]
 EOF
 
-    echo "Container recipe generated at $BUILD_DIR/Containerfile."
-    echo "To build the ISO inside container:"
-    echo "  $CONTAINER_TOOL build -t axisos-builder -f $BUILD_DIR/Containerfile $BUILD_DIR"
-    echo "  $CONTAINER_TOOL run --privileged --rm -v $ROOT_DIR:/workspace axisos-builder /workspace/os-build/scripts/inner-build.sh"
+    echo "Building container image 'axisos-builder'..."
+    $CONTAINER_TOOL build -t axisos-builder -f "$BUILD_DIR/Containerfile" "$BUILD_DIR"
+
+    echo "[4/4] Generating AxisOS Hybrid Bootable ISO inside container..."
+    $CONTAINER_TOOL run --privileged --rm \
+        -v "$ROOT_DIR:/workspace" \
+        axisos-builder \
+        /workspace/os-build/scripts/inner-build.sh
 else
-    echo "[3/4] No container engine found. Checking for native live-build..."
-    if ! command -v lb >/dev/null 2>&1; then
-        echo "Error: 'lb' (live-build) is required. Please install live-build or podman/docker."
+    echo "[3/4] Checking for native live-build..."
+    if command -v lb >/dev/null 2>&1; then
+        echo "[4/4] Generating AxisOS Hybrid Bootable ISO natively..."
+        sudo WORKSPACE_DIR="$ROOT_DIR" "$SCRIPT_DIR/inner-build.sh"
+    else
+        echo "Error: Neither podman, docker, nor live-build ('lb') were found."
+        echo "To build AxisOS ISO, please install Docker, Podman, or live-build."
         exit 1
     fi
 fi
 
 echo "=================================================="
-echo " ISO build scripts configured successfully!"
-echo " Output path: $ROOT_DIR/axisos-live-amd64.iso"
+echo " ISO build finished successfully!"
+echo " Bootable image: $ROOT_DIR/axisos-live-amd64.iso"
 echo "=================================================="

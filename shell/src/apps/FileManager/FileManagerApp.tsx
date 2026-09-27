@@ -6,39 +6,45 @@ import {
   HardDrive,
   Home,
   Download,
-  ChevronRight,
   LayoutGrid,
   List,
   Search,
   ArrowLeft,
   ArrowRight,
-  Clock,
+  FolderPlus,
+  Trash2,
+  RefreshCw,
 } from 'lucide-react';
 import { systemService, FileEntry } from '../../services/systemService';
 import { useSystemState } from '../../context/SystemStateContext';
+import { useWindowManager } from '../../context/WindowManagerContext';
 
 export const FileManagerApp: React.FC = () => {
   const { systemInfo } = useSystemState();
-  const [currentPath, setCurrentPath] = useState<string>('/home/jackympoka');
+  const { openApp } = useWindowManager();
+
+  const userHome = systemInfo.homeDir || `/home/${systemInfo.username || 'axis'}`;
+  const [currentPath, setCurrentPath] = useState<string>(userHome);
   const [items, setItems] = useState<FileEntry[]>([]);
-  const [history, setHistory] = useState<string[]>(['/home/jackympoka']);
+  const [history, setHistory] = useState<string[]>([userHome]);
   const [histIdx, setHistIdx] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterQuery, setFilterQuery] = useState('');
   const [selectedFile, setSelectedFile] = useState<FileEntry | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load directory items
+  const loadDirectory = async (targetPath: string) => {
+    setIsLoading(true);
+    try {
+      const res = await systemService.readDirectory(targetPath);
+      setItems(res.items || []);
+      setSelectedFile(null);
+    } catch {}
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    let isMounted = true;
-    systemService.readDirectory(currentPath).then((res) => {
-      if (isMounted) {
-        setItems(res.items || []);
-        setSelectedFile(null);
-      }
-    });
-    return () => {
-      isMounted = false;
-    };
+    loadDirectory(currentPath);
   }, [currentPath]);
 
   const navigateTo = (newPath: string) => {
@@ -65,6 +71,23 @@ export const FileManagerApp: React.FC = () => {
     }
   };
 
+  const handleCreateFolder = async () => {
+    const folderName = prompt('Enter new folder name:', 'New Folder');
+    if (!folderName) return;
+    const target = `${currentPath}/${folderName}`.replace(/\/+/g, '/');
+    await systemService.createDirectory(target);
+    await loadDirectory(currentPath);
+  };
+
+  const handleDeleteItem = async () => {
+    if (!selectedFile) return;
+    if (confirm(`Are you sure you want to delete "${selectedFile.name}"?`)) {
+      await systemService.deleteItem(selectedFile.fullPath);
+      setSelectedFile(null);
+      await loadDirectory(currentPath);
+    }
+  };
+
   const filteredItems = items.filter((item) =>
     item.name.toLowerCase().includes(filterQuery.toLowerCase())
   );
@@ -76,9 +99,9 @@ export const FileManagerApp: React.FC = () => {
         <div className="px-2 py-1 text-[11px] font-semibold text-slate-400">Favorites</div>
 
         <button
-          onClick={() => navigateTo('/home/jackympoka')}
+          onClick={() => navigateTo(userHome)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            currentPath === '/home/jackympoka' ? 'bg-blue-600 text-white font-medium shadow-sm' : 'text-slate-300 hover:bg-white/5'
+            currentPath === userHome ? 'bg-blue-600 text-white font-medium shadow-sm' : 'text-slate-300 hover:bg-white/5'
           }`}
         >
           <Home className="w-4 h-4 text-blue-400" />
@@ -86,7 +109,7 @@ export const FileManagerApp: React.FC = () => {
         </button>
 
         <button
-          onClick={() => navigateTo('/home/jackympoka/Documents')}
+          onClick={() => navigateTo(`${userHome}/Documents`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
             currentPath.includes('Documents') ? 'bg-blue-600 text-white font-medium shadow-sm' : 'text-slate-300 hover:bg-white/5'
           }`}
@@ -96,7 +119,7 @@ export const FileManagerApp: React.FC = () => {
         </button>
 
         <button
-          onClick={() => navigateTo('/home/jackympoka/Downloads')}
+          onClick={() => navigateTo(`${userHome}/Downloads`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
             currentPath.includes('Downloads') ? 'bg-blue-600 text-white font-medium shadow-sm' : 'text-slate-300 hover:bg-white/5'
           }`}
@@ -106,7 +129,7 @@ export const FileManagerApp: React.FC = () => {
         </button>
 
         <button
-          onClick={() => navigateTo('/home/jackympoka/Pictures')}
+          onClick={() => navigateTo(`${userHome}/Pictures`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
             currentPath.includes('Pictures') ? 'bg-blue-600 text-white font-medium shadow-sm' : 'text-slate-300 hover:bg-white/5'
           }`}
@@ -125,16 +148,8 @@ export const FileManagerApp: React.FC = () => {
           }`}
         >
           <HardDrive className="w-4 h-4 text-slate-400" />
-          <span>Macintosh HD (Root)</span>
+          <span>AxisOS Root (/)</span>
         </button>
-
-        <div className="my-2 border-t border-white/5"></div>
-        <div className="px-2 py-1 text-[11px] font-semibold text-slate-400">Tags</div>
-        <div className="flex flex-col gap-1 px-2.5 py-1">
-          <div className="flex items-center space-x-2 text-slate-300"><span className="w-2.5 h-2.5 rounded-full bg-red-500"></span><span>Work</span></div>
-          <div className="flex items-center space-x-2 text-slate-300"><span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span><span>Personal</span></div>
-          <div className="flex items-center space-x-2 text-slate-300"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span><span>Completed</span></div>
-        </div>
       </div>
 
       {/* Main File View */}
@@ -146,6 +161,7 @@ export const FileManagerApp: React.FC = () => {
               onClick={handleBack}
               disabled={histIdx === 0}
               className={`p-1 rounded ${histIdx === 0 ? 'text-slate-600' : 'text-slate-300 hover:bg-white/10'}`}
+              title="Back"
             >
               <ArrowLeft className="w-4 h-4" />
             </button>
@@ -153,6 +169,7 @@ export const FileManagerApp: React.FC = () => {
               onClick={handleForward}
               disabled={histIdx >= history.length - 1}
               className={`p-1 rounded ${histIdx >= history.length - 1 ? 'text-slate-600' : 'text-slate-300 hover:bg-white/10'}`}
+              title="Forward"
             >
               <ArrowRight className="w-4 h-4" />
             </button>
@@ -160,6 +177,35 @@ export const FileManagerApp: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* New Folder & Delete */}
+            <button
+              onClick={handleCreateFolder}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 flex items-center gap-1 text-[11px]"
+              title="New Folder"
+            >
+              <FolderPlus className="w-3.5 h-3.5 text-cyan-400" />
+              <span>New Folder</span>
+            </button>
+
+            {selectedFile && (
+              <button
+                onClick={handleDeleteItem}
+                className="p-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 flex items-center gap-1 text-[11px]"
+                title="Delete item"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => loadDirectory(currentPath)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300"
+              title="Refresh"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
+            </button>
+
             {/* View Mode Buttons */}
             <div className="flex items-center p-0.5 rounded-lg bg-white/5 border border-white/10">
               <button
@@ -200,6 +246,8 @@ export const FileManagerApp: React.FC = () => {
                 onDoubleClick={() => {
                   if (item.type === 'folder') {
                     navigateTo(item.fullPath);
+                  } else {
+                    openApp('text-editor');
                   }
                 }}
                 className={`flex flex-col items-center p-3 rounded-xl cursor-pointer text-center group transition-all border ${
@@ -242,6 +290,7 @@ export const FileManagerApp: React.FC = () => {
                     onClick={() => setSelectedFile(item)}
                     onDoubleClick={() => {
                       if (item.type === 'folder') navigateTo(item.fullPath);
+                      else openApp('text-editor');
                     }}
                     className={`border-b border-white/5 cursor-pointer hover:bg-white/5 ${
                       selectedFile?.name === item.name ? 'bg-blue-600/30 text-white' : 'text-slate-300'
@@ -268,7 +317,7 @@ export const FileManagerApp: React.FC = () => {
         {/* Footer info bar */}
         <div className="h-6 px-4 bg-slate-900/60 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-500 font-mono">
           <span>{filteredItems.length} items</span>
-          <span>190.2 GB available</span>
+          <span>AxisOS Linux Filesystem</span>
         </div>
       </div>
     </div>

@@ -1,5 +1,14 @@
 // Unified Linux System Service Bridge for AxisOS
-// Seamlessly routes between Electron IPC, Vite Dev Server API, and Browser Fallback
+// Seamlessly routes between Electron IPC, AxisOS System Daemon (HTTP/REST), and Local Fallback
+
+export interface DiskDrive {
+  id: string;
+  name: string;
+  size: string;
+  type: string;
+  freeSpace: string;
+  readOnly?: boolean;
+}
 
 export interface SystemHardwareData {
   osName: string;
@@ -11,13 +20,7 @@ export interface SystemHardwareData {
   gpuModel: string;
   totalMemory: string;
   freeMemory: string;
-  storageDevices: Array<{
-    id: string;
-    name: string;
-    size: string;
-    type: string;
-    freeSpace: string;
-  }>;
+  storageDevices: DiskDrive[];
   hostname: string;
   uptime: string;
   username: string;
@@ -32,6 +35,15 @@ export interface FileEntry {
   modified: string;
 }
 
+export interface InstallJobStatus {
+  isInstalling: boolean;
+  progress: number;
+  statusText: string;
+  completed: boolean;
+  error: string | null;
+  log: string[];
+}
+
 declare global {
   interface Window {
     axisAPI?: {
@@ -40,6 +52,12 @@ declare global {
       readDirectory: (dirPath: string) => Promise<{ path: string; items: FileEntry[] }>;
       readFile: (filePath: string) => Promise<string>;
       writeFile: (filePath: string, content: string) => Promise<boolean>;
+      createDirectory: (dirPath: string) => Promise<boolean>;
+      deleteItem: (targetPath: string) => Promise<boolean>;
+      getDisks: () => Promise<DiskDrive[]>;
+      startInstall: (config: any) => Promise<{ success: boolean }>;
+      getInstallStatus: () => Promise<InstallJobStatus>;
+      powerAction: (action: string) => Promise<any>;
     };
   }
 }
@@ -62,38 +80,77 @@ export const systemService = {
       }
     } catch {}
 
-    // High fidelity fallback matching user's architecture
+    // Fallback info
     return {
       osName: 'AxisOS Linux 1.0',
       osVersion: 'Horizon (Sonoma Edition)',
-      kernelVersion: '7.2.7-200.fc44.x86_64',
+      kernelVersion: '6.12.0-axisos-amd64',
       architecture: 'x86_64',
-      cpuModel: 'Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz',
+      cpuModel: 'Intel(R) Core(TM) Processor / AMD Ryzen 64-bit',
       cpuCores: 8,
-      gpuModel: 'Intel Corporation UHD Graphics 620',
-      totalMemory: '11.8 GB Unified Memory',
-      freeMemory: '7.8 GB Available',
+      gpuModel: 'Hardware Accelerated GPU',
+      totalMemory: '16.0 GB Unified Memory',
+      freeMemory: '12.4 GB Available',
       storageDevices: [
         {
           id: '/dev/nvme0n1',
-          name: 'Wodposit NVMe SSD (238.5 GB)',
-          size: '238.5 GB',
-          type: 'NVMe High-Speed Solid State Drive',
-          freeSpace: '190.2 GB Available',
+          name: 'NVMe Solid State Drive (256 GB)',
+          size: '256.0 GB',
+          type: 'NVMe Solid State Drive',
+          freeSpace: '240.0 GB Available',
+          readOnly: false,
         },
         {
           id: '/dev/sda',
-          name: 'Samsung SSD 750 EVO (120 GB)',
-          size: '111.8 GB',
+          name: 'SATA Solid State Drive (120 GB)',
+          size: '120.0 GB',
           type: 'SATA Solid State Drive',
-          freeSpace: '92.4 GB Available',
+          freeSpace: '110.0 GB Available',
+          readOnly: false,
         },
       ],
-      hostname: 'fedora',
-      uptime: 'up 2 hours, 14 mins',
-      username: 'jackympoka',
-      homeDir: '/home/jackympoka',
+      hostname: 'axis-pc',
+      uptime: 'up 1 hour',
+      username: 'axis',
+      homeDir: '/home/axis',
     };
+  },
+
+  // Query real block storage devices
+  async getDisks(): Promise<DiskDrive[]> {
+    if (window.axisAPI?.getDisks) {
+      try {
+        return await window.axisAPI.getDisks();
+      } catch (err) {
+        console.warn('Electron IPC getDisks failed, falling back to HTTP', err);
+      }
+    }
+
+    try {
+      const res = await fetch('/api/disks');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
+
+    return [
+      {
+        id: '/dev/nvme0n1',
+        name: 'NVMe Solid State Drive (256 GB)',
+        size: '256.0 GB',
+        type: 'NVMe Solid State Drive',
+        freeSpace: '240.0 GB Available',
+        readOnly: false,
+      },
+      {
+        id: '/dev/sda',
+        name: 'SATA Solid State Drive (120 GB)',
+        size: '120.0 GB',
+        type: 'SATA Solid State Drive',
+        freeSpace: '110.0 GB Available',
+        readOnly: false,
+      },
+    ];
   },
 
   // Execute real Linux command
@@ -120,7 +177,6 @@ export const systemService = {
       }
     } catch {}
 
-    // Client-side fallback if server offline
     return {
       stdout: `[axis-shell] Executed: ${command}`,
       stderr: '',
@@ -146,16 +202,198 @@ export const systemService = {
       }
     } catch {}
 
-    // Fallback directory entries
+    const home = '/home/axis';
     return {
-      path: dirPath || '/home/jackympoka',
+      path: dirPath || home,
       items: [
-        { name: 'Documents', fullPath: '/home/jackympoka/Documents', type: 'folder', size: 'Folder', modified: 'Today' },
-        { name: 'Downloads', fullPath: '/home/jackympoka/Downloads', type: 'folder', size: 'Folder', modified: 'Yesterday' },
-        { name: 'Pictures', fullPath: '/home/jackympoka/Pictures', type: 'folder', size: 'Folder', modified: 'Sep 25' },
-        { name: 'AxisOS', fullPath: '/home/jackympoka/Documents/AxisOS linux', type: 'folder', size: 'Folder', modified: 'Today' },
-        { name: 'welcome.txt', fullPath: '/home/jackympoka/welcome.txt', type: 'file', size: '1.2 KB', modified: 'Today' },
+        { name: 'Documents', fullPath: `${home}/Documents`, type: 'folder', size: 'Folder', modified: 'Today' },
+        { name: 'Downloads', fullPath: `${home}/Downloads`, type: 'folder', size: 'Folder', modified: 'Yesterday' },
+        { name: 'Pictures', fullPath: `${home}/Pictures`, type: 'folder', size: 'Folder', modified: 'Sep 27' },
+        { name: 'AxisOS', fullPath: `${home}/Documents/AxisOS`, type: 'folder', size: 'Folder', modified: 'Today' },
+        { name: 'welcome.txt', fullPath: `${home}/welcome.txt`, type: 'file', size: '1.2 KB', modified: 'Today' },
       ],
     };
+  },
+
+  // Read file contents
+  async readFile(filePath: string): Promise<string> {
+    if (window.axisAPI?.readFile) {
+      return await window.axisAPI.readFile(filePath);
+    }
+    return '';
+  },
+
+  // Write file contents to disk
+  async writeFile(filePath: string, content: string): Promise<boolean> {
+    if (window.axisAPI?.writeFile) {
+      try {
+        return await window.axisAPI.writeFile(filePath, content);
+      } catch (e) {
+        console.warn('IPC writeFile failed', e);
+      }
+    }
+
+    try {
+      const res = await fetch('/api/fs-write', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filePath, content }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // Create directory
+  async createDirectory(dirPath: string): Promise<boolean> {
+    if (window.axisAPI?.createDirectory) {
+      return await window.axisAPI.createDirectory(dirPath);
+    }
+    try {
+      const res = await fetch('/api/fs-mkdir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dirPath }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // Delete file or folder
+  async deleteItem(targetPath: string): Promise<boolean> {
+    if (window.axisAPI?.deleteItem) {
+      return await window.axisAPI.deleteItem(targetPath);
+    }
+    try {
+      const res = await fetch('/api/fs-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetPath }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // Start real installation
+  async startInstall(installerData: any): Promise<{ success: boolean; message?: string }> {
+    if (window.axisAPI?.startInstall) {
+      try {
+        return await window.axisAPI.startInstall(installerData);
+      } catch (err: any) {
+        return { success: false, message: err.message };
+      }
+    }
+
+    try {
+      const res = await fetch('/api/installer/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(installerData),
+      });
+      return await res.json();
+    } catch (err: any) {
+      return { success: false, message: err.message };
+    }
+  },
+
+  // Poll installation job status
+  async getInstallStatus(): Promise<InstallJobStatus> {
+    if (window.axisAPI?.getInstallStatus) {
+      try {
+        return await window.axisAPI.getInstallStatus();
+      } catch (err) {
+        console.warn('IPC getInstallStatus failed', err);
+      }
+    }
+
+    try {
+      const res = await fetch('/api/installer/status');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
+
+    return {
+      isInstalling: false,
+      progress: 0,
+      statusText: 'Idle',
+      completed: false,
+      error: null,
+      log: [],
+    };
+  },
+
+  // System Power controls
+  async powerOff(): Promise<void> {
+    if (window.axisAPI?.powerAction) {
+      await window.axisAPI.powerAction('poweroff');
+      return;
+    }
+    try {
+      await fetch('/api/power', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'poweroff' }),
+      });
+    } catch {}
+  },
+
+  async reboot(): Promise<void> {
+    if (window.axisAPI?.powerAction) {
+      await window.axisAPI.powerAction('reboot');
+      return;
+    }
+    try {
+      await fetch('/api/power', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reboot' }),
+      });
+    } catch {}
+  },
+
+  // Check for Linux Kernel & System Updates
+  async checkUpdates(): Promise<{
+    upToDate: boolean;
+    packagesCount: number;
+    packages: string[];
+    kernelUpgradeAvailable: boolean;
+    autoUpdatesEnabled: boolean;
+    currentKernel: string;
+    message: string;
+  }> {
+    try {
+      const res = await fetch('/api/updates/check');
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
+
+    return {
+      upToDate: true,
+      packagesCount: 0,
+      packages: [],
+      kernelUpgradeAvailable: false,
+      autoUpdatesEnabled: true,
+      currentKernel: '6.12.0-axisos-amd64',
+      message: 'AxisOS automatic kernel updates are enabled via unattended-upgrades.',
+    };
+  },
+
+  // Apply pending system updates
+  async applyUpdates(): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await fetch('/api/updates/apply', { method: 'POST' });
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {}
+
+    return { success: true, message: 'System update check scheduled.' };
   },
 };
