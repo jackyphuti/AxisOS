@@ -5,15 +5,20 @@
 # ==============================================================================
 set -e
 
-WORKSPACE_DIR="/workspace"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="${WORKSPACE_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 CHROOT_CONFIG_DIR="$WORKSPACE_DIR/os-build/configs"
 SCRIPTS_DIR="$WORKSPACE_DIR/os-build/scripts"
+BUILD_DIR="${BUILD_DIR:-/build}"
 
 echo "=================================================="
 echo "      AxisOS Chroot & Bootable ISO Generator"
 echo "=================================================="
+echo "Workspace: $WORKSPACE_DIR"
+echo "Build Dir: $BUILD_DIR"
 
-cd /build
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
 
 # Clean any previous build artifacts
 lb clean --purge || true

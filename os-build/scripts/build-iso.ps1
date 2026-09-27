@@ -62,11 +62,17 @@ CMD ["bash"]
     Write-Host "Checking for WSL..." -ForegroundColor Yellow
 
     if (Get-Command wsl -ErrorAction SilentlyContinue) {
-        Write-Host "WSL detected. To build the ISO using WSL or Docker Desktop:" -ForegroundColor Cyan
-        Write-Host "  1. Install Docker Desktop or Podman Desktop on Windows." -ForegroundColor White
-        Write-Host "  OR" -ForegroundColor White
-        Write-Host "  2. Inside WSL: sudo apt-get install -y live-build debootstrap xorriso" -ForegroundColor White
-        Write-Host "     cd /mnt/c/Users/.../AxisOS && sudo ./os-build/scripts/inner-build.sh" -ForegroundColor White
+        Write-Host "WSL detected! Executing live-build inside WSL Ubuntu (root)..." -ForegroundColor Green
+        
+        $Full = [System.IO.Path]::GetFullPath($RootDir)
+        $Drive = $Full.Substring(0, 1).ToLower()
+        $Rest = $Full.Substring(2).Replace('\', '/')
+        $WslRootDir = "/mnt/$Drive$Rest"
+
+        wsl -d Ubuntu-26.04 -u root bash -c "cd '$WslRootDir' && ./os-build/scripts/inner-build.sh"
+    } else {
+        Write-Host "Neither Docker, Podman, nor WSL found. Please install Docker Desktop or WSL." -ForegroundColor Red
+        exit 1
     }
 }
 
