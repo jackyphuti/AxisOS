@@ -20,13 +20,43 @@ echo "Build Dir: $BUILD_DIR"
 mkdir -p "$BUILD_DIR"
 cd "$BUILD_DIR"
 
-# Patch legacy live-build 3.0 /updates URL to Debian 12 Bookworm -security
+# Apply live-build patches for Debian 12 Bookworm compatibility
 if [ -f /usr/lib/live/build/lb_chroot_archives ]; then
     sed -i 's|/updates|-security|g' /usr/lib/live/build/lb_chroot_archives 2>/dev/null || true
 fi
+if [ -f "$SCRIPTS_DIR/patch-live-build.py" ]; then
+    python3 "$SCRIPTS_DIR/patch-live-build.py"
+fi
 
-# Clean any previous build artifacts
-lb clean --purge || true
+# Prepare host rsvg wrapper
+cp "$SCRIPTS_DIR/rsvg-wrapper.sh" /usr/bin/rsvg
+chmod +x /usr/bin/rsvg
+
+# Setup real syslinux/isolinux bootloader binaries in live-build data
+rm -f /usr/share/live/build/bootloaders/isolinux/isolinux.bin
+rm -f /usr/share/live/build/bootloaders/isolinux/vesamenu.c32
+rm -f /usr/share/live/build/bootloaders/syslinux/vesamenu.c32
+
+cp /usr/lib/ISOLINUX/isolinux.bin /usr/share/live/build/bootloaders/isolinux/isolinux.bin 2>/dev/null || true
+cp /usr/lib/syslinux/modules/bios/vesamenu.c32 /usr/share/live/build/bootloaders/isolinux/vesamenu.c32 2>/dev/null || true
+cp /usr/lib/syslinux/modules/bios/ldlinux.c32 /usr/share/live/build/bootloaders/isolinux/ldlinux.c32 2>/dev/null || true
+cp /usr/lib/syslinux/modules/bios/libutil.c32 /usr/share/live/build/bootloaders/isolinux/libutil.c32 2>/dev/null || true
+cp /usr/lib/syslinux/modules/bios/libcom32.c32 /usr/share/live/build/bootloaders/isolinux/libcom32.c32 2>/dev/null || true
+
+cp /usr/lib/syslinux/modules/bios/vesamenu.c32 /usr/share/live/build/bootloaders/syslinux/vesamenu.c32 2>/dev/null || true
+cp /usr/lib/syslinux/modules/bios/ldlinux.c32 /usr/share/live/build/bootloaders/syslinux/ldlinux.c32 2>/dev/null || true
+cp /usr/lib/syslinux/modules/bios/libutil.c32 /usr/share/live/build/bootloaders/syslinux/libutil.c32 2>/dev/null || true
+cp /usr/lib/syslinux/modules/bios/libcom32.c32 /usr/share/live/build/bootloaders/syslinux/libcom32.c32 2>/dev/null || true
+
+# Smart clean: Preserve fully built chroot if available
+if [ -f "$BUILD_DIR/.build/chroot_package-lists.live" ] && [ -d "$BUILD_DIR/chroot/boot" ]; then
+    echo "Found verified chroot. Cleaning only binary stage to avoid re-downloading packages..."
+    lb clean --binary || true
+    rm -rf binary chroot/root/isolinux* .build/binary_*
+else
+    echo "Performing clean live-build initialization..."
+    lb clean --purge || true
+fi
 
 # Configure live-build with live-boot parameters and UEFI+BIOS hybrid bootloader
 lb config \
@@ -124,7 +154,25 @@ APT::Periodic::AutocleanInterval "7";
 APT::Periodic::Unattended-Upgrade "1";
 EOF
 
-# 6. Execute live-build
+# Inject rsvg wrapper and syslinux module compatibility into chroot
+mkdir -p config/includes.chroot/usr/bin
+cp "$SCRIPTS_DIR/rsvg-wrapper.sh" config/includes.chroot/usr/bin/rsvg
+chmod +x config/includes.chroot/usr/bin/rsvg
+
+mkdir -p config/includes.chroot/usr/lib/syslinux
+cp /usr/lib/ISOLINUX/isolinux.bin config/includes.chroot/usr/lib/syslinux/isolinux.bin 2>/dev/null || true
+cp /usr/lib/syslinux/modules/bios/*.c32 config/includes.chroot/usr/lib/syslinux/ 2>/dev/null || true
+
+# Also sync directly to existing chroot if available
+if [ -d "$BUILD_DIR/chroot" ]; then
+    cp "$SCRIPTS_DIR/rsvg-wrapper.sh" "$BUILD_DIR/chroot/usr/bin/rsvg" 2>/dev/null || true
+    chmod +x "$BUILD_DIR/chroot/usr/bin/rsvg" 2>/dev/null || true
+    mkdir -p "$BUILD_DIR/chroot/usr/lib/syslinux"
+    cp /usr/lib/ISOLINUX/isolinux.bin "$BUILD_DIR/chroot/usr/lib/syslinux/isolinux.bin" 2>/dev/null || true
+    cp /usr/lib/syslinux/modules/bios/*.c32 "$BUILD_DIR/chroot/usr/lib/syslinux/" 2>/dev/null || true
+fi
+
+# 7. Execute live-build
 echo "=== Running lb build ==="
 lb build
 
