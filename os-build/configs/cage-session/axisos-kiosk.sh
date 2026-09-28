@@ -13,7 +13,9 @@ chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 # Display and compositor environment
 export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=AxisOS
-export WAYLAND_DISPLAY=wayland-0
+unset WAYLAND_DISPLAY
+unset DISPLAY
+export WLR_BACKENDS=drm
 export OZONE_PLATFORM=wayland
 export MOZ_ENABLE_WAYLAND=1
 export GDK_BACKEND=wayland

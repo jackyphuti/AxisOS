@@ -83,13 +83,23 @@ print("--> 4. Generating standalone 64-bit UEFI GRUB bootloader")
 os.makedirs(f"{binary_dir}/EFI/BOOT", exist_ok=True)
 os.makedirs(f"{binary_dir}/boot/grub", exist_ok=True)
 
-# Generate BOOTX64.EFI with all modules embedded
+# Generate BOOTX64.EFI with embedded early configuration to find USB root
+early_cfg = f"{build_dir}/early-grub.cfg"
+with open(early_cfg, "w") as f:
+    f.write("""search --set=root --file /live/vmlinuz
+set prefix=($root)/boot/grub
+if [ -f ($root)/boot/grub/grub.cfg ]; then
+    configfile ($root)/boot/grub/grub.cfg
+fi
+""")
+
 bootx64_path = f"{binary_dir}/EFI/BOOT/BOOTX64.EFI"
 subprocess.run([
     "grub-mkstandalone",
     "-O", "x86_64-efi",
     "-o", bootx64_path,
-    "--modules=part_gpt part_msdos fat ext2 iso9660 normal test echo linux search_fs_uuid search_label"
+    f"boot/grub/grub.cfg={early_cfg}",
+    "--modules=part_gpt part_msdos fat ext2 iso9660 normal test echo linux search search_fs_file search_fs_uuid search_label configfile"
 ], check=True)
 
 # GRUB Config
