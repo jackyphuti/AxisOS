@@ -427,6 +427,9 @@ const server = http.createServer(async (req, res) => {
         '--fullname', config.userFullName || 'AxisOS User',
         '--hostname', config.computerName || 'axis-pc',
         '--autologin', config.autoLogin ? 'true' : 'false',
+        '--locale', config.locale || 'en_US.UTF-8',
+        '--timezone', config.timezone || 'UTC',
+        '--keymap', config.keymap || 'us',
         '--fs', 'btrfs',
       ];
 

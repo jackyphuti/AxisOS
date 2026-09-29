@@ -65,6 +65,7 @@ export interface SystemInfo {
 
 export interface InstallerData {
   language: string;
+  location: string;
   keyboardLayout: string;
   targetDisk: string;
   eraseDisk: boolean;
@@ -73,4 +74,7 @@ export interface InstallerData {
   computerName: string;
   password: string;
   autoLogin: boolean;
+  locale?: string;
+  timezone?: string;
+  keymap?: string;
 }

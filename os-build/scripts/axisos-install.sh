@@ -16,6 +16,7 @@ HOSTNAME="axis-pc"
 AUTOLOGIN="true"
 LOCALE="en_US.UTF-8"
 KEYMAP="us"
+TIMEZONE="UTC"
 FILESYSTEM="btrfs"
 DRY_RUN="false"
 
@@ -43,6 +44,7 @@ Options:
   --autologin <bool>    Auto-login on boot (true|false, default: true)
   --locale <locale>     System locale (default: en_US.UTF-8)
   --keymap <layout>     Keyboard layout (default: us)
+  --timezone <zone>     System timezone (default: UTC)
   --fs <type>           Filesystem (btrfs|ext4, default: btrfs)
   --dry-run             Simulate actions without wiping disks
 EOF
@@ -60,6 +62,7 @@ while [[ $# -gt 0 ]]; do
         --autologin) AUTOLOGIN="$2"; shift 2 ;;
         --locale) LOCALE="$2"; shift 2 ;;
         --keymap) KEYMAP="$2"; shift 2 ;;
+        --timezone) TIMEZONE="$2"; shift 2 ;;
         --fs) FILESYSTEM="$2"; shift 2 ;;
         --dry-run) DRY_RUN="true"; shift 1 ;;
         *) echo "Unknown parameter: $1"; usage ;;
@@ -242,10 +245,15 @@ cat << EOF > /mnt/etc/hosts
 ::1         localhost ip6-localhost ip6-loopback
 EOF
 
-# Locale and keyboard
+# Locale, timezone, and keyboard
 echo "LANG=${LOCALE}" > /mnt/etc/default/locale
 if [[ -f /mnt/etc/locale.gen ]]; then
     sed -i "s/^#\s*${LOCALE}/${LOCALE}/" /mnt/etc/locale.gen 2>/dev/null || echo "${LOCALE} UTF-8" >> /mnt/etc/locale.gen
+fi
+
+if [[ -n "$TIMEZONE" && -f "/mnt/usr/share/zoneinfo/$TIMEZONE" ]]; then
+    chroot /mnt ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
+    echo "$TIMEZONE" > /mnt/etc/timezone
 fi
 
 cat << EOF > /mnt/etc/default/keyboard
@@ -279,11 +287,29 @@ mkdir -p /mnt/etc/sudoers.d
 echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > "/mnt/etc/sudoers.d/$USERNAME"
 chmod 0440 "/mnt/etc/sudoers.d/$USERNAME"
 
-# Set up autologin in AxisOS cage kiosk session
-if [[ "$AUTOLOGIN" == "true" && -f /mnt/etc/systemd/system/axisos.service ]]; then
-    sed -i "s/^User=.*/User=${USERNAME}/" /mnt/etc/systemd/system/axisos.service
-    sed -i "s/^Group=.*/Group=${USERNAME}/" /mnt/etc/systemd/system/axisos.service
+# Set up clean TTY1 autologin and session launcher
+if [[ "$AUTOLOGIN" == "true" ]]; then
+    mkdir -p /mnt/etc/systemd/system/getty@tty1.service.d
+    cat << EOF > /mnt/etc/systemd/system/getty@tty1.service.d/autologin.conf
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin ${USERNAME} --noclear %I \$TERM
+Type=idle
+EOF
 fi
+
+# Ensure user profile runs AxisOS kiosk launcher on tty1
+hook="
+# Auto-start AxisOS Wayland desktop on tty1 login
+if [ -z \"\$WAYLAND_DISPLAY\" ] && [ -z \"\$DISPLAY\" ] && [ \"\$(tty 2>/dev/null)\" = \"/dev/tty1\" ]; then
+    exec /usr/local/bin/axisos-kiosk.sh
+fi
+"
+mkdir -p "/mnt/home/${USERNAME}"
+if ! grep -q "axisos-kiosk.sh" "/mnt/home/${USERNAME}/.profile" 2>/dev/null; then
+    echo "$hook" >> "/mnt/home/${USERNAME}/.profile"
+fi
+chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}"
 
 report 85 "Configuring automated kernel & system updates (unattended-upgrades)..."
 mkdir -p /mnt/etc/apt/apt.conf.d

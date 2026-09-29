@@ -6,6 +6,7 @@ export interface DiskDrive {
   name: string;
   size: string;
   type: string;
+  diskType?: string;
   freeSpace: string;
   readOnly?: boolean;
   model?: string;

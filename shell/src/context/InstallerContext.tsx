@@ -3,16 +3,14 @@ import { InstallerData } from '../types/os';
 import { systemService, DiskDrive } from '../services/systemService';
 
 export const INSTALL_STEPS = [
-  'Welcome',
-  'Language',
-  'Storage',
+  'Language & Region',
+  'Destination Drive',
   'User Account',
-  'Summary',
   'Installing',
   'Complete',
 ] as const;
 
-export type InstallStepIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+export type InstallStepIndex = 0 | 1 | 2 | 3 | 4;
 
 interface InstallerContextType {
   currentStep: InstallStepIndex;
@@ -34,14 +32,18 @@ interface InstallerContextType {
 
 const defaultInstallerData: InstallerData = {
   language: 'English (United States)',
+  location: 'United States',
   keyboardLayout: 'English (US) - Standard',
-  targetDisk: '/dev/nvme0n1',
+  targetDisk: '',
   eraseDisk: true,
   userFullName: 'AxisOS User',
   username: 'axis',
   computerName: 'axis-pc',
   password: '',
   autoLogin: true,
+  locale: 'en_US.UTF-8',
+  timezone: 'UTC',
+  keymap: 'us',
 };
 
 const InstallerContext = createContext<InstallerContextType | null>(null);
@@ -88,7 +90,7 @@ export const InstallerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const goToNextStep = () => {
-    setCurrentStep((prev) => Math.min(prev + 1, 6) as InstallStepIndex);
+    setCurrentStep((prev) => Math.min(prev + 1, 4) as InstallStepIndex);
   };
 
   const goToPrevStep = () => {
@@ -110,7 +112,7 @@ export const InstallerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const startInstallation = async () => {
-    setCurrentStep(5);
+    setCurrentStep(3);
     setIsInstalling(true);
     setInstallProgress(2);
     setInstallStatusText('Connecting to installation engine...');
@@ -146,7 +148,7 @@ export const InstallerProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           setIsInstalling(false);
           setInstallProgress(100);
           setInstallStatusText('Installation complete!');
-          setCurrentStep(6);
+          setCurrentStep(4);
         } else if (status.error) {
           clearInterval(pollIntervalRef.current);
           setIsInstalling(false);

@@ -15,14 +15,12 @@ export XDG_SESSION_TYPE=wayland
 export XDG_CURRENT_DESKTOP=AxisOS
 unset WAYLAND_DISPLAY
 unset DISPLAY
-export WLR_BACKENDS=drm
 export OZONE_PLATFORM=wayland
 export MOZ_ENABLE_WAYLAND=1
 export GDK_BACKEND=wayland
 export QT_QPA_PLATFORM=wayland
 export WLR_LIBINPUT_NO_DEVICES=1
 export WLR_RENDERER_ALLOW_SOFTWARE=1
-export LIBSEAT_BACKEND=seatd
 
 # Create user directories
 mkdir -p /home/axis/.config/chromium 2>/dev/null || true
@@ -46,14 +44,13 @@ CHROME_BIN=$(command -v chromium || command -v chromium-browser || true)
 
 if [ -n "$CHROME_BIN" ]; then
     # Launch Cage with Chromium in kiosk mode
-    exec cage -s -d -- "$CHROME_BIN" \
+    cage -s -d -- "$CHROME_BIN" \
         --kiosk \
         --ozone-platform=wayland \
-        --enable-features=UseOzonePlatform,WaylandWindowDecorations \
+        --enable-features=UseOzonePlatform \
         --no-sandbox \
         --disable-dev-shm-usage \
         --disable-gpu-sandbox \
-        --in-process-gpu \
         --ignore-gpu-blocklist \
         --enable-gpu-rasterization \
         --enable-zero-copy \
@@ -73,5 +70,10 @@ if [ -n "$CHROME_BIN" ]; then
         --app="$URL" >> /home/axis/.kiosk.log 2>&1
 else
     echo "Error: Chromium not found in PATH." >&2
-    exec cage -s -- xterm >> /home/axis/.kiosk.log 2>&1
+    cage -s -- xterm >> /home/axis/.kiosk.log 2>&1
 fi
+
+EXIT_CODE=$?
+echo "[AxisOS] Session exited with code $EXIT_CODE at $(date)" >> /home/axis/.kiosk.log
+sleep 3
+

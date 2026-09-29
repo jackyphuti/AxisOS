@@ -166,12 +166,10 @@ WantedBy=graphical.target
 
     # 7. Configure Systemd targets and enable services
     print("--> 7. Configuring service links")
-    # Link axisos.service into graphical.target.wants
-    os.makedirs(f"{chroot}/etc/systemd/system/graphical.target.wants", exist_ok=True)
+    # Clean up any conflicting axisos.service from graphical.target.wants (agetty@tty1 handles user login)
     axisos_want = f"{chroot}/etc/systemd/system/graphical.target.wants/axisos.service"
     if os.path.islink(axisos_want) or os.path.exists(axisos_want):
         os.remove(axisos_want)
-    os.symlink("/etc/systemd/system/axisos.service", axisos_want)
 
     # Link axisos-daemon.service into multi-user.target.wants
     os.makedirs(f"{chroot}/etc/systemd/system/multi-user.target.wants", exist_ok=True)

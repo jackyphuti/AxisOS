@@ -1,35 +1,88 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
-  Sparkles,
+  Globe,
+  MapPin,
+  Keyboard,
   HardDrive,
   User,
-  CheckCircle,
-  ArrowRight,
-  ArrowLeft,
-  RotateCcw,
   Check,
-  Shield,
-  Layers,
-  Cpu,
+  CheckCircle2,
+  ShieldCheck,
   AlertTriangle,
   Terminal,
   RefreshCw,
   Lock,
-  ShieldCheck,
+  Sparkles,
+  ArrowRight,
+  ArrowLeft,
+  RotateCcw,
+  Laptop,
+  Eye,
+  EyeOff,
+  Layers,
   Disc,
-  Info,
-  CheckCircle2,
 } from 'lucide-react';
 import { useInstaller, INSTALL_STEPS } from '../../context/InstallerContext';
 import { useSystemState, ACCENT_COLOR_MAP } from '../../context/SystemStateContext';
 import { useWindowManager } from '../../context/WindowManagerContext';
 import { systemService } from '../../services/systemService';
 
+// Comprehensive language, location, and keyboard datasets
+const LANGUAGE_OPTIONS = [
+  { label: 'English (United States)', code: 'en_US.UTF-8', defaultLocation: 'United States', defaultKeymap: 'us' },
+  { label: 'English (United Kingdom)', code: 'en_GB.UTF-8', defaultLocation: 'United Kingdom', defaultKeymap: 'gb' },
+  { label: 'English (South Africa)', code: 'en_ZA.UTF-8', defaultLocation: 'South Africa', defaultKeymap: 'us' },
+  { label: 'English (Canada)', code: 'en_CA.UTF-8', defaultLocation: 'Canada', defaultKeymap: 'us' },
+  { label: 'English (Australia)', code: 'en_AU.UTF-8', defaultLocation: 'Australia', defaultKeymap: 'us' },
+  { label: 'Español (España)', code: 'es_ES.UTF-8', defaultLocation: 'Spain', defaultKeymap: 'es' },
+  { label: 'Español (México)', code: 'es_MX.UTF-8', defaultLocation: 'Mexico', defaultKeymap: 'latam' },
+  { label: 'Français (France)', code: 'fr_FR.UTF-8', defaultLocation: 'France', defaultKeymap: 'fr' },
+  { label: 'Deutsch (Deutschland)', code: 'de_DE.UTF-8', defaultLocation: 'Germany', defaultKeymap: 'de' },
+  { label: 'Português (Brasil)', code: 'pt_BR.UTF-8', defaultLocation: 'Brazil', defaultKeymap: 'br' },
+  { label: 'Português (Portugal)', code: 'pt_PT.UTF-8', defaultLocation: 'Portugal', defaultKeymap: 'pt' },
+  { label: 'Italiano (Italia)', code: 'it_IT.UTF-8', defaultLocation: 'Italy', defaultKeymap: 'it' },
+  { label: 'Nederlands (Nederland)', code: 'nl_NL.UTF-8', defaultLocation: 'Netherlands', defaultKeymap: 'us' },
+  { label: 'Polski (Polska)', code: 'pl_PL.UTF-8', defaultLocation: 'Poland', defaultKeymap: 'pl' },
+  { label: 'Русский (Россия)', code: 'ru_RU.UTF-8', defaultLocation: 'Russia', defaultKeymap: 'ru' },
+  { label: '日本語 (日本)', code: 'ja_JP.UTF-8', defaultLocation: 'Japan', defaultKeymap: 'jp' },
+  { label: '中文 (简体, 中国)', code: 'zh_CN.UTF-8', defaultLocation: 'China', defaultKeymap: 'us' },
+];
+
+const LOCATION_OPTIONS = [
+  { label: 'United States (Pacific / New York)', timezone: 'America/New_York', locale: 'en_US.UTF-8' },
+  { label: 'United Kingdom (London)', timezone: 'Europe/London', locale: 'en_GB.UTF-8' },
+  { label: 'South Africa (Johannesburg)', timezone: 'Africa/Johannesburg', locale: 'en_ZA.UTF-8' },
+  { label: 'Canada (Toronto / Vancouver)', timezone: 'America/Toronto', locale: 'en_CA.UTF-8' },
+  { label: 'Australia (Sydney / Melbourne)', timezone: 'Australia/Sydney', locale: 'en_AU.UTF-8' },
+  { label: 'Germany (Berlin)', timezone: 'Europe/Berlin', locale: 'de_DE.UTF-8' },
+  { label: 'France (Paris)', timezone: 'Europe/Paris', locale: 'fr_FR.UTF-8' },
+  { label: 'Spain (Madrid)', timezone: 'Europe/Madrid', locale: 'es_ES.UTF-8' },
+  { label: 'Brazil (São Paulo)', timezone: 'America/Sao_Paulo', locale: 'pt_BR.UTF-8' },
+  { label: 'Japan (Tokyo)', timezone: 'Asia/Tokyo', locale: 'ja_JP.UTF-8' },
+  { label: 'China (Beijing / Shanghai)', timezone: 'Asia/Shanghai', locale: 'zh_CN.UTF-8' },
+  { label: 'India (New Delhi / Kolkata)', timezone: 'Asia/Kolkata', locale: 'en_IN.UTF-8' },
+  { label: 'Universal Coordinated Time (UTC)', timezone: 'UTC', locale: 'en_US.UTF-8' },
+];
+
+const KEYBOARD_OPTIONS = [
+  { label: 'US (QWERTY) - Standard', keymap: 'us' },
+  { label: 'United Kingdom (QWERTY)', keymap: 'gb' },
+  { label: 'German (QWERTZ)', keymap: 'de' },
+  { label: 'French (AZERTY)', keymap: 'fr' },
+  { label: 'Spanish (QWERTY)', keymap: 'es' },
+  { label: 'Latin American (QWERTY)', keymap: 'latam' },
+  { label: 'Portuguese (Brazil ABNT2)', keymap: 'br' },
+  { label: 'Italian (QWERTY)', keymap: 'it' },
+  { label: 'Japanese', keymap: 'jp' },
+  { label: 'US (Dvorak)', keymap: 'dvorak' },
+];
+
 export const InstallerApp: React.FC = () => {
   const {
     currentStep,
     goToNextStep,
     goToPrevStep,
+    jumpToStep,
     installerData,
     updateInstallerData,
     availableDisks,
@@ -47,7 +100,62 @@ export const InstallerApp: React.FC = () => {
   const { closeWindow, windows } = useWindowManager();
   const [showLogConsole, setShowLogConsole] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const logContainerRef = useRef<HTMLDivElement>(null);
   const accent = ACCENT_COLOR_MAP[accentColor];
+
+  // Auto-scroll logs
+  useEffect(() => {
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
+  }, [installLogs]);
+
+  // Handle Language selection change with smart cascade
+  const handleLanguageChange = (langLabel: string) => {
+    const selected = LANGUAGE_OPTIONS.find((l) => l.label === langLabel);
+    if (selected) {
+      const matchingLoc = LOCATION_OPTIONS.find((loc) => loc.label.includes(selected.defaultLocation)) || LOCATION_OPTIONS[0];
+      const matchingKey = KEYBOARD_OPTIONS.find((k) => k.keymap === selected.defaultKeymap) || KEYBOARD_OPTIONS[0];
+
+      updateInstallerData({
+        language: selected.label,
+        location: matchingLoc.label,
+        keyboardLayout: matchingKey.label,
+        locale: selected.code,
+        timezone: matchingLoc.timezone,
+        keymap: matchingKey.keymap,
+      });
+    } else {
+      updateInstallerData({ language: langLabel });
+    }
+  };
+
+  const handleLocationChange = (locLabel: string) => {
+    const selected = LOCATION_OPTIONS.find((l) => l.label === locLabel);
+    if (selected) {
+      updateInstallerData({
+        location: selected.label,
+        timezone: selected.timezone,
+        locale: selected.locale,
+      });
+    } else {
+      updateInstallerData({ location: locLabel });
+    }
+  };
+
+  const handleKeyboardChange = (keyLabel: string) => {
+    const selected = KEYBOARD_OPTIONS.find((k) => k.label === keyLabel);
+    if (selected) {
+      updateInstallerData({
+        keyboardLayout: selected.label,
+        keymap: selected.keymap,
+      });
+    } else {
+      updateInstallerData({ keyboardLayout: keyLabel });
+    }
+  };
 
   const handleFinish = async (action: 'restart' | 'continue') => {
     setIsLiveEnvironment(false);
@@ -64,475 +172,527 @@ export const InstallerApp: React.FC = () => {
   const passwordsMatch = !installerData.password || installerData.password === confirmPassword;
 
   return (
-    <div className="flex h-full w-full bg-slate-950 text-slate-100 select-none">
-      {/* Left Stepper Sidebar */}
-      <div className="w-56 bg-slate-900/90 border-r border-white/5 p-5 flex flex-col justify-between">
-        <div>
-          {/* Logo */}
-          <div className="flex items-center space-x-2.5 mb-8">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-white shadow-md text-sm ring-2 ring-white/10">
-              ▲
-            </div>
-            <div>
-              <div className="text-sm font-bold tracking-tight">AxisOS</div>
-              <div className="text-[10px] text-cyan-400 font-mono">System Installer</div>
-            </div>
+    <div className="flex flex-col h-full w-full bg-slate-950 text-slate-100 select-none overflow-hidden font-sans">
+      {/* Windows Setup Header Bar */}
+      <div className="h-12 bg-slate-900 border-b border-white/10 px-5 flex items-center justify-between shrink-0">
+        <div className="flex items-center space-x-3">
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-white text-xs shadow-md ring-1 ring-white/20">
+            ▲
           </div>
+          <span className="text-sm font-semibold tracking-tight text-slate-200">
+            AxisOS Setup
+          </span>
+          <span className="text-xs text-slate-500 font-normal">|</span>
+          <span className="text-xs text-cyan-400 font-medium">
+            {INSTALL_STEPS[currentStep]}
+          </span>
+        </div>
 
-          {/* Stepper Steps */}
-          <div className="flex flex-col space-y-1.5">
-            {INSTALL_STEPS.map((step, idx) => {
-              const isPast = currentStep > idx;
-              const isCurrent = currentStep === idx;
-
-              return (
+        {/* Windows-style Step Breadcrumbs */}
+        <div className="hidden sm:flex items-center space-x-2 text-xs">
+          {INSTALL_STEPS.map((step, idx) => {
+            const isPast = currentStep > idx;
+            const isCurrent = currentStep === idx;
+            return (
+              <div key={step} className="flex items-center space-x-1.5">
                 <div
-                  key={step}
-                  className={`flex items-center space-x-3 px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                  className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
                     isCurrent
-                      ? `${accent.bg} ${accent.border} text-white font-semibold border shadow-sm`
+                      ? 'bg-blue-600 text-white ring-2 ring-blue-400/40'
                       : isPast
-                      ? 'text-emerald-400'
+                      ? 'bg-emerald-500/20 text-emerald-400'
+                      : 'bg-slate-800 text-slate-500'
+                  }`}
+                >
+                  {isPast ? <Check className="w-2.5 h-2.5" /> : idx + 1}
+                </div>
+                <span
+                  className={`${
+                    isCurrent
+                      ? 'text-slate-100 font-semibold'
+                      : isPast
+                      ? 'text-emerald-400/80'
                       : 'text-slate-500'
                   }`}
                 >
-                  <div
-                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                      isCurrent
-                        ? `${accent.primary} text-white shadow-sm`
-                        : isPast
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-slate-800 text-slate-500'
-                    }`}
-                  >
-                    {isPast ? <Check className="w-3 h-3" /> : idx + 1}
-                  </div>
-                  <span>{step}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Footer Note */}
-        <div className="space-y-1.5 border-t border-white/5 pt-3">
-          <div className="flex items-center gap-1.5 text-[10px] text-emerald-400 font-medium">
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Microsoft UEFI Signed</span>
-          </div>
-          <div className="text-[10px] text-slate-500 font-mono">
-            EFI Bootloader • Btrfs Root
-          </div>
+                  {step}
+                </span>
+                {idx < INSTALL_STEPS.length - 1 && (
+                  <span className="text-slate-700 text-[10px]">›</span>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col justify-between p-8 bg-slate-950/60 overflow-y-auto">
-        {/* Step 0: Welcome */}
+      {/* Main Setup Content Area */}
+      <div className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col justify-center items-center">
+        {/* ============================================================ */}
+        {/* STEP 0: Language, Location & Keyboard (Windows Setup Style) */}
+        {/* ============================================================ */}
         {currentStep === 0 && (
-          <div className="flex flex-col items-center justify-center text-center my-auto max-w-lg mx-auto">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-xl shadow-cyan-950/50 mb-4 ring-4 ring-white/10">
-              <Sparkles className="w-8 h-8 text-cyan-100" />
+          <div className="w-full max-w-xl flex flex-col gap-6 animate-in fade-in duration-200">
+            <div className="text-left border-b border-white/10 pb-4">
+              <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+                <Globe className="w-6 h-6 text-cyan-400" />
+                <span>Select preferences</span>
+              </h1>
+              <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                Choose the language to install, your time & currency location format, and your keyboard input method.
+              </p>
             </div>
-            <h1 className="text-2xl font-black text-slate-100 tracking-tight">
-              Install AxisOS 1.0 "Horizon"
-            </h1>
-            <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-              This automated wizard will guide you through setting up your language, picking your storage drive,
-              configuring your user account, and deploying the complete AxisOS operating system.
-            </p>
 
-            <div className="mt-8 grid grid-cols-2 gap-3 w-full text-left">
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>Secure Boot Certified</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Includes Microsoft-signed Shim and Debian-signed GRUB for out-of-the-box hardware trust.
-                </div>
+            <div className="flex flex-col gap-4">
+              {/* Language to install */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Language to install:</span>
+                </label>
+                <select
+                  value={installerData.language}
+                  onChange={(e) => handleLanguageChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                >
+                  {LANGUAGE_OPTIONS.map((opt) => (
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="p-3.5 rounded-xl bg-white/5 border border-white/10">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-cyan-400">
-                  <Layers className="w-4 h-4" />
-                  <span>Modern Btrfs Subvolumes</span>
-                </div>
-                <div className="text-[11px] text-slate-400 mt-1">
-                  Transparent zstd compression with isolated @root, @home, and @snapshots subvolumes.
-                </div>
+
+              {/* Time and currency format (Location) */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Time and currency format (Location):</span>
+                </label>
+                <select
+                  value={installerData.location || LOCATION_OPTIONS[0].label}
+                  onChange={(e) => handleLocationChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                >
+                  {LOCATION_OPTIONS.map((opt) => (
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Keyboard or input method */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                  <Keyboard className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Keyboard or input method:</span>
+                </label>
+                <select
+                  value={installerData.keyboardLayout}
+                  onChange={(e) => handleKeyboardChange(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                >
+                  {KEYBOARD_OPTIONS.map((opt) => (
+                    <option key={opt.label} value={opt.label}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Secure Boot & UEFI compatibility note */}
+            <div className="p-3.5 rounded-2xl bg-slate-900/60 border border-white/10 flex items-start gap-3">
+              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="text-[11px] text-slate-300 leading-normal">
+                <span className="font-semibold text-white">Microsoft UEFI CA Signed Bootloader: </span>
+                AxisOS is certified for modern UEFI firmware with Secure Boot enabled. No BIOS certificates or keys need to be disabled.
               </div>
             </div>
           </div>
         )}
 
-        {/* Step 1: Language & Keyboard */}
+        {/* ============================================================ */}
+        {/* STEP 1: "Where do you want to install AxisOS?" (Windows Table) */}
+        {/* ============================================================ */}
         {currentStep === 1 && (
-          <div className="flex flex-col gap-5 max-w-lg mx-auto my-auto w-full">
-            <div>
-              <h2 className="text-xl font-bold text-slate-100">Language & Keyboard</h2>
-              <p className="text-xs text-slate-400 mt-1">Select your preferred system language and keyboard layout.</p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-xs text-slate-300 font-medium">System Language</label>
-              <select
-                value={installerData.language}
-                onChange={(e) => updateInstallerData({ language: e.target.value })}
-                className="w-full px-3 py-2.5 bg-slate-900 border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              >
-                <option value="English (United States)">English (United States)</option>
-                <option value="English (United Kingdom)">English (United Kingdom)</option>
-                <option value="Français (France)">Français (France)</option>
-                <option value="Deutsch (Deutschland)">Deutsch (Deutschland)</option>
-                <option value="Español (España)">Español (España)</option>
-                <option value="日本語 (Japan)">日本語 (Japan)</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <label className="text-xs text-slate-300 font-medium">Keyboard Layout</label>
-              <select
-                value={installerData.keyboardLayout}
-                onChange={(e) => updateInstallerData({ keyboardLayout: e.target.value })}
-                className="w-full px-3 py-2.5 bg-slate-900 border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              >
-                <option value="English (US) - Standard">English (US) - Standard</option>
-                <option value="English (US) - Dvorak">English (US) - Dvorak</option>
-                <option value="English (UK) - Standard">English (UK) - Standard</option>
-                <option value="German - QWERTZ">German - QWERTZ</option>
-                <option value="French - AZERTY">French - AZERTY</option>
-              </select>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Storage & Partitioning */}
-        {currentStep === 2 && (
-          <div className="flex flex-col gap-4 max-w-xl mx-auto my-auto w-full">
-            <div className="flex items-center justify-between">
+          <div className="w-full max-w-2xl flex flex-col gap-5 animate-in fade-in duration-200">
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
-                <h2 className="text-xl font-bold text-slate-100">Select Target Drive</h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Choose the drive where you want to install AxisOS.
+                <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+                  <HardDrive className="w-6 h-6 text-blue-400" />
+                  <span>Where do you want to install AxisOS?</span>
+                </h1>
+                <p className="text-xs text-slate-400 mt-1">
+                  Select a drive from the list below. AxisOS will automatically create the UEFI partition and Btrfs filesystem.
                 </p>
               </div>
               <button
                 onClick={refreshDisks}
-                className="px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer"
-                title="Rescan drives"
+                className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors flex items-center gap-1.5 text-xs font-medium cursor-pointer border border-white/10 shadow-sm"
+                title="Refresh connected disks"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
-                <span>Rescan</span>
+                <span>Refresh</span>
               </button>
             </div>
 
-            {/* Drives List */}
-            <div className="flex flex-col gap-2.5 max-h-64 overflow-y-auto pr-1">
-              {availableDisks.length === 0 ? (
-                <div className="p-6 rounded-2xl bg-slate-900 border border-white/10 text-center text-xs text-slate-400 flex flex-col items-center gap-2">
-                  <RefreshCw className="w-5 h-5 animate-spin text-cyan-400" />
-                  <span>Scanning connected storage devices...</span>
-                </div>
-              ) : (
-                availableDisks.map((disk) => {
-                  const isSelected = installerData.targetDisk === disk.id;
-                  const isLive = disk.isLiveMedium;
+            {/* Windows Setup Style Drives Table */}
+            <div className="rounded-2xl border border-white/10 bg-slate-900/80 overflow-hidden shadow-lg">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-slate-800/80 text-slate-400 font-semibold border-b border-white/10">
+                    <th className="py-2.5 px-4 w-12 text-center">Select</th>
+                    <th className="py-2.5 px-3">Name / Drive</th>
+                    <th className="py-2.5 px-3">Capacity</th>
+                    <th className="py-2.5 px-3">Type</th>
+                    <th className="py-2.5 px-4">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {availableDisks.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-400">
+                        <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-cyan-400" />
+                        Scanning connected disks...
+                      </td>
+                    </tr>
+                  ) : (
+                    availableDisks.map((disk, idx) => {
+                      const isSelected = installerData.targetDisk === disk.id;
+                      const isLive = disk.isLiveMedium;
+                      const hasWin = disk.hasWindows || disk.hasBitLocker;
 
-                  return (
-                    <button
-                      key={disk.id}
-                      disabled={isLive}
-                      onClick={() => !isLive && updateInstallerData({ targetDisk: disk.id })}
-                      className={`flex flex-col p-3.5 rounded-2xl border text-left transition-all ${
-                        isLive
-                          ? 'bg-slate-900/40 border-white/5 opacity-60 cursor-not-allowed'
-                          : isSelected
-                          ? `${accent.bg} ${accent.border} text-white ring-2 ring-cyan-500/40 cursor-pointer shadow-lg`
-                          : 'bg-white/5 border-white/5 text-slate-300 hover:bg-white/10 hover:border-white/15 cursor-pointer'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                              isSelected ? accent.primary + ' text-white shadow-md' : 'bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            <HardDrive className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <div className="text-xs font-bold text-slate-100 flex items-center gap-2">
-                              <span>{disk.model || disk.name}</span>
-                              {isLive && (
-                                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-semibold border border-amber-500/30">
-                                  Live USB Installer (Protected)
-                                </span>
-                              )}
-                              {disk.hasBitLocker && (
-                                <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-[10px] font-semibold border border-rose-500/30">
-                                  BitLocker Encrypted
-                                </span>
-                              )}
-                              {disk.hasWindows && (
-                                <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 text-[10px] font-semibold border border-blue-500/30">
-                                  Windows Drive
-                                </span>
-                              )}
+                      return (
+                        <tr
+                          key={disk.id}
+                          onClick={() => {
+                            if (!isLive) {
+                              updateInstallerData({ targetDisk: disk.id });
+                            }
+                          }}
+                          className={`transition-colors cursor-pointer ${
+                            isLive
+                              ? 'opacity-50 bg-slate-950 cursor-not-allowed'
+                              : isSelected
+                              ? 'bg-blue-600/20 text-white font-medium ring-1 ring-inset ring-blue-500'
+                              : 'hover:bg-white/5 text-slate-300'
+                          }`}
+                        >
+                          {/* Radio Selection */}
+                          <td className="py-3 px-4 text-center">
+                            <input
+                              type="radio"
+                              name="targetDisk"
+                              checked={isSelected}
+                              disabled={isLive}
+                              onChange={() => !isLive && updateInstallerData({ targetDisk: disk.id })}
+                              className="accent-blue-500 cursor-pointer"
+                            />
+                          </td>
+
+                          {/* Drive Name / Model */}
+                          <td className="py-3 px-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-slate-100">
+                                Drive {idx}: {disk.model || disk.name}
+                              </span>
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                ({disk.id})
+                              </span>
                             </div>
-                            <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2 font-mono">
-                              <span>{disk.id}</span>
-                              <span>•</span>
-                              <span>{disk.type}</span>
-                            </div>
-                          </div>
-                        </div>
+                          </td>
 
-                        <div className="text-right">
-                          <div className="text-xs font-mono font-bold text-slate-200">{disk.size}</div>
-                          <div className="text-[10px] text-emerald-400">{disk.freeSpace}</div>
-                        </div>
-                      </div>
+                          {/* Capacity */}
+                          <td className="py-3 px-3 font-mono font-medium text-slate-200">
+                            {disk.size}
+                          </td>
 
-                      {/* Partition preview if available */}
-                      {disk.partitions && disk.partitions.length > 0 && (
-                        <div className="mt-2.5 pt-2 border-t border-white/5 flex flex-wrap gap-1.5 text-[10px] text-slate-400 font-mono">
-                          <span className="text-slate-500">Partitions:</span>
-                          {disk.partitions.map((p, i) => (
-                            <span key={i} className="px-1.5 py-0.5 rounded bg-black/40 text-slate-300">
-                              {p}
+                          {/* Drive Type */}
+                          <td className="py-3 px-3">
+                            <span className="px-2 py-0.5 rounded-md text-[10px] uppercase font-bold bg-slate-800 text-slate-300 border border-white/10">
+                              {disk.diskType || 'Drive'}
                             </span>
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  );
-                })
-              )}
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3 px-4">
+                            {isLive ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-amber-400 font-semibold">
+                                <Disc className="w-3.5 h-3.5" />
+                                <span>Live USB (Protected)</span>
+                              </span>
+                            ) : hasWin ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-amber-400 font-semibold">
+                                <AlertTriangle className="w-3.5 h-3.5" />
+                                <span>{disk.hasBitLocker ? 'BitLocker Windows' : 'Windows OS'}</span>
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Ready</span>
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
             </div>
 
-            {/* Target Layout Scheme Card */}
-            {selectedDisk && (
-              <div className="p-3.5 rounded-xl bg-slate-900 border border-white/10 flex flex-col gap-2">
-                <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-4 h-4 text-cyan-400" />
-                  <span>Target Partition Layout (Automatic GPT)</span>
-                </div>
-                <div className="grid grid-cols-12 gap-1 text-center font-mono text-[10px] mt-1">
-                  <div className="col-span-2 p-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300">
-                    <div className="font-bold">ESP 512 MB</div>
-                    <div className="text-[9px] text-emerald-400/80">/boot/efi (FAT32)</div>
-                  </div>
-                  <div className="col-span-2 p-1.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-300">
-                    <div className="font-bold">Swap 4 GB</div>
-                    <div className="text-[9px] text-purple-400/80">Linux Swap</div>
-                  </div>
-                  <div className="col-span-8 p-1.5 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300">
-                    <div className="font-bold">AxisOS Root (Remaining Space)</div>
-                    <div className="text-[9px] text-cyan-400/80">Btrfs Subvolumes (@, @home, @snapshots, @var_log)</div>
-                  </div>
+            {/* Warning if Windows or BitLocker is on Selected Drive */}
+            {selectedDisk && (selectedDisk.hasWindows || selectedDisk.hasBitLocker) && (
+              <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-amber-300 text-xs">
+                <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <span className="font-bold text-amber-200">Caution: Existing Windows Installation Detected! </span>
+                  Targeting <strong>{selectedDisk.model || selectedDisk.name}</strong> will erase and replace this drive. If you want to keep Windows, ensure you install AxisOS to a separate drive or backup your files first.
                 </div>
               </div>
             )}
+
+            {/* Visual Partition Layout Preview */}
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/10 flex flex-col gap-2.5">
+              <div className="text-xs font-semibold text-slate-300 flex items-center justify-between">
+                <span>Automatic Partition Layout Preview:</span>
+                <span className="text-[11px] text-cyan-400 font-mono">Btrfs Subvolumes + UEFI ESP</span>
+              </div>
+              <div className="grid grid-cols-12 gap-1.5 text-center text-[10px] font-mono font-medium">
+                <div className="col-span-2 p-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex flex-col justify-center">
+                  <span className="font-bold">ESP (512 MB)</span>
+                  <span className="text-[9px] opacity-80">FAT32 /boot/efi</span>
+                </div>
+                <div className="col-span-2 p-2 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 flex flex-col justify-center">
+                  <span className="font-bold">Swap (4.0 GB)</span>
+                  <span className="text-[9px] opacity-80">Linux Swap</span>
+                </div>
+                <div className="col-span-8 p-2 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 flex flex-col justify-center">
+                  <span className="font-bold">AxisOS Root (Remaining Space)</span>
+                  <span className="text-[9px] opacity-80">Btrfs @root, @home (zstd)</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Step 3: User Account & Hostname */}
-        {currentStep === 3 && (
-          <div className="flex flex-col gap-4 max-w-lg mx-auto my-auto w-full">
-            <div>
-              <h2 className="text-xl font-bold text-slate-100">User Setup</h2>
-              <p className="text-xs text-slate-400 mt-1">Configure your administrator profile and computer name.</p>
+        {/* ============================================================ */}
+        {/* STEP 2: "Who's going to use this PC?" (User Account) */}
+        {/* ============================================================ */}
+        {currentStep === 2 && (
+          <div className="w-full max-w-lg flex flex-col gap-5 animate-in fade-in duration-200">
+            <div className="border-b border-white/10 pb-4">
+              <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
+                <User className="w-6 h-6 text-cyan-400" />
+                <span>Who's going to use this PC?</span>
+              </h1>
+              <p className="text-xs text-slate-400 mt-1">
+                Enter your name and create a password to set up your primary user account.
+              </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-slate-300 font-medium">Your Full Name</label>
+            <div className="flex flex-col gap-3.5">
+              {/* Full Name */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-300">Your Full Name</label>
                 <input
                   type="text"
                   value={installerData.userFullName}
                   onChange={(e) => updateInstallerData({ userFullName: e.target.value })}
-                  placeholder="e.g. Jacky"
-                  className="px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  placeholder="e.g. Jacky Phuti"
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-slate-300 font-medium">Username</label>
-                <input
-                  type="text"
-                  value={installerData.username}
-                  onChange={(e) => updateInstallerData({ username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') })}
-                  placeholder="axis"
-                  className="px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-slate-300 font-medium">Computer Name (Hostname)</label>
-              <input
-                type="text"
-                value={installerData.computerName}
-                onChange={(e) => updateInstallerData({ computerName: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
-                placeholder="axis-pc"
-                className="px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500 font-mono"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-slate-300 font-medium">Password</label>
-                <input
-                  type="password"
-                  value={installerData.password}
-                  onChange={(e) => updateInstallerData({ password: e.target.value })}
-                  placeholder="Enter password"
-                  className="px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                />
+              {/* Username & PC Name Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-300">User Account Name</label>
+                  <input
+                    type="text"
+                    value={installerData.username}
+                    onChange={(e) => updateInstallerData({ username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') })}
+                    placeholder="axis"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-300">PC / Device Name</label>
+                  <input
+                    type="text"
+                    value={installerData.computerName}
+                    onChange={(e) => updateInstallerData({ computerName: e.target.value })}
+                    placeholder="axis-pc"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  />
+                </div>
               </div>
 
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-slate-300 font-medium">Confirm Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm password"
-                  className={`px-3 py-2 bg-slate-900 border rounded-xl text-xs text-slate-200 focus:outline-none focus:ring-2 ${
-                    !passwordsMatch && confirmPassword ? 'border-rose-500 focus:ring-rose-500' : 'border-white/10 focus:ring-cyan-500'
-                  }`}
-                />
+              {/* Password & Confirm */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-300">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={installerData.password}
+                      onChange={(e) => updateInstallerData({ password: e.target.value })}
+                      placeholder="Enter password"
+                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-slate-300">Confirm Password</label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Repeat password"
+                    className={`w-full px-3.5 py-2.5 bg-slate-900 border rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      confirmPassword && !passwordsMatch ? 'border-rose-500' : 'border-white/15'
+                    }`}
+                  />
+                </div>
               </div>
-            </div>
 
-            {!passwordsMatch && confirmPassword && (
-              <div className="text-[11px] text-rose-400 font-medium">Passwords do not match.</div>
-            )}
+              {confirmPassword && !passwordsMatch && (
+                <div className="text-[11px] text-rose-400">Passwords do not match. Please verify.</div>
+              )}
 
-            <div className="pt-2">
-              <label className="flex items-center space-x-2.5 cursor-pointer text-xs text-slate-300">
+              {/* Auto-login Toggle */}
+              <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-900/60 border border-white/10 cursor-pointer hover:bg-white/5 transition-colors mt-1">
                 <input
                   type="checkbox"
                   checked={installerData.autoLogin}
                   onChange={(e) => updateInstallerData({ autoLogin: e.target.checked })}
-                  className="w-4 h-4 accent-cyan-500 rounded"
+                  className="accent-blue-500 w-4 h-4 rounded cursor-pointer"
                 />
-                <span>Log in automatically without asking for password on startup</span>
+                <span className="text-xs text-slate-200">
+                  Sign in automatically without asking for a password on startup
+                </span>
               </label>
             </div>
           </div>
         )}
 
-        {/* Step 4: Summary & Ready */}
-        {currentStep === 4 && (
-          <div className="flex flex-col gap-4 max-w-lg mx-auto my-auto w-full">
-            <div>
-              <h2 className="text-xl font-bold text-slate-100">Ready to Install</h2>
-              <p className="text-xs text-slate-400 mt-1">Review the deployment configuration below.</p>
+        {/* ============================================================ */}
+        {/* STEP 3: "Installing AxisOS" (Windows Setup Progress Screen)  */}
+        {/* ============================================================ */}
+        {currentStep === 3 && (
+          <div className="w-full max-w-xl flex flex-col gap-6 animate-in fade-in duration-200">
+            <div className="border-b border-white/10 pb-4 text-center">
+              <h1 className="text-3xl font-black tracking-tight text-white">
+                Installing AxisOS
+              </h1>
+              <p className="text-xs text-slate-400 mt-2">
+                Your computer will restart once the installation completes. Please keep your PC plugged in.
+              </p>
             </div>
 
-            <div className="bg-slate-900 border border-white/10 rounded-2xl p-4 flex flex-col gap-2.5 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">Target Disk</span>
-                <span className="font-semibold text-slate-200 font-mono text-right">
-                  {selectedDisk ? `${selectedDisk.model || selectedDisk.name} (${selectedDisk.id})` : installerData.targetDisk}
-                </span>
+            {/* Windows Setup Progress Checklist */}
+            <div className="flex flex-col gap-3 py-2 px-6 rounded-2xl bg-slate-900/60 border border-white/10">
+              {[
+                { title: 'Copying AxisOS system files', minPct: 15 },
+                { title: 'Getting files ready for installation', minPct: 45 },
+                { title: 'Installing system drivers & hardware firmware', minPct: 75 },
+                { title: 'Installing Microsoft-signed UEFI Secure Bootloader', minPct: 90 },
+                { title: 'Registering Lenovo / HP / Dell BIOS entries', minPct: 98 },
+                { title: 'Finishing up', minPct: 100 },
+              ].map((item, idx) => {
+                const isDone = installProgress >= item.minPct;
+                const isCurrent = !isDone && (idx === 0 || installProgress >= [15, 45, 75, 90, 98, 100][idx - 1]);
+
+                return (
+                  <div key={item.title} className="flex items-center gap-3 text-xs">
+                    <div className="w-5 h-5 flex items-center justify-center shrink-0">
+                      {isDone ? (
+                        <Check className="w-4 h-4 text-emerald-400" />
+                      ) : isCurrent ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                      ) : (
+                        <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
+                      )}
+                    </div>
+                    <span
+                      className={`${
+                        isDone
+                          ? 'text-slate-300'
+                          : isCurrent
+                          ? 'text-white font-semibold'
+                          : 'text-slate-600'
+                      }`}
+                    >
+                      {item.title} {isCurrent ? `(${installProgress}%)` : ''}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Animated Progress Bar */}
+            <div className="flex flex-col gap-2">
+              <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-white/10">
+                <div
+                  className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 rounded-full transition-all duration-300 shadow-lg shadow-blue-500/50"
+                  style={{ width: `${Math.max(installProgress, 4)}%` }}
+                />
               </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">Bootloader Security</span>
-                <span className="font-semibold text-emerald-400 flex items-center gap-1">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  <span>Microsoft UEFI CA Signed Shim (Secure Boot ON)</span>
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">UEFI Visibility</span>
-                <span className="font-semibold text-cyan-400">
-                  NVRAM Entry + Universal /EFI/BOOT/BOOTX64.EFI Fallback
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">Root Filesystem</span>
-                <span className="font-semibold text-slate-200">Btrfs (zstd:3 subvolumes @, @home, @snapshots)</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-white/5">
-                <span className="text-slate-400">Primary Account</span>
-                <span className="font-semibold text-slate-200">
-                  {installerData.username} ({installerData.userFullName})
-                </span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-400">Auto-login</span>
-                <span className="font-semibold text-emerald-400">{installerData.autoLogin ? 'Enabled' : 'Disabled'}</span>
+              <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                <span className="truncate max-w-sm">{installStatusText}</span>
+                <span className="font-mono font-bold text-white">{installProgress}%</span>
               </div>
             </div>
 
-            <div className="p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-2xl flex items-center gap-3 text-amber-300 text-xs">
-              <AlertTriangle className="w-5 h-5 shrink-0 text-amber-400" />
-              <span>
-                Warning: Proceeding will erase all data and format{' '}
-                <strong className="text-amber-200">{installerData.targetDisk}</strong>. Make sure you selected the correct drive!
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Step 5: Real Installing Progress & Live Log */}
-        {currentStep === 5 && (
-          <div className="flex flex-col items-center justify-center my-auto max-w-lg mx-auto w-full text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-xl shadow-cyan-950/50 mb-6 animate-pulse ring-4 ring-white/10">
-              <Cpu className="w-8 h-8 text-cyan-100" />
-            </div>
-
-            <h2 className="text-xl font-bold text-slate-100">Installing AxisOS 1.0</h2>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              Deploying kernel, Btrfs subvolumes, base system, and Microsoft-signed bootloader.
-            </p>
-
-            {/* Error Message if any */}
+            {/* Error Banner */}
             {installError && (
-              <div className="mt-4 p-3.5 bg-rose-500/10 border border-rose-500/30 rounded-2xl text-rose-300 text-xs text-left w-full">
-                <div className="font-bold flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-rose-400" />
-                  <span>Installation Error</span>
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3 text-rose-300 text-xs">
+                <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-bold text-rose-200">Installation Error:</div>
+                  <div className="mt-1">{installError}</div>
+                  <button
+                    onClick={resetInstaller}
+                    className="mt-3 px-3 py-1.5 rounded-lg bg-rose-600 text-white font-semibold text-xs hover:bg-rose-500 transition-colors cursor-pointer"
+                  >
+                    Try Again
+                  </button>
                 </div>
-                <div className="mt-1 font-mono text-[11px] break-all">{installError}</div>
-                <button
-                  onClick={resetInstaller}
-                  className="mt-3 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-slate-200 text-xs font-semibold cursor-pointer"
-                >
-                  Restart Installer
-                </button>
               </div>
             )}
 
-            {/* Progress Bar */}
-            <div className="w-full mt-6 bg-slate-900 border border-white/10 rounded-full h-3.5 overflow-hidden p-0.5">
-              <div
-                className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 rounded-full transition-all duration-300 shadow-sm"
-                style={{ width: `${installProgress}%` }}
-              />
-            </div>
-
-            <div className="flex items-center justify-between w-full mt-2.5 text-[11px] font-mono text-slate-400">
-              <span className="truncate max-w-[80%] text-left">{installStatusText}</span>
-              <span className="font-bold text-cyan-400">{installProgress}%</span>
-            </div>
-
-            {/* Live Log Console Toggle */}
-            <div className="w-full mt-5 flex flex-col items-start">
+            {/* Expandable Live Log Console */}
+            <div className="border border-white/10 rounded-2xl overflow-hidden bg-slate-950">
               <button
                 onClick={() => setShowLogConsole(!showLogConsole)}
-                className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+                className="w-full px-4 py-2 bg-slate-900/60 hover:bg-slate-900 text-slate-400 hover:text-white flex items-center justify-between text-xs transition-colors"
               >
-                <Terminal className="w-3.5 h-3.5" />
-                <span>{showLogConsole ? 'Hide Console Output' : 'View Live Installation Logs'}</span>
+                <div className="flex items-center gap-2">
+                  <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Installation Log Output</span>
+                </div>
+                <span className="text-[10px] text-slate-500">
+                  {showLogConsole ? 'Hide' : 'Show details'}
+                </span>
               </button>
 
               {showLogConsole && (
-                <div className="w-full h-44 mt-2 p-3.5 bg-black/85 border border-white/10 rounded-2xl overflow-y-auto font-mono text-[10px] text-slate-300 text-left space-y-1">
-                  {installLogs.map((log, i) => (
-                    <div key={i} className="leading-tight break-all font-mono">
+                <div
+                  ref={logContainerRef}
+                  className="p-3 font-mono text-[11px] text-slate-300 max-h-40 overflow-y-auto space-y-1 bg-black/60"
+                >
+                  {installLogs.map((log, index) => (
+                    <div key={index} className="leading-tight text-slate-400">
                       {log}
                     </div>
                   ))}
@@ -542,88 +702,171 @@ export const InstallerApp: React.FC = () => {
           </div>
         )}
 
-        {/* Step 6: Complete */}
-        {currentStep === 6 && (
-          <div className="flex flex-col items-center justify-center my-auto max-w-lg mx-auto w-full text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-xl shadow-emerald-950/50 mb-4 ring-4 ring-emerald-500/20">
-              <CheckCircle className="w-8 h-8 text-white" />
+        {/* ============================================================ */}
+        {/* STEP 4: "Installation Complete!" (Windows Completion Screen)  */}
+        {/* ============================================================ */}
+        {currentStep === 4 && (
+          <div className="w-full max-w-lg flex flex-col items-center text-center gap-6 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-2xl shadow-emerald-950/60 ring-4 ring-emerald-500/20">
+              <CheckCircle2 className="w-10 h-10" />
             </div>
 
-            <h2 className="text-2xl font-black text-slate-100">Installation Finished!</h2>
-            <p className="text-xs text-slate-400 mt-2 max-w-md leading-relaxed">
-              AxisOS has been successfully installed to <span className="font-bold text-slate-200">{installerData.targetDisk}</span>.
-              The Microsoft-signed UEFI bootloader is ready and registered in your computer's motherboard.
-            </p>
-
-            <div className="p-3.5 mt-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs text-left max-w-md">
-              <div className="font-bold flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>Ready to Boot</span>
-              </div>
-              <p className="mt-1 text-[11px] text-emerald-400/90 leading-normal">
-                Please remove your USB installer drive after rebooting. Your computer will automatically detect AxisOS in the boot menu!
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-white">
+                Installation Complete!
+              </h1>
+              <p className="text-xs text-slate-400 mt-2 max-w-md leading-relaxed">
+                AxisOS has been successfully installed on{' '}
+                <strong className="text-slate-200">
+                  {selectedDisk ? selectedDisk.model || selectedDisk.id : 'your drive'}
+                </strong>
+                . Remove your USB flash drive, then restart your PC to boot into AxisOS.
               </p>
             </div>
 
-            <div className="flex items-center gap-3 mt-7">
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/10 w-full text-left space-y-2 text-xs text-slate-300">
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span>Microsoft UEFI CA Signed Bootloader Installed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span>Lenovo / HP Universal UEFI Fallback Configured</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400" />
+                <span>Btrfs zstd Transparent Compression Enabled</span>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full">
               <button
                 onClick={() => handleFinish('restart')}
-                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-950 transition-all flex items-center gap-2 cursor-pointer"
+                className="flex-1 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-900/40 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-4 h-4" />
                 <span>Restart Computer Now</span>
               </button>
               <button
                 onClick={() => handleFinish('continue')}
-                className="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 font-medium text-xs transition-colors cursor-pointer"
+                className="px-5 py-3 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-semibold text-xs border border-white/10 transition-colors cursor-pointer"
               >
-                Continue Live Session
+                Continue Testing Live Desktop
               </button>
             </div>
           </div>
         )}
+      </div>
 
-        {/* Bottom Step Navigation Bar */}
-        {currentStep < 5 && (
-          <div className="flex items-center justify-between pt-6 border-t border-white/5">
-            <button
-              onClick={goToPrevStep}
-              disabled={currentStep === 0}
-              className={`flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                currentStep === 0
-                  ? 'opacity-0 pointer-events-none'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-300'
-              }`}
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back</span>
-            </button>
-
-            {currentStep === 4 ? (
+      {/* Windows Setup Bottom Navigation Bar */}
+      {currentStep < 3 && (
+        <div className="h-16 bg-slate-900 border-t border-white/10 px-8 flex items-center justify-between shrink-0">
+          <div>
+            {currentStep === 0 ? (
               <button
-                onClick={startInstallation}
-                className="flex items-center space-x-1.5 px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-950 transition-all cursor-pointer"
+                onClick={() => {
+                  const win = windows.find((w) => w.appId === 'installer');
+                  if (win) closeWindow(win.id);
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-semibold cursor-pointer border border-white/10"
               >
-                <span>Install AxisOS Now</span>
-                <Sparkles className="w-3.5 h-3.5" />
+                Try AxisOS (Live Desktop)
               </button>
             ) : (
               <button
+                onClick={goToPrevStep}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors text-xs font-semibold flex items-center gap-1.5 cursor-pointer border border-white/10"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back</span>
+              </button>
+            )}
+          </div>
+
+          <div>
+            {currentStep === 0 && (
+              <button
                 onClick={goToNextStep}
-                disabled={currentStep === 3 && (!passwordsMatch || !installerData.username)}
-                className={`flex items-center space-x-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold text-xs shadow-lg shadow-cyan-950 transition-all cursor-pointer ${
-                  currentStep === 3 && (!passwordsMatch || !installerData.username)
-                    ? 'opacity-50 pointer-events-none'
-                    : ''
+                className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-900/30"
+              >
+                <span>Next</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {currentStep === 1 && (
+              <button
+                disabled={!installerData.targetDisk || !selectedDisk || selectedDisk.isLiveMedium}
+                onClick={goToNextStep}
+                className={`px-6 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center gap-1.5 ${
+                  !installerData.targetDisk || !selectedDisk || selectedDisk.isLiveMedium
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-500 text-white cursor-pointer shadow-md shadow-blue-900/30'
                 }`}
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
+
+            {currentStep === 2 && (
+              <button
+                disabled={!passwordsMatch || !installerData.username}
+                onClick={() => setConfirmModalOpen(true)}
+                className={`px-6 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 ${
+                  !passwordsMatch || !installerData.username
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white cursor-pointer shadow-lg shadow-blue-900/40'
+                }`}
+              >
+                <span>Install Now</span>
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Safety Confirmation Modal Before Partitioning */}
+      {confirmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-in fade-in duration-200 p-4">
+          <div className="w-full max-w-md rounded-3xl bg-slate-900 border border-white/20 p-6 shadow-2xl flex flex-col gap-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+
+            <div>
+              <h3 className="text-lg font-bold text-white">Ready to Install AxisOS?</h3>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                The target drive{' '}
+                <strong className="text-amber-300">
+                  {selectedDisk ? `${selectedDisk.model || selectedDisk.name} (${selectedDisk.id})` : ''}
+                </strong>{' '}
+                will be formatted. All partitions on this disk will be replaced with AxisOS Btrfs and UEFI bootloaders.
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={() => setConfirmModalOpen(false)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs transition-colors cursor-pointer border border-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setConfirmModalOpen(false);
+                  startInstallation();
+                }}
+                className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors cursor-pointer shadow-md shadow-blue-900/40"
+              >
+                Confirm & Install
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
