@@ -200,6 +200,7 @@ async function getStorageDisks() {
       hasBitLocker: false,
       hasWindows: false,
       partitions: [],
+    },
   ];
 }
 

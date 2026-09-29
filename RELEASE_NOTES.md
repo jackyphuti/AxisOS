@@ -46,7 +46,7 @@ AxisOS is a next-generation Linux operating system designed for speed, glassmorp
 
 | Asset | Size | SHA-256 Checksum |
 | :--- | :--- | :--- |
-| **`axisos-live-amd64.iso`** | 883 MB | `1ED866465FED8AA1DF04CBB5361C85E6EA6D467CCAA1766338062D99E089149F` |
+| **`axisos-live-amd64.iso`** | 883 MB | `88EC36B710EFA4E922FAF2EE106D6AB828C5B3061A07F0890D34EBFAD21528A1` |
 
 ---
 
