@@ -14,7 +14,7 @@ AxisOS is a next-generation Linux operating system designed for speed, beauty, a
 | **RAM (Memory)** | 2 GB RAM | 4 GB to 8 GB RAM |
 | **Storage** | 20 GB free disk space | 64 GB+ SSD or dedicated Hard Drive |
 | **Graphics** | Standard UEFI Framebuffer or Intel HD 4000+ | Intel UHD/Iris Xe, AMD Radeon, or NVIDIA |
-| **Firmware** | UEFI (Recommended) or Legacy BIOS | UEFI with Secure Boot Disabled |
+| **Firmware** | Modern UEFI (Secure Boot Compatible) or Legacy BIOS | UEFI with Microsoft UEFI CA / Secure Boot |
 | **USB Media** | 2 GB Flash Drive | 8 GB+ USB 3.0 Flash Drive |
 
 ---
@@ -53,109 +53,72 @@ sudo dd if=axisos-live-amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
 
 ## 3. Motherboard & BIOS Setup
 
-Before booting from your USB drive, adjust your PC's BIOS settings:
+AxisOS includes **Microsoft UEFI CA signed binaries (`shimx64.efi.signed`)**, enabling out-of-the-box compatibility with modern UEFI systems.
 
-### 1. Disable Secure Boot
-AxisOS uses custom-built live bootloaders. You must temporarily disable **Secure Boot**:
-1. Power on the computer and tap the BIOS setup key repeatedly:
-   - **Lenovo**: Tap <kbd>F2</kbd> (or press the tiny **Novo button** on the side with a pin).
-   - **Dell**: Tap <kbd>F2</kbd> or <kbd>F12</kbd>.
-   - **HP**: Tap <kbd>ESC</kbd> then <kbd>F10</kbd>.
-   - **ASUS / Acer / MSI**: Tap <kbd>Del</kbd> or <kbd>F2</kbd>.
-2. Go to the **Security** or **Authentication** tab.
-3. Set **Secure Boot** to **[Disabled]**.
-4. Press <kbd>F10</kbd> to save and restart.
+### 1. Boot Keys by Manufacturer
+Power on the computer and tap your boot menu key repeatedly:
+- **Lenovo**: Tap <kbd>F12</kbd> (or <kbd>Fn</kbd> + <kbd>F12</kbd>, or press the **Novo button** on the side).
+- **Dell**: Tap <kbd>F12</kbd>.
+- **HP**: Tap <kbd>ESC</kbd> then <kbd>F9</kbd>.
+- **ASUS**: Tap <kbd>F8</kbd> or <kbd>Esc</kbd>.
+- **Acer / MSI**: Tap <kbd>F12</kbd> or <kbd>F11</kbd>.
 
-### 2. Open the One-Time Boot Menu
-As the computer restarts, tap your boot menu key:
-- **Lenovo / Dell**: <kbd>F12</kbd>
-- **HP**: <kbd>F9</kbd>
-- **ASUS**: <kbd>F8</kbd>
-- **Acer / MSI**: <kbd>F12</kbd> or <kbd>F11</kbd>
+Select your **USB Drive** from the UEFI boot options.
 
-Select your **USB Drive** from the menu.
+> [!TIP]
+> If your motherboard firmware has strict 3rd-party certificate restrictions (common in enterprise Lenovo ThinkPads), go to BIOS Setup (<kbd>F1</kbd> or <kbd>F2</kbd>) -> **Security** -> **Secure Boot** -> enable **"Allow Microsoft 3rd Party UEFI CA"** or temporarily set Secure Boot to **[Disabled]**.
 
 ---
 
 ## 4. Booting into the Live Environment
 
-When booting from the USB drive:
+When the USB boots, you will arrive at the **AxisOS Live Desktop** without modifying any disks:
 
-### Option 1: Standard Boot (Default)
-If your computer boots straight into the GRUB boot menu or `grub>` prompt:
-```grub
-search --set=root --file /live/vmlinuz
-linux /live/vmlinuz boot=live components username=axis quiet splash
-initrd /live/initrd.img
-boot
-```
-The computer will boot into RAM and display the **AxisOS Horizon desktop**.
-
-### Option 2: Safe Graphics Mode (`nomodeset`)
-If your laptop screen stays black or fails GPU mode-setting:
-```grub
-search --set=root --file /live/vmlinuz
-linux /live/vmlinuz boot=live components nomodeset username=axis
-initrd /live/initrd.img
-boot
-```
-`nomodeset` forces the universal UEFI display buffer, ensuring full compatibility on all screens.
+1. **Welcome Window**: A glassmorphic dialog presents two options:
+   - **Install AxisOS**: Launches the interactive graphical installer wizard.
+   - **Try Live Demo**: Lets you explore the desktop, apps, browser, and settings while running entirely in RAM.
+2. **Safe Graphics Mode**: If your display requires fallback framebuffer rendering, select **Safe Graphics / Failsafe** from the initial GRUB menu.
 
 ---
 
-## 5. Installing AxisOS Permanently
+## 5. Installing AxisOS Permanently (100% Graphical UI)
 
-You can install AxisOS onto an internal SSD/HDD or an external secondary hard drive.
+You **do not need to use terminal commands** to install AxisOS.
 
-### Step 1: Identify Your Target Drive
-In the terminal, run:
-```bash
-lsblk -o NAME,SIZE,TYPE,MODEL
-```
-Find your target installation disk (e.g. `/dev/sda`, `/dev/sdb`, or `/dev/nvme0n1`).
-
-> [!CAUTION]
-> Double-check the drive size and model! Installing will wipe the target drive. Do not select your main Windows drive unless you intend to replace it.
-
-### Step 2: Run the Installer
-
-#### Graphical Method (Desktop App):
-1. In the AxisOS desktop, open the **Install AxisOS** app.
-2. Select your target drive from the dropdown.
-3. Enter your username, full name, and password.
-4. Click **Begin Installation**.
-
-#### Command Line Method (Terminal):
-```bash
-sudo /usr/local/bin/axisos-installer.sh --disk /dev/sdX --username axis --password password --autologin true
-```
-*(Replace `/dev/sdX` with your target drive, e.g. `/dev/sda`)*
-
-The automated engine will:
-- Partition the target drive with **GPT**.
-- Create a 512 MB FAT32 **EFI System Partition**.
-- Format the root partition with **Btrfs** or **ext4**.
-- Copy the complete system root and user accounts.
-- Install the **GRUB 2 UEFI** bootloader and universal fallback `/EFI/BOOT/BOOTX64.EFI`.
+### Step-by-Step Graphical Installation:
+1. Boot into the Live Desktop. Click **Install AxisOS** on the welcome dialog or click the **Install AxisOS** desktop icon.
+2. **Choose Target Disk**:
+   - The installer automatically lists all connected hard drives and SSDs with their model name, size, and disk type (e.g. `Toshiba 930 GB`, `Samsung 980 NVMe`).
+   - The active USB installer drive is automatically highlighted and protected against accidental overwrites.
+   - Any detected Windows or BitLocker installations are clearly flagged.
+3. **Configure User Account**:
+   - Enter your **Full Name**, **Username**, and choose a **Password**.
+   - Confirm your password to avoid typing errors.
+   - Optionally toggle **Automatic Login**.
+4. **Partition & File System Layout**:
+   - Review the automatic partition preview:
+     - 512 MB FAT32 UEFI System Partition (`/boot/efi`)
+     - 4 GB Linux Swap Space
+     - Root system partition formatted with modern **Btrfs** and `zstd` transparent compression.
+5. **Start Installation**:
+   - Click **Install AxisOS Now** and confirm the safety prompt.
+   - Watch the animated progress bar across 6 distinct phases (Partitioning, Formatting, Deploying Root Filesystem, User Configuration, Secure Boot Deployment, Finalizing).
+6. **One-Click Reboot**:
+   - Once the success banner appears, simply click **Restart Computer Now**.
+   - Unplug your USB flash drive when your PC turns off.
 
 ---
 
-## 6. Post-Installation Boot Setup
+## 6. Post-Installation UEFI Boot Visibility
 
-Once installation reaches **100% Complete**:
-1. Remove your USB installer drive.
-2. Restart the computer (`sudo reboot`).
-3. Press <kbd>F12</kbd> (or <kbd>F9</kbd> / <kbd>F8</kbd>) to select **AxisOS** from the boot menu.
+After installation, AxisOS automatically registers itself into your motherboard's UEFI firmware:
 
-### If the drive is not listed in the Lenovo / HP boot menu:
-Modern UEFI motherboards (especially Lenovo) require the universal fallback executable:
-```bash
-sudo mount /dev/sdX1 /mnt
-sudo mkdir -p /mnt/EFI/BOOT
-sudo cp /mnt/EFI/AxisOS/grubx64.efi /mnt/EFI/BOOT/BOOTX64.EFI
-sudo umount /mnt
-sudo reboot
-```
+1. **Dual Boot Registration**:
+   - Registers primary boot option: `AxisOS` pointing to `\EFI\AxisOS\shimx64.efi`
+   - Registers fallback boot option: `AxisOS (UEFI Fallback)` pointing to `\EFI\BOOT\BOOTX64.EFI`
+2. **Lenovo / HP Hard Drive Compatibility**:
+   - Lenovo and HP motherboards often look exclusively for the fallback path `\EFI\BOOT\BOOTX64.EFI` on the internal drive.
+   - AxisOS automatically copies the Microsoft-signed Shim and GRUB bootloader to `\EFI\BOOT\BOOTX64.EFI`, guaranteeing immediate visibility in the F12 / F9 boot menu.
 
 ---
 
