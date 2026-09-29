@@ -31,6 +31,20 @@ Exec=/usr/local/bin/axisos-xsession.sh
 Type=Application
 """)
 
+# 2b. Touchpad Tapping & Natural Scrolling
+print("--> 2b. Configuring Touchpad Tapping (/etc/X11/xorg.conf.d/40-libinput-touchpad.conf)")
+os.makedirs(f"{chroot}/etc/X11/xorg.conf.d", exist_ok=True)
+with open(f"{chroot}/etc/X11/xorg.conf.d/40-libinput-touchpad.conf", "w") as f:
+    f.write("""Section "InputClass"
+    Identifier "libinput touchpad catchall"
+    MatchIsTouchpad "on"
+    MatchDevicePath "/dev/input/event*"
+    Driver "libinput"
+    Option "Tapping" "on"
+    Option "NaturalScrolling" "true"
+EndSection
+""")
+
 # 3. AxisOS XSession Launcher Script
 print("--> 3. Creating /usr/local/bin/axisos-xsession.sh")
 xsession_script = """#!/usr/bin/env bash
@@ -65,8 +79,9 @@ xset s off 2>/dev/null || true
 xset -dpms 2>/dev/null || true
 xset s noblank 2>/dev/null || true
 
-# Set clean slate background
+# Set clean slate background and standard arrow cursor
 xsetroot -solid "#020617" 2>/dev/null || true
+xsetroot -cursor_name left_ptr 2>/dev/null || true
 
 # Start Openbox window manager
 openbox &

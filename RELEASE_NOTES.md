@@ -8,7 +8,13 @@ AxisOS is a next-generation Linux operating system designed for speed, glassmorp
 
 ## 🌟 What's New in this Build
 
-1. **LightDM Display Manager Auto-Login (Bypasses tty1 / MOTD / Console)**:
+1. **Fully Responsive Mouse, Touchpad & Keyboard (Xorg Input Driver Stack)**:
+   - Installed `xserver-xorg-input-libinput`, `xserver-xorg-input-synaptics`, `xserver-xorg-input-evdev`, and `xserver-xorg-input-all`.
+   - Added automatic touchpad tapping and natural scrolling configuration (`/etc/X11/xorg.conf.d/40-libinput-touchpad.conf`).
+   - Configured global standard arrow pointer cursor (`left_ptr`).
+   - Resolves unresponsive mouse cursor, touchpad clicks, and keyboard inputs on laptop and desktop hardware.
+
+2. **LightDM Display Manager Auto-Login (Bypasses tty1 / MOTD / Console)**:
    - Configured **LightDM** with zero-timeout passwordless autologin (`/etc/lightdm/lightdm.conf.d/01_autologin.conf`) directly into an X11 Openbox kiosk session.
    - Completely eliminates the `Debian GNU/Linux 12 debian tty1 ... ABSOLUTELY NO WARRANTY` text console screen and blinking prompt.
    - 100% stable across all Intel, AMD, and NVIDIA laptop and desktop hardware.
@@ -46,7 +52,7 @@ AxisOS is a next-generation Linux operating system designed for speed, glassmorp
 
 | Asset | Size | SHA-256 Checksum |
 | :--- | :--- | :--- |
-| **`axisos-live-amd64.iso`** | 883 MB | `88EC36B710EFA4E922FAF2EE106D6AB828C5B3061A07F0890D34EBFAD21528A1` |
+| **`axisos-live-amd64.iso`** | 884 MB | `A9B80CB18245636E2E1B544D5E22069822D825F275981754917F9FBF3EA0884B` |
 
 ---
 
