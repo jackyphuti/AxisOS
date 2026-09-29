@@ -102,6 +102,31 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
+// Detect if running in a Live boot session (USB) or installed disk
+function isLiveSession() {
+  if (process.platform !== 'linux') return false;
+  // 1. Explicit marker file created during installation
+  if (fs.existsSync('/etc/axisos-installed')) return false;
+  // 2. Live environment marker directory
+  if (fs.existsSync('/run/live')) return true;
+  // 3. Kernel cmdline check
+  try {
+    const cmdline = fs.readFileSync('/proc/cmdline', 'utf-8');
+    if (cmdline.includes('boot=live')) return true;
+  } catch {}
+  // 4. Mount overlay check
+  try {
+    const mounts = fs.readFileSync('/proc/mounts', 'utf-8');
+    for (const line of mounts.split('\n')) {
+      const parts = line.split(' ');
+      if (parts[1] === '/' && (parts[2] === 'overlay' || parts[2] === 'aufs' || parts[2] === 'iso9660')) {
+        return true;
+      }
+    }
+  } catch {}
+  return false;
+}
+
 // Real disk detection via lsblk with BitLocker, Windows, and Live Medium flags
 async function getStorageDisks() {
   if (process.platform === 'linux') {
@@ -290,6 +315,7 @@ const server = http.createServer(async (req, res) => {
         uptime: uptime.stdout || 'up recently',
         username: process.env.USER || 'axis',
         homeDir: process.env.HOME || '/home/axis',
+        isLiveEnvironment: isLiveSession(),
       });
     }
 
@@ -496,10 +522,10 @@ const server = http.createServer(async (req, res) => {
     if (pathname === '/api/power' && req.method === 'POST') {
       const body = await parseJsonBody(req);
       if (body.action === 'poweroff') {
-        runCmd('systemctl poweroff || shutdown -h now');
+        runCmd('sync; systemctl poweroff || shutdown -h now');
         return sendJson(res, 200, { success: true, action: 'poweroff' });
       } else if (body.action === 'reboot') {
-        runCmd('systemctl reboot || reboot');
+        runCmd('sync; systemctl reboot || reboot');
         return sendJson(res, 200, { success: true, action: 'reboot' });
       }
       return sendJson(res, 200, { success: true, action: 'lock' });

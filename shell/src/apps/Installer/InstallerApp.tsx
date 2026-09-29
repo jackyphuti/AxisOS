@@ -724,6 +724,16 @@ export const InstallerApp: React.FC = () => {
               </p>
             </div>
 
+            <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-amber-200 text-xs w-full text-left">
+              <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+              <div>
+                <div className="font-bold text-amber-300">Important: Unplug your USB Flash Drive</div>
+                <div className="mt-1 text-slate-300 leading-relaxed">
+                  Please remove the USB flash drive now. This ensures your computer will boot directly from your drive into your new AxisOS system instead of restarting the installer.
+                </div>
+              </div>
+            </div>
+
             <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/10 w-full text-left space-y-2 text-xs text-slate-300">
               <div className="flex items-center gap-2">
                 <Check className="w-4 h-4 text-emerald-400" />

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useWindowManager } from '../context/WindowManagerContext';
+import { useSystemState } from '../context/SystemStateContext';
 import { MacIcon } from './MacIcon';
 import { AppId } from '../types/os';
 
@@ -28,7 +29,10 @@ const DOCK_APPS: DockItem[] = [
 export const DockOrTaskbar: React.FC = () => {
   const { openApp, isAppRunning, activeWindowId, windows, minimizeWindow, focusWindow } =
     useWindowManager();
+  const { isLiveEnvironment } = useSystemState();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  const dockApps = isLiveEnvironment ? DOCK_APPS : DOCK_APPS.filter((a) => a.id !== 'installer');
 
   const handleAppClick = (appId: AppId) => {
     const runningWindow = windows.find((w) => w.appId === appId);
@@ -57,7 +61,7 @@ export const DockOrTaskbar: React.FC = () => {
         className="flex items-end space-x-2.5 px-3.5 py-2.5 rounded-2xl bg-white/10 dark:bg-slate-900/40 backdrop-blur-3xl border border-white/20 dark:border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
       >
         {/* Dock Applications */}
-        {DOCK_APPS.map((app, idx) => {
+        {dockApps.map((app, idx) => {
           const isRunning = isAppRunning(app.id);
           const runningWindow = windows.find((w) => w.appId === app.id);
           const isActive =

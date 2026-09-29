@@ -46,13 +46,19 @@ AxisOS is a next-generation Linux operating system designed for speed, glassmorp
    - Installs to both `/EFI/AxisOS/` and `/EFI/BOOT/BOOTX64.EFI` (the universal hardware fallback).
    - Automatically registers dual entries into motherboard NVRAM (`AxisOS` and `AxisOS (UEFI Fallback)`).
 
+7. **Direct Internal Drive Booting & Installer Suppression**:
+   - Deploys `/etc/axisos-installed` marker on target drives so the system permanently identifies as an installed OS, disabling live mode, welcome modals, and the installer wizard.
+   - Automatically configures UEFI `BootNext` and #1 `BootOrder` priority via `efibootmgr` so your PC boots straight into AxisOS from the drive upon restart.
+   - Configures LightDM autologin specifically for the newly created user account, completely bypassing console tty prompts and previous kiosk loops.
+   - Adds a clear prompt on the final setup screen reminding you to remove your USB flash drive before clicking **Restart Computer Now**.
+
 ---
 
 ## 📦 Release Asset Verification
 
 | Asset | Size | SHA-256 Checksum |
 | :--- | :--- | :--- |
-| **`axisos-live-amd64.iso`** | 884 MB | `A9B80CB18245636E2E1B544D5E22069822D825F275981754917F9FBF3EA0884B` |
+| **`axisos-live-amd64.iso`** | 884 MB | `CD483CC189B73A3F41157EBCEFD089D23D976AB5B78F7AB07F225827412E8243` |
 
 ---
 

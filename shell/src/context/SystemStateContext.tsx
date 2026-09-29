@@ -162,7 +162,7 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isAppMenuOpen, setIsAppMenuOpen] = useState<boolean>(false);
   const [isSpotlightOpen, setIsSpotlightOpen] = useState<boolean>(false);
   const [powerModalOpen, setPowerModalOpen] = useState<boolean>(false);
-  const [isLiveEnvironment, setIsLiveEnvironment] = useState<boolean>(true);
+  const [isLiveEnvironment, setIsLiveEnvironment] = useState<boolean>(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo>(initialSystemInfo);
 
   // Load real host hardware dynamically
@@ -170,6 +170,9 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
     let isMounted = true;
     systemService.getSystemInfo().then((real) => {
       if (!isMounted) return;
+      if (typeof real.isLiveEnvironment === 'boolean') {
+        setIsLiveEnvironment(real.isLiveEnvironment);
+      }
       setSystemInfo({
         osName: real.osName || 'AxisOS Linux 1.0',
         osVersion: real.osVersion || 'Horizon',

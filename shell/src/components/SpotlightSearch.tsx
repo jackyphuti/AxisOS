@@ -6,7 +6,7 @@ import { MacIcon } from './MacIcon';
 import { AppId } from '../types/os';
 
 export const SpotlightSearch: React.FC = () => {
-  const { isSpotlightOpen, setIsSpotlightOpen } = useSystemState();
+  const { isSpotlightOpen, setIsSpotlightOpen, isLiveEnvironment } = useSystemState();
   const { openApp } = useWindowManager();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -38,16 +38,21 @@ export const SpotlightSearch: React.FC = () => {
 
   // Filtered Apps
   const matchedApps = useMemo(() => {
+    const registryApps = Object.values(APP_REGISTRY).filter((app) => {
+      if (app.id === 'installer' && !isLiveEnvironment) return false;
+      return true;
+    });
+
     if (!query.trim()) {
-      return Object.values(APP_REGISTRY).slice(0, 5);
+      return registryApps.slice(0, 5);
     }
     const q = query.toLowerCase();
-    return Object.values(APP_REGISTRY).filter(
+    return registryApps.filter(
       (app) =>
         app.title.toLowerCase().includes(q) ||
         app.description.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, isLiveEnvironment]);
 
   if (!isSpotlightOpen) return null;
 

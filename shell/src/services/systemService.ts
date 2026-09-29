@@ -31,6 +31,7 @@ export interface SystemHardwareData {
   uptime: string;
   username: string;
   homeDir: string;
+  isLiveEnvironment?: boolean;
 }
 
 export interface FileEntry {
@@ -119,6 +120,7 @@ export const systemService = {
       uptime: 'up 1 hour',
       username: 'axis',
       homeDir: '/home/axis',
+      isLiveEnvironment: false,
     };
   },
 

@@ -287,29 +287,47 @@ mkdir -p /mnt/etc/sudoers.d
 echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > "/mnt/etc/sudoers.d/$USERNAME"
 chmod 0440 "/mnt/etc/sudoers.d/$USERNAME"
 
-# Set up clean TTY1 autologin and session launcher
+# Configure display manager (LightDM) for installed system
+chroot /mnt groupadd -r autologin 2>/dev/null || true
+chroot /mnt groupadd -r nopasswdlogin 2>/dev/null || true
+chroot /mnt gpasswd -a "${USERNAME}" autologin 2>/dev/null || true
+chroot /mnt gpasswd -a "${USERNAME}" nopasswdlogin 2>/dev/null || true
+
+# Remove tty1 conflicting autologin or old service overrides
+rm -rf /mnt/etc/systemd/system/getty@tty1.service.d 2>/dev/null || true
+rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos.service 2>/dev/null || true
+
+mkdir -p /mnt/etc/lightdm/lightdm.conf.d
 if [[ "$AUTOLOGIN" == "true" ]]; then
-    mkdir -p /mnt/etc/systemd/system/getty@tty1.service.d
-    cat << EOF > /mnt/etc/systemd/system/getty@tty1.service.d/autologin.conf
-[Service]
-ExecStart=
-ExecStart=-/sbin/agetty --autologin ${USERNAME} --noclear %I \$TERM
-Type=idle
+    cat << EOF > /mnt/etc/lightdm/lightdm.conf.d/01_autologin.conf
+[Seat:*]
+autologin-user=${USERNAME}
+autologin-user-timeout=0
+user-session=axisos
 EOF
+else
+    rm -f /mnt/etc/lightdm/lightdm.conf.d/01_autologin.conf 2>/dev/null || true
 fi
 
-# Ensure user profile runs AxisOS kiosk launcher on tty1
-hook="
-# Auto-start AxisOS Wayland desktop on tty1 login
-if [ -z \"\$WAYLAND_DISPLAY\" ] && [ -z \"\$DISPLAY\" ] && [ \"\$(tty 2>/dev/null)\" = \"/dev/tty1\" ]; then
-    exec /usr/local/bin/axisos-kiosk.sh
-fi
-"
+# Clean user profile to ensure no live-session kiosk loop
 mkdir -p "/mnt/home/${USERNAME}"
-if ! grep -q "axisos-kiosk.sh" "/mnt/home/${USERNAME}/.profile" 2>/dev/null; then
-    echo "$hook" >> "/mnt/home/${USERNAME}/.profile"
-fi
+sed -i '/axisos-kiosk/d' "/mnt/home/${USERNAME}/.profile" 2>/dev/null || true
 chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}"
+
+# Permanent marker indicating system is fully installed to hard disk
+cat << EOF > /mnt/etc/axisos-installed
+INSTALLED=true
+VERSION="1.0"
+CODENAME="Horizon"
+EDITION="Sonoma"
+INSTALL_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+TARGET_DISK="${TARGET_DISK}"
+TARGET_PART="${ROOT_PART}"
+ROOT_UUID="${ROOT_UUID}"
+PRIMARY_USER="${USERNAME}"
+BOOT_MODE="$([[ "$IS_UEFI" == "true" ]] && echo "UEFI" || echo "BIOS")"
+EOF
+chmod 644 /mnt/etc/axisos-installed
 
 report 85 "Configuring automated kernel & system updates (unattended-upgrades)..."
 mkdir -p /mnt/etc/apt/apt.conf.d
@@ -411,10 +429,37 @@ EOF
         efibootmgr -c -d "$TARGET_DISK" -p 1 -L "AxisOS" -l '\EFI\AxisOS\shimx64.efi' 2>/dev/null || \
             efibootmgr -c -d "$TARGET_DISK" -p 1 -L "AxisOS" -l '\EFI\BOOT\BOOTX64.EFI' 2>/dev/null || true
         log "Registered AxisOS UEFI NVRAM boot entry"
+
+        # Explicitly configure BootNext and prioritize BootOrder
+        NEW_BOOTNUM=$(efibootmgr 2>/dev/null | grep -i "AxisOS" | head -n1 | sed -E 's/^Boot([0-9A-Fa-f]+).*/\1/')
+        if [[ -n "$NEW_BOOTNUM" ]]; then
+            log "Configuring UEFI BootNext to $NEW_BOOTNUM (forces direct boot from drive on restart)..."
+            efibootmgr -n "$NEW_BOOTNUM" 2>/dev/null || true
+
+            CURRENT_ORDER=$(efibootmgr 2>/dev/null | grep -i "BootOrder:" | awk '{print $2}')
+            if [[ -n "$CURRENT_ORDER" ]]; then
+                FILTERED_ORDER=$(echo "$CURRENT_ORDER" | tr ',' '\n' | grep -v -i "^${NEW_BOOTNUM}$" | tr '\n' ',' | sed 's/,$//')
+                NEW_ORDER="${NEW_BOOTNUM},${FILTERED_ORDER}"
+                efibootmgr -o "$NEW_ORDER" 2>/dev/null || true
+                log "Updated UEFI BootOrder to prioritize AxisOS: $NEW_ORDER"
+            fi
+        fi
     fi
 else
     chroot /mnt grub-install --target=i386-pc "$TARGET_DISK" || true
 fi
+
+# Configure GRUB for silent fast boot directly into AxisOS
+mkdir -p /mnt/etc/default
+cat << 'EOF' > /mnt/etc/default/grub
+# AxisOS Default GRUB Configuration
+GRUB_DEFAULT=0
+GRUB_TIMEOUT=2
+GRUB_DISTRIBUTOR="AxisOS"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3"
+GRUB_CMDLINE_LINUX=""
+GRUB_DISABLE_OS_PROBER=false
+EOF
 
 # Generate grub.cfg
 chroot /mnt update-grub 2>/dev/null || chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg

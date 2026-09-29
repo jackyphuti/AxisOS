@@ -103,22 +103,26 @@ You **do not need to use terminal commands** to install AxisOS.
 5. **Start Installation**:
    - Click **Install AxisOS Now** and confirm the safety prompt.
    - Watch the animated progress bar across 6 distinct phases (Partitioning, Formatting, Deploying Root Filesystem, User Configuration, Secure Boot Deployment, Finalizing).
-6. **One-Click Reboot**:
-   - Once the success banner appears, simply click **Restart Computer Now**.
-   - Unplug your USB flash drive when your PC turns off.
+6. **Direct Boot into Installed Drive**:
+   - When the **Installation Complete!** screen appears, **unplug your USB installation flash drive**.
+   - Click **Restart Computer Now**.
+   - Your computer will boot directly from your internal storage drive (SSD/HDD) into your new AxisOS system.
+   - The installation wizard and live demo modals are permanently suppressed on the installed drive, taking you straight into your personal, fully configured desktop session.
 
 ---
 
-## 6. Post-Installation UEFI Boot Visibility
+## 6. Post-Installation UEFI Boot Visibility & Direct Boot Order
 
-After installation, AxisOS automatically registers itself into your motherboard's UEFI firmware:
+After installation, AxisOS automatically configures your motherboard firmware and internal drive:
 
-1. **Dual Boot Registration**:
+1. **UEFI NVRAM Priority & BootNext**:
+   - AxisOS automatically registers itself as `BootNext` and #1 in `BootOrder` via `efibootmgr`, ensuring the BIOS immediately loads AxisOS from your internal drive upon reboot.
+2. **Dual Boot Registration**:
    - Registers primary boot option: `AxisOS` pointing to `\EFI\AxisOS\shimx64.efi`
-   - Registers fallback boot option: `AxisOS (UEFI Fallback)` pointing to `\EFI\BOOT\BOOTX64.EFI`
-2. **Lenovo / HP Hard Drive Compatibility**:
+   - Registers universal fallback option: `AxisOS (UEFI Fallback)` pointing to `\EFI\BOOT\BOOTX64.EFI`
+3. **Lenovo / HP Hard Drive Compatibility**:
    - Lenovo and HP motherboards often look exclusively for the fallback path `\EFI\BOOT\BOOTX64.EFI` on the internal drive.
-   - AxisOS automatically copies the Microsoft-signed Shim and GRUB bootloader to `\EFI\BOOT\BOOTX64.EFI`, guaranteeing immediate visibility in the F12 / F9 boot menu.
+   - AxisOS copies the Microsoft-signed Shim and Debian-signed GRUB bootloader to `\EFI\BOOT\BOOTX64.EFI`, guaranteeing immediate visibility in the F12 / F9 boot menu.
 
 ---
 

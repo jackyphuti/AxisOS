@@ -23,6 +23,7 @@ export const AppMenu: React.FC = () => {
     setIsAppMenuOpen,
     setPowerModalOpen,
     accentColor,
+    isLiveEnvironment,
   } = useSystemState();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -32,6 +33,7 @@ export const AppMenu: React.FC = () => {
 
   const appList = useMemo(() => {
     return Object.values(APP_REGISTRY).filter((app) => {
+      if (app.id === 'installer' && !isLiveEnvironment) return false;
       const matchesSearch =
         app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         app.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -39,7 +41,7 @@ export const AppMenu: React.FC = () => {
         selectedCategory === 'all' || app.category === selectedCategory;
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, isLiveEnvironment]);
 
   if (!isAppMenuOpen) return null;
 
