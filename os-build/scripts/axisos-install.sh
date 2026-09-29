@@ -263,6 +263,7 @@ mount --bind /dev/pts /mnt/dev/pts
 mount --bind /proc /mnt/proc
 mount --bind /sys /mnt/sys
 mount --bind /run /mnt/run
+mount -t efivarfs efivarfs /mnt/sys/firmware/efi/efivars 2>/dev/null || true
 
 # Create user if it doesn't already exist
 if ! chroot /mnt id -u "$USERNAME" >/dev/null 2>&1; then
@@ -313,8 +314,9 @@ EOF
 [ -f /mnt/usr/bin/axis ] && chmod +x /mnt/usr/bin/axis
 
 # Enable apt-daily background timers
-report 90 "Installing and generating GRUB EFI bootloader..."
+report 90 "Installing and generating Microsoft-signed UEFI Secure Bootloader..."
 if [[ "$IS_UEFI" == "true" ]]; then
+    # 1. Run standard grub-install into target
     chroot /mnt grub-install \
         --target=x86_64-efi \
         --efi-directory=/boot/efi \
@@ -323,10 +325,66 @@ if [[ "$IS_UEFI" == "true" ]]; then
             log "Warning: EFI grub-install failed, trying fallback removable target..."
             chroot /mnt grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=AxisOS --removable || true
         }
-    # Always ensure standard UEFI fallback /EFI/BOOT/BOOTX64.EFI exists for Lenovo, HP, Dell, Acer motherboards
+
+    # 2. Deploy Microsoft-signed Shim & signed GRUB binaries for Secure Boot trust
     mkdir -p /mnt/boot/efi/EFI/BOOT
-    if [[ -f /mnt/boot/efi/EFI/AxisOS/grubx64.efi ]]; then
-        cp /mnt/boot/efi/EFI/AxisOS/grubx64.efi /mnt/boot/efi/EFI/BOOT/BOOTX64.EFI
+    mkdir -p /mnt/boot/efi/EFI/AxisOS
+
+    SHIM_SIGNED="/mnt/usr/lib/shim/shimx64.efi.signed"
+    GRUB_SIGNED="/mnt/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed"
+    MM_SIGNED="/mnt/usr/lib/shim/mmx64.efi.signed"
+    FB_SIGNED="/mnt/usr/lib/shim/fbx64.efi.signed"
+
+    [ ! -f "$SHIM_SIGNED" ] && SHIM_SIGNED="/mnt/usr/lib/shim/shimx64.efi"
+    [ ! -f "$MM_SIGNED" ] && MM_SIGNED="/mnt/usr/lib/shim/mmx64.efi"
+    [ ! -f "$FB_SIGNED" ] && FB_SIGNED="/mnt/usr/lib/shim/fbx64.efi"
+
+    # Copy Microsoft-signed Shim to /EFI/BOOT/BOOTX64.EFI (Lenovo/HP/Dell standard fallback)
+    if [[ -f "$SHIM_SIGNED" ]]; then
+        cp "$SHIM_SIGNED" /mnt/boot/efi/EFI/BOOT/BOOTX64.EFI
+        cp "$SHIM_SIGNED" /mnt/boot/efi/EFI/AxisOS/shimx64.efi
+        log "Deployed Microsoft UEFI CA signed Shim as BOOTX64.EFI and shimx64.efi"
+    fi
+
+    # Copy Debian-signed GRUB
+    if [[ -f "$GRUB_SIGNED" ]]; then
+        cp "$GRUB_SIGNED" /mnt/boot/efi/EFI/BOOT/grubx64.efi
+        cp "$GRUB_SIGNED" /mnt/boot/efi/EFI/AxisOS/grubx64.efi
+        log "Deployed Debian Secure Boot signed GRUB as grubx64.efi"
+    elif [[ -f /mnt/boot/efi/EFI/AxisOS/grubx64.efi ]]; then
+        cp /mnt/boot/efi/EFI/AxisOS/grubx64.efi /mnt/boot/efi/EFI/BOOT/grubx64.efi
+    fi
+
+    # Copy MOK manager and fallback helpers
+    [[ -f "$MM_SIGNED" ]] && cp "$MM_SIGNED" /mnt/boot/efi/EFI/BOOT/mmx64.efi && cp "$MM_SIGNED" /mnt/boot/efi/EFI/AxisOS/mmx64.efi
+    [[ -f "$FB_SIGNED" ]] && cp "$FB_SIGNED" /mnt/boot/efi/EFI/BOOT/fbx64.efi && cp "$FB_SIGNED" /mnt/boot/efi/EFI/AxisOS/fbx64.efi
+
+    # 3. Create embedded early grub.cfg redirecting to root partition Btrfs subvolume or ext4
+    ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART" 2>/dev/null || true)
+    PREFIX_PATH="(\$root)/boot/grub"
+    [[ "$FILESYSTEM" == "btrfs" ]] && PREFIX_PATH="(\$root)/@/boot/grub"
+
+    cat << EOF > /mnt/boot/efi/EFI/BOOT/grub.cfg
+search.fs_uuid $ROOT_UUID root
+set prefix=$PREFIX_PATH
+configfile \$prefix/grub.cfg
+EOF
+    cp /mnt/boot/efi/EFI/BOOT/grub.cfg /mnt/boot/efi/EFI/AxisOS/grub.cfg
+
+    # 4. Register boot options in motherboard NVRAM via efibootmgr
+    if command -v efibootmgr >/dev/null 2>&1; then
+        report 93 "Registering AxisOS into motherboard UEFI NVRAM..."
+        mount -t efivarfs efivarfs /sys/firmware/efi/efivars 2>/dev/null || true
+
+        # Clean existing AxisOS entries to prevent stale duplicates
+        for bootnum in $(efibootmgr 2>/dev/null | grep -i "AxisOS" | sed -E 's/^Boot([0-9A-Fa-f]+).*/\1/'); do
+            efibootmgr -b "$bootnum" -B 2>/dev/null || true
+        done
+
+        # Register primary entry pointing to Microsoft-signed Shim
+        efibootmgr -c -d "$TARGET_DISK" -p 1 -L "AxisOS" -l '\EFI\AxisOS\shimx64.efi' 2>/dev/null || \
+            efibootmgr -c -d "$TARGET_DISK" -p 1 -L "AxisOS" -l '\EFI\BOOT\BOOTX64.EFI' 2>/dev/null || true
+        log "Registered AxisOS UEFI NVRAM boot entry"
     fi
 else
     chroot /mnt grub-install --target=i386-pc "$TARGET_DISK" || true

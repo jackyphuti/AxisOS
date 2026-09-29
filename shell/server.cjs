@@ -17,13 +17,13 @@ const HOST = process.env.HOST || '0.0.0.0';
 // Resolve distribution root
 const DIST_CANDIDATES = [
   '/opt/axisos-shell/dist',
-  path.join(__dirname, 'dist'),
   path.join(__dirname, '../shell/dist'),
+  path.join(__dirname, 'dist'),
   path.join(process.cwd(), 'dist'),
   path.join(process.cwd(), 'shell/dist'),
 ];
 
-let DIST_DIR = DIST_CANDIDATES.find((d) => fs.existsSync(d)) || path.join(__dirname, 'dist');
+let DIST_DIR = DIST_CANDIDATES.find((d) => fs.existsSync(d)) || '/opt/axisos-shell/dist';
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -102,10 +102,10 @@ function sendJson(res, statusCode, data) {
   res.end(JSON.stringify(data));
 }
 
-// Real disk detection via lsblk
+// Real disk detection via lsblk with BitLocker, Windows, and Live Medium flags
 async function getStorageDisks() {
   if (process.platform === 'linux') {
-    const res = await runCmd('lsblk -J -b -o NAME,SIZE,TYPE,MOUNTPOINT,MODEL,TRAN,RO 2>/dev/null');
+    const res = await runCmd('lsblk -J -b -o NAME,SIZE,TYPE,MOUNTPOINT,MODEL,TRAN,RO,FSTYPE,LABEL,ROTA 2>/dev/null');
     try {
       const parsed = JSON.parse(res.stdout);
       if (parsed.blockdevices && Array.isArray(parsed.blockdevices)) {
@@ -114,20 +114,58 @@ async function getStorageDisks() {
           .map((d) => {
             const bytes = parseInt(d.size, 10) || 0;
             const gb = (bytes / (1000 * 1000 * 1000)).toFixed(1);
-            let driveType = 'Solid State Drive';
+
+            let hasBitLocker = false;
+            let hasWindows = false;
+            let isLiveMedium = false;
+            const partitions = [];
+
+            const inspect = (node) => {
+              const fs = (node.fstype || '').toLowerCase();
+              const lbl = (node.label || '').toLowerCase();
+              const mp = (node.mountpoint || '').toLowerCase();
+
+              if (fs.includes('bitlocker')) hasBitLocker = true;
+              if (fs.includes('ntfs') || lbl.includes('windows') || lbl.includes('recovery')) hasWindows = true;
+              if (mp.includes('live') || mp.includes('medium') || mp === '/run/live/medium' || mp === '/lib/live/mount/medium') {
+                isLiveMedium = true;
+              }
+
+              if (node.name && node.size) {
+                const partGb = (parseInt(node.size, 10) / (1000 * 1000 * 1000)).toFixed(1);
+                partitions.push(`${node.name} (${partGb} GB, ${node.fstype || 'raw'})`);
+              }
+
+              if (node.children && Array.isArray(node.children)) {
+                node.children.forEach(inspect);
+              }
+            };
+
+            inspect(d);
+
+            let driveType = 'Solid State Drive (SSD)';
             if (d.name.startsWith('nvme')) driveType = 'NVMe Solid State Drive';
-            else if (d.tran === 'usb') driveType = 'USB Removable Drive';
-            else if (d.tran === 'sata') driveType = 'SATA Solid State Drive';
+            else if (d.tran === 'usb') driveType = isLiveMedium ? 'Live USB Installer Drive' : 'External USB Drive';
+            else if (d.rota === true || d.rota === '1' || d.rota === 1) driveType = 'Traditional Hard Disk Drive (HDD)';
             else if (d.name.startsWith('vd')) driveType = 'VirtIO Virtual Disk';
-            else if (d.name.startsWith('sd')) driveType = 'SCSI / SATA Disk';
+            else if (d.name.startsWith('sd')) driveType = 'SATA Storage Disk';
+
+            const cleanModel = (d.model || '').trim();
+            const displayName = cleanModel ? `${cleanModel} (${gb} GB)` : `${d.name.toUpperCase()} (${gb} GB)`;
 
             return {
               id: `/dev/${d.name}`,
-              name: d.model ? `${d.model} (${gb} GB)` : `${d.name.toUpperCase()} (${gb} GB)`,
+              name: displayName,
+              model: cleanModel || d.name.toUpperCase(),
               size: `${gb} GB`,
+              bytes,
               type: driveType,
-              freeSpace: `${gb} GB Available`,
+              freeSpace: `${gb} GB Total`,
               readOnly: d.ro === true || d.ro === '1',
+              isLiveMedium,
+              hasBitLocker,
+              hasWindows,
+              partitions,
             };
           });
 
@@ -138,13 +176,30 @@ async function getStorageDisks() {
 
   return [
     {
+      id: '/dev/sda',
+      name: 'Toshiba MQ01ABD100 (1000.2 GB)',
+      model: 'Toshiba MQ01ABD100',
+      size: '931.5 GB',
+      type: 'Traditional Hard Disk Drive (HDD)',
+      freeSpace: '931.5 GB Total',
+      readOnly: false,
+      isLiveMedium: false,
+      hasBitLocker: false,
+      hasWindows: false,
+      partitions: ['sda1 (0.5 GB, vfat)', 'sda2 (4.0 GB, swap)', 'sda3 (927.0 GB, btrfs)'],
+    },
+    {
       id: '/dev/vda',
       name: 'VirtIO Virtual Disk (20 GB)',
+      model: 'VirtIO Virtual Disk',
       size: '20.0 GB',
       type: 'VirtIO Virtual Disk',
-      freeSpace: '19.5 GB Available',
+      freeSpace: '19.5 GB Total',
       readOnly: false,
-    },
+      isLiveMedium: false,
+      hasBitLocker: false,
+      hasWindows: false,
+      partitions: [],
   ];
 }
 
@@ -152,6 +207,7 @@ async function getStorageDisks() {
 function serveStaticFile(req, res, filePath) {
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
+      // Fallback to index.html for client-side SPA routing
       const indexPath = path.join(DIST_DIR, 'index.html');
       fs.readFile(indexPath, (readErr, content) => {
         if (readErr) {
@@ -376,12 +432,21 @@ const server = http.createServer(async (req, res) => {
 
       const isLinux = process.platform === 'linux';
       const isRoot = process.getuid ? process.getuid() === 0 : false;
-      if (!isLinux || !isRoot) {
+      let cmd = 'bash';
+      let cmdArgs = args;
+
+      if (isLinux) {
+        if (!isRoot) {
+          cmd = 'sudo';
+          cmdArgs = [scriptPath, ...args.slice(1)];
+          installJob.log.push('[System] Elevating installer process with sudo');
+        }
+      } else {
         args.push('--dry-run');
-        installJob.log.push(`[Notice] Running in verified simulation mode (${isLinux ? 'non-root' : process.platform})`);
+        installJob.log.push(`[Notice] Running in verified simulation mode (${process.platform})`);
       }
 
-      const child = spawn('bash', args);
+      const child = spawn(cmd, cmdArgs);
 
       child.stdout.on('data', (chunk) => {
         const lines = chunk.toString().split('\n');

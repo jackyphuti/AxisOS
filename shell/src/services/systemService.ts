@@ -8,6 +8,11 @@ export interface DiskDrive {
   type: string;
   freeSpace: string;
   readOnly?: boolean;
+  model?: string;
+  isLiveMedium?: boolean;
+  hasBitLocker?: boolean;
+  hasWindows?: boolean;
+  partitions?: string[];
 }
 
 export interface SystemHardwareData {

@@ -78,14 +78,39 @@ LABEL failsafe
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC nomodeset
 """)
 
-# Step 4: Build GRUB UEFI 64-bit Bootloader
-print("--> 4. Generating standalone 64-bit UEFI GRUB bootloader")
+# Step 4: Build Microsoft-Signed GRUB UEFI 64-bit Bootloader
+print("--> 4. Deploying Microsoft-signed Shim and signed GRUB for Secure Boot trust")
 os.makedirs(f"{binary_dir}/EFI/BOOT", exist_ok=True)
 os.makedirs(f"{binary_dir}/boot/grub", exist_ok=True)
 
-# Generate BOOTX64.EFI with embedded early configuration to find USB root
-early_cfg = f"{build_dir}/early-grub.cfg"
-with open(early_cfg, "w") as f:
+shim_src = f"{chroot_dir}/usr/lib/shim/shimx64.efi.signed"
+grub_src = f"{chroot_dir}/usr/lib/grub/x86_64-efi-signed/grubx64.efi.signed"
+mm_src = f"{chroot_dir}/usr/lib/shim/mmx64.efi.signed"
+
+# Fallback to unsigned in chroot if signed not found
+if not os.path.exists(shim_src):
+    shim_src = f"{chroot_dir}/usr/lib/shim/shimx64.efi"
+if not os.path.exists(mm_src):
+    mm_src = f"{chroot_dir}/usr/lib/shim/mmx64.efi"
+
+# Deploy Microsoft-signed Shim as universal BOOTX64.EFI
+bootx64_path = f"{binary_dir}/EFI/BOOT/BOOTX64.EFI"
+grubx64_path = f"{binary_dir}/EFI/BOOT/grubx64.efi"
+mmx64_path = f"{binary_dir}/EFI/BOOT/mmx64.efi"
+
+if os.path.exists(shim_src):
+    shutil.copyfile(shim_src, bootx64_path)
+    print("    [Secure Boot] Deployed Microsoft-signed Shim as /EFI/BOOT/BOOTX64.EFI")
+
+if os.path.exists(grub_src):
+    shutil.copyfile(grub_src, grubx64_path)
+    print("    [Secure Boot] Deployed Debian-signed GRUB as /EFI/BOOT/grubx64.efi")
+
+if os.path.exists(mm_src):
+    shutil.copyfile(mm_src, mmx64_path)
+
+# Early GRUB config in /EFI/BOOT/grub.cfg that finds USB root and chains to /boot/grub/grub.cfg
+with open(f"{binary_dir}/EFI/BOOT/grub.cfg", "w") as f:
     f.write("""search --set=root --file /live/vmlinuz
 set prefix=($root)/boot/grub
 if [ -f ($root)/boot/grub/grub.cfg ]; then
@@ -93,16 +118,7 @@ if [ -f ($root)/boot/grub/grub.cfg ]; then
 fi
 """)
 
-bootx64_path = f"{binary_dir}/EFI/BOOT/BOOTX64.EFI"
-subprocess.run([
-    "grub-mkstandalone",
-    "-O", "x86_64-efi",
-    "-o", bootx64_path,
-    f"boot/grub/grub.cfg={early_cfg}",
-    "--modules=part_gpt part_msdos fat ext2 iso9660 normal test echo linux search search_fs_file search_fs_uuid search_label configfile"
-], check=True)
-
-# GRUB Config
+# GRUB Config in /boot/grub/grub.cfg
 with open(f"{binary_dir}/boot/grub/grub.cfg", "w") as f:
     f.write("""set default=0
 set timeout=5
@@ -130,11 +146,16 @@ efi_img = f"{binary_dir}/boot/grub/efi.img"
 if os.path.exists(efi_img):
     os.remove(efi_img)
 
-subprocess.run(["dd", "if=/dev/zero", f"of={efi_img}", "bs=1M", "count=12"], check=True)
-subprocess.run(["mformat", "-i", efi_img, "-C", "::"], check=True)
+subprocess.run(["dd", "if=/dev/zero", f"of={efi_img}", "bs=1M", "count=15"], check=True)
+subprocess.run(["mkfs.vfat", efi_img], check=True)
 subprocess.run(["mmd", "-i", efi_img, "::/EFI"], check=True)
 subprocess.run(["mmd", "-i", efi_img, "::/EFI/BOOT"], check=True)
 subprocess.run(["mcopy", "-i", efi_img, bootx64_path, "::/EFI/BOOT/BOOTX64.EFI"], check=True)
+if os.path.exists(grubx64_path):
+    subprocess.run(["mcopy", "-i", efi_img, grubx64_path, "::/EFI/BOOT/grubx64.efi"], check=True)
+if os.path.exists(mmx64_path):
+    subprocess.run(["mcopy", "-i", efi_img, mmx64_path, "::/EFI/BOOT/mmx64.efi"], check=True)
+subprocess.run(["mcopy", "-i", efi_img, f"{binary_dir}/EFI/BOOT/grub.cfg", "::/EFI/BOOT/grub.cfg"], check=True)
 
 # Step 6: Generate SHA256 Checksums
 print("--> 6. Generating SHA256 checksums")

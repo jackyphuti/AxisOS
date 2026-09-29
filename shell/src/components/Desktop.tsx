@@ -8,6 +8,7 @@ import { DockOrTaskbar } from './DockOrTaskbar';
 import { QuickSettings } from './QuickSettings';
 import { SpotlightSearch } from './SpotlightSearch';
 import { PowerModal } from './PowerModal';
+import { LiveWelcomeModal } from './LiveWelcomeModal';
 import { MacIcon } from './MacIcon';
 
 // Apps
@@ -109,6 +110,9 @@ export const Desktop: React.FC = () => {
       {/* Power Off / Restart Modal */}
       <PowerModal />
 
+      {/* Live Mode Welcome & Guided Installer Modal */}
+      <LiveWelcomeModal />
+
       {/* Desktop Drive & Shortcuts (Top Right in true macOS fashion!) */}
       <div className="absolute top-10 right-4 flex flex-col items-center gap-5 z-10">
         {/* Macintosh HD / Root Drive */}
@@ -127,6 +131,7 @@ export const Desktop: React.FC = () => {
         {/* Live Installer Shortcut */}
         {isLiveEnvironment && (
           <button
+            onClick={() => openApp('installer')}
             onDoubleClick={() => openApp('installer')}
             className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/15 active:bg-blue-600/30 group cursor-pointer w-22 transition-all text-center"
           >
