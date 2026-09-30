@@ -1,0 +1,49 @@
+name: "Build Bootable ISO (Manual)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Release version label (e.g. v2.0.0-horizon)'
+        required: true
+        default: 'v2.0.0-horizon'
+
+jobs:
+  build-iso:
+    name: Build AxisOS Live Hybrid ISO
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build Desktop Shell
+        working-directory: shell
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+          npm run build
+
+      - name: Install Debian Live Build Toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build debootstrap squashfs-tools xorriso dosfstools mtools isolinux
+
+      - name: Build Hybrid ISO
+        run: |
+          sudo bash os-build/scripts/build-iso.sh
+
+      - name: Upload ISO Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: axisos-live-amd64-${{ github.event.inputs.release_tag }}
+          path: axisos-live-amd64.iso
+          if-no-files-found: warn
+          retention-days: 7

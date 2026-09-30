@@ -1,0 +1,35 @@
+name: "Publish GitHub Release"
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name for release (e.g. v2.0.0)'
+        required: true
+        default: 'v2.0.0'
+
+jobs:
+  release:
+    name: Create GitHub Release & Checksums
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compute Checksums
+        run: |
+          mkdir -p release-assets
+          sha256sum README.md > release-assets/SHA256SUMS.txt
+
+      - name: Publish Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
