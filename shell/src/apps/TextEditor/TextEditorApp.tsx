@@ -3,10 +3,10 @@ import { Save, FileText, Check, FolderOpen } from 'lucide-react';
 import { systemService } from '../../services/systemService';
 import { useSystemState } from '../../context/SystemStateContext';
 
-export const TextEditorApp: React.FC = () => {
+export const TextEditorApp: React.FC<{ params?: Record<string, any> }> = ({ params }) => {
   const { systemInfo } = useSystemState();
   const defaultDir = systemInfo.homeDir || `/home/${systemInfo.username || 'axis'}`;
-  const [filePath, setFilePath] = useState<string>(`${defaultDir}/welcome.txt`);
+  const [filePath, setFilePath] = useState<string>(params?.filePath || `${defaultDir}/welcome.txt`);
   const [content, setContent] = useState<string>(
 `# Welcome to AxisOS
 # ===================
@@ -21,6 +21,15 @@ def init_axis_kernel():
 init_axis_kernel()
 `
   );
+
+  React.useEffect(() => {
+    if (params?.filePath) {
+      setFilePath(params.filePath);
+      systemService.readFile(params.filePath).then((text) => {
+        if (text) setContent(text);
+      });
+    }
+  }, [params?.filePath]);
   const [isSaved, setIsSaved] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -36,6 +45,19 @@ init_axis_kernel()
       }
     } catch {}
     setIsSaving(false);
+  };
+
+  const handleOpen = async () => {
+    const target = prompt('Enter full path of file to open:', filePath);
+    if (!target) return;
+    try {
+      const data = await systemService.readFileContent(target);
+      setFilePath(target);
+      setContent(data);
+      setIsSaved(true);
+    } catch (err: any) {
+      alert(`Could not open file: ${err.message}`);
+    }
   };
 
   return (
@@ -57,14 +79,25 @@ init_axis_kernel()
           {!isSaved && <span className="text-[10px] text-amber-400 font-mono">• Modified</span>}
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 font-medium transition-colors"
-        >
-          {isSaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-cyan-400" />}
-          <span>{isSaving ? 'Saving...' : (isSaved ? 'Saved' : 'Save')}</span>
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleOpen}
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 font-medium transition-colors"
+            title="Open existing file from disk"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Open</span>
+          </button>
+
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="flex items-center space-x-1.5 px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 text-slate-200 font-medium transition-colors"
+          >
+            {isSaved ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Save className="w-3.5 h-3.5 text-cyan-400" />}
+            <span>{isSaving ? 'Saving...' : (isSaved ? 'Saved' : 'Save')}</span>
+          </button>
+        </div>
       </div>
 
       {/* Editor Body */}

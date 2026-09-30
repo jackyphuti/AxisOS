@@ -11,7 +11,7 @@ interface DockItem {
 
 const DOCK_APPS: DockItem[] = [
   { id: 'file-manager', title: 'Finder' },
-  { id: 'browser', title: 'Safari' },
+  { id: 'browser', title: 'Axis Browser' },
   { id: 'music', title: 'Music' },
   { id: 'photos', title: 'Photos' },
   { id: 'notes', title: 'Notes' },

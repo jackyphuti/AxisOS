@@ -95,7 +95,7 @@ export const LiveWelcomeModal: React.FC = () => {
                 Try Live Demo
               </div>
               <p className="text-[11px] text-slate-400 mt-1 leading-normal">
-                Explore the Horizon desktop shell, test the Safari browser, Music player, and apps without modifying any disks.
+                Explore the Horizon desktop shell, test Axis Browser (Chromium), Axis Store, Terminal, and hardware without modifying any disks.
               </p>
             </div>
             <div className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-slate-300 group-hover:translate-x-1 transition-transform">

@@ -37,6 +37,7 @@ export interface WindowState {
   isMinimized: boolean;
   isMaximized: boolean;
   zIndex: number;
+  params?: Record<string, any>;
 }
 
 export type SystemTheme = 'dark' | 'light';

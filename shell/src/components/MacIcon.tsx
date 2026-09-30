@@ -85,27 +85,39 @@ export const MacIcon: React.FC<MacIconProps> = ({ id, size = 54, className = '' 
       );
 
     case 'browser':
-      // macOS Safari Style Compass
+      // Axis Browser Icon (Chromium-Powered Modern Squircle)
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-sky-950/40 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-[22%] shadow-lg shadow-cyan-950/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          {/* Outer ocean gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#38bdf8] via-[#0284c7] to-[#0369a1]"></div>
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent"></div>
-          {/* Compass Dial */}
-          <div className="relative w-[78%] h-[78%] rounded-full bg-gradient-to-b from-white to-slate-100 shadow-md flex items-center justify-center border border-sky-300">
-            {/* Dial ticks */}
-            <div className="absolute inset-0.5 rounded-full border border-dashed border-sky-600/40"></div>
-            {/* Needle */}
-            <svg viewBox="0 0 60 60" className="w-[75%] h-[75%] -rotate-45 drop-shadow">
-              {/* North needle (Red) */}
-              <polygon points="30,6 25,30 35,30" fill="#ef4444" />
-              {/* South needle (White/Silver) */}
-              <polygon points="30,54 25,30 35,30" fill="#94a3b8" />
-              {/* Center pin */}
-              <circle cx="30" cy="30" r="3.5" fill="#f8fafc" stroke="#64748b" strokeWidth="1" />
+          {/* Base gradient */}
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0ea5e9] via-[#0284c7] to-[#0f172a]"></div>
+          {/* Glass reflection highlight */}
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
+          
+          {/* Chromium Tri-Color Orbit Ring & Core */}
+          <div className="relative w-[78%] h-[78%] rounded-full bg-slate-950/80 p-1 flex items-center justify-center shadow-inner">
+            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow">
+              {/* Top segment (Cyan) */}
+              <path
+                d="M50,12 A38,38 0 0,1 83,31 L64,64 L50,50 Z"
+                fill="#38bdf8"
+              />
+              {/* Bottom right segment (Emerald) */}
+              <path
+                d="M83,31 A38,38 0 0,1 50,88 L50,50 L64,64 Z"
+                fill="#34d399"
+              />
+              {/* Left segment (Amber/Rose) */}
+              <path
+                d="M50,88 A38,38 0 0,1 17,31 L50,50 Z"
+                fill="#fbbf24"
+              />
+              {/* Center orb */}
+              <circle cx="50" cy="50" r="18" fill="#ffffff" />
+              <circle cx="50" cy="50" r="14" fill="#0284c7" />
+              <circle cx="45" cy="45" r="4" fill="#ffffff" opacity="0.6" />
             </svg>
           </div>
           <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/35 pointer-events-none"></div>

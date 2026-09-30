@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Activity, Cpu, HardDrive, RefreshCw } from 'lucide-react';
+import { Activity, Cpu, HardDrive, RefreshCw, XCircle } from 'lucide-react';
 import { useSystemState } from '../../context/SystemStateContext';
 import { systemService } from '../../services/systemService';
 
@@ -17,6 +17,8 @@ export const SystemMonitorApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'cpu' | 'memory' | 'disk'>('cpu');
   const [cpuUsage, setCpuUsage] = useState(14);
   const [cpuHistory, setCpuHistory] = useState<number[]>([12, 14, 18, 15, 22, 18, 14, 16, 20, 14, 19, 15]);
+  const [selectedPid, setSelectedPid] = useState<number | null>(null);
+  const [isKilling, setIsKilling] = useState(false);
   const [processes, setProcesses] = useState<ProcessItem[]>([
     { pid: 1, name: 'systemd', user: 'root', cpu: 0.1, mem: '14.2 MB', status: 'sleeping' },
     { pid: 320, name: 'axisos-session', user: systemInfo.username, cpu: 3.2, mem: '140 MB', status: 'running' },
@@ -60,6 +62,17 @@ export const SystemMonitorApp: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  const handleKillProcess = async () => {
+    if (!selectedPid) return;
+    setIsKilling(true);
+    try {
+      await systemService.executeCommand(`kill -9 ${selectedPid}`);
+      setProcesses((prev) => prev.filter((p) => p.pid !== selectedPid));
+      setSelectedPid(null);
+    } catch {}
+    setIsKilling(false);
+  };
+
   return (
     <div className="flex flex-col h-full w-full bg-slate-950 text-slate-100 select-none">
       {/* Top Activity Monitor Toolbar */}
@@ -80,6 +93,16 @@ export const SystemMonitorApp: React.FC = () => {
         </div>
 
         <div className="flex items-center space-x-2 text-slate-400 text-xs">
+          {selectedPid && (
+            <button
+              onClick={handleKillProcess}
+              disabled={isKilling}
+              className="flex items-center space-x-1 px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold transition-colors"
+            >
+              <XCircle className="w-3.5 h-3.5" />
+              <span>{isKilling ? 'Killing...' : `Force Quit (${selectedPid})`}</span>
+            </button>
+          )}
           <span>{systemInfo.cpuCores} Threads Active</span>
         </div>
       </div>
@@ -144,7 +167,10 @@ export const SystemMonitorApp: React.FC = () => {
         {processes.map((proc, i) => (
           <div
             key={i}
-            className="px-4 py-1.5 border-b border-white/5 hover:bg-white/5 flex items-center transition-colors"
+            onClick={() => setSelectedPid(proc.pid === selectedPid ? null : proc.pid)}
+            className={`px-4 py-1.5 border-b border-white/5 flex items-center transition-colors cursor-pointer ${
+              selectedPid === proc.pid ? 'bg-cyan-500/20 border-cyan-500/40' : 'hover:bg-white/5'
+            }`}
           >
             <span className="w-20 font-sans text-white font-medium truncate flex items-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${proc.status === 'running' ? 'bg-emerald-400' : 'bg-slate-600'}`}></span>
