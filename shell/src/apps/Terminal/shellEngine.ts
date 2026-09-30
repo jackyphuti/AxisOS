@@ -611,7 +611,7 @@ Options:
         if (args.length === 0) {
           const lines = Object.entries(this.state.env)
             .sort(([a], [b]) => a.localeCompare(b))
-            .map(([k, v]) => `declare -x ${k}="${v.replace(/"/g, '\\"')}"`);
+            .map(([k, v]) => `declare -x ${k}="${v.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`);
           ctx.stdout = lines.join('\n');
           ctx.exitCode = 0;
           return;

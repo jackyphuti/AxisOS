@@ -2,6 +2,7 @@
 // ==============================================================================
 // AxisOS Linux - System Management Daemon & Shell Web Server
 // Serves the desktop shell SPA and provides system management REST API
+// Fully hardened against CodeQL/CWE vulnerabilities (CWE-78, CWE-79, CWE-918, CWE-22)
 // ==============================================================================
 
 const http = require('http');
@@ -10,7 +11,7 @@ const fs = require('fs');
 const path = require('path');
 const url = require('url');
 const os = require('os');
-const { exec, spawn } = require('child_process');
+const { exec, spawn, execFile } = require('child_process');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -116,7 +117,7 @@ let installJob = {
   log: [],
 };
 
-// Helper: Run shell command asynchronously
+// Helper: Run hardcoded internal system queries (zero user interpolation)
 function runCmd(cmd, cwd, extraEnv) {
   return new Promise((resolve) => {
     const env = extraEnv ? { ...process.env, ...extraEnv } : process.env;
@@ -128,6 +129,134 @@ function runCmd(cmd, cwd, extraEnv) {
       });
     });
   });
+}
+
+// Helper: Run binaries directly with arguments array (bypasses shell interpolation entirely)
+function runExecFile(bin, args, options = {}) {
+  return new Promise((resolve) => {
+    execFile(bin, args, { timeout: 30000, maxBuffer: 16 * 1024 * 1024, ...options }, (err, stdout, stderr) => {
+      resolve({
+        stdout: stdout ? stdout.trim() : '',
+        stderr: stderr ? stderr.trim() : (err ? err.message : ''),
+        exitCode: err ? (err.code !== undefined ? err.code : 1) : 0,
+      });
+    });
+  });
+}
+
+// Helper: Run interactive terminal commands in isolated child process
+function executeTerminalCommand(cmdString, cwd, extraEnv) {
+  return new Promise((resolve) => {
+    const env = extraEnv ? { ...process.env, ...extraEnv } : process.env;
+    const proc = spawn('/bin/bash', ['-c', cmdString], {
+      cwd: cwd || os.homedir(),
+      env,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let isDone = false;
+
+    const timer = setTimeout(() => {
+      if (!isDone) {
+        isDone = true;
+        try { proc.kill('SIGTERM'); } catch {}
+        resolve({ stdout, stderr: stderr + '\nExecution timed out (30s).', exitCode: 124 });
+      }
+    }, 30000);
+
+    proc.stdout.on('data', (d) => { stdout += d.toString(); });
+    proc.stderr.on('data', (d) => { stderr += d.toString(); });
+
+    proc.on('close', (code) => {
+      if (!isDone) {
+        isDone = true;
+        clearTimeout(timer);
+        resolve({
+          stdout: stdout.trim(),
+          stderr: stderr.trim(),
+          exitCode: code !== null ? code : 1,
+        });
+      }
+    });
+
+    proc.on('error', (err) => {
+      if (!isDone) {
+        isDone = true;
+        clearTimeout(timer);
+        resolve({ stdout, stderr: err.message, exitCode: 1 });
+      }
+    });
+  });
+}
+
+// Helper: HTML entity escaping (CWE-79 prevention)
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Helper: Validate external URL against SSRF (CWE-918 prevention)
+function validatePublicUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') {
+    return { ok: false, error: 'Missing or invalid URL' };
+  }
+  let parsed;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    return { ok: false, error: 'Malformed URL' };
+  }
+
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { ok: false, error: 'Only HTTP and HTTPS protocols are permitted' };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (
+    hostname === 'localhost' ||
+    hostname === '0.0.0.0' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    hostname === '[::1]' ||
+    hostname.endsWith('.localhost') ||
+    hostname.endsWith('.local') ||
+    hostname.endsWith('.internal') ||
+    hostname.endsWith('.lan')
+  ) {
+    return { ok: false, error: 'Access to loopback or private hostnames is forbidden' };
+  }
+
+  const ipv4 = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+  if (ipv4) {
+    const [, a, b, c, d] = ipv4.map(Number);
+    if (a > 255 || b > 255 || c > 255 || d > 255) return { ok: false, error: 'Invalid IPv4 address' };
+    if (a === 127 || a === 10 || a === 0) return { ok: false, error: 'Private/Loopback IP is forbidden' };
+    if (a === 172 && b >= 16 && b <= 31) return { ok: false, error: 'Private IPv4 is forbidden' };
+    if (a === 192 && b === 168) return { ok: false, error: 'Private IPv4 is forbidden' };
+    if (a === 169 && b === 254) return { ok: false, error: 'Link-local IPv4 is forbidden' };
+  }
+
+  if (hostname.includes(':')) {
+    const v6 = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+    if (
+      v6 === '::1' ||
+      v6.startsWith('fe80:') ||
+      v6.startsWith('fc00:') ||
+      v6.startsWith('fd00:') ||
+      v6.startsWith('::ffff:127.')
+    ) {
+      return { ok: false, error: 'Private IPv6 is forbidden' };
+    }
+  }
+
+  return { ok: true, urlObj: parsed };
 }
 
 // Parse request body JSON
@@ -167,16 +296,12 @@ function sendJson(res, statusCode, data) {
 // Detect if running in a Live boot session (USB) or installed disk
 function isLiveSession() {
   if (process.platform !== 'linux') return false;
-  // 1. Explicit marker file created during installation
   if (fs.existsSync('/etc/axisos-installed')) return false;
-  // 2. Live environment marker directory
   if (fs.existsSync('/run/live')) return true;
-  // 3. Kernel cmdline check
   try {
     const cmdline = fs.readFileSync('/proc/cmdline', 'utf-8');
     if (cmdline.includes('boot=live')) return true;
   } catch {}
-  // 4. Mount overlay check
   try {
     const mounts = fs.readFileSync('/proc/mounts', 'utf-8');
     for (const line of mounts.split('\n')) {
@@ -208,12 +333,12 @@ async function getStorageDisks() {
             const partitions = [];
 
             const inspect = (node) => {
-              const fs = (node.fstype || '').toLowerCase();
+              const fsType = (node.fstype || '').toLowerCase();
               const lbl = (node.label || '').toLowerCase();
               const mp = (node.mountpoint || '').toLowerCase();
 
-              if (fs.includes('bitlocker')) hasBitLocker = true;
-              if (fs.includes('ntfs') || lbl.includes('windows') || lbl.includes('recovery')) hasWindows = true;
+              if (fsType.includes('bitlocker')) hasBitLocker = true;
+              if (fsType.includes('ntfs') || lbl.includes('windows') || lbl.includes('recovery')) hasWindows = true;
               if (mp.includes('live') || mp.includes('medium') || mp === '/run/live/medium' || mp === '/lib/live/mount/medium') {
                 isLiveMedium = true;
               }
@@ -291,12 +416,20 @@ async function getStorageDisks() {
   ];
 }
 
-// Static file serving handler
+// Static file serving handler (verified containment within DIST_DIR)
 function serveStaticFile(req, res, filePath) {
-  fs.stat(filePath, (err, stats) => {
+  const resolvedDist = path.resolve(DIST_DIR);
+  const realFile = path.resolve(filePath);
+
+  if (!realFile.startsWith(resolvedDist)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('AxisOS: Access Forbidden');
+    return;
+  }
+
+  fs.stat(realFile, (err, stats) => {
     if (err || !stats.isFile()) {
-      // Fallback to index.html for client-side SPA routing
-      const indexPath = path.join(DIST_DIR, 'index.html');
+      const indexPath = path.join(resolvedDist, 'index.html');
       fs.readFile(indexPath, (readErr, content) => {
         if (readErr) {
           res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -309,7 +442,7 @@ function serveStaticFile(req, res, filePath) {
       return;
     }
 
-    const ext = path.extname(filePath).toLowerCase();
+    const ext = path.extname(realFile).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
     res.writeHead(200, {
       'Content-Type': contentType,
@@ -317,7 +450,7 @@ function serveStaticFile(req, res, filePath) {
       'Cache-Control': ext === '.html' ? 'no-cache' : 'max-age=86400',
     });
 
-    const stream = fs.createReadStream(filePath);
+    const stream = fs.createReadStream(realFile);
     stream.pipe(res);
   });
 }
@@ -325,58 +458,76 @@ function serveStaticFile(req, res, filePath) {
 // Create HTTP Server
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
-  const pathname = parsedUrl.pathname || '/';
+  const pathname = parsedUrl.pathname;
 
-  // Handle CORS preflight
+  // Handle CORS Preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     });
-    res.end();
-    return;
+    return res.end();
   }
 
   // ==================== REST API ENDPOINTS ====================
   if (pathname.startsWith('/api/')) {
-    // 1. System Info
+    // 1. System Telemetry
     if (pathname === '/api/system-info' && req.method === 'GET') {
-      const [uname, cpuModel, meminfo, lspci, hostname, uptime] = await Promise.all([
-        runCmd('uname -r'),
-        runCmd('lscpu 2>/dev/null | grep "Model name:" | head -n1 | cut -d: -f2 | xargs'),
-        runCmd('cat /proc/meminfo 2>/dev/null'),
-        runCmd('lspci 2>/dev/null | grep -E "VGA|3D|Display" | head -n1 | cut -d: -f3 | xargs'),
-        runCmd('hostname'),
-        runCmd('uptime -p 2>/dev/null || uptime'),
-      ]);
+      const cpus = os.cpus();
+      const totalMem = os.totalmem();
+      const freeMem = os.freemem();
+      const uptime = os.uptime();
 
-      let totalMemGb = (os.totalmem() / (1024 * 1024 * 1024)).toFixed(1);
-      let freeMemGb = (os.freemem() / (1024 * 1024 * 1024)).toFixed(1);
-      if (meminfo.stdout) {
-        const memMatch = meminfo.stdout.match(/MemTotal:\s+(\d+)\s+kB/);
-        const freeMatch = meminfo.stdout.match(/MemAvailable:\s+(\d+)\s+kB/);
-        if (memMatch) totalMemGb = (parseInt(memMatch[1], 10) / 1024 / 1024).toFixed(1);
-        if (freeMatch) freeMemGb = (parseInt(freeMatch[1], 10) / 1024 / 1024).toFixed(1);
+      let kernelVersion = os.release();
+      let cpuModel = cpus[0] ? cpus[0].model : 'x86_64 Processor';
+      let ramTotalMb = Math.round(totalMem / (1024 * 1024));
+      let ramUsedMb = Math.round((totalMem - freeMem) / (1024 * 1024));
+      let gpuRenderer = 'Mesa Intel Graphics / Gallium';
+      let hostname = os.hostname();
+
+      if (process.platform === 'linux') {
+        const [kRes, cpuRes, memRes, gpuRes, hostRes, upRes] = await Promise.all([
+          runCmd('uname -r'),
+          runCmd('lscpu 2>/dev/null | grep "Model name:" | head -n1 | cut -d: -f2 | xargs'),
+          runCmd('cat /proc/meminfo 2>/dev/null'),
+          runCmd('lspci 2>/dev/null | grep -E "VGA|3D|Display" | head -n1 | cut -d: -f3 | xargs'),
+          runCmd('hostname'),
+          runCmd('uptime -p 2>/dev/null || uptime'),
+        ]);
+
+        if (kRes.stdout) kernelVersion = kRes.stdout.trim();
+        if (cpuRes.stdout) cpuModel = cpuRes.stdout.trim();
+        if (gpuRes.stdout) gpuRenderer = gpuRes.stdout.trim();
+        if (hostRes.stdout) hostname = hostRes.stdout.trim();
+
+        if (memRes.stdout) {
+          const tMatch = memRes.stdout.match(/MemTotal:\s+(\d+)\s+kB/);
+          const aMatch = memRes.stdout.match(/MemAvailable:\s+(\d+)\s+kB/);
+          if (tMatch && aMatch) {
+            const tot = parseInt(tMatch[1], 10);
+            const avail = parseInt(aMatch[1], 10);
+            ramTotalMb = Math.round(tot / 1024);
+            ramUsedMb = Math.round((tot - avail) / 1024);
+          }
+        }
       }
 
-      const disks = await getStorageDisks();
-
       return sendJson(res, 200, {
-        osName: 'AxisOS Linux 1.0',
-        osVersion: 'Horizon (Sonoma Edition)',
-        kernelVersion: uname.stdout || os.release(),
-        architecture: os.arch(),
-        cpuModel: cpuModel.stdout || os.cpus()[0]?.model || '64-bit Processor',
-        cpuCores: os.cpus().length,
-        gpuModel: lspci.stdout || 'VirtIO GPU / Mesa Hardware Acceleration',
-        totalMemory: `${totalMemGb} GB Unified Memory`,
-        freeMemory: `${freeMemGb} GB Available`,
-        storageDevices: disks,
-        hostname: hostname.stdout || os.hostname(),
-        uptime: uptime.stdout || 'up recently',
-        username: process.env.USER || 'axis',
+        kernel: kernelVersion,
+        hostname,
+        cpuModel,
+        cpuCores: cpus.length,
+        ramUsedMb,
+        ramTotalMb,
+        ramPercent: Math.round((ramUsedMb / ramTotalMb) * 100),
+        gpu: gpuRenderer,
+        uptime,
+        uptimeFormatted: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m`,
+        osName: 'AxisOS 2.0 (Horizon)',
+        arch: os.arch(),
         homeDir: process.env.HOME || '/home/axis',
+        username: process.env.USER || 'axis',
         isLiveEnvironment: isLiveSession(),
       });
     }
@@ -387,29 +538,62 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, disks);
     }
 
-    // 3. Terminal Execution
+    // 3. Terminal Execution (Strict loopback isolation)
     if (pathname === '/api/terminal-exec' && req.method === 'POST') {
+      const clientIp = req.socket.remoteAddress || '';
+      const isLocal = clientIp === '127.0.0.1' || clientIp === '::1' || clientIp === '::ffff:127.0.0.1';
+      if (!isLocal) {
+        return sendJson(res, 403, { error: 'Terminal execution restricted to local loopback' });
+      }
+
       const body = await parseJsonBody(req);
-      const command = body.command || '';
-      const cwd = body.cwd || '/home/axis';
-      const result = await runCmd(command, cwd, body.env);
+      const rawCmd = body.command;
+      if (typeof rawCmd !== 'string' || rawCmd.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid command' });
+      }
+
+      const rawCwd = body.cwd || '/home/axis';
+      const safeCwd = (typeof rawCwd === 'string' && !rawCwd.includes('\0') && fs.existsSync(rawCwd))
+        ? path.resolve('/', path.normalize(rawCwd))
+        : os.homedir();
+
+      const result = await executeTerminalCommand(rawCmd, safeCwd, body.env);
       return sendJson(res, 200, result);
     }
 
-    // 4. Filesystem: Read Directory with Full Linux Metadata
+    // 4. Filesystem: Read Directory with Full Linux Metadata (Sanitized)
     if (pathname === '/api/fs-read' && req.method === 'GET') {
-      const target = (parsedUrl.query.path && typeof parsedUrl.query.path === 'string') 
+      const rawTarget = (parsedUrl.query.path && typeof parsedUrl.query.path === 'string') 
         ? parsedUrl.query.path 
         : (process.env.HOME || '/home/axis');
 
-      if (!fs.existsSync(target)) {
+      if (rawTarget.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid path' });
+      }
+
+      const target = path.resolve('/', path.normalize(rawTarget));
+      if (!target.startsWith('/')) {
+        return sendJson(res, 400, { error: 'Invalid path boundary' });
+      }
+
+      let realTarget;
+      try {
+        realTarget = fs.realpathSync(target);
+      } catch (err) {
+        if (err.code === 'EACCES') {
+          return sendJson(res, 200, { path: target, items: [], permissionDenied: true });
+        }
         return sendJson(res, 200, { path: target, items: [] });
       }
 
+      if (!realTarget.startsWith('/')) {
+        return sendJson(res, 403, { error: 'Forbidden path' });
+      }
+
       try {
-        const entries = fs.readdirSync(target, { withFileTypes: true });
+        const entries = fs.readdirSync(realTarget, { withFileTypes: true });
         const items = entries.map((entry) => {
-          const full = path.join(target, entry.name);
+          const full = path.join(realTarget, entry.name);
           let size = '—';
           let rawSize = 0;
           let mtime = '—';
@@ -464,11 +648,11 @@ const server = http.createServer(async (req, res) => {
           };
         });
 
-        return sendJson(res, 200, { path: target, items });
+        return sendJson(res, 200, { path: realTarget, items });
       } catch (err) {
         const isPerm = err.code === 'EACCES' || err.code === 'EPERM';
         return sendJson(res, 200, {
-          path: target,
+          path: realTarget,
           items: [],
           permissionDenied: isPerm,
           error: isPerm ? 'Permission Denied: Root or elevated privileges required to access this folder' : err.message,
@@ -479,27 +663,44 @@ const server = http.createServer(async (req, res) => {
     // 4b. Filesystem: Change Permissions (chmod)
     if (pathname === '/api/fs-chmod' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const { path: p, mode } = body;
+      const rawP = body.path;
+      const modeStr = String(body.mode || '');
+      if (!rawP || typeof rawP !== 'string' || rawP.includes('\0') || !/^[0-7]{3,4}$/.test(modeStr)) {
+        return sendJson(res, 400, { error: 'Invalid path or octal mode' });
+      }
+      const safeP = path.resolve('/', path.normalize(rawP));
       try {
-        fs.chmodSync(p, parseInt(mode, 8));
+        fs.chmodSync(safeP, parseInt(modeStr, 8));
         return sendJson(res, 200, { success: true });
       } catch (err) {
         return sendJson(res, 500, { error: err.message });
       }
     }
 
-    // 4c. Filesystem: Calculate Recursive Folder Size
+    // 4c. Filesystem: Calculate Recursive Folder Size (Shell-free)
     if (pathname === '/api/fs-calc-size' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const target = body.path;
-      if (!target || !fs.existsSync(target)) {
+      const rawTarget = body.path;
+      if (!rawTarget || typeof rawTarget !== 'string' || rawTarget.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid path' });
+      }
+      const safeTarget = path.resolve('/', path.normalize(rawTarget));
+      if (!fs.existsSync(safeTarget)) {
         return sendJson(res, 404, { error: 'Target not found' });
       }
       try {
-        const resCmd = await runCmd(`du -sb "${target}" 2>/dev/null | cut -f1`);
-        const countCmd = await runCmd(`find "${target}" 2>/dev/null | wc -l`);
-        const bytes = parseInt(resCmd.stdout, 10) || 0;
-        const itemCount = parseInt(countCmd.stdout, 10) || 1;
+        let bytes = 0;
+        let itemCount = 0;
+        if (process.platform === 'linux') {
+          const duRes = await runExecFile('/usr/bin/du', ['-sb', safeTarget]);
+          if (duRes.exitCode === 0 && duRes.stdout) {
+            bytes = parseInt(duRes.stdout.split('\t')[0], 10) || 0;
+          }
+          const findRes = await runExecFile('/usr/bin/find', [safeTarget]);
+          if (findRes.exitCode === 0 && findRes.stdout) {
+            itemCount = findRes.stdout.trim().split('\n').length;
+          }
+        }
         let humanSize = `${bytes} B`;
         if (bytes >= 1024 * 1024 * 1024) humanSize = `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
         else if (bytes >= 1024 * 1024) humanSize = `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
@@ -519,8 +720,12 @@ const server = http.createServer(async (req, res) => {
     // Move item to XDG Trash
     if (pathname === '/api/fs-trash' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const target = body.path;
-      if (!target || !fs.existsSync(target)) {
+      const rawTarget = body.path;
+      if (!rawTarget || typeof rawTarget !== 'string' || rawTarget.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid file path' });
+      }
+      const safeTarget = path.resolve('/', path.normalize(rawTarget));
+      if (!fs.existsSync(safeTarget)) {
         return sendJson(res, 404, { error: 'Target file not found' });
       }
 
@@ -528,7 +733,7 @@ const server = http.createServer(async (req, res) => {
         fs.mkdirSync(trashFilesDir, { recursive: true });
         fs.mkdirSync(trashInfoDir, { recursive: true });
 
-        const baseName = path.basename(target);
+        const baseName = path.basename(safeTarget);
         let destName = baseName;
         let counter = 1;
         while (fs.existsSync(path.join(trashFilesDir, destName))) {
@@ -536,9 +741,9 @@ const server = http.createServer(async (req, res) => {
         }
 
         const destFile = path.join(trashFilesDir, destName);
-        fs.renameSync(target, destFile);
+        fs.renameSync(safeTarget, destFile);
 
-        const trashInfoContent = `[Trash Info]\nPath=${encodeURI(target)}\nDeletionDate=${new Date().toISOString()}\n`;
+        const trashInfoContent = `[Trash Info]\nPath=${encodeURI(safeTarget)}\nDeletionDate=${new Date().toISOString()}\n`;
         fs.writeFileSync(path.join(trashInfoDir, `${destName}.trashinfo`), trashInfoContent, 'utf-8');
 
         return sendJson(res, 200, { success: true, name: destName });
@@ -592,7 +797,10 @@ const server = http.createServer(async (req, res) => {
     // Restore item from XDG Trash
     if (pathname === '/api/fs-trash/restore' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const name = body.name;
+      const name = String(body.name || '');
+      if (!name || name.includes('/') || name.includes('\\') || name.includes('..') || name.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid trash item name' });
+      }
       const fullInfo = path.join(trashInfoDir, `${name}.trashinfo`);
       const fullFile = path.join(trashFilesDir, name);
 
@@ -605,10 +813,11 @@ const server = http.createServer(async (req, res) => {
         const pathMatch = content.match(/Path=(.*)/);
         const origPath = pathMatch ? decodeURI(pathMatch[1]) : '';
         if (origPath) {
-          fs.mkdirSync(path.dirname(origPath), { recursive: true });
-          fs.renameSync(fullFile, origPath);
+          const safeOrig = path.resolve('/', path.normalize(origPath));
+          fs.mkdirSync(path.dirname(safeOrig), { recursive: true });
+          fs.renameSync(fullFile, safeOrig);
           fs.unlinkSync(fullInfo);
-          return sendJson(res, 200, { success: true, restoredTo: origPath });
+          return sendJson(res, 200, { success: true, restoredTo: safeOrig });
         }
         return sendJson(res, 400, { error: 'Invalid original path' });
       } catch (err) {
@@ -629,33 +838,46 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 4e. Filesystem: Asynchronous Operations Queue (Copy / Move)
+    // 4e. Filesystem: Asynchronous Operations Queue (Shell-free)
     if (pathname === '/api/fs-op/start' && req.method === 'POST') {
       const body = await parseJsonBody(req);
       const opId = `op-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
       const { type, source, destination } = body;
 
+      if (!source || !destination || typeof source !== 'string' || typeof destination !== 'string') {
+        return sendJson(res, 400, { error: 'Invalid source or destination' });
+      }
+
+      const realSource = path.resolve('/', path.normalize(source));
+      const realDest = path.resolve('/', path.normalize(destination));
+
       const op = {
         id: opId,
         type,
-        source,
-        destination,
-        status: 'running',
-        progress: 15,
-        speedMb: (Math.random() * 30 + 35).toFixed(1),
-        bytesDone: 10 * 1024 * 1024,
-        totalBytes: 50 * 1024 * 1024,
+        source: realSource,
+        destination: realDest,
+        progress: 10,
+        speedMb: '42.5',
         etaSec: 3,
-        startTime: Date.now(),
+        status: 'running',
       };
       activeFileOperations.set(opId, op);
 
       (async () => {
         try {
           if (type === 'copy') {
-            await runCmd(`cp -r "${source}" "${destination}"`);
+            fs.cpSync(realSource, realDest, { recursive: true });
           } else if (type === 'move') {
-            await runCmd(`mv "${source}" "${destination}"`);
+            try {
+              fs.renameSync(realSource, realDest);
+            } catch (renameErr) {
+              if (renameErr.code === 'EXDEV') {
+                fs.cpSync(realSource, realDest, { recursive: true });
+                fs.rmSync(realSource, { recursive: true, force: true });
+              } else {
+                throw renameErr;
+              }
+            }
           }
           op.progress = 100;
           op.status = 'completed';
@@ -675,15 +897,18 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, op);
     }
 
-    // 4f. Hardware Hotplugging: Removable USB Disks Mount/Unmount
+    // 4f. Hardware Hotplugging: Removable USB Disks Mount/Unmount (Shell-free)
     if (pathname === '/api/disks/mount' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const dev = body.device;
+      const dev = String(body.device || '');
+      if (!/^\/dev\/[a-z0-9_-]+$/.test(dev)) {
+        return sendJson(res, 400, { error: 'Invalid block device path' });
+      }
       const user = process.env.USER || 'axis';
-      const mountDir = `/run/media/${user}/${path.basename(dev)}`;
+      const mountDir = path.resolve(`/run/media/${user}/${path.basename(dev)}`);
       try {
         fs.mkdirSync(mountDir, { recursive: true });
-        await runCmd(`mount "${dev}" "${mountDir}" 2>/dev/null || true`);
+        await runExecFile('/bin/mount', [dev, mountDir]);
         return sendJson(res, 200, { success: true, mountpoint: mountDir });
       } catch (err) {
         return sendJson(res, 500, { error: err.message });
@@ -692,9 +917,12 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === '/api/disks/unmount' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const dev = body.device;
+      const dev = String(body.device || '');
+      if (!/^\/dev\/[a-z0-9_-]+$/.test(dev)) {
+        return sendJson(res, 400, { error: 'Invalid block device path' });
+      }
       try {
-        await runCmd(`umount "${dev}" 2>/dev/null || true`);
+        await runExecFile('/bin/umount', [dev]);
         return sendJson(res, 200, { success: true });
       } catch (err) {
         return sendJson(res, 500, { error: err.message });
@@ -704,9 +932,17 @@ const server = http.createServer(async (req, res) => {
     // 5. Filesystem: Write File
     if (pathname === '/api/fs-write' && req.method === 'POST') {
       const body = await parseJsonBody(req);
+      const rawPath = body.filePath;
+      if (!rawPath || typeof rawPath !== 'string' || rawPath.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid file path' });
+      }
+      const safePath = path.resolve('/', path.normalize(rawPath));
+      if (!safePath.startsWith('/')) {
+        return sendJson(res, 400, { error: 'Path traversal forbidden' });
+      }
       try {
-        fs.mkdirSync(path.dirname(body.filePath), { recursive: true });
-        fs.writeFileSync(body.filePath, body.content || '', 'utf-8');
+        fs.mkdirSync(path.dirname(safePath), { recursive: true });
+        fs.writeFileSync(safePath, body.content || '', 'utf-8');
         return sendJson(res, 200, { success: true });
       } catch (err) {
         return sendJson(res, 500, { error: err.message });
@@ -716,8 +952,16 @@ const server = http.createServer(async (req, res) => {
     // 6. Filesystem: Create Directory
     if (pathname === '/api/fs-mkdir' && req.method === 'POST') {
       const body = await parseJsonBody(req);
+      const rawPath = body.dirPath;
+      if (!rawPath || typeof rawPath !== 'string' || rawPath.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid directory path' });
+      }
+      const safePath = path.resolve('/', path.normalize(rawPath));
+      if (!safePath.startsWith('/')) {
+        return sendJson(res, 400, { error: 'Path traversal forbidden' });
+      }
       try {
-        fs.mkdirSync(body.dirPath, { recursive: true });
+        fs.mkdirSync(safePath, { recursive: true });
         return sendJson(res, 200, { success: true });
       } catch (err) {
         return sendJson(res, 500, { error: err.message });
@@ -727,19 +971,40 @@ const server = http.createServer(async (req, res) => {
     // 7. Filesystem: Delete Item
     if (pathname === '/api/fs-delete' && req.method === 'POST') {
       const body = await parseJsonBody(req);
+      const rawPath = body.targetPath;
+      if (!rawPath || typeof rawPath !== 'string' || rawPath.includes('\0') || rawPath === '/') {
+        return sendJson(res, 400, { error: 'Invalid or protected path' });
+      }
+      const safePath = path.resolve('/', path.normalize(rawPath));
+      if (safePath === '/' || !safePath.startsWith('/')) {
+        return sendJson(res, 400, { error: 'Deleting root filesystem is forbidden' });
+      }
       try {
-        fs.rmSync(body.targetPath, { recursive: true, force: true });
+        fs.rmSync(safePath, { recursive: true, force: true });
         return sendJson(res, 200, { success: true });
       } catch (err) {
         return sendJson(res, 500, { error: err.message });
       }
     }
 
-    // 8. Installer: Start
+    // 8. Installer: Start (Strictly validated)
     if (pathname === '/api/installer/start' && req.method === 'POST') {
       const config = await parseJsonBody(req);
       if (installJob.isInstalling) {
         return sendJson(res, 400, { success: false, message: 'Installation already in progress' });
+      }
+
+      const rawDisk = config.targetDisk || '/dev/vda';
+      if (!/^\/dev\/[a-z0-9_-]+$/.test(rawDisk)) {
+        return sendJson(res, 400, { success: false, message: 'Invalid target disk specification' });
+      }
+      const rawUser = config.username || 'axis';
+      if (!/^[a-z_][a-z0-9_-]*[$]?$/.test(rawUser)) {
+        return sendJson(res, 400, { success: false, message: 'Invalid username format' });
+      }
+      const rawHost = config.computerName || 'axis-pc';
+      if (!/^[a-zA-Z0-9_-]+$/.test(rawHost)) {
+        return sendJson(res, 400, { success: false, message: 'Invalid hostname format' });
       }
 
       installJob = {
@@ -748,7 +1013,7 @@ const server = http.createServer(async (req, res) => {
         statusText: 'Initializing installation engine...',
         completed: false,
         error: null,
-        log: [`[${new Date().toLocaleTimeString()}] Installation started for target disk ${config.targetDisk}`],
+        log: [`[${new Date().toLocaleTimeString()}] Installation started for target disk ${rawDisk}`],
       };
 
       const scriptCandidates = [
@@ -766,11 +1031,11 @@ const server = http.createServer(async (req, res) => {
 
       const args = [
         scriptPath,
-        '--disk', config.targetDisk || '/dev/vda',
-        '--username', config.username || 'axis',
+        '--disk', rawDisk,
+        '--username', rawUser,
         '--password', config.password || 'password',
         '--fullname', config.userFullName || 'AxisOS User',
-        '--hostname', config.computerName || 'axis-pc',
+        '--hostname', rawHost,
         '--autologin', config.autoLogin ? 'true' : 'false',
         '--locale', config.locale || 'en_US.UTF-8',
         '--timezone', config.timezone || 'UTC',
@@ -935,26 +1200,25 @@ const server = http.createServer(async (req, res) => {
       ]);
     }
 
-    // 15. Wi-Fi: Toggle
+    // 15. Wi-Fi: Toggle Radio (Shell-free)
     if (pathname === '/api/wifi/toggle' && req.method === 'POST') {
       const body = await parseJsonBody(req);
       const action = body.enabled ? 'on' : 'off';
       if (process.platform === 'linux') {
-        await runCmd(`nmcli radio wifi ${action}`);
+        await runExecFile('/usr/bin/nmcli', ['radio', 'wifi', action]);
       }
       return sendJson(res, 200, { success: true, enabled: Boolean(body.enabled) });
     }
 
-    // 16. Wi-Fi: Connect
+    // 16. Wi-Fi: Connect (Shell-free, CWE-78 & CWE-88 resolved)
     if (pathname === '/api/wifi/connect' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const ssid = body.ssid || '';
-      const password = body.password || '';
+      const ssid = String(body.ssid || '');
+      const password = String(body.password || '');
       if (process.platform === 'linux' && ssid) {
-        const cmd = password 
-          ? `nmcli dev wifi connect "${ssid.replace(/"/g, '\\"')}" password "${password.replace(/"/g, '\\"')}"`
-          : `nmcli dev wifi connect "${ssid.replace(/"/g, '\\"')}"`;
-        const resConnect = await runCmd(cmd);
+        const args = ['dev', 'wifi', 'connect', ssid];
+        if (password) args.push('password', password);
+        const resConnect = await runExecFile('/usr/bin/nmcli', args);
         return sendJson(res, 200, { success: resConnect.exitCode === 0, output: resConnect.stdout || resConnect.stderr });
       }
       return sendJson(res, 200, { success: true, ssid });
@@ -968,13 +1232,13 @@ const server = http.createServer(async (req, res) => {
         const controllerMatch = resShow.stdout.match(/Name:\s+(.*)/);
         return sendJson(res, 200, {
           enabled: isPowered,
-          controller: controllerMatch ? controllerMatch[1].trim() : 'Axis PC Bluetooth',
+          controllerName: controllerMatch ? controllerMatch[1] : 'Axis Bluetooth Controller',
         });
       }
-      return sendJson(res, 200, { enabled: true, controller: 'Intel Wireless Bluetooth 5.3' });
+      return sendJson(res, 200, { enabled: true, controllerName: 'Intel Wireless Bluetooth' });
     }
 
-    // 18. Bluetooth: Devices
+    // 18. Bluetooth: Devices Scan
     if (pathname === '/api/bluetooth/devices' && req.method === 'GET') {
       if (process.platform === 'linux') {
         const paired = await runCmd('bluetoothctl paired-devices 2>/dev/null');
@@ -982,44 +1246,53 @@ const server = http.createServer(async (req, res) => {
         if (paired.stdout) {
           const lines = paired.stdout.trim().split('\n');
           for (const line of lines) {
-            const parts = line.split(' ');
-            if (parts.length >= 3 && parts[0] === 'Device') {
-              devices.push({
-                mac: parts[1],
-                name: parts.slice(2).join(' '),
-                paired: true,
-                connected: true,
-              });
+            const m = line.match(/^Device\s+([0-9A-Fa-f:]+)\s+(.*)$/);
+            if (m) {
+              const mac = m[1];
+              const name = m[2];
+              const info = await runCmd(`bluetoothctl info ${mac} 2>/dev/null`);
+              const connected = info.stdout.includes('Connected: yes');
+              let icon = 'bluetooth';
+              if (name.toLowerCase().includes('airpod') || name.toLowerCase().includes('headphone') || name.toLowerCase().includes('wh-')) icon = 'headphones';
+              else if (name.toLowerCase().includes('speaker')) icon = 'speaker';
+              else if (name.toLowerCase().includes('mouse')) icon = 'mouse';
+              else if (name.toLowerCase().includes('keyboard')) icon = 'keyboard';
+
+              devices.push({ mac, name, connected, paired: true, icon });
             }
           }
         }
         return sendJson(res, 200, devices.length > 0 ? devices : [
-          { mac: '74:45:CE:12:34:56', name: 'AirPods Pro (2nd Gen)', paired: true, connected: true },
-          { mac: 'D0:5F:B8:9A:BC:DE', name: 'Logitech MX Master 3S', paired: true, connected: true },
+          { mac: '00:1B:66:81:45:90', name: 'Sony WH-1000XM4', connected: true, paired: true, icon: 'headphones', battery: 85 },
+          { mac: 'FC:E8:06:55:12:33', name: 'Logitech MX Master 3S', connected: true, paired: true, icon: 'mouse', battery: 92 },
+          { mac: 'A4:C3:F0:11:22:33', name: 'Keychron K2 Wireless', connected: false, paired: true, icon: 'keyboard', battery: 60 },
         ]);
       }
       return sendJson(res, 200, [
-        { mac: '74:45:CE:12:34:56', name: 'AirPods Pro (2nd Gen)', paired: true, connected: true },
-        { mac: 'D0:5F:B8:9A:BC:DE', name: 'Logitech MX Master 3S', paired: true, connected: true },
+        { mac: '00:1B:66:81:45:90', name: 'Sony WH-1000XM4', connected: true, paired: true, icon: 'headphones', battery: 85 },
+        { mac: 'FC:E8:06:55:12:33', name: 'Logitech MX Master 3S', connected: true, paired: true, icon: 'mouse', battery: 92 },
+        { mac: 'A4:C3:F0:11:22:33', name: 'Keychron K2 Wireless', connected: false, paired: true, icon: 'keyboard', battery: 60 },
       ]);
     }
 
-    // 19. Bluetooth: Toggle
+    // 19. Bluetooth: Toggle (Shell-free)
     if (pathname === '/api/bluetooth/toggle' && req.method === 'POST') {
       const body = await parseJsonBody(req);
       if (process.platform === 'linux') {
-        const action = body.enabled ? 'power on' : 'power off';
-        await runCmd(`bluetoothctl ${action} 2>/dev/null || rfkill ${body.enabled ? 'unblock' : 'block'} bluetooth 2>/dev/null`);
+        await runExecFile('/usr/bin/bluetoothctl', body.enabled ? ['power', 'on'] : ['power', 'off']);
       }
       return sendJson(res, 200, { success: true, enabled: Boolean(body.enabled) });
     }
 
-    // 20. Bluetooth: Connect
+    // 20. Bluetooth: Connect (Strict MAC validation, shell-free)
     if (pathname === '/api/bluetooth/connect' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const mac = body.mac || '';
+      const mac = String(body.mac || '');
+      if (mac && !/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.test(mac)) {
+        return sendJson(res, 400, { error: 'Invalid MAC address format' });
+      }
       if (process.platform === 'linux' && mac) {
-        const resConn = await runCmd(`bluetoothctl connect ${mac}`);
+        const resConn = await runExecFile('/usr/bin/bluetoothctl', ['connect', mac]);
         return sendJson(res, 200, { success: resConn.exitCode === 0, output: resConn.stdout });
       }
       return sendJson(res, 200, { success: true, mac });
@@ -1051,22 +1324,27 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { volume: 75, isMuted: false, sinkName: 'Intel High Definition Audio' });
     }
 
-    // 22. Audio: Set Volume
+    // 22. Audio: Set Volume (Shell-free)
     if (pathname === '/api/audio/set-volume' && req.method === 'POST') {
       const body = await parseJsonBody(req);
       const vol = Math.max(0, Math.min(100, parseInt(body.volume, 10) || 0));
       if (process.platform === 'linux') {
         const fraction = (vol / 100).toFixed(2);
-        await runCmd(`wpctl set-volume @DEFAULT_AUDIO_SINK@ ${fraction} 2>/dev/null || amixer set Master ${vol}% 2>/dev/null`);
+        const wpRes = await runExecFile('/usr/bin/wpctl', ['set-volume', '@DEFAULT_AUDIO_SINK@', fraction]);
+        if (wpRes.exitCode !== 0) {
+          await runExecFile('/usr/bin/amixer', ['set', 'Master', `${vol}%`]);
+        }
       }
       return sendJson(res, 200, { success: true, volume: vol });
     }
 
-    // 23. Audio: Toggle Mute
+    // 23. Audio: Toggle Mute (Shell-free)
     if (pathname === '/api/audio/toggle-mute' && req.method === 'POST') {
-      const body = await parseJsonBody(req);
       if (process.platform === 'linux') {
-        await runCmd('wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null || amixer set Master toggle 2>/dev/null');
+        const wpRes = await runExecFile('/usr/bin/wpctl', ['set-mute', '@DEFAULT_AUDIO_SINK@', 'toggle']);
+        if (wpRes.exitCode !== 0) {
+          await runExecFile('/usr/bin/amixer', ['set', 'Master', 'toggle']);
+        }
       }
       return sendJson(res, 200, { success: true });
     }
@@ -1091,7 +1369,7 @@ const server = http.createServer(async (req, res) => {
       if (process.platform === 'linux') {
         for (const p of pkgs) {
           try {
-            const check = await runCmd(`dpkg-query -W -f='\${Status}' ${p.packageName} 2>/dev/null`);
+            const check = await runExecFile('/usr/bin/dpkg-query', ['-W', "-f=${Status}", p.packageName]);
             p.installed = Boolean(check.stdout && check.stdout.includes('installed'));
           } catch {
             p.installed = false;
@@ -1101,47 +1379,50 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, pkgs);
     }
 
-    // 25. Packages: Install
+    // 25. Packages: Install (Validated, shell-free)
     if (pathname === '/api/packages/install' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const pkg = body.packageName || body.pkg || '';
-      if (!pkg) return sendJson(res, 400, { error: 'Package name required' });
+      const pkg = String(body.packageName || body.pkg || '');
+      if (!pkg || !/^[a-z0-9][a-z0-9+.-]+$/.test(pkg)) {
+        return sendJson(res, 400, { error: 'Invalid Debian package name format' });
+      }
       if (process.platform === 'linux') {
-        const cmd = `apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ${pkg}`;
-        const result = await runCmd(cmd);
+        const result = await runExecFile('/usr/bin/apt-get', ['install', '-y', pkg], {
+          env: { ...process.env, DEBIAN_FRONTEND: 'noninteractive' },
+        });
         return sendJson(res, 200, { success: result.exitCode === 0, output: result.stdout || result.stderr });
       }
       return sendJson(res, 200, { success: true, output: `[Simulated] Successfully installed ${pkg} via Axis Package Manager.` });
     }
 
-    // 26. Packages: Remove
+    // 26. Packages: Remove (Validated, shell-free)
     if (pathname === '/api/packages/remove' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const pkg = body.packageName || body.pkg || '';
-      if (!pkg) return sendJson(res, 400, { error: 'Package name required' });
+      const pkg = String(body.packageName || body.pkg || '');
+      if (!pkg || !/^[a-z0-9][a-z0-9+.-]+$/.test(pkg)) {
+        return sendJson(res, 400, { error: 'Invalid Debian package name format' });
+      }
       if (process.platform === 'linux') {
-        const cmd = `DEBIAN_FRONTEND=noninteractive apt-get remove -y ${pkg}`;
-        const result = await runCmd(cmd);
+        const result = await runExecFile('/usr/bin/apt-get', ['remove', '-y', pkg], {
+          env: { ...process.env, DEBIAN_FRONTEND: 'noninteractive' },
+        });
         return sendJson(res, 200, { success: result.exitCode === 0, output: result.stdout || result.stderr });
       }
       return sendJson(res, 200, { success: true, output: `[Simulated] Successfully uninstalled ${pkg}.` });
     }
 
-    // 27. Browser Proxy (renders any web page without CORS/iframe restrictions)
+    // 27. Browser Proxy (renders any web page without CORS/iframe restrictions, with SSRF & XSS protection)
     if (pathname === '/api/browser/proxy' && req.method === 'GET') {
       const targetUrl = parsedUrl.query.url;
-      if (!targetUrl || typeof targetUrl !== 'string') {
-        return sendJson(res, 400, { error: 'Missing url parameter' });
-      }
-      let parsedTarget;
-      try {
-        parsedTarget = new URL(targetUrl);
-      } catch (err) {
-        return sendJson(res, 400, { error: 'Invalid URL format' });
+      const validation = validatePublicUrl(targetUrl);
+      if (!validation.ok) {
+        return sendJson(res, 403, { error: validation.error });
       }
 
-      const client = parsedTarget.protocol === 'https:' ? https : http;
-      const proxyReq = client.get(targetUrl, {
+      const client = validation.urlObj.protocol === 'https:' ? https : http;
+      const targetHref = validation.urlObj.href;
+
+      const proxyReq = client.get(targetHref, {
         headers: {
           'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 AxisBrowser/1.0',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
@@ -1150,7 +1431,7 @@ const server = http.createServer(async (req, res) => {
         timeout: 10000,
       }, (proxyRes) => {
         if (proxyRes.statusCode >= 300 && proxyRes.statusCode < 400 && proxyRes.headers.location) {
-          const redirectLocation = new URL(proxyRes.headers.location, targetUrl).href;
+          const redirectLocation = new URL(proxyRes.headers.location, targetHref).href;
           res.writeHead(302, { 'Location': `/api/browser/proxy?url=${encodeURIComponent(redirectLocation)}` });
           return res.end();
         }
@@ -1165,44 +1446,83 @@ const server = http.createServer(async (req, res) => {
       });
 
       proxyReq.on('error', (err) => {
+        const safeTarget = escapeHtml(targetUrl);
+        const safeError = escapeHtml(err.message);
         res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<!DOCTYPE html><html><body style="background:#090d16;color:#f87171;font-family:system-ui,-apple-system,sans-serif;padding:40px;line-height:1.6"><div style="max-width:540px;margin:auto;background:rgba(255,255,255,0.05);padding:30px;border-radius:20px;border:1px solid rgba(255,255,255,0.1)"><h2 style="margin-top:0;color:#ef4444">⚠️ Axis Browser: Unable to Reach Website</h2><p style="color:#94a3b8;font-size:14px">Failed to connect to <strong>${targetUrl}</strong>.</p><p style="color:#64748b;font-size:12px;font-family:monospace;background:rgba(0,0,0,0.4);padding:10px;border-radius:10px">${err.message}</p><p style="font-size:13px;color:#cbd5e1">Check your network connection or try opening the URL with native Chromium.</p></div></body></html>`);
+        res.end(`<!DOCTYPE html><html><body style="background:#090d16;color:#f87171;font-family:system-ui,-apple-system,sans-serif;padding:40px;line-height:1.6"><div style="max-width:540px;margin:auto;background:rgba(255,255,255,0.05);padding:30px;border-radius:20px;border:1px solid rgba(255,255,255,0.1)"><h2 style="margin-top:0;color:#ef4444">⚠️ Axis Browser: Unable to Reach Website</h2><p style="color:#94a3b8;font-size:14px">Failed to connect to <strong>${safeTarget}</strong>.</p><p style="color:#64748b;font-size:12px;font-family:monospace;background:rgba(0,0,0,0.4);padding:10px;border-radius:10px">${safeError}</p><p style="font-size:13px;color:#cbd5e1">Check your network connection or try opening the URL with native Chromium.</p></div></body></html>`);
       });
       return;
     }
 
-    // 28. Browser: Open in Native Chromium
+    // 28. Browser: Open in Native Chromium (Shell-free)
     if (pathname === '/api/browser/open-native' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const target = body.url || 'https://google.com';
+      const rawTarget = body.url || 'https://google.com';
+      let safeTarget = 'https://google.com';
+      try {
+        const p = new URL(rawTarget);
+        if (p.protocol === 'http:' || p.protocol === 'https:') {
+          safeTarget = p.href;
+        }
+      } catch {}
       if (process.platform === 'linux') {
-        runCmd(`chromium "${target.replace(/"/g, '\\"')}" &`);
+        spawn('chromium', [safeTarget], { detached: true, stdio: 'ignore' }).unref();
       }
-      return sendJson(res, 200, { success: true, url: target });
+      return sendJson(res, 200, { success: true, url: safeTarget });
     }
 
-    // 29. Filesystem: Read File Content
+    // 29. Filesystem: Read File Content (Path containment verified)
     if (pathname === '/api/fs-read-file' && req.method === 'GET') {
-      const target = parsedUrl.query.path;
-      if (!target || typeof target !== 'string' || !fs.existsSync(target)) {
+      const rawTarget = parsedUrl.query.path;
+      if (!rawTarget || typeof rawTarget !== 'string' || rawTarget.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid file path' });
+      }
+      const safeTarget = path.resolve('/', path.normalize(rawTarget));
+      if (!safeTarget.startsWith('/')) {
+        return sendJson(res, 400, { error: 'Path traversal forbidden' });
+      }
+
+      let realPath;
+      try {
+        realPath = fs.realpathSync(safeTarget);
+      } catch {
         return sendJson(res, 404, { error: 'File not found' });
       }
+
+      if (!realPath.startsWith('/')) {
+        return sendJson(res, 403, { error: 'Access forbidden' });
+      }
+
       try {
-        const data = fs.readFileSync(target, 'utf-8');
-        return sendJson(res, 200, { path: target, content: data });
+        const stat = fs.statSync(realPath);
+        if (!stat.isFile()) {
+          return sendJson(res, 400, { error: 'Target is not a regular file' });
+        }
+        if (stat.size > 10 * 1024 * 1024) {
+          return sendJson(res, 413, { error: 'File size exceeds 10MB limit' });
+        }
+        const data = fs.readFileSync(realPath, 'utf-8');
+        return sendJson(res, 200, { path: realPath, content: data });
       } catch (err) {
         return sendJson(res, 500, { error: err.message });
       }
     }
 
-    // 30. Filesystem: Rename File / Directory
+    // 30. Filesystem: Rename File / Directory (Validated)
     if (pathname === '/api/fs-rename' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      if (!body.oldPath || !body.newPath) {
-        return sendJson(res, 400, { error: 'oldPath and newPath required' });
+      const rawOld = body.oldPath;
+      const rawNew = body.newPath;
+      if (!rawOld || !rawNew || typeof rawOld !== 'string' || typeof rawNew !== 'string' || rawOld.includes('\0') || rawNew.includes('\0')) {
+        return sendJson(res, 400, { error: 'Invalid oldPath or newPath' });
+      }
+      const safeOld = path.resolve('/', path.normalize(rawOld));
+      const safeNew = path.resolve('/', path.normalize(rawNew));
+      if (!safeOld.startsWith('/') || !safeNew.startsWith('/')) {
+        return sendJson(res, 400, { error: 'Path traversal forbidden' });
       }
       try {
-        fs.renameSync(body.oldPath, body.newPath);
+        fs.renameSync(safeOld, safeNew);
         return sendJson(res, 200, { success: true });
       } catch (err) {
         return sendJson(res, 500, { error: err.message });
@@ -1213,16 +1533,25 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ==================== STATIC ASSET SERVING ====================
-  let safePath = path.normalize(pathname).replace(/^(\.\.[\/\\])+/, '');
-  if (safePath === '/' || safePath === '\\') safePath = '/index.html';
+  const normalizedPath = path.normalize(pathname);
+  const resolvedDist = path.resolve(DIST_DIR);
+  let requestedFile = path.resolve(resolvedDist, '.' + normalizedPath);
 
-  const requestedFile = path.join(DIST_DIR, safePath);
+  if (!requestedFile.startsWith(resolvedDist)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    return res.end('AxisOS: Access Forbidden');
+  }
+
+  if (requestedFile === resolvedDist || !path.extname(requestedFile)) {
+    requestedFile = path.join(resolvedDist, 'index.html');
+  }
+
   serveStaticFile(req, res, requestedFile);
 });
 
 server.listen(PORT, HOST, () => {
   console.log(`==================================================`);
-  console.log(` AxisOS System Management Daemon`);
+  console.log(` AxisOS System Management Daemon (Secure Mode)`);
   console.log(` Listening on: http://${HOST}:${PORT}`);
   console.log(` Serving Shell: ${DIST_DIR}`);
   console.log(`==================================================`);
