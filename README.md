@@ -1,72 +1,45 @@
 # AxisOS — Production Linux Operating System
 
 <div align="center">
-  <h3>▲ AxisOS 1.0 "Horizon"</h3>
-  <p>A modern, fluid, glassmorphic Linux operating system combining the Linux kernel, Cage Wayland compositor, and a hardware-accelerated desktop shell.</p>
+
+  <h1>▲ AxisOS 2.0 "Horizon"</h1>
+  <p><b>A modern, fluid, glassmorphic Linux operating system built on Debian, the Cage Wayland compositor, and a hardware-accelerated desktop shell.</b></p>
 
   <p>
-    <a href="./INSTALLATION_GUIDE.md"><b>📖 Read the Installation Guide</b></a> •
-    <a href="https://github.com/jackyphuti/AxisOS/releases"><b>⬇️ Download ISO</b></a> •
-    <a href="#-quick-start"><b>🚀 Quick Start</b></a>
+    <a href="https://github.com/jackyphuti/AxisOS/releases"><img src="https://img.shields.io/github/v/release/jackyphuti/AxisOS?style=flat-square&color=blue" alt="Release"></a>
+    <img src="https://img.shields.io/badge/Architecture-x86__64-informational?style=flat-square" alt="Arch">
+    <img src="https://img.shields.io/badge/Compositor-Wayland%20(Cage)-purple?style=flat-square" alt="Compositor">
+    <img src="https://img.shields.io/badge/Init-systemd-orange?style=flat-square" alt="Init">
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green?style=flat-square" alt="License"></a>
   </p>
+
+  <p>
+    <a href="./INSTALLATION_GUIDE.md"><b>📖 Installation Guide</b></a> •
+    <a href="./DEVELOPMENT.md"><b>🛠️ Build & Developer Guide</b></a> •
+    <a href="./CONTRIBUTING.md"><b>🤝 How to Contribute</b></a> •
+    <a href="https://github.com/jackyphuti/AxisOS/releases"><b>⬇️ Releases</b></a>
+  </p>
+
 </div>
 
 ---
 
-## 📖 Installation & Hardware Deployment
-
-For full, step-by-step instructions on creating a bootable USB drive, configuring motherboard BIOS (Lenovo, Dell, HP, ASUS), booting live, and installing AxisOS permanently to an internal or external drive, please see:
-
-👉 **[Complete AxisOS Installation Guide](INSTALLATION_GUIDE.md)**
-
 ## 🌟 Overview
 
-**AxisOS** is a fully functional, bootable Linux operating system with a native Wayland kiosk compositor (**Cage**), an asynchronous **System Management Daemon** (`axisos-daemon`), and a modern desktop environment with a real **Operating System Installer**.
+**AxisOS** is an independent, production-grade Linux operating system designed for performance, security, and aesthetics. Combining the power of the Linux kernel and the speed of the **Cage** Wayland kiosk compositor, AxisOS delivers a seamless desktop experience backed by an asynchronous system management daemon and native desktop applications.
 
-### 🧩 Core Production Systems:
+---
 
-1. **AxisOS Real System Installation Engine (`axisos-install.sh`)**:
-   - **Real Block Device Detection**: Probes NVMe, SATA, and VirtIO disks via `lsblk` / sysfs.
-   - **Automated GPT Partitioning**: 512MB EFI System Partition (ESP FAT32), 4GB Linux Swap, and remaining capacity for Linux Root.
-   - **Btrfs Subvolumes with zstd Compression**: Sets up `@` (root), `@home` (user profiles), `@snapshots` (system rollback), and `@var_log`.
-   - **Live Root Deployment**: Replicates base userspace to target drive via `rsync` with attribute preservation.
-   - **Fstab & Identity Configuration**: Automatically writes `/etc/fstab` with persistent UUIDs, sets hostname, locale, and keyboard map.
-   - **User Provisioning**: Creates user account with sudo privileges, hardware groups (video, audio, input, seat), and autologin session.
-   - **GRUB 2 EFI / BIOS Bootloader**: Installs EFI boot binaries into ESP (`/boot/efi`) and executes `update-grub`.
+## 🚀 Key Features
 
-2. **AxisOS System Management Daemon (`axisos-daemon.cjs`)**:
-   - Runs as a systemd service (`axisos-daemon.service`) listening on `http://127.0.0.1:3000`.
-   - High-performance, zero-external-dependency Node.js HTTP server.
-   - Provides REST endpoints:
-     - `/api/system-info`: Live hardware stats (kernel, CPU cores, RAM, GPU, disks, uptime).
-     - `/api/disks`: Probes and filters block storage devices.
-     - `/api/terminal-exec`: Real Linux bash command execution.
-     - `/api/fs-read`, `/api/fs-write`, `/api/fs-mkdir`, `/api/fs-delete`: Filesystem operations.
-     - `/api/installer/start` & `/api/installer/status`: Background OS installation with live log streaming.
-     - `/api/power`: Real `poweroff` and `reboot` integration via `systemd`.
-
-3. **Wayland Display Layer & Desktop Shell**:
-   - Runs on bare metal DRM/KMS using the **Cage** Wayland kiosk compositor.
-   - Kiosk launcher `axisos-kiosk.sh` starts Chromium or Electron with native Wayland Ozone flags.
-   - Interactive Window Manager with dragging, resizing, minimizing, and maximizing.
-   - Top status bar, Spotlight Search (`Ctrl+Space`), Control Center quick settings, and animated floating glass dock.
-   - **Everyday Desktop Apps**:
-     - 🛒 **Axis Store**: Discover, install, update, and remove Linux APT & Debian packages with live log streaming.
-     - 🧭 **Safari Web Browser**: Multi-tab browsing, speed dial bookmarks, smart address bar, and DuckDuckGo search.
-     - 🎵 **Music Player**: Built-in Web Audio synthesis tracks, custom MP3/FLAC import, scrub bar, and frequency spectrum visualizer.
-     - 🖼️ **Photos**: Media gallery, category albums, photo zoom/rotate, and 1-click desktop wallpaper integration.
-     - 📝 **Notes**: Categorized note taking (Personal, Work, Ideas), live note search, pin/unpin, and persistence.
-     - 📸 **Photo Booth / Camera**: Real WebRTC video feed, live filters (Sepia, Noir, Cyberpunk), 3s self-timer, and snapshots.
-     - ⏰ **Clock**: World clock across international time zones, alarms with synthesized audio chimes, precision stopwatch with lap history, and radial countdown timer.
-     - ⛅ **Weather**: Dynamic atmospheric conditions, 24-hour hourly forecast cards, 7-day extended forecasts, and global city search.
-     - 🖥️ **Terminal**: Real Linux shell command execution with bash integration.
-     - 📁 **Finder / Files**: Directory navigation, file/folder creation, deletion, and file metadata viewer.
-     - 📊 **Activity Monitor**: Real-time CPU, RAM, and storage graphs with live process management.
-     - 🧮 **Calculator**: Standard and scientific calculations with keyboard shortcuts.
-     - 📝 **Text Editor**: Multi-tab text and code editor with disk file saving.
-     - ⚙️ **System Settings**: Themes, appearance, display resolution, network, audio, and automated updates.
-     - 💿 **Install AxisOS**: Live-to-disk installation wizard with real GPT partitioning and Btrfs subvolumes.
-     - ℹ️ **About This AxisPC**: Real hardware overview, processor, memory, and kernel details.
+- **Fluid Desktop Shell**: Hardware-accelerated glassmorphism powered by React 19, Vite, and Tailwind CSS, featuring an interactive window manager, dynamic dock, top menu bar, and Control Center.
+- **Axis Browser**: Chromium-based web browser with multi-tab browsing, bookmark speed-dial, and secure browsing controls.
+- **High-Performance File Manager**: Asynchronous I/O operations queue (speed in MB/s, ETA, progress), inotify filesystem synchronization, XDG Trash specification compliance (`~/.local/share/Trash`), and dynamic USB block storage hotplugging.
+- **Advanced Terminal & REPL**: Custom POSIX shell engine with tokenization, ANSI color rendering, piping (`|`), file descriptor redirection (`>`, `>>`), signal handling (`Ctrl+C`), and exit status prompts.
+- **Atomic A/B Update Engine (`axis update`)**: Dual-partition system updates with zero risk of broken states, bootloader rollbacks, and `--fast-boot` near-instant kernel switching via `kexec`.
+- **System Settings & Hardware Control**: Master-detail configuration pane for Wi-Fi (NetworkManager), Bluetooth (BlueZ), PipeWire/WirePlumber audio, display scaling, themes, and power management.
+- **Axis Store**: Discover, install, and manage system packages and desktop software with live progress logging.
+- **Real OS Installer**: Production installation wizard supporting automated GPT partitioning, Btrfs subvolumes (`@`, `@home`, `@snapshots`) with zstd compression, and GRUB EFI bootloader configuration.
 
 ---
 
@@ -74,85 +47,81 @@ For full, step-by-step instructions on creating a bootable USB drive, configurin
 
 ```mermaid
 flowchart TD
-    subgraph Hardware & Boot
-        HW[Hardware / CPU / GPU / Storage] --> GRUB[GRUB 2 EFI / BIOS Bootloader]
-        GRUB --> Kernel[Linux Kernel 6.12]
-        Kernel --> Live[Debian Live Boot & Initramfs]
+    subgraph Hardware & Firmware
+        HW["Hardware / CPU / GPU / Storage"] --> GRUB["GRUB 2 EFI / BIOS"]
+        GRUB --> Kernel["Linux Kernel 6.1.0 (amd64)"]
     end
 
-    subgraph Linux Core Userspace
-        Live --> Systemd[systemd Init System]
-        Systemd --> Udev[systemd-udevd]
-        Systemd --> PipeWire[PipeWire / WirePlumber Audio]
-        Systemd --> NM[NetworkManager]
-        Systemd --> Daemon[axisos-daemon.service (Port 3000)]
+    subgraph Linux Core Subsystem
+        Kernel --> Systemd["systemd (PID 1)"]
+        Systemd --> Udev["systemd-udevd (Hardware Hotplug)"]
+        Systemd --> PipeWire["PipeWire / WirePlumber Audio"]
+        Systemd --> NM["NetworkManager (Wi-Fi & Ethernet)"]
+        Systemd --> Daemon["axisos-daemon.service (Port 3000)"]
     end
 
     subgraph Wayland Display Layer
-        Systemd --> Cage[Cage Wayland Compositor]
-        Cage --> Kiosk[axisos-kiosk.sh]
+        Systemd --> Cage["Cage Wayland Compositor"]
+        Cage --> Kiosk["axisos-kiosk.sh (Ozone Wayland Engine)"]
     end
 
     subgraph AxisOS Desktop Shell
-        Kiosk --> Shell[AxisOS Desktop Shell]
-        Shell --> Installer[Real OS Installer Engine]
-        Shell --> Apps[Terminal, Files, Editor, Monitor]
-        Installer --> TargetDisk[Partition GPT + Btrfs + Install GRUB to SSD]
+        Kiosk --> Shell["Horizon Desktop Shell (React / Vite)"]
+        Shell --> Apps["Terminal, Files, Browser, Settings, Store"]
+        Shell --> Installer["System Installer (GPT + Btrfs + GRUB)"]
     end
 ```
 
 ---
 
-## 🚀 Running AxisOS Locally
+## 📚 Documentation & Guides
 
-### 1. Build Desktop Shell
+To keep our repository organized and easy to navigate, detailed instructions have been segmented into dedicated guides:
+
+| Document | Description |
+| :--- | :--- |
+| **[📖 Installation Guide](INSTALLATION_GUIDE.md)** | Step-by-step instructions for flashing to USB (Rufus, BalenaEtcher, Ventoy, `dd`), BIOS/UEFI setup, and bare-metal installation. |
+| **[🛠️ Build & Developer Guide](DEVELOPMENT.md)** | Complete guide to installing dependencies, running local dev servers, compiling C modules, building the ISO, and running QEMU. |
+| **[🤝 Contributing Guidelines](CONTRIBUTING.md)** | Code of conduct, pull request workflow, coding standards, and commit conventions. |
+| **[📦 Package Manager Guide](pkg-mgr/README.md)** | Architecture and usage for the native `axis` package manager. |
+
+---
+
+## ⚡ Quick Start for Developers
+
+For complete setup instructions, please see the **[Development Guide](DEVELOPMENT.md)**.
+
 ```bash
+# 1. Clone repository
+git clone https://github.com/jackyphuti/AxisOS.git
+cd AxisOS
+
+# 2. Install desktop shell dependencies
 cd shell
 npm install
-npm run build
-```
 
-### 2. Run Production System Daemon
-```bash
-cd shell
+# 3. Launch development server
+npm run dev
+
+# 4. In a separate terminal, launch the system daemon
 npm run serve
 ```
-Open `http://localhost:3000` to interact with the full live operating system interface.
-
-### 3. Native Electron Window
-```bash
-cd shell
-npm start
-```
 
 ---
 
-## 💿 Building the Bootable Linux ISO
+## 🗓️ Release Roadmap
 
-AxisOS builds a bootable hybrid ISO (`axisos-live-amd64.iso`) compatible with both UEFI and Legacy BIOS machines:
-
-### On Linux / Docker / Podman:
-```bash
-# Build the bootable hybrid ISO
-./os-build/scripts/build-iso.sh
-```
-
-### On Windows / PowerShell:
-```powershell
-.\os-build\scripts\build-iso.ps1
-```
-
----
-
-## 🖥️ Testing in QEMU Virtual Machine
-
-Test the full live boot and installer onto a virtual hard drive:
-```bash
-./os-build/scripts/run-qemu.sh
-```
-This automatically allocates a 20GB virtual hard disk (`axisos-disk.qcow2`), boots the ISO, allows you to run the real installer to partition and install the OS, and then boots directly from the installed disk!
+- **v1.0 "Horizon"**: Initial live ISO release with Wayland kiosk, installer, and core apps.
+- **v2.0 "Horizon v2"** *(December Release)*:
+  - Chromium-based Axis Browser integration
+  - Linux kernel platform and character driver stack
+  - High-performance File Manager with XDG trash and USB hotplugging
+  - Dual-partition atomic updates (`axis update`) with `kexec` fast boot
+  - Full-featured POSIX Terminal emulator and REPL engine
+  - Production ISO release
 
 ---
 
 ## 📄 License
-GPL-3.0 License.
+
+AxisOS is free and open-source software licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the [LICENSE](LICENSE) file for details.

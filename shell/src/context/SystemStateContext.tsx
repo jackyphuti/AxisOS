@@ -121,6 +121,10 @@ interface SystemStateContextType {
   systemInfo: SystemInfo;
   isLiveEnvironment: boolean;
   setIsLiveEnvironment: (live: boolean) => void;
+  toggleWifi: () => Promise<void>;
+  toggleBluetooth: () => Promise<void>;
+  changeVolume: (vol: number) => Promise<void>;
+  toggleMute: () => Promise<void>;
 }
 
 const initialSystemInfo: SystemInfo = {
@@ -198,9 +202,80 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, []);
 
-  // Keyboard shortcut: Cmd+Space or Ctrl+Space for Spotlight
+  // Hardware state synchronization on boot
+  useEffect(() => {
+    let isMounted = true;
+    systemService.getWifiStatus().then((w) => {
+      if (!isMounted) return;
+      setWifiConnected(w.connected);
+      if (w.currentSsid) setWifiSsid(w.currentSsid);
+    });
+    systemService.getBluetoothStatus().then((b) => {
+      if (!isMounted) return;
+      setBluetoothEnabled(b.enabled);
+    });
+    systemService.getAudioStatus().then((a) => {
+      if (!isMounted) return;
+      setVolume(a.volume);
+      setIsMuted(a.isMuted);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Hardware control functions
+  const toggleWifi = async () => {
+    const next = !wifiConnected;
+    setWifiConnected(next);
+    await systemService.toggleWifi(next);
+    const updated = await systemService.getWifiStatus();
+    setWifiConnected(updated.connected);
+    if (updated.currentSsid) setWifiSsid(updated.currentSsid);
+  };
+
+  const toggleBluetooth = async () => {
+    const next = !bluetoothEnabled;
+    setBluetoothEnabled(next);
+    await systemService.toggleBluetooth(next);
+  };
+
+  const changeVolume = async (newVol: number) => {
+    setVolume(newVol);
+    if (newVol > 0 && isMuted) setIsMuted(false);
+    await systemService.setAudioVolume(newVol);
+  };
+
+  const toggleMute = async () => {
+    const next = !isMuted;
+    setIsMuted(next);
+    await systemService.toggleAudioMute();
+  };
+
+  // Keyboard shortcut: Windows button launches App Menu, Cmd+Space / Ctrl+Space for Spotlight
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Windows Button (Meta / Super / OS key standalone) launches App Menu
+      if (
+        (e.key === 'Meta' || e.key === 'OS' || e.code === 'MetaLeft' || e.code === 'MetaRight' || e.keyCode === 91 || e.keyCode === 92) &&
+        !e.ctrlKey &&
+        !e.altKey &&
+        !e.shiftKey
+      ) {
+        e.preventDefault();
+        setIsAppMenuOpen((prev) => !prev);
+        return;
+      }
+
+      // Escape key closes menus
+      if (e.key === 'Escape') {
+        setIsAppMenuOpen(false);
+        setIsSpotlightOpen(false);
+        setIsQuickSettingsOpen(false);
+        return;
+      }
+
+      // Spotlight Shortcut
       if ((e.metaKey || e.ctrlKey) && e.code === 'Space') {
         e.preventDefault();
         setIsSpotlightOpen((prev) => !prev);
@@ -261,6 +336,10 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         systemInfo,
         isLiveEnvironment,
         setIsLiveEnvironment,
+        toggleWifi,
+        toggleBluetooth,
+        changeVolume,
+        toggleMute,
       }}
     >
       {children}

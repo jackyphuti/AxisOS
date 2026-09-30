@@ -13,9 +13,9 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   browser: {
     id: 'browser',
-    title: 'Safari',
+    title: 'Axis Browser',
     category: 'utilities',
-    description: 'Fast, secure, and modern web browser.',
+    description: 'High-performance web browser powered by Chromium engine.',
     defaultWidth: 960,
     defaultHeight: 620,
     isPinned: true,
@@ -152,7 +152,7 @@ interface WindowManagerContextType {
   windows: WindowState[];
   activeWindowId: string | null;
   activeAppId: AppId | null;
-  openApp: (appId: AppId) => void;
+  openApp: (appId: AppId, params?: Record<string, any>) => void;
   closeWindow: (id: string) => void;
   minimizeWindow: (id: string) => void;
   toggleMaximizeWindow: (id: string) => void;
@@ -182,19 +182,24 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const openApp = useCallback(
-    (appId: AppId) => {
+    (appId: AppId, params?: Record<string, any>) => {
       // Check if already open
       const existing = windows.find((w) => w.appId === appId);
       if (existing) {
-        if (existing.isMinimized) {
-          zCounter += 1;
-          setWindows((prev) =>
-            prev.map((w) =>
-              w.id === existing.id ? { ...w, isMinimized: false, zIndex: zCounter } : w
-            )
-          );
-        }
-        focusWindow(existing.id);
+        zCounter += 1;
+        setWindows((prev) =>
+          prev.map((w) =>
+            w.id === existing.id
+              ? {
+                  ...w,
+                  isMinimized: false,
+                  zIndex: zCounter,
+                  params: params ? { ...w.params, ...params } : w.params,
+                }
+              : w
+          )
+        );
+        setActiveWindowId(existing.id);
         return;
       }
 
@@ -220,6 +225,7 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         isMinimized: false,
         isMaximized: false,
         zIndex: zCounter,
+        params,
       };
 
       setWindows((prev) => [...prev, newWindow]);

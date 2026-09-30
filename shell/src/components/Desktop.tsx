@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Terminal as TerminalIcon, Folder, Settings, Palette, Info } from 'lucide-react';
+import { Sparkles, Terminal as TerminalIcon, Folder, Settings, Palette, Info, Monitor } from 'lucide-react';
 import { useSystemState } from '../context/SystemStateContext';
 import { useWindowManager } from '../context/WindowManagerContext';
 import { WindowFrame } from './WindowFrame';
@@ -52,16 +52,16 @@ export const Desktop: React.FC = () => {
     if (contextMenu) setContextMenu(null);
   };
 
-  const renderAppContent = (appId: AppId) => {
+  const renderAppContent = (appId: AppId, params?: Record<string, any>) => {
     switch (appId) {
       case 'installer':
         return <InstallerApp />;
       case 'settings':
-        return <SettingsApp />;
+        return <SettingsApp params={params} />;
       case 'terminal':
-        return <TerminalApp />;
+        return <TerminalApp params={params} />;
       case 'file-manager':
-        return <FileManagerApp />;
+        return <FileManagerApp params={params} />;
       case 'browser':
         return <BrowserApp />;
       case 'music':
@@ -81,7 +81,7 @@ export const Desktop: React.FC = () => {
       case 'calculator':
         return <CalculatorApp />;
       case 'text-editor':
-        return <TextEditorApp />;
+        return <TextEditorApp params={params} />;
       case 'system-monitor':
         return <SystemMonitorApp />;
       case 'about':
@@ -174,13 +174,33 @@ export const Desktop: React.FC = () => {
           <div className="my-1 border-t border-white/10"></div>
           <button
             onClick={() => {
-              openApp('settings');
+              openApp('settings', { tab: 'displays' });
+              closeContextMenu();
+            }}
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+          >
+            <Monitor className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Display Settings...</span>
+          </button>
+          <button
+            onClick={() => {
+              openApp('settings', { tab: 'wallpaper' });
               closeContextMenu();
             }}
             className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
           >
             <Palette className="w-3.5 h-3.5 text-blue-400" />
             <span>Change Wallpaper...</span>
+          </button>
+          <button
+            onClick={() => {
+              openApp('settings', { tab: 'general' });
+              closeContextMenu();
+            }}
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+          >
+            <Settings className="w-3.5 h-3.5 text-slate-300" />
+            <span>System Settings...</span>
           </button>
           <button
             onClick={() => {
@@ -198,7 +218,7 @@ export const Desktop: React.FC = () => {
       {/* Open Windows */}
       {windows.map((win) => (
         <WindowFrame key={win.id} window={win}>
-          {renderAppContent(win.appId)}
+          {renderAppContent(win.appId, win.params)}
         </WindowFrame>
       ))}
 

@@ -17,6 +17,8 @@ export const TopBar: React.FC = () => {
     setIsQuickSettingsOpen,
     isSpotlightOpen,
     setIsSpotlightOpen,
+    isAppMenuOpen,
+    setIsAppMenuOpen,
     setPowerModalOpen,
     wifiConnected,
     batteryLevel,
@@ -92,6 +94,16 @@ export const TopBar: React.FC = () => {
               <button
                 onClick={() => {
                   setAppleMenuOpen(false);
+                  setIsAppMenuOpen(true);
+                }}
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-between"
+              >
+                <span>Applications Menu</span>
+                <span className="text-[10px] opacity-70 font-mono">⊞ Win</span>
+              </button>
+              <button
+                onClick={() => {
+                  setAppleMenuOpen(false);
                   openApp('settings');
                 }}
                 className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-between"
@@ -101,11 +113,11 @@ export const TopBar: React.FC = () => {
               <button
                 onClick={() => {
                   setAppleMenuOpen(false);
-                  openApp('browser');
+                  openApp('software');
                 }}
                 className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors"
               >
-                App Store...
+                Axis Store (App Center)...
               </button>
               <div className="my-1 border-t border-white/10" />
               <button

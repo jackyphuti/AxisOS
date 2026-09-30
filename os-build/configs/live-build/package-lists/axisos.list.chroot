@@ -1,5 +1,5 @@
 # ==============================================================================
-# AxisOS Linux - Live ISO Package Manifest (Debian 12 Bookworm Core)
+# AxisOS Linux - Live ISO Package Manifest (Debian 12 Bookworm Core & Drivers)
 # ==============================================================================
 
 # Core Linux Kernel & Live Boot Architecture
@@ -11,6 +11,16 @@ live-config
 live-config-systemd
 live-tools
 firmware-linux-free
+
+# Universal Hardware Firmware & Wireless Drivers (Intel, Realtek, Atheros, Broadcom)
+firmware-linux
+firmware-linux-nonfree
+firmware-misc-nonfree
+firmware-iwlwifi
+firmware-realtek
+firmware-atheros
+firmware-intel-sound
+firmware-sof-signed
 
 # Init & Base System
 systemd
@@ -27,29 +37,45 @@ polkitd
 unattended-upgrades
 apt-listchanges
 
-# Networking & Connectivity Stack
+# Networking & Connectivity Stack (Wi-Fi & Ethernet)
 network-manager
+network-manager-gnome
 wpasupplicant
+wireless-tools
+rfkill
 iproute2
 curl
 wget
 ca-certificates
 
-# PipeWire Audio Infrastructure
+# Bluetooth Stack & Utilities
+bluez
+bluez-tools
+libspa-0.2-bluetooth
+
+# Audio Infrastructure (PipeWire, ALSA, WirePlumber)
 pipewire
 pipewire-pulse
 pipewire-audio
 wireplumber
+alsa-utils
+pulseaudio-utils
 
-# Wayland Compositor & Modern Graphics Acceleration
-cage
-xwayland
+# Display Manager & Graphics Environment
+lightdm
+openbox
+x11-xserver-utils
+xdotool
+xserver-xorg-video-all
+xserver-xorg-input-all
+xserver-xorg-input-libinput
+xserver-xorg-input-synaptics
+xserver-xorg-input-evdev
+libinput-bin
 mesa-va-drivers
 mesa-vulkan-drivers
 libgl1-mesa-dri
 libglx-mesa0
-xserver-xorg-video-all
-libinput-bin
 
 # Desktop Shell Runtimes
 chromium

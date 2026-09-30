@@ -37,9 +37,18 @@ export interface SystemHardwareData {
 export interface FileEntry {
   name: string;
   fullPath: string;
-  type: 'folder' | 'file';
+  type: 'folder' | 'file' | 'symlink';
   size: string;
+  rawSize?: number;
   modified: string;
+  rawMtime?: number;
+  mimeType?: string;
+  permissions?: string;
+  modeStr?: string;
+  owner?: string;
+  group?: string;
+  isExecutable?: boolean;
+  isHidden?: boolean;
 }
 
 export interface InstallJobStatus {
@@ -49,6 +58,33 @@ export interface InstallJobStatus {
   completed: boolean;
   error: string | null;
   log: string[];
+}
+
+export interface WifiNetwork {
+  inUse: boolean;
+  ssid: string;
+  signal: number;
+  security: string;
+}
+
+export interface BluetoothDevice {
+  mac: string;
+  name: string;
+  paired: boolean;
+  connected: boolean;
+}
+
+export interface PackageItem {
+  id: string;
+  name: string;
+  packageName: string;
+  version: string;
+  category: 'productivity' | 'developer' | 'media' | 'internet' | 'utilities';
+  description: string;
+  icon: string;
+  rating: number;
+  size: string;
+  installed: boolean;
 }
 
 declare global {
@@ -164,7 +200,9 @@ export const systemService = {
   // Execute real Linux command
   async executeCommand(
     command: string,
-    cwd?: string
+    cwd?: string,
+    signal?: AbortSignal,
+    env?: Record<string, string>
   ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
     if (window.axisAPI?.executeCommand) {
       try {
@@ -178,12 +216,18 @@ export const systemService = {
       const res = await fetch('/api/terminal-exec', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ command, cwd }),
+        body: JSON.stringify({ command, cwd, env }),
+        signal,
       });
       if (res.ok) {
         return await res.json();
       }
-    } catch {}
+    } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return { stdout: '', stderr: '^C', exitCode: 130 };
+      }
+      return { stdout: '', stderr: err.message || 'Execution error', exitCode: 1 };
+    }
 
     return {
       stdout: `[axis-shell] Executed: ${command}`,
@@ -193,7 +237,7 @@ export const systemService = {
   },
 
   // Read real files in directory
-  async readDirectory(dirPath?: string): Promise<{ path: string; items: FileEntry[] }> {
+  async readDirectory(dirPath?: string): Promise<{ path: string; items: FileEntry[]; permissionDenied?: boolean; error?: string }> {
     if (window.axisAPI?.readDirectory) {
       try {
         return await window.axisAPI.readDirectory(dirPath || '');
@@ -214,20 +258,157 @@ export const systemService = {
     return {
       path: dirPath || home,
       items: [
-        { name: 'Documents', fullPath: `${home}/Documents`, type: 'folder', size: 'Folder', modified: 'Today' },
-        { name: 'Downloads', fullPath: `${home}/Downloads`, type: 'folder', size: 'Folder', modified: 'Yesterday' },
-        { name: 'Pictures', fullPath: `${home}/Pictures`, type: 'folder', size: 'Folder', modified: 'Sep 27' },
-        { name: 'AxisOS', fullPath: `${home}/Documents/AxisOS`, type: 'folder', size: 'Folder', modified: 'Today' },
-        { name: 'welcome.txt', fullPath: `${home}/welcome.txt`, type: 'file', size: '1.2 KB', modified: 'Today' },
+        { name: 'Documents', fullPath: `${home}/Documents`, type: 'folder', size: 'Folder', modified: 'Today', permissions: '0755', modeStr: 'drwxr-xr-x', mimeType: 'inode/directory' },
+        { name: 'Downloads', fullPath: `${home}/Downloads`, type: 'folder', size: 'Folder', modified: 'Yesterday', permissions: '0755', modeStr: 'drwxr-xr-x', mimeType: 'inode/directory' },
+        { name: 'Pictures', fullPath: `${home}/Pictures`, type: 'folder', size: 'Folder', modified: 'Sep 27', permissions: '0755', modeStr: 'drwxr-xr-x', mimeType: 'inode/directory' },
+        { name: 'AxisOS', fullPath: `${home}/Documents/AxisOS`, type: 'folder', size: 'Folder', modified: 'Today', permissions: '0755', modeStr: 'drwxr-xr-x', mimeType: 'inode/directory' },
+        { name: 'welcome.txt', fullPath: `${home}/welcome.txt`, type: 'file', size: '1.2 KB', modified: 'Today', permissions: '0644', modeStr: '-rw-r--r--', mimeType: 'text/plain' },
       ],
     };
+  },
+
+  // Change file permissions (chmod)
+  async chmod(targetPath: string, mode: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/fs-chmod', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: targetPath, mode }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // Calculate recursive folder size
+  async calcFolderSize(targetPath: string): Promise<{ bytes: number; humanSize: string; itemCount: number }> {
+    try {
+      const res = await fetch('/api/fs-calc-size', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: targetPath }),
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+    return { bytes: 0, humanSize: '0 B', itemCount: 1 };
+  },
+
+  // Move item to Freedesktop.org XDG Trash
+  async moveToTrash(targetPath: string): Promise<{ success: boolean; name?: string }> {
+    try {
+      const res = await fetch('/api/fs-trash', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: targetPath }),
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+    return { success: false };
+  },
+
+  // List XDG Trash items
+  async getTrashItems(): Promise<Array<{ name: string; originalPath: string; deletionDate: string; size: string; fullPath: string; type: 'folder' | 'file' }>> {
+    try {
+      const res = await fetch('/api/fs-trash/list');
+      if (res.ok) {
+        const data = await res.json();
+        return data.items || [];
+      }
+    } catch {}
+    return [];
+  },
+
+  // Restore item from XDG Trash
+  async restoreTrashItem(name: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/fs-trash/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // Empty XDG Trash
+  async emptyTrash(): Promise<boolean> {
+    try {
+      const res = await fetch('/api/fs-trash/empty', { method: 'POST' });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // Background Operations Queue: Start async operation
+  async startFileOp(op: { type: 'copy' | 'move' | 'delete'; source: string; destination?: string }): Promise<{ opId: string }> {
+    try {
+      const res = await fetch('/api/fs-op/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(op),
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+    return { opId: `fallback-${Date.now()}` };
+  },
+
+  // Background Operations Queue: Get status
+  async getFileOpStatus(opId: string): Promise<any> {
+    try {
+      const res = await fetch(`/api/fs-op/status?id=${encodeURIComponent(opId)}`);
+      if (res.ok) return await res.json();
+    } catch {}
+    return null;
+  },
+
+  // Hardware Hotplugging: Mount removable drive
+  async mountDisk(device: string): Promise<{ success: boolean; mountpoint?: string }> {
+    try {
+      const res = await fetch('/api/disks/mount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device }),
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+    return { success: false };
+  },
+
+  // Hardware Hotplugging: Unmount removable drive
+  async unmountDisk(device: string): Promise<{ success: boolean }> {
+    try {
+      const res = await fetch('/api/disks/unmount', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ device }),
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+    return { success: false };
   },
 
   // Read file contents
   async readFile(filePath: string): Promise<string> {
     if (window.axisAPI?.readFile) {
-      return await window.axisAPI.readFile(filePath);
+      try {
+        return await window.axisAPI.readFile(filePath);
+      } catch (err) {
+        console.warn('IPC readFile failed, falling back to HTTP', err);
+      }
     }
+
+    try {
+      const res = await fetch(`/api/fs-read-file?path=${encodeURIComponent(filePath)}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.content || '';
+      }
+    } catch {}
+
     return '';
   },
 
@@ -403,5 +584,204 @@ export const systemService = {
     } catch {}
 
     return { success: true, message: 'System update check scheduled.' };
+  },
+
+  // ==================== WI-FI CONTROL ====================
+  async getWifiStatus(): Promise<{ enabled: boolean; connected: boolean; currentSsid: string; signal: number }> {
+    try {
+      const res = await fetch('/api/wifi/status');
+      if (res.ok) return await res.json();
+    } catch {}
+    return { enabled: true, connected: true, currentSsid: 'Axis-Fiber-5G', signal: 85 };
+  },
+
+  async scanWifi(): Promise<WifiNetwork[]> {
+    try {
+      const res = await fetch('/api/wifi/scan');
+      if (res.ok) return await res.json();
+    } catch {}
+    return [
+      { inUse: true, ssid: 'Axis-Fiber-5G', signal: 90, security: 'WPA2/WPA3' },
+      { inUse: false, ssid: 'Home-Network_2.4G', signal: 65, security: 'WPA2' },
+      { inUse: false, ssid: 'CoffeeShop-Guest', signal: 45, security: 'Open' },
+    ];
+  },
+
+  async toggleWifi(enabled: boolean): Promise<boolean> {
+    try {
+      const res = await fetch('/api/wifi/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  async connectWifi(ssid: string, password?: string): Promise<{ success: boolean; output?: string }> {
+    try {
+      const res = await fetch('/api/wifi/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ssid, password }),
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+    return { success: true };
+  },
+
+  // ==================== BLUETOOTH CONTROL ====================
+  async getBluetoothStatus(): Promise<{ enabled: boolean; controller: string }> {
+    try {
+      const res = await fetch('/api/bluetooth/status');
+      if (res.ok) return await res.json();
+    } catch {}
+    return { enabled: true, controller: 'Intel Wireless Bluetooth 5.3' };
+  },
+
+  async getBluetoothDevices(): Promise<BluetoothDevice[]> {
+    try {
+      const res = await fetch('/api/bluetooth/devices');
+      if (res.ok) return await res.json();
+    } catch {}
+    return [
+      { mac: '74:45:CE:12:34:56', name: 'AirPods Pro (2nd Gen)', paired: true, connected: true },
+      { mac: 'D0:5F:B8:9A:BC:DE', name: 'Logitech MX Master 3S', paired: true, connected: true },
+    ];
+  },
+
+  async toggleBluetooth(enabled: boolean): Promise<boolean> {
+    try {
+      const res = await fetch('/api/bluetooth/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  async connectBluetooth(mac: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/bluetooth/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mac }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // ==================== AUDIO HARDWARE CONTROL ====================
+  async getAudioStatus(): Promise<{ volume: number; isMuted: boolean; sinkName: string }> {
+    try {
+      const res = await fetch('/api/audio/status');
+      if (res.ok) return await res.json();
+    } catch {}
+    return { volume: 75, isMuted: false, sinkName: 'Intel High Definition Audio' };
+  },
+
+  async setAudioVolume(volume: number): Promise<boolean> {
+    try {
+      const res = await fetch('/api/audio/set-volume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ volume }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  async toggleAudioMute(): Promise<boolean> {
+    try {
+      const res = await fetch('/api/audio/toggle-mute', { method: 'POST' });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // ==================== PACKAGE MANAGEMENT (APP STORE) ====================
+  async getPackagesList(): Promise<PackageItem[]> {
+    try {
+      const res = await fetch('/api/packages/list');
+      if (res.ok) return await res.json();
+    } catch {}
+    return [];
+  },
+
+  async installPackage(packageName: string): Promise<{ success: boolean; output: string }> {
+    try {
+      const res = await fetch('/api/packages/install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageName }),
+      });
+      if (res.ok) return await res.json();
+    } catch (err: any) {
+      return { success: false, output: err.message };
+    }
+    return { success: false, output: 'Installation request failed' };
+  },
+
+  async removePackage(packageName: string): Promise<{ success: boolean; output: string }> {
+    try {
+      const res = await fetch('/api/packages/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ packageName }),
+      });
+      if (res.ok) return await res.json();
+    } catch (err: any) {
+      return { success: false, output: err.message };
+    }
+    return { success: false, output: 'Removal request failed' };
+  },
+
+  // ==================== BROWSER INTEGRATION ====================
+  async openInNativeChromium(url: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/browser/open-native', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // ==================== FILE SYSTEM OPERATIONS ====================
+  async readFileContent(filePath: string): Promise<string> {
+    try {
+      const res = await fetch(`/api/fs-read-file?path=${encodeURIComponent(filePath)}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.content || '';
+      }
+    } catch {}
+    return '';
+  },
+
+  async renameItem(oldPath: string, newPath: string): Promise<boolean> {
+    try {
+      const res = await fetch('/api/fs-rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPath, newPath }),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
   },
 };

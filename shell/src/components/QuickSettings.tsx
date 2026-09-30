@@ -8,7 +8,6 @@ import {
   Volume2,
   VolumeX,
   Play,
-  Share2,
   Sliders,
   Airplay,
 } from 'lucide-react';
@@ -18,21 +17,18 @@ import { useWindowManager } from '../context/WindowManagerContext';
 export const QuickSettings: React.FC = () => {
   const {
     wifiConnected,
-    setWifiConnected,
     wifiSsid,
     bluetoothEnabled,
-    setBluetoothEnabled,
     theme,
     setTheme,
-    nightLight,
-    setNightLight,
     volume,
-    setVolume,
     isMuted,
-    setIsMuted,
     brightness,
     setBrightness,
-    setIsQuickSettingsOpen,
+    toggleWifi,
+    toggleBluetooth,
+    changeVolume,
+    toggleMute,
   } = useSystemState();
 
   const { openApp } = useWindowManager();
@@ -48,8 +44,8 @@ export const QuickSettings: React.FC = () => {
         <div className="p-2.5 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-2.5">
           {/* Wi-Fi */}
           <button
-            onClick={() => setWifiConnected(!wifiConnected)}
-            className="flex items-center space-x-2.5 text-left w-full group"
+            onClick={toggleWifi}
+            className="flex items-center space-x-2.5 text-left w-full group cursor-pointer"
           >
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
@@ -68,8 +64,8 @@ export const QuickSettings: React.FC = () => {
 
           {/* Bluetooth */}
           <button
-            onClick={() => setBluetoothEnabled(!bluetoothEnabled)}
-            className="flex items-center space-x-2.5 text-left w-full group"
+            onClick={toggleBluetooth}
+            className="flex items-center space-x-2.5 text-left w-full group cursor-pointer"
           >
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
@@ -83,17 +79,6 @@ export const QuickSettings: React.FC = () => {
               <div className="text-[10px] text-slate-400 truncate">
                 {bluetoothEnabled ? 'On' : 'Off'}
               </div>
-            </div>
-          </button>
-
-          {/* AirDrop */}
-          <button className="flex items-center space-x-2.5 text-left w-full group">
-            <div className="w-7 h-7 rounded-full bg-blue-500 text-white shadow-md flex items-center justify-center">
-              <Share2 className="w-3.5 h-3.5" />
-            </div>
-            <div className="overflow-hidden">
-              <div className="text-xs font-semibold leading-tight">AirDrop</div>
-              <div className="text-[10px] text-slate-400 truncate">Contacts Only</div>
             </div>
           </button>
         </div>
@@ -155,12 +140,12 @@ export const QuickSettings: React.FC = () => {
       <div className="p-3 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-2">
         <div className="flex justify-between items-center text-xs">
           <span className="font-semibold text-slate-200">Sound</span>
-          <span className="text-[10px] text-slate-400">Intel HD Audio</span>
+          <span className="text-[10px] text-slate-400">Master Output</span>
         </div>
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="text-slate-400 hover:text-white"
+            onClick={toggleMute}
+            className="text-slate-400 hover:text-white cursor-pointer"
           >
             {isMuted || volume === 0 ? (
               <VolumeX className="w-4 h-4 text-rose-400" />
@@ -173,10 +158,7 @@ export const QuickSettings: React.FC = () => {
             min="0"
             max="100"
             value={isMuted ? 0 : volume}
-            onChange={(e) => {
-              setVolume(Number(e.target.value));
-              if (isMuted) setIsMuted(false);
-            }}
+            onChange={(e) => changeVolume(Number(e.target.value))}
             className="flex-1 h-2 bg-slate-700/60 rounded-full appearance-none cursor-pointer accent-blue-500"
           />
           <span className="text-[11px] font-mono text-slate-400 w-8 text-right">

@@ -16,6 +16,13 @@ os-build/work/
 cache/
 chroot/
 
+# C and Kernel build artifacts
+*.o
+*.ko
+*.mod*
+*.order
+*.symvers
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
