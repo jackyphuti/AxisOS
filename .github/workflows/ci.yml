@@ -1,0 +1,64 @@
+name: AxisOS CI
+
+on:
+  push:
+    branches: [ main, v2-development ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  shell-check:
+    name: Desktop Shell (React 19 / TypeScript / Vite)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: shell/package-lock.json
+
+      - name: Install dependencies
+        working-directory: shell
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Typecheck and Build Bundle
+        working-directory: shell
+        run: npm run build
+
+  daemon-check:
+    name: System Daemon Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Validate Daemon Syntax
+        run: node -c os-build/configs/cage-session/axisos-daemon.cjs
+
+  native-check:
+    name: Native Subsystems (C Update Engine)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Compile and Test axis-update
+        working-directory: os-build/updater
+        run: |
+          make
+          ./axis --help
+          make clean
