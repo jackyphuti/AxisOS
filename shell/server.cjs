@@ -144,48 +144,227 @@ function runExecFile(bin, args, options = {}) {
   });
 }
 
-// Helper: Run interactive terminal commands in isolated child process
+// Allowed safe root directories for filesystem operations
+const ALLOWED_FS_ROOTS = [
+  '/home',
+  '/tmp',
+  '/var',
+  '/opt',
+  '/etc',
+  '/usr',
+  '/media',
+  '/mnt',
+  '/run',
+  '/boot',
+  '/root',
+];
+
+// Allowed safe CLI utilities for terminal execution (strict whitelist mapping)
+const ALLOWED_TERMINAL_BINARIES = {
+  axis: '/usr/local/bin/axis',
+  cat: '/bin/cat',
+  ps: '/bin/ps',
+  kill: '/bin/kill',
+  systemctl: '/bin/systemctl',
+  journalctl: '/bin/journalctl',
+  lsblk: '/usr/bin/lsblk',
+  df: '/bin/df',
+  free: '/usr/bin/free',
+  uname: '/bin/uname',
+  uptime: '/usr/bin/uptime',
+  hostname: '/bin/hostname',
+  whoami: '/usr/bin/whoami',
+  date: '/bin/date',
+  which: '/usr/bin/which',
+  head: '/usr/bin/head',
+  tail: '/usr/bin/tail',
+  grep: '/bin/grep',
+  find: '/usr/bin/find',
+  wc: '/usr/bin/wc',
+  ls: '/bin/ls',
+  mkdir: '/bin/mkdir',
+  rm: '/bin/rm',
+  cp: '/bin/cp',
+  mv: '/bin/mv',
+  chmod: '/bin/chmod',
+  chown: '/bin/chown',
+  ip: '/bin/ip',
+  nmcli: '/usr/bin/nmcli',
+  bluetoothctl: '/usr/bin/bluetoothctl',
+  apt: '/usr/bin/apt',
+  'apt-get': '/usr/bin/apt-get',
+  dpkg: '/usr/bin/dpkg',
+  sudo: '/usr/bin/sudo',
+  neofetch: '/usr/bin/neofetch',
+  echo: '/bin/echo',
+  sleep: '/bin/sleep',
+};
+
+// POSIX-style shell argument parser
+function tokenizeCommandLine(cmdString) {
+  const tokens = [];
+  let current = '';
+  let inSingle = false;
+  let inDouble = false;
+  let escaped = false;
+
+  for (let i = 0; i < cmdString.length; i++) {
+    const ch = cmdString[i];
+    if (escaped) {
+      current += ch;
+      escaped = false;
+    } else if (ch === '\\') {
+      escaped = true;
+    } else if (ch === "'" && !inDouble) {
+      inSingle = !inSingle;
+    } else if (ch === '"' && !inSingle) {
+      inDouble = !inDouble;
+    } else if (/\s/.test(ch) && !inSingle && !inDouble) {
+      if (current.length > 0) {
+        tokens.push(current);
+        current = '';
+      }
+    } else {
+      current += ch;
+    }
+  }
+  if (current.length > 0) {
+    tokens.push(current);
+  }
+  return tokens;
+}
+
+// Helper: Run interactive terminal commands using direct executable spawning (no shell injection)
 function executeTerminalCommand(cmdString, cwd, extraEnv) {
   return new Promise((resolve) => {
-    const env = extraEnv ? { ...process.env, ...extraEnv } : process.env;
-    const proc = spawn('/bin/bash', ['-c', cmdString], {
-      cwd: cwd || os.homedir(),
-      env,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+    const trimmed = typeof cmdString === 'string' ? cmdString.trim() : '';
+    if (!trimmed) {
+      return resolve({ stdout: '', stderr: '', exitCode: 0 });
+    }
 
-    let stdout = '';
-    let stderr = '';
+    const pipelineSegments = trimmed.split(/\s*\|\s*/);
+    const parsedCommands = [];
+
+    for (const segment of pipelineSegments) {
+      const tokens = tokenizeCommandLine(segment);
+      if (tokens.length === 0) continue;
+
+      const baseCmd = path.basename(tokens[0]);
+      const binaryPath = ALLOWED_TERMINAL_BINARIES[baseCmd];
+      if (!binaryPath) {
+        return resolve({
+          stdout: '',
+          stderr: `axis-sh: ${baseCmd}: command not permitted by security policy`,
+          exitCode: 126,
+        });
+      }
+      parsedCommands.push({ binaryPath, args: tokens.slice(1) });
+    }
+
+    if (parsedCommands.length === 0) {
+      return resolve({ stdout: '', stderr: '', exitCode: 0 });
+    }
+
+    const env = extraEnv ? { ...process.env, ...extraEnv } : process.env;
+    const workingDir = cwd || os.homedir();
+
+    if (parsedCommands.length === 1) {
+      const { binaryPath, args } = parsedCommands[0];
+      const proc = spawn(binaryPath, args, {
+        cwd: workingDir,
+        env,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: false,
+      });
+
+      let stdout = '';
+      let stderr = '';
+      let isDone = false;
+
+      const timer = setTimeout(() => {
+        if (!isDone) {
+          isDone = true;
+          try { proc.kill('SIGTERM'); } catch {}
+          resolve({ stdout, stderr: stderr + '\nExecution timed out (30s).', exitCode: 124 });
+        }
+      }, 30000);
+
+      proc.stdout.on('data', (d) => { stdout += d.toString(); });
+      proc.stderr.on('data', (d) => { stderr += d.toString(); });
+
+      proc.on('close', (code) => {
+        if (!isDone) {
+          isDone = true;
+          clearTimeout(timer);
+          resolve({
+            stdout: stdout.trim(),
+            stderr: stderr.trim(),
+            exitCode: code !== null ? code : 1,
+          });
+        }
+      });
+
+      proc.on('error', (err) => {
+        if (!isDone) {
+          isDone = true;
+          clearTimeout(timer);
+          resolve({ stdout: '', stderr: err.message, exitCode: 1 });
+        }
+      });
+      return;
+    }
+
+    // Multiple pipeline processes (e.g. ps ... | head ...)
+    const procs = [];
     let isDone = false;
+    let finalStdout = '';
+    let finalStderr = '';
 
     const timer = setTimeout(() => {
       if (!isDone) {
         isDone = true;
-        try { proc.kill('SIGTERM'); } catch {}
-        resolve({ stdout, stderr: stderr + '\nExecution timed out (30s).', exitCode: 124 });
+        procs.forEach((p) => { try { p.kill('SIGTERM'); } catch {} });
+        resolve({ stdout: finalStdout, stderr: finalStderr + '\nPipeline timed out (30s).', exitCode: 124 });
       }
     }, 30000);
 
-    proc.stdout.on('data', (d) => { stdout += d.toString(); });
-    proc.stderr.on('data', (d) => { stderr += d.toString(); });
+    for (let i = 0; i < parsedCommands.length; i++) {
+      const { binaryPath, args } = parsedCommands[i];
+      const p = spawn(binaryPath, args, {
+        cwd: workingDir,
+        env,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: false,
+      });
+      procs.push(p);
 
-    proc.on('close', (code) => {
+      if (i > 0) {
+        procs[i - 1].stdout.pipe(p.stdin);
+      }
+
+      p.stderr.on('data', (d) => { finalStderr += d.toString(); });
+    }
+
+    const lastProc = procs[procs.length - 1];
+    lastProc.stdout.on('data', (d) => { finalStdout += d.toString(); });
+
+    lastProc.on('close', (code) => {
       if (!isDone) {
         isDone = true;
         clearTimeout(timer);
         resolve({
-          stdout: stdout.trim(),
-          stderr: stderr.trim(),
-          exitCode: code !== null ? code : 1,
+          stdout: finalStdout.trim(),
+          stderr: finalStderr.trim(),
+          exitCode: code !== null ? code : 0,
         });
       }
     });
 
-    proc.on('error', (err) => {
+    lastProc.on('error', (err) => {
       if (!isDone) {
         isDone = true;
         clearTimeout(timer);
-        resolve({ stdout, stderr: err.message, exitCode: 1 });
+        resolve({ stdout: '', stderr: err.message, exitCode: 1 });
       }
     });
   });
@@ -563,31 +742,103 @@ const server = http.createServer(async (req, res) => {
 
     // 4. Filesystem: Read Directory with Full Linux Metadata (Sanitized)
     if (pathname === '/api/fs-read' && req.method === 'GET') {
-      const rawTarget = (parsedUrl.query.path && typeof parsedUrl.query.path === 'string') 
-        ? parsedUrl.query.path 
-        : (process.env.HOME || '/home/axis');
+      const requestedPath = parsedUrl.query.path;
+      if (!requestedPath || requestedPath === '/' || requestedPath === '') {
+        const ROOT_PATH = '/';
+        try {
+          const entries = fs.readdirSync(ROOT_PATH, { withFileTypes: true });
+          const items = entries.map((entry) => {
+            const full = path.join(ROOT_PATH, entry.name);
+            let size = '—';
+            let rawSize = 0;
+            let mtime = '—';
+            let rawMtime = 0;
+            let permissions = '0755';
+            let modeStr = entry.isDirectory() ? 'drwxr-xr-x' : '-rw-r--r--';
+            let isExecutable = false;
+            let owner = 'root';
+            let group = 'root';
 
-      if (rawTarget.includes('\0')) {
+            try {
+              const stat = fs.statSync(full);
+              rawSize = stat.size;
+              rawMtime = stat.mtimeMs;
+              if (!entry.isDirectory()) {
+                const b = stat.size;
+                if (b < 1024) size = `${b} B`;
+                else if (b < 1024 * 1024) size = `${(b / 1024).toFixed(1)} KB`;
+                else if (b < 1024 * 1024 * 1024) size = `${(b / (1024 * 1024)).toFixed(1)} MB`;
+                else size = `${(b / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+              } else {
+                size = 'Folder';
+              }
+              mtime = new Date(stat.mtime).toLocaleDateString([], {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+              permissions = (stat.mode & 0o777).toString(8).padStart(3, '0');
+              modeStr = (entry.isDirectory() ? 'd' : (entry.isSymbolicLink() ? 'l' : '-')) + modeToString(stat.mode);
+              isExecutable = !entry.isDirectory() && (stat.mode & 0o111) !== 0;
+              if (stat.uid === 0) owner = 'root';
+              if (stat.gid === 0) group = 'root';
+            } catch {}
+
+            return {
+              name: entry.name,
+              fullPath: full,
+              type: entry.isDirectory() ? 'folder' : (entry.isSymbolicLink() ? 'symlink' : 'file'),
+              size,
+              rawSize,
+              modified: mtime,
+              rawMtime,
+              mimeType: entry.isDirectory() ? 'inode/directory' : getMimeType(full),
+              permissions,
+              modeStr,
+              owner,
+              group,
+              isExecutable,
+              isHidden: entry.name.startsWith('.'),
+            };
+          });
+
+          return sendJson(res, 200, { path: ROOT_PATH, items });
+        } catch (err) {
+          return sendJson(res, 500, { error: err.message });
+        }
+      }
+
+      const rawTarget = requestedPath;
+      if (typeof rawTarget !== 'string' || rawTarget.includes('\0')) {
         return sendJson(res, 400, { error: 'Invalid path' });
       }
 
-      const target = path.resolve('/', path.normalize(rawTarget));
-      if (!target.startsWith('/')) {
-        return sendJson(res, 400, { error: 'Invalid path boundary' });
+      let matchedRoot = null;
+      for (const root of ALLOWED_FS_ROOTS) {
+        if (rawTarget === root || rawTarget.startsWith(root + '/')) {
+          matchedRoot = root;
+          break;
+        }
       }
 
+      if (!matchedRoot) {
+        return sendJson(res, 403, { error: 'Path outside allowed root hierarchy' });
+      }
+
+      const candidate = path.resolve(matchedRoot, '.' + rawTarget.slice(matchedRoot.length));
       let realTarget;
       try {
-        realTarget = fs.realpathSync(target);
+        realTarget = fs.realpathSync(candidate);
       } catch (err) {
         if (err.code === 'EACCES') {
-          return sendJson(res, 200, { path: target, items: [], permissionDenied: true });
+          return sendJson(res, 200, { path: rawTarget, items: [], permissionDenied: true });
         }
-        return sendJson(res, 200, { path: target, items: [] });
+        return sendJson(res, 200, { path: rawTarget, items: [] });
       }
 
-      if (!realTarget.startsWith('/')) {
-        return sendJson(res, 403, { error: 'Forbidden path' });
+      if (!realTarget.startsWith(matchedRoot)) {
+        return sendJson(res, 403, { error: 'Forbidden path: traversal detected' });
       }
 
       try {
@@ -1411,47 +1662,9 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { success: true, output: `[Simulated] Successfully uninstalled ${pkg}.` });
     }
 
-    // 27. Browser Proxy (renders any web page without CORS/iframe restrictions, with SSRF & XSS protection)
+    // 27. Browser Proxy (Deprecated: Client iframe renders URL directly to prevent SSRF)
     if (pathname === '/api/browser/proxy' && req.method === 'GET') {
-      const targetUrl = parsedUrl.query.url;
-      const validation = validatePublicUrl(targetUrl);
-      if (!validation.ok) {
-        return sendJson(res, 403, { error: validation.error });
-      }
-
-      const client = validation.urlObj.protocol === 'https:' ? https : http;
-      const targetHref = validation.urlObj.href;
-
-      const proxyReq = client.get(targetHref, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36 AxisBrowser/1.0',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-        },
-        timeout: 10000,
-      }, (proxyRes) => {
-        if (proxyRes.statusCode >= 300 && proxyRes.statusCode < 400 && proxyRes.headers.location) {
-          const redirectLocation = new URL(proxyRes.headers.location, targetHref).href;
-          res.writeHead(302, { 'Location': `/api/browser/proxy?url=${encodeURIComponent(redirectLocation)}` });
-          return res.end();
-        }
-
-        const headers = { ...proxyRes.headers };
-        delete headers['x-frame-options'];
-        delete headers['content-security-policy'];
-        delete headers['content-security-policy-report-only'];
-        headers['Access-Control-Allow-Origin'] = '*';
-        res.writeHead(proxyRes.statusCode || 200, headers);
-        proxyRes.pipe(res);
-      });
-
-      proxyReq.on('error', (err) => {
-        const safeTarget = escapeHtml(targetUrl);
-        const safeError = escapeHtml(err.message);
-        res.writeHead(502, { 'Content-Type': 'text/html; charset=utf-8' });
-        res.end(`<!DOCTYPE html><html><body style="background:#090d16;color:#f87171;font-family:system-ui,-apple-system,sans-serif;padding:40px;line-height:1.6"><div style="max-width:540px;margin:auto;background:rgba(255,255,255,0.05);padding:30px;border-radius:20px;border:1px solid rgba(255,255,255,0.1)"><h2 style="margin-top:0;color:#ef4444">⚠️ Axis Browser: Unable to Reach Website</h2><p style="color:#94a3b8;font-size:14px">Failed to connect to <strong>${safeTarget}</strong>.</p><p style="color:#64748b;font-size:12px;font-family:monospace;background:rgba(0,0,0,0.4);padding:10px;border-radius:10px">${safeError}</p><p style="font-size:13px;color:#cbd5e1">Check your network connection or try opening the URL with native Chromium.</p></div></body></html>`);
-      });
-      return;
+      return sendJson(res, 410, { error: 'Proxy endpoint disabled for security compliance (SSRF prevention)' });
     }
 
     // 28. Browser: Open in Native Chromium (Shell-free)
@@ -1471,26 +1684,35 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { success: true, url: safeTarget });
     }
 
-    // 29. Filesystem: Read File Content (Path containment verified)
+    // 29. Filesystem: Read File Content (Path containment verified against allowed roots)
     if (pathname === '/api/fs-read-file' && req.method === 'GET') {
       const rawTarget = parsedUrl.query.path;
       if (!rawTarget || typeof rawTarget !== 'string' || rawTarget.includes('\0')) {
         return sendJson(res, 400, { error: 'Invalid file path' });
       }
-      const safeTarget = path.resolve('/', path.normalize(rawTarget));
-      if (!safeTarget.startsWith('/')) {
-        return sendJson(res, 400, { error: 'Path traversal forbidden' });
+
+      let matchedRoot = null;
+      for (const root of ALLOWED_FS_ROOTS) {
+        if (rawTarget === root || rawTarget.startsWith(root + '/')) {
+          matchedRoot = root;
+          break;
+        }
       }
 
+      if (!matchedRoot) {
+        return sendJson(res, 403, { error: 'Path outside allowed root hierarchy' });
+      }
+
+      const candidate = path.resolve(matchedRoot, '.' + rawTarget.slice(matchedRoot.length));
       let realPath;
       try {
-        realPath = fs.realpathSync(safeTarget);
+        realPath = fs.realpathSync(candidate);
       } catch {
         return sendJson(res, 404, { error: 'File not found' });
       }
 
-      if (!realPath.startsWith('/')) {
-        return sendJson(res, 403, { error: 'Access forbidden' });
+      if (!realPath.startsWith(matchedRoot)) {
+        return sendJson(res, 403, { error: 'Access forbidden: path traversal detected' });
       }
 
       try {
