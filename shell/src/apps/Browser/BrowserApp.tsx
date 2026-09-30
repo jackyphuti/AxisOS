@@ -224,10 +224,10 @@ export const BrowserApp: React.FC = () => {
 
   const isBookmarked = bookmarks.includes(activeTab.url);
 
-  // Compute embed URL via daemon proxy (bypasses X-Frame-Options and CSP headers)
+  // Compute embed URL (renders directly in sandbox iframe or blank for home)
   const getEmbedUrl = (raw: string) => {
     if (raw === 'about:home') return 'about:blank';
-    return `/api/browser/proxy?url=${encodeURIComponent(raw)}`;
+    return raw;
   };
 
   return (
