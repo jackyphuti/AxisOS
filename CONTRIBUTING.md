@@ -15,9 +15,10 @@ AxisOS is a next-generation, glassmorphic Linux operating system built on the Li
    - [System Daemon (Node.js)](#system-daemon-nodejs)
    - [Systems & Kernel Drivers (C / Linux)](#systems--kernel-drivers-c--linux)
 5. [Commit Message Conventions](#-commit-message-conventions)
-6. [Submitting a Pull Request](#-submitting-a-pull-request)
-7. [Reporting Issues & Bugs](#-reporting-issues--bugs)
-8. [Join the Community](#-join-the-community)
+6. [Developer Certificate of Origin (DCO) & Signed-off-by](#-developer-certificate-of-origin-dco--signed-off-by)
+7. [Submitting a Pull Request](#-submitting-a-pull-request)
+8. [Reporting Issues & Bugs](#-reporting-issues--bugs)
+9. [Join the Community](#-join-the-community)
 
 ---
 
@@ -121,16 +122,95 @@ We use [Conventional Commits](https://www.conventionalcommits.org/) to keep the 
 
 ---
 
+## ✍️ Developer Certificate of Origin (DCO) & Signed-off-by
+
+To ensure software provenance, legal compliance with our GPL-3.0 license, and transparency across our kernel, daemon, and desktop code, **AxisOS requires all contributions to be signed off by their real author**.
+
+### 1. The Developer Certificate of Origin (DCO 1.1)
+By adding a `Signed-off-by` trailer to your commit message, you certify that you have the legal right to submit the code under the **Developer Certificate of Origin (DCO)**:
+
+```text
+Developer Certificate of Origin
+Version 1.1
+
+Copyright (C) 2004, 2006 Open Source Development Labs, Inc.
+By making a contribution to this project, I certify that:
+
+(a) The contribution was created in whole or in part by me and I
+    have the right to submit it under the open source license
+    indicated in the file; or
+
+(b) The contribution is based upon previous work that, to the best
+    of my knowledge, is covered under an appropriate open source
+    license and I have the right under that license to submit that
+    work with modifications, whether created in whole or in part
+    by me, under the same open source license; or
+
+(c) The contribution was provided directly to me by some other
+    person who certified (a), (b) or (c) and I have not modified
+    it.
+
+(d) I understand and agree that this project and the contribution
+    are public and that a record of the contribution (including all
+    personal information I submit with it, including my sign-off) is
+    maintained indefinitely and may be redistributed consistent with
+    this project or the open source license(s) involved.
+```
+
+### 2. Mandatory Real Name Policy
+> [!IMPORTANT]
+> Your `Signed-off-by` line **must use your real legal or professional name** and an authentic, working email address. Pseudonyms, anonymous handles, or bot nicknames are not permitted.
+> 
+> - ✅ **Valid**: `Signed-off-by: Jane Doe <jane.doe@example.com>`
+> - ❌ **Invalid**: `Signed-off-by: @xX_anon_Xx <anon@users.noreply.github.com>`
+> - ❌ **Invalid**: Missing `Signed-off-by` trailer.
+
+### 3. How to Sign Off Your Commits
+
+#### New Commits:
+Pass the `-s` (or `--signoff`) flag when committing:
+```bash
+git commit -s -m "feat(shell): add window snap gestures"
+```
+Git will automatically append your sign-off trailer:
+```text
+feat(shell): add window snap gestures
+
+Signed-off-by: Real Name <real.email@example.com>
+```
+
+#### Configuring your Git Identity:
+Ensure your local git configuration reflects your real name and email:
+```bash
+git config --global user.name "Your Real Name"
+git config --global user.email "your.email@example.com"
+```
+
+#### Amending an Unsigned Commit:
+If you forgot to sign off your latest commit before pushing:
+```bash
+git commit --amend --signoff --no-edit
+```
+
+#### Signing Off Past Commits in a Branch:
+If your feature branch has multiple commits that need sign-offs:
+```bash
+git rebase --signoff origin/main
+```
+
+---
+
 ## 🚀 Submitting a Pull Request
 
 When opening a Pull Request:
 1. Provide a clear, descriptive title following conventional commit style.
-2. Fill out the PR description with:
+2. Ensure **every commit** in the PR contains a valid `Signed-off-by: Real Name <email>` trailer.
+3. Fill out the PR description with:
    - Summary of changes.
    - Issue/feature reference (e.g. `Closes #12`).
    - Screenshots or video clips for visual/UI changes.
    - Verification steps you performed.
-3. Be responsive to review comments and code suggestions.
+4. Be responsive to review comments and code suggestions.
 
 ---
 
