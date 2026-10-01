@@ -6,17 +6,17 @@ import { Desktop } from './components/Desktop';
 
 const ShellSession: React.FC = () => {
   const { openApp } = useWindowManager();
-  const { isLiveEnvironment } = useSystemState();
+  const { isLiveEnvironment, autoInstall } = useSystemState();
 
-  // Auto-launch the Installer on initial boot of live session
+  // Auto-launch the Installer ONLY when booted with explicit autoinstall parameter
   useEffect(() => {
-    if (isLiveEnvironment) {
+    if (isLiveEnvironment && autoInstall) {
       const timer = setTimeout(() => {
         openApp('installer');
       }, 400);
       return () => clearTimeout(timer);
     }
-  }, [isLiveEnvironment, openApp]);
+  }, [isLiveEnvironment, autoInstall, openApp]);
 
   return <Desktop />;
 };

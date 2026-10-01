@@ -493,6 +493,18 @@ function isLiveSession() {
   return false;
 }
 
+// Detect if kernel cmdline explicitly ordered automatic/direct setup wizard launch
+function isAutoInstall() {
+  if (process.platform !== 'linux') return false;
+  try {
+    const cmdline = fs.readFileSync('/proc/cmdline', 'utf-8');
+    if (cmdline.includes('axisos.autoinstall=1') || cmdline.includes('axisos.autoinstall=true')) {
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
 // Real disk detection via lsblk with BitLocker, Windows, and Live Medium flags
 async function getStorageDisks() {
   if (process.platform === 'linux') {
@@ -708,6 +720,7 @@ const server = http.createServer(async (req, res) => {
         homeDir: process.env.HOME || '/home/axis',
         username: process.env.USER || 'axis',
         isLiveEnvironment: isLiveSession(),
+        autoInstall: isAutoInstall(),
       });
     }
 

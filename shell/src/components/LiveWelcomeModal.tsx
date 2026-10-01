@@ -4,12 +4,12 @@ import { useSystemState, ACCENT_COLOR_MAP } from '../context/SystemStateContext'
 import { useWindowManager } from '../context/WindowManagerContext';
 
 export const LiveWelcomeModal: React.FC = () => {
-  const { isLiveEnvironment, accentColor } = useSystemState();
-  const { openApp } = useWindowManager();
+  const { isLiveEnvironment, autoInstall, accentColor } = useSystemState();
+  const { openApp, closeApp } = useWindowManager();
   const [isOpen, setIsOpen] = useState(true);
   const accent = ACCENT_COLOR_MAP[accentColor];
 
-  if (!isLiveEnvironment || !isOpen) {
+  if (!isLiveEnvironment || autoInstall || !isOpen) {
     return null;
   }
 
@@ -20,6 +20,7 @@ export const LiveWelcomeModal: React.FC = () => {
 
   const handleTryLive = () => {
     setIsOpen(false);
+    closeApp('installer');
   };
 
   return (
@@ -45,7 +46,7 @@ export const LiveWelcomeModal: React.FC = () => {
 
         {/* Title & Description */}
         <h1 className="text-2xl font-black text-slate-100 tracking-tight">
-          Welcome to AxisOS 1.0 "Horizon"
+          Welcome to AxisOS 2.0 "Horizon"
         </h1>
         <p className="text-xs text-slate-400 mt-2 max-w-md leading-relaxed">
           You are currently running in <span className="text-cyan-400 font-semibold">Live Mode</span> directly from RAM.

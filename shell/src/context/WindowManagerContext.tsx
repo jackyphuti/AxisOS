@@ -154,6 +154,7 @@ interface WindowManagerContextType {
   activeAppId: AppId | null;
   openApp: (appId: AppId, params?: Record<string, any>) => void;
   closeWindow: (id: string) => void;
+  closeApp: (appId: AppId) => void;
   minimizeWindow: (id: string) => void;
   toggleMaximizeWindow: (id: string) => void;
   focusWindow: (id: string) => void;
@@ -239,6 +240,14 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
     setActiveWindowId((current) => (current === id ? null : current));
   }, []);
 
+  const closeApp = useCallback((appId: AppId) => {
+    setWindows((prev) => prev.filter((w) => w.appId !== appId));
+    setActiveWindowId((current) => {
+      const closing = windows.find((w) => w.appId === appId);
+      return closing && closing.id === current ? null : current;
+    });
+  }, [windows]);
+
   const minimizeWindow = useCallback((id: string) => {
     setWindows((prev) =>
       prev.map((w) => (w.id === id ? { ...w, isMinimized: true } : w))
@@ -277,6 +286,7 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         activeAppId,
         openApp,
         closeWindow,
+        closeApp,
         minimizeWindow,
         toggleMaximizeWindow,
         focusWindow,

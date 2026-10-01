@@ -121,6 +121,7 @@ interface SystemStateContextType {
   systemInfo: SystemInfo;
   isLiveEnvironment: boolean;
   setIsLiveEnvironment: (live: boolean) => void;
+  autoInstall: boolean;
   toggleWifi: () => Promise<void>;
   toggleBluetooth: () => Promise<void>;
   changeVolume: (vol: number) => Promise<void>;
@@ -128,13 +129,13 @@ interface SystemStateContextType {
 }
 
 const initialSystemInfo: SystemInfo = {
-  osName: 'AxisOS Linux 1.0',
+  osName: 'AxisOS Linux 2.0',
   osVersion: 'Horizon',
   kernelVersion: '6.12.0-axisos-amd64',
   architecture: 'x86_64',
   compositor: 'Wayland (Cage / AxisShell)',
   initSystem: 'systemd 256',
-  shellVersion: 'AxisShell v1.0.0',
+  shellVersion: 'AxisShell v2.0.0',
   cpuModel: 'Intel/AMD 64-bit Processor',
   cpuCores: 8,
   gpuModel: 'Hardware Accelerated GPU',
@@ -167,6 +168,7 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isSpotlightOpen, setIsSpotlightOpen] = useState<boolean>(false);
   const [powerModalOpen, setPowerModalOpen] = useState<boolean>(false);
   const [isLiveEnvironment, setIsLiveEnvironment] = useState<boolean>(false);
+  const [autoInstall, setAutoInstall] = useState<boolean>(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo>(initialSystemInfo);
 
   // Load real host hardware dynamically
@@ -176,6 +178,9 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (!isMounted) return;
       if (typeof real.isLiveEnvironment === 'boolean') {
         setIsLiveEnvironment(real.isLiveEnvironment);
+      }
+      if (typeof real.autoInstall === 'boolean') {
+        setAutoInstall(real.autoInstall);
       }
       setSystemInfo({
         osName: real.osName || 'AxisOS Linux 1.0',
@@ -336,6 +341,7 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         systemInfo,
         isLiveEnvironment,
         setIsLiveEnvironment,
+        autoInstall,
         toggleWifi,
         toggleBluetooth,
         changeVolume,
