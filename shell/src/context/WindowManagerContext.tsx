@@ -183,12 +183,12 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const openApp = useCallback(
     (appId: AppId, params?: Record<string, any>) => {
-      // Check if already open
-      const existing = windows.find((w) => w.appId === appId);
-      if (existing) {
-        zCounter += 1;
-        setWindows((prev) =>
-          prev.map((w) =>
+      setWindows((prev) => {
+        const existing = prev.find((w) => w.appId === appId);
+        if (existing) {
+          zCounter += 1;
+          setActiveWindowId(existing.id);
+          return prev.map((w) =>
             w.id === existing.id
               ? {
                   ...w,
@@ -197,41 +197,39 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
                   params: params ? { ...w.params, ...params } : w.params,
                 }
               : w
-          )
-        );
-        setActiveWindowId(existing.id);
-        return;
-      }
+          );
+        }
 
-      const appDef = APP_REGISTRY[appId];
-      if (!appDef) return;
+        const appDef = APP_REGISTRY[appId];
+        if (!appDef) return prev;
 
-      zCounter += 1;
-      const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
-      const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+        zCounter += 1;
+        const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
+        const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
 
-      const offset = (windows.length % 5) * 28;
-      const initialX = Math.max(40, (screenWidth - appDef.defaultWidth) / 2 + offset);
-      const initialY = Math.max(50, (screenHeight - appDef.defaultHeight) / 2 - 30 + offset);
+        const offset = (prev.length % 5) * 28;
+        const initialX = Math.max(40, (screenWidth - appDef.defaultWidth) / 2 + offset);
+        const initialY = Math.max(50, (screenHeight - appDef.defaultHeight) / 2 - 30 + offset);
 
-      const newWindow: WindowState = {
-        id: `${appId}-${Date.now()}`,
-        appId,
-        title: appDef.title,
-        x: initialX,
-        y: initialY,
-        width: Math.min(appDef.defaultWidth, screenWidth - 60),
-        height: Math.min(appDef.defaultHeight, screenHeight - 100),
-        isMinimized: false,
-        isMaximized: false,
-        zIndex: zCounter,
-        params,
-      };
+        const newWindow: WindowState = {
+          id: `${appId}-${Date.now()}`,
+          appId,
+          title: appDef.title,
+          x: initialX,
+          y: initialY,
+          width: Math.min(appDef.defaultWidth, screenWidth - 60),
+          height: Math.min(appDef.defaultHeight, screenHeight - 100),
+          isMinimized: false,
+          isMaximized: false,
+          zIndex: zCounter,
+          params,
+        };
 
-      setWindows((prev) => [...prev, newWindow]);
-      setActiveWindowId(newWindow.id);
+        setActiveWindowId(newWindow.id);
+        return [...prev, newWindow];
+      });
     },
-    [windows, focusWindow]
+    []
   );
 
   const closeWindow = useCallback((id: string) => {

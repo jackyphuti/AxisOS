@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Terminal as TerminalIcon, Folder, Settings, Palette, Info, Monitor } from 'lucide-react';
+import { Terminal as TerminalIcon, Folder, Settings, Palette, Info, Monitor } from 'lucide-react';
 import { useSystemState } from '../context/SystemStateContext';
 import { useWindowManager } from '../context/WindowManagerContext';
 import { WindowFrame } from './WindowFrame';
@@ -30,13 +30,128 @@ import { WeatherApp } from '../apps/Weather/WeatherApp';
 import { CameraApp } from '../apps/Camera/CameraApp';
 import { AppId } from '../types/os';
 
+const APP_CONTENT_RENDERERS: Partial<Record<AppId, (params?: Record<string, any>) => React.ReactNode>> = {
+  installer: () => <InstallerApp />,
+  settings: (params) => <SettingsApp params={params} />,
+  terminal: (params) => <TerminalApp params={params} />,
+  'file-manager': (params) => <FileManagerApp params={params} />,
+  browser: () => <BrowserApp />,
+  music: () => <MusicApp />,
+  photos: () => <PhotosApp />,
+  notes: () => <NotesApp />,
+  software: () => <SoftwareApp />,
+  clock: () => <ClockApp />,
+  weather: () => <WeatherApp />,
+  camera: () => <CameraApp />,
+  calculator: () => <CalculatorApp />,
+  'text-editor': (params) => <TextEditorApp params={params} />,
+  'system-monitor': () => <SystemMonitorApp />,
+  about: () => <AboutApp />,
+};
+
+const DesktopShortcut: React.FC<{ label: string; emoji?: string; onOpen: () => void; icon?: React.ReactNode }> = ({
+  label,
+  emoji,
+  onOpen,
+  icon,
+}) => (
+  <button
+    onClick={onOpen}
+    onDoubleClick={onOpen}
+    className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/15 active:bg-blue-600/30 group cursor-pointer w-22 transition-all text-center"
+  >
+    <div className="w-13 h-13 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 drop-shadow-lg">
+      {icon ?? <span className="text-4xl">{emoji ?? '💾'}</span>}
+    </div>
+    <span className="text-[11px] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-tight">
+      {label}
+    </span>
+  </button>
+);
+
+const DesktopContextMenu: React.FC<{
+  contextMenu: { x: number; y: number } | null;
+  openApp: (appId: AppId, params?: Record<string, any>) => void;
+  closeContextMenu: () => void;
+}> = ({ contextMenu, openApp, closeContextMenu }) => {
+  if (!contextMenu) return null;
+
+  return (
+    <div
+      className="fixed z-50 w-52 bg-slate-900/90 backdrop-blur-3xl border border-white/15 rounded-xl p-1.5 shadow-2xl shadow-black text-xs text-slate-200 flex flex-col gap-0.5 animate-in fade-in duration-100"
+      style={{ top: contextMenu.y, left: contextMenu.x }}
+    >
+      <button
+        onClick={() => {
+          openApp('file-manager');
+          closeContextMenu();
+        }}
+        className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+      >
+        <Folder className="w-3.5 h-3.5 text-sky-400" />
+        <span>New Folder</span>
+      </button>
+      <button
+        onClick={() => {
+          openApp('terminal');
+          closeContextMenu();
+        }}
+        className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+      >
+        <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />
+        <span>Open Terminal Here</span>
+      </button>
+      <div className="my-1 border-t border-white/10"></div>
+      <button
+        onClick={() => {
+          openApp('settings', { tab: 'displays' });
+          closeContextMenu();
+        }}
+        className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+      >
+        <Monitor className="w-3.5 h-3.5 text-cyan-400" />
+        <span>Display Settings...</span>
+      </button>
+      <button
+        onClick={() => {
+          openApp('settings', { tab: 'wallpaper' });
+          closeContextMenu();
+        }}
+        className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+      >
+        <Palette className="w-3.5 h-3.5 text-blue-400" />
+        <span>Change Wallpaper...</span>
+      </button>
+      <button
+        onClick={() => {
+          openApp('settings', { tab: 'general' });
+          closeContextMenu();
+        }}
+        className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+      >
+        <Settings className="w-3.5 h-3.5 text-slate-300" />
+        <span>System Settings...</span>
+      </button>
+      <button
+        onClick={() => {
+          openApp('about');
+          closeContextMenu();
+        }}
+        className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+      >
+        <Info className="w-3.5 h-3.5 text-slate-400" />
+        <span>About This AxisPC</span>
+      </button>
+    </div>
+  );
+};
+
 export const Desktop: React.FC = () => {
   const { wallpaper, isQuickSettingsOpen, isLiveEnvironment } = useSystemState();
   const { windows, openApp } = useWindowManager();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
   const handleContextMenu = (e: React.MouseEvent) => {
-    // Only trigger if clicking directly on the desktop background
     if (
       (e.target as HTMLElement).closest('.window-frame') ||
       (e.target as HTMLElement).closest('header') ||
@@ -44,6 +159,7 @@ export const Desktop: React.FC = () => {
     ) {
       return;
     }
+
     e.preventDefault();
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
@@ -53,42 +169,10 @@ export const Desktop: React.FC = () => {
   };
 
   const renderAppContent = (appId: AppId, params?: Record<string, any>) => {
-    switch (appId) {
-      case 'installer':
-        return <InstallerApp />;
-      case 'settings':
-        return <SettingsApp params={params} />;
-      case 'terminal':
-        return <TerminalApp params={params} />;
-      case 'file-manager':
-        return <FileManagerApp params={params} />;
-      case 'browser':
-        return <BrowserApp />;
-      case 'music':
-        return <MusicApp />;
-      case 'photos':
-        return <PhotosApp />;
-      case 'notes':
-        return <NotesApp />;
-      case 'software':
-        return <SoftwareApp />;
-      case 'clock':
-        return <ClockApp />;
-      case 'weather':
-        return <WeatherApp />;
-      case 'camera':
-        return <CameraApp />;
-      case 'calculator':
-        return <CalculatorApp />;
-      case 'text-editor':
-        return <TextEditorApp params={params} />;
-      case 'system-monitor':
-        return <SystemMonitorApp />;
-      case 'about':
-        return <AboutApp />;
-      default:
-        return <div className="p-4 text-xs text-slate-400">Application not loaded.</div>;
-    }
+    const renderer = APP_CONTENT_RENDERERS[appId];
+    if (renderer) return renderer(params);
+
+    return <div className="p-4 text-xs text-slate-400">Application not loaded.</div>;
   };
 
   return (
@@ -98,131 +182,33 @@ export const Desktop: React.FC = () => {
       className="relative h-screen w-screen overflow-hidden select-none bg-cover bg-center transition-all duration-700"
       style={{ background: wallpaper.gradient }}
     >
-      {/* macOS Menu Bar */}
       <TopBar />
 
-      {/* Control Center Dropdown */}
       {isQuickSettingsOpen && <QuickSettings />}
-
-      {/* macOS Spotlight Search Modal */}
       <SpotlightSearch />
-
-      {/* Power Off / Restart Modal */}
       <PowerModal />
-
-      {/* Live Mode Welcome & Guided Installer Modal */}
       <LiveWelcomeModal />
 
-      {/* Desktop Drive & Shortcuts (Top Right in true macOS fashion!) */}
       <div className="absolute top-10 right-4 flex flex-col items-center gap-5 z-10">
-        {/* Macintosh HD / Root Drive */}
-        <button
-          onDoubleClick={() => openApp('file-manager')}
-          className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/15 active:bg-blue-600/30 group cursor-pointer w-22 transition-all text-center"
-        >
-          <div className="w-13 h-13 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 drop-shadow-lg">
-            <span className="text-4xl">💾</span>
-          </div>
-          <span className="text-[11px] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-tight">
-            Macintosh HD
-          </span>
-        </button>
+        <DesktopShortcut label="Macintosh HD" emoji="💾" onOpen={() => openApp('file-manager')} />
 
-        {/* Live Installer Shortcut */}
         {isLiveEnvironment && (
-          <button
-            onClick={() => openApp('installer')}
-            onDoubleClick={() => openApp('installer')}
-            className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/15 active:bg-blue-600/30 group cursor-pointer w-22 transition-all text-center"
-          >
-            <div className="transition-transform group-hover:scale-105 drop-shadow-xl">
-              <MacIcon id="installer" size={50} />
-            </div>
-            <span className="text-[11px] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-tight">
-              Install AxisOS
-            </span>
-          </button>
+          <DesktopShortcut
+            label="Install AxisOS"
+            onOpen={() => openApp('installer')}
+            icon={<MacIcon id="installer" size={50} />}
+          />
         )}
       </div>
 
-      {/* Desktop Context Menu (Right Click) */}
-      {contextMenu && (
-        <div
-          className="fixed z-50 w-52 bg-slate-900/90 backdrop-blur-3xl border border-white/15 rounded-xl p-1.5 shadow-2xl shadow-black text-xs text-slate-200 flex flex-col gap-0.5 animate-in fade-in duration-100"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-        >
-          <button
-            onClick={() => {
-              openApp('file-manager');
-              closeContextMenu();
-            }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
-          >
-            <Folder className="w-3.5 h-3.5 text-sky-400" />
-            <span>New Folder</span>
-          </button>
-          <button
-            onClick={() => {
-              openApp('terminal');
-              closeContextMenu();
-            }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
-          >
-            <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Open Terminal Here</span>
-          </button>
-          <div className="my-1 border-t border-white/10"></div>
-          <button
-            onClick={() => {
-              openApp('settings', { tab: 'displays' });
-              closeContextMenu();
-            }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
-          >
-            <Monitor className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Display Settings...</span>
-          </button>
-          <button
-            onClick={() => {
-              openApp('settings', { tab: 'wallpaper' });
-              closeContextMenu();
-            }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
-          >
-            <Palette className="w-3.5 h-3.5 text-blue-400" />
-            <span>Change Wallpaper...</span>
-          </button>
-          <button
-            onClick={() => {
-              openApp('settings', { tab: 'general' });
-              closeContextMenu();
-            }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
-          >
-            <Settings className="w-3.5 h-3.5 text-slate-300" />
-            <span>System Settings...</span>
-          </button>
-          <button
-            onClick={() => {
-              openApp('about');
-              closeContextMenu();
-            }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
-          >
-            <Info className="w-3.5 h-3.5 text-slate-400" />
-            <span>About This AxisPC</span>
-          </button>
-        </div>
-      )}
+      <DesktopContextMenu contextMenu={contextMenu} openApp={openApp} closeContextMenu={closeContextMenu} />
 
-      {/* Open Windows */}
       {windows.map((win) => (
         <WindowFrame key={win.id} window={win}>
           {renderAppContent(win.appId, win.params)}
         </WindowFrame>
       ))}
 
-      {/* macOS Curved Glass Dock */}
       <DockOrTaskbar />
     </div>
   );

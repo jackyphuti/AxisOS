@@ -121,6 +121,10 @@ interface SystemStateContextType {
   systemInfo: SystemInfo;
   isLiveEnvironment: boolean;
   setIsLiveEnvironment: (live: boolean) => void;
+  isLoadingSystemInfo: boolean;
+  systemLoadError: string | null;
+  isLoadingHardware: boolean;
+  hardwareLoadError: string | null;
   toggleWifi: () => Promise<void>;
   toggleBluetooth: () => Promise<void>;
   changeVolume: (vol: number) => Promise<void>;
@@ -168,35 +172,60 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [powerModalOpen, setPowerModalOpen] = useState<boolean>(false);
   const [isLiveEnvironment, setIsLiveEnvironment] = useState<boolean>(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo>(initialSystemInfo);
+  const [isLoadingSystemInfo, setIsLoadingSystemInfo] = useState<boolean>(true);
+  const [systemLoadError, setSystemLoadError] = useState<string | null>(null);
+  const [isLoadingHardware, setIsLoadingHardware] = useState<boolean>(true);
+  const [hardwareLoadError, setHardwareLoadError] = useState<string | null>(null);
 
   // Load real host hardware dynamically
   useEffect(() => {
     let isMounted = true;
-    systemService.getSystemInfo().then((real) => {
-      if (!isMounted) return;
-      if (typeof real.isLiveEnvironment === 'boolean') {
-        setIsLiveEnvironment(real.isLiveEnvironment);
+
+    const loadSystemMetadata = async () => {
+      setIsLoadingSystemInfo(true);
+      setSystemLoadError(null);
+
+      try {
+        const real = await systemService.getSystemInfo();
+        if (!isMounted) return;
+
+        if (typeof real.isLiveEnvironment === 'boolean') {
+          setIsLiveEnvironment(real.isLiveEnvironment);
+        }
+
+        setSystemInfo({
+          osName: real.osName || 'AxisOS Linux 1.0',
+          osVersion: real.osVersion || 'Horizon',
+          kernelVersion: real.kernelVersion || '6.12.0-axisos-amd64',
+          architecture: real.architecture || 'x86_64',
+          compositor: 'Wayland (Cage / AxisShell)',
+          initSystem: 'systemd 256',
+          shellVersion: 'AxisShell v1.0.0',
+          cpuModel: real.cpuModel || initialSystemInfo.cpuModel,
+          cpuCores: real.cpuCores || 8,
+          gpuModel: real.gpuModel || initialSystemInfo.gpuModel,
+          totalMemory: real.totalMemory || initialSystemInfo.totalMemory,
+          freeMemory: real.freeMemory || initialSystemInfo.freeMemory,
+          storageCapacity: real.storageDevices?.[0]?.name || initialSystemInfo.storageCapacity,
+          hostname: real.hostname || initialSystemInfo.hostname,
+          username: real.username || initialSystemInfo.username,
+          uptime: real.uptime || initialSystemInfo.uptime,
+          homeDir: real.homeDir || `/home/${real.username || 'axis'}`,
+        });
+      } catch (error) {
+        if (!isMounted) return;
+
+        const message = error instanceof Error ? error.message : 'Failed to load system metadata';
+        setSystemLoadError(message);
+        setSystemInfo(initialSystemInfo);
+      } finally {
+        if (isMounted) {
+          setIsLoadingSystemInfo(false);
+        }
       }
-      setSystemInfo({
-        osName: real.osName || 'AxisOS Linux 1.0',
-        osVersion: real.osVersion || 'Horizon',
-        kernelVersion: real.kernelVersion || '6.12.0-axisos-amd64',
-        architecture: real.architecture || 'x86_64',
-        compositor: 'Wayland (Cage / AxisShell)',
-        initSystem: 'systemd 256',
-        shellVersion: 'AxisShell v1.0.0',
-        cpuModel: real.cpuModel || initialSystemInfo.cpuModel,
-        cpuCores: real.cpuCores || 8,
-        gpuModel: real.gpuModel || initialSystemInfo.gpuModel,
-        totalMemory: real.totalMemory || initialSystemInfo.totalMemory,
-        freeMemory: real.freeMemory || initialSystemInfo.freeMemory,
-        storageCapacity: real.storageDevices?.[0]?.name || initialSystemInfo.storageCapacity,
-        hostname: real.hostname || initialSystemInfo.hostname,
-        username: real.username || initialSystemInfo.username,
-        uptime: real.uptime || initialSystemInfo.uptime,
-        homeDir: real.homeDir || `/home/${real.username || 'axis'}`,
-      });
-    });
+    };
+
+    loadSystemMetadata();
     return () => {
       isMounted = false;
     };
@@ -205,20 +234,47 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // Hardware state synchronization on boot
   useEffect(() => {
     let isMounted = true;
-    systemService.getWifiStatus().then((w) => {
-      if (!isMounted) return;
-      setWifiConnected(w.connected);
-      if (w.currentSsid) setWifiSsid(w.currentSsid);
-    });
-    systemService.getBluetoothStatus().then((b) => {
-      if (!isMounted) return;
-      setBluetoothEnabled(b.enabled);
-    });
-    systemService.getAudioStatus().then((a) => {
-      if (!isMounted) return;
-      setVolume(a.volume);
-      setIsMuted(a.isMuted);
-    });
+
+    const loadHardwareState = async () => {
+      setIsLoadingHardware(true);
+      setHardwareLoadError(null);
+
+      try {
+        const [wifiStatus, bluetoothStatus, audioStatus] = await Promise.allSettled([
+          systemService.getWifiStatus(),
+          systemService.getBluetoothStatus(),
+          systemService.getAudioStatus(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (wifiStatus.status === 'fulfilled') {
+          setWifiConnected(wifiStatus.value.connected);
+          if (wifiStatus.value.currentSsid) setWifiSsid(wifiStatus.value.currentSsid);
+        } else {
+          setHardwareLoadError((prev) => prev ? `${prev}; wifi status unavailable` : 'wifi status unavailable');
+        }
+
+        if (bluetoothStatus.status === 'fulfilled') {
+          setBluetoothEnabled(bluetoothStatus.value.enabled);
+        }
+
+        if (audioStatus.status === 'fulfilled') {
+          setVolume(audioStatus.value.volume);
+          setIsMuted(audioStatus.value.isMuted);
+        }
+      } catch (error) {
+        if (!isMounted) return;
+        const message = error instanceof Error ? error.message : 'Failed to load hardware state';
+        setHardwareLoadError(message);
+      } finally {
+        if (isMounted) {
+          setIsLoadingHardware(false);
+        }
+      }
+    };
+
+    loadHardwareState();
     return () => {
       isMounted = false;
     };
@@ -228,28 +284,82 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const toggleWifi = async () => {
     const next = !wifiConnected;
     setWifiConnected(next);
-    await systemService.toggleWifi(next);
-    const updated = await systemService.getWifiStatus();
-    setWifiConnected(updated.connected);
-    if (updated.currentSsid) setWifiSsid(updated.currentSsid);
+
+    try {
+      const success = await systemService.toggleWifi(next);
+      if (!success) {
+        setWifiConnected(!next);
+        setHardwareLoadError('Unable to toggle Wi‑Fi state');
+        return;
+      }
+
+      const updated = await systemService.getWifiStatus();
+      setWifiConnected(updated.connected);
+      if (updated.currentSsid) setWifiSsid(updated.currentSsid);
+      setHardwareLoadError(null);
+    } catch (error) {
+      setWifiConnected(!next);
+      setHardwareLoadError(error instanceof Error ? error.message : 'Failed to toggle Wi‑Fi');
+    }
   };
 
   const toggleBluetooth = async () => {
     const next = !bluetoothEnabled;
     setBluetoothEnabled(next);
-    await systemService.toggleBluetooth(next);
+
+    try {
+      const success = await systemService.toggleBluetooth(next);
+      if (!success) {
+        setBluetoothEnabled(!next);
+        setHardwareLoadError('Unable to toggle Bluetooth state');
+        return;
+      }
+      setHardwareLoadError(null);
+    } catch (error) {
+      setBluetoothEnabled(!next);
+      setHardwareLoadError(error instanceof Error ? error.message : 'Failed to toggle Bluetooth');
+    }
   };
 
   const changeVolume = async (newVol: number) => {
+    const previousVolume = volume;
+    const previousMuted = isMuted;
+
     setVolume(newVol);
     if (newVol > 0 && isMuted) setIsMuted(false);
-    await systemService.setAudioVolume(newVol);
+
+    try {
+      const success = await systemService.setAudioVolume(newVol);
+      if (!success) {
+        setVolume(previousVolume);
+        setIsMuted(previousMuted);
+        setHardwareLoadError('Unable to update volume');
+        return;
+      }
+      setHardwareLoadError(null);
+    } catch (error) {
+      setVolume(previousVolume);
+      setIsMuted(previousMuted);
+      setHardwareLoadError(error instanceof Error ? error.message : 'Failed to update volume');
+    }
   };
 
   const toggleMute = async () => {
     const next = !isMuted;
     setIsMuted(next);
-    await systemService.toggleAudioMute();
+
+    try {
+      const success = await systemService.toggleAudioMute();
+      if (!success) {
+        setIsMuted(!next);
+        setHardwareLoadError('Unable to toggle mute');
+        return;
+      }
+      setHardwareLoadError(null);
+    } catch (error) {
+      setIsMuted(!next);
+      setHardwareLoadError(error instanceof Error ? error.message : 'Failed to toggle mute');
+    }
   };
 
   // Keyboard shortcut: Windows button launches App Menu, Cmd+Space / Ctrl+Space for Spotlight
@@ -336,6 +446,10 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         systemInfo,
         isLiveEnvironment,
         setIsLiveEnvironment,
+        isLoadingSystemInfo,
+        systemLoadError,
+        isLoadingHardware,
+        hardwareLoadError,
         toggleWifi,
         toggleBluetooth,
         changeVolume,

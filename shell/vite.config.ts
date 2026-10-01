@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+
+const isTest = process.env.VITEST === 'true'
 import { exec, spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
@@ -435,6 +437,12 @@ export default defineConfig({
     tailwindcss(),
     linuxSystemApiPlugin(),
   ],
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/test/setup.ts',
+    css: true,
+  },
   server: {
     port: 3000,
     host: true,
