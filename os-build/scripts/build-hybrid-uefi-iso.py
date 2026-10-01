@@ -67,7 +67,7 @@ MENU COLOR unsel        37;44   #50ffffff #a0000000 std
 MENU COLOR help         37;40   #c0ffffff #a0000000 std
 
 LABEL live
-  MENU LABEL ^1. Try or Install AxisOS 2.0 (Live Desktop)
+  MENU LABEL ^1. Try AxisOS 2.0 (Live Desktop)
   MENU DEFAULT
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3
@@ -134,7 +134,7 @@ insmod fat
 insmod iso9660
 insmod all_video
 
-menuentry "Try or Install AxisOS 2.0 (Live Desktop)" --class axisos --class gnu-linux --class gnu {
+menuentry "Try AxisOS 2.0 (Live Desktop)" --class axisos --class gnu-linux --class gnu {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3
     initrd /live/initrd.img
 }

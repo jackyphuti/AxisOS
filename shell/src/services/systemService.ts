@@ -32,6 +32,7 @@ export interface SystemHardwareData {
   username: string;
   homeDir: string;
   isLiveEnvironment?: boolean;
+  autoInstall?: boolean;
 }
 
 export interface FileEntry {
@@ -157,6 +158,7 @@ export const systemService = {
       username: 'axis',
       homeDir: '/home/axis',
       isLiveEnvironment: false,
+      autoInstall: false,
     };
   },
 
