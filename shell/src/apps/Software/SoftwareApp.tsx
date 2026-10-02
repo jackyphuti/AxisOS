@@ -21,172 +21,22 @@ import {
   Layers,
   ShieldCheck,
   ExternalLink,
+  MessageSquare,
+  Film,
+  FileSpreadsheet,
+  Box,
+  Cpu,
+  Activity,
+  Sliders,
 } from 'lucide-react';
 import { systemService } from '../../services/systemService';
 import { useWindowManager } from '../../context/WindowManagerContext';
-
-export interface AppPackage {
-  id: string;
-  name: string;
-  packageName: string;
-  version: string;
-  category: 'today' | 'apps' | 'games' | 'develop' | 'create' | 'updates' | 'account';
-  description: string;
-  longDescription: string;
-  size: string;
-  iconType: 'browser' | 'terminal' | 'photos' | 'music' | 'code' | 'game' | 'draw' | 'generic';
-  squircleBg: string;
-  iconColor: string;
-  installed: boolean;
-  developer?: string;
-}
-
-const APPS_DATA: AppPackage[] = [
-  {
-    id: 'browser',
-    name: 'Browser',
-    packageName: 'chromium',
-    version: '128.0',
-    category: 'apps',
-    description: 'Fast, private, Wayland-native',
-    longDescription:
-      'Official high-performance web browser powered by Google Chromium, Blink & V8 engine with hardware-accelerated Wayland rasterization.',
-    size: '98 MB',
-    iconType: 'browser',
-    squircleBg: 'bg-[#E1F0FF]',
-    iconColor: 'text-[#007AFF]',
-    installed: true,
-    developer: 'AxisOS Project',
-  },
-  {
-    id: 'terminal',
-    name: 'Terminal',
-    packageName: 'kitty',
-    version: '0.36.0',
-    category: 'develop',
-    description: 'GPU-accelerated shell',
-    longDescription:
-      'Fast, GPU-accelerated terminal emulator for AxisOS. Features true-color rendering, ligatures, tabs, and direct POSIX compliance.',
-    size: '24 MB',
-    iconType: 'terminal',
-    squircleBg: 'bg-[#E2F7E7]',
-    iconColor: 'text-[#16A34A]',
-    installed: true,
-    developer: 'Kovid Goyal & AxisOS',
-  },
-  {
-    id: 'photos',
-    name: 'Photos',
-    packageName: 'axis-photos',
-    version: '2.0.1',
-    category: 'create',
-    description: 'Organize and edit',
-    longDescription:
-      'Native image catalog and dynamic wallpaper gallery for AxisOS. Offers hardware GPU canvas filters, rotation, and high dynamic range display.',
-    size: '18 MB',
-    iconType: 'photos',
-    squircleBg: 'bg-[#FDE6F0]',
-    iconColor: 'text-[#E11D48]',
-    installed: true,
-    developer: 'AxisOS Studio',
-  },
-  {
-    id: 'music',
-    name: 'Music',
-    packageName: 'axis-music',
-    version: '2.0.0',
-    category: 'apps',
-    description: 'Your library, lossless',
-    longDescription:
-      'Lossless audio player and Web Audio synthesizer engine. Built-in generative synthesizers, live spectrum visualizer, and local audio importer.',
-    size: '16 MB',
-    iconType: 'music',
-    squircleBg: 'bg-[#FDEBD9]',
-    iconColor: 'text-[#EA580C]',
-    installed: true,
-    developer: 'Axis Sound Lab',
-  },
-  {
-    id: 'tiler',
-    name: 'Tiler',
-    packageName: 'cage-tiler',
-    version: '1.4.2',
-    category: 'apps',
-    description: 'Tiling, gestures, and native Wayland apps',
-    longDescription:
-      'Automatic window tiling manager and multi-touch trackpad gesture daemon for the Cage Wayland compositor.',
-    size: '12 MB',
-    iconType: 'generic',
-    squircleBg: 'bg-[#EEF0FF]',
-    iconColor: 'text-[#6366F1]',
-    installed: false,
-    developer: 'Wayland Community',
-  },
-  {
-    id: 'codium',
-    name: 'VSCodium Code Studio',
-    packageName: 'codium',
-    version: '1.92.0',
-    category: 'develop',
-    description: 'Freely-licensed binary distribution of VS Code',
-    longDescription:
-      'Complete code editor with telemetry stripped, extensions marketplace, integrated Git, and built-in terminal support.',
-    size: '124 MB',
-    iconType: 'code',
-    squircleBg: 'bg-[#E1F0FF]',
-    iconColor: 'text-[#007AFF]',
-    installed: false,
-    developer: 'VSCodium Community',
-  },
-  {
-    id: 'gimp',
-    name: 'GIMP Photo Studio',
-    packageName: 'gimp',
-    version: '2.10.38',
-    category: 'create',
-    description: 'Advanced image manipulation and photo retouching',
-    longDescription:
-      'Professional image editing suite. Provides sophisticated tools for graphic design, retouching, drawing, layer blending, and free-form transformation.',
-    size: '85 MB',
-    iconType: 'draw',
-    squircleBg: 'bg-[#FDE6F0]',
-    iconColor: 'text-[#E11D48]',
-    installed: false,
-    developer: 'The GIMP Team',
-  },
-  {
-    id: 'supertuxkart',
-    name: 'SuperTuxKart Racing',
-    packageName: 'supertuxkart',
-    version: '1.4',
-    category: 'games',
-    description: '3D open-source arcade racing game',
-    longDescription:
-      'Fast-paced 3D arcade kart racer with a variety of characters, tracks, and game modes running at native 60fps on Wayland.',
-    size: '620 MB',
-    iconType: 'game',
-    squircleBg: 'bg-[#E2F7E7]',
-    iconColor: 'text-[#16A34A]',
-    installed: false,
-    developer: 'SuperTuxKart Team',
-  },
-  {
-    id: 'git',
-    name: 'Git Version Control',
-    packageName: 'git',
-    version: '2.45.2',
-    category: 'develop',
-    description: 'Distributed source control engine',
-    longDescription:
-      'The world standard version control system for software development and project tracking with branching, merging, and remote syncing.',
-    size: '32 MB',
-    iconType: 'code',
-    squircleBg: 'bg-[#FDEBD9]',
-    iconColor: 'text-[#EA580C]',
-    installed: true,
-    developer: 'Git Community',
-  },
-];
+import {
+  CATALOG_PACKAGES,
+  CatalogPackage,
+  getInstalledPackageSet,
+  markPackageInstalled,
+} from '../../data/packageCatalog';
 
 export const SoftwareApp: React.FC = () => {
   const { closeWindow, minimizeWindow, toggleMaximizeWindow, windows, openApp } = useWindowManager();
@@ -194,61 +44,71 @@ export const SoftwareApp: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'today' | 'apps' | 'games' | 'develop' | 'create' | 'updates' | 'account'>('today');
   const [searchQuery, setSearchQuery] = useState('');
-  const [packages, setPackages] = useState<AppPackage[]>(APPS_DATA);
+  const [packages, setPackages] = useState<CatalogPackage[]>(CATALOG_PACKAGES);
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [isHoveringControls, setIsHoveringControls] = useState(false);
 
-  // Check actual installed status
+  // Synchronize installed status from system dpkg and local storage
   useEffect(() => {
-    const checkPackages = async () => {
+    const syncInstalled = async () => {
+      const storedSet = getInstalledPackageSet();
       try {
         const res = await systemService.executeCommand(
-          'dpkg-query -W -f=\'${Package}\n\' 2>/dev/null || true'
+          "dpkg-query -W -f='${Package}\n' 2>/dev/null || true"
         );
         if (res.stdout) {
-          const installedSet = new Set(
-            res.stdout
-              .split('\n')
-              .map((p) => p.trim())
-              .filter(Boolean)
-          );
-          setPackages((prev) =>
-            prev.map((pkg) => ({
-              ...pkg,
-              installed: installedSet.has(pkg.packageName) || pkg.installed,
-            }))
-          );
+          res.stdout
+            .split('\n')
+            .map((p) => p.trim().toLowerCase())
+            .filter(Boolean)
+            .forEach((p) => storedSet.add(p));
         }
       } catch {}
+
+      setPackages((prev) =>
+        prev.map((pkg) => ({
+          ...pkg,
+          installed:
+            storedSet.has(pkg.id.toLowerCase()) ||
+            storedSet.has(pkg.packageName.toLowerCase()) ||
+            pkg.installed,
+        }))
+      );
     };
-    checkPackages();
+
+    syncInstalled();
+
+    const handlePkgEvent = () => {
+      syncInstalled();
+    };
+
+    window.addEventListener('axisos-packages-changed', handlePkgEvent);
+    return () => window.removeEventListener('axisos-packages-changed', handlePkgEvent);
   }, []);
 
-  const handleInstall = async (pkg: AppPackage) => {
+  const handleInstall = async (pkg: CatalogPackage) => {
     setInstallingId(pkg.id);
     try {
-      const res = await systemService.executeCommand(
+      await systemService.executeCommand(
         `sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends ${pkg.packageName}`
       );
-      setPackages((prev) =>
-        prev.map((p) => (p.id === pkg.id ? { ...p, installed: true } : p))
-      );
-    } catch {
-      // In simulated demo environment, toggle installed
-      setPackages((prev) =>
-        prev.map((p) => (p.id === pkg.id ? { ...p, installed: true } : p))
-      );
-    } finally {
-      setInstallingId(null);
-    }
+    } catch {}
+
+    markPackageInstalled(pkg.id);
+    markPackageInstalled(pkg.packageName);
+
+    setPackages((prev) =>
+      prev.map((p) => (p.id === pkg.id ? { ...p, installed: true } : p))
+    );
+    setInstallingId(null);
   };
 
-  const handleLaunch = (pkgId: string) => {
-    if (pkgId === 'browser') openApp('browser');
-    else if (pkgId === 'terminal') openApp('terminal');
-    else if (pkgId === 'photos') openApp('photos');
-    else if (pkgId === 'music') openApp('music');
-    else openApp('terminal');
+  const handleLaunch = (pkg: CatalogPackage) => {
+    if (['browser', 'terminal', 'photos', 'music', 'settings'].includes(pkg.id)) {
+      openApp(pkg.id as any);
+    } else {
+      systemService.executeCommand(`${pkg.packageName} &`).catch(() => {});
+    }
   };
 
   // Render app squircle outline icon
@@ -268,6 +128,18 @@ export const SoftwareApp: React.FC = () => {
         return <Gamepad2 className={className} strokeWidth={1.75} />;
       case 'draw':
         return <Palette className={className} strokeWidth={1.75} />;
+      case 'chat':
+        return <MessageSquare className={className} strokeWidth={1.75} />;
+      case 'video':
+        return <Film className={className} strokeWidth={1.75} />;
+      case 'office':
+        return <FileSpreadsheet className={className} strokeWidth={1.75} />;
+      case 'box':
+        return <Box className={className} strokeWidth={1.75} />;
+      case 'cpu':
+        return <Cpu className={className} strokeWidth={1.75} />;
+      case 'activity':
+        return <Activity className={className} strokeWidth={1.75} />;
       default:
         return <Layers className={className} strokeWidth={1.75} />;
     }
@@ -292,7 +164,8 @@ export const SoftwareApp: React.FC = () => {
     return pkg.category === activeTab;
   }).filter((pkg) =>
     pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    pkg.description.toLowerCase().includes(searchQuery.toLowerCase())
+    pkg.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    pkg.packageName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formattedDate = new Date().toLocaleDateString('en-US', {
@@ -363,7 +236,7 @@ export const SoftwareApp: React.FC = () => {
             <Search className="w-3.5 h-3.5 text-[#8E8E93]" strokeWidth={2} />
             <input
               type="text"
-              placeholder="Search apps"
+              placeholder="Search apps and packages"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-transparent text-xs text-[#1C1C1E] placeholder-[#8E8E93] outline-none font-normal"
@@ -393,7 +266,7 @@ export const SoftwareApp: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
                       : 'text-[#5C5C60] hover:bg-black/5 font-medium'
@@ -415,7 +288,7 @@ export const SoftwareApp: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
                       : 'text-[#5C5C60] hover:bg-black/5 font-medium'
@@ -469,9 +342,9 @@ export const SoftwareApp: React.FC = () => {
                       const tiler = packages.find((p) => p.id === 'tiler');
                       if (tiler) handleInstall(tiler);
                     }}
-                    className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1.5 rounded-full transition-colors active:scale-95"
+                    className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1.5 rounded-full transition-colors active:scale-95 cursor-pointer"
                   >
-                    Get
+                    {packages.find((p) => p.id === 'tiler')?.installed ? 'Open' : 'Get'}
                   </button>
                 </div>
               </div>
@@ -481,81 +354,41 @@ export const SoftwareApp: React.FC = () => {
                 <h3 className="text-base font-bold text-[#1C1C1E]">Essential apps</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
-                  {/* Browser */}
-                  <div className="flex items-center justify-between border-b border-[#EFEFF1] pb-3">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-[#E1F0FF] text-[#007AFF] flex items-center justify-center shrink-0">
-                        {renderAppIcon('browser')}
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-[#1C1C1E]">Browser</h4>
-                        <p className="text-xs text-[#8E8E93]">Fast, private, Wayland-native</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleLaunch('browser')}
-                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95"
+                  {packages.slice(0, 8).map((pkg) => (
+                    <div
+                      key={pkg.id}
+                      className="flex items-center justify-between border-b border-[#EFEFF1] pb-3"
                     >
-                      Open
-                    </button>
-                  </div>
+                      <div className="flex items-center gap-3.5">
+                        <div
+                          className={`w-12 h-12 rounded-2xl ${pkg.squircleBg} ${pkg.iconColor} flex items-center justify-center shrink-0 shadow-2xs`}
+                        >
+                          {renderAppIcon(pkg.iconType)}
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-semibold text-[#1C1C1E]">{pkg.name}</h4>
+                          <p className="text-xs text-[#8E8E93] line-clamp-1">{pkg.description}</p>
+                        </div>
+                      </div>
 
-                  {/* Terminal */}
-                  <div className="flex items-center justify-between border-b border-[#EFEFF1] pb-3">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-[#E2F7E7] text-[#16A34A] flex items-center justify-center shrink-0">
-                        {renderAppIcon('terminal')}
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-[#1C1C1E]">Terminal</h4>
-                        <p className="text-xs text-[#8E8E93]">GPU-accelerated shell</p>
-                      </div>
+                      {pkg.installed ? (
+                        <button
+                          onClick={() => handleLaunch(pkg)}
+                          className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
+                        >
+                          Open
+                        </button>
+                      ) : (
+                        <button
+                          disabled={installingId === pkg.id}
+                          onClick={() => handleInstall(pkg)}
+                          className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
+                        >
+                          {installingId === pkg.id ? 'Installing...' : 'Get'}
+                        </button>
+                      )}
                     </div>
-                    <button
-                      onClick={() => handleLaunch('terminal')}
-                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95"
-                    >
-                      Get
-                    </button>
-                  </div>
-
-                  {/* Photos */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-[#FDE6F0] text-[#E11D48] flex items-center justify-center shrink-0">
-                        {renderAppIcon('photos')}
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-[#1C1C1E]">Photos</h4>
-                        <p className="text-xs text-[#8E8E93]">Organize and edit</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleLaunch('photos')}
-                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95"
-                    >
-                      Get
-                    </button>
-                  </div>
-
-                  {/* Music */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3.5">
-                      <div className="w-12 h-12 rounded-2xl bg-[#FDEBD9] text-[#EA580C] flex items-center justify-center shrink-0">
-                        {renderAppIcon('music')}
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-semibold text-[#1C1C1E]">Music</h4>
-                        <p className="text-xs text-[#8E8E93]">Your library, lossless</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => handleLaunch('music')}
-                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95"
-                    >
-                      Get
-                    </button>
-                  </div>
+                  ))}
                 </div>
               </div>
             </>
@@ -565,7 +398,7 @@ export const SoftwareApp: React.FC = () => {
               {filteredApps.map((pkg) => (
                 <div key={pkg.id} className="flex items-center justify-between border-b border-[#EFEFF1] pb-3.5">
                   <div className="flex items-center gap-3.5">
-                    <div className={`w-12 h-12 rounded-2xl ${pkg.squircleBg} ${pkg.iconColor} flex items-center justify-center shrink-0`}>
+                    <div className={`w-12 h-12 rounded-2xl ${pkg.squircleBg} ${pkg.iconColor} flex items-center justify-center shrink-0 shadow-2xs`}>
                       {renderAppIcon(pkg.iconType)}
                     </div>
                     <div>
@@ -576,8 +409,8 @@ export const SoftwareApp: React.FC = () => {
 
                   {pkg.installed ? (
                     <button
-                      onClick={() => handleLaunch(pkg.id)}
-                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 shrink-0"
+                      onClick={() => handleLaunch(pkg)}
+                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
                     >
                       Open
                     </button>
@@ -585,7 +418,7 @@ export const SoftwareApp: React.FC = () => {
                     <button
                       disabled={installingId === pkg.id}
                       onClick={() => handleInstall(pkg)}
-                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 shrink-0"
+                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
                     >
                       {installingId === pkg.id ? 'Installing...' : 'Get'}
                     </button>

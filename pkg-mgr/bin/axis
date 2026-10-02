@@ -171,13 +171,29 @@ class RemoteRepository:
                 self.index_data = {"version": "1.0", "packages": {}}
 
     def update(self) -> bool:
-        """Fetch remote repo-index.json from configured repositories."""
+        """Fetch remote repo-index.json from configured repositories, local paths, or fallback index."""
         log_step("Updating package repository indices...")
         merged_packages: Dict[str, Any] = {}
         success_count = 0
 
         for repo_url in self.config.repo_urls:
             repo_url = repo_url.rstrip("/")
+            if repo_url.startswith("file://"):
+                file_path = repo_url[7:]
+                local_index = os.path.join(file_path, "repo-index.json") if os.path.isdir(file_path) else file_path
+                if os.path.exists(local_index):
+                    try:
+                        with open(local_index, "r", encoding="utf-8") as f:
+                            data = json.load(f)
+                            pkgs = data.get("packages", {})
+                            for p_name, p_info in pkgs.items():
+                                merged_packages[p_name] = p_info
+                            success_count += 1
+                            log_info(f"Loaded {len(pkgs)} packages from local index: {local_index}")
+                    except Exception as e:
+                        log_warn(f"Failed to read local index {local_index}: {e}")
+                continue
+
             index_url = f"{repo_url}/repo-index.json"
             log_info(f"Syncing index from {index_url} ...")
 
@@ -186,11 +202,10 @@ class RemoteRepository:
                     index_url,
                     headers={"User-Agent": "AxisOS-PackageManager/1.0"}
                 )
-                with urllib.request.urlopen(req, timeout=15) as response:
+                with urllib.request.urlopen(req, timeout=10) as response:
                     raw = response.read().decode("utf-8")
                     data = json.loads(raw)
                     pkgs = data.get("packages", {})
-                    # Ensure base URL is attached to packages if relative
                     for p_name, p_info in pkgs.items():
                         if "url" in p_info and not (p_info["url"].startswith("http://") or p_info["url"].startswith("https://") or p_info["url"].startswith("file://")):
                             p_info["url"] = f"{repo_url}/{p_info['url'].lstrip('/')}"
@@ -201,11 +216,26 @@ class RemoteRepository:
             except Exception as e:
                 log_warn(f"Failed to parse index from {index_url}: {e}")
 
-        if success_count == 0 and not os.path.exists(self.config.index_file):
-            log_error("Could not reach any package repositories and no local cache exists.")
-            return False
+        # Check local fallbacks if remote failed
+        fallback_candidates = [
+            os.path.join(self.config.root, "etc/axis/repo-index.json"),
+            os.path.join(self.config.root, "var/lib/axis/repo-index.json"),
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "../examples/repo-index.json"),
+        ]
+        for fb in fallback_candidates:
+            if os.path.exists(fb):
+                try:
+                    with open(fb, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                        pkgs = data.get("packages", {})
+                        for p_name, p_info in pkgs.items():
+                            if p_name not in merged_packages:
+                                merged_packages[p_name] = p_info
+                        success_count += 1
+                except Exception:
+                    pass
 
-        if success_count > 0:
+        if merged_packages:
             self.index_data = {
                 "version": "1.0",
                 "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -215,6 +245,14 @@ class RemoteRepository:
             with open(tmp_index, "w", encoding="utf-8") as f:
                 json.dump(self.index_data, f, indent=2)
             os.replace(tmp_index, self.config.index_file)
+
+        # Also trigger apt-get update if apt-get is available
+        if shutil.which("apt-get"):
+            log_info("Syncing system upstream Debian package mirrors...")
+            try:
+                subprocess.run(["apt-get", "update", "-qq"], check=False)
+            except Exception:
+                pass
 
         total_pkgs = len(self.index_data.get("packages", {}))
         log_success(f"Synchronized repository index: {total_pkgs} packages available.")
@@ -258,6 +296,11 @@ class DependencyResolver:
             if not pkg_info:
                 if self.db.is_installed(pkg_name):
                     # Already installed locally, satisfactory
+                    visited.add(pkg_name)
+                    return
+                # If system apt-get is available, allow resolving standard packages (e.g. vscode, git, vlc)
+                if shutil.which("apt-get"):
+                    resolved.append(pkg_name)
                     visited.add(pkg_name)
                     return
                 raise RuntimeError(
@@ -429,7 +472,7 @@ class PackageManager:
         print(f"\n{Colors.BOLD}Packages to be installed ({len(install_queue)}):{Colors.RESET}")
         for p in install_queue:
             info = self.repo.find_package(p)
-            ver = info.get("version", "unknown") if info else "local"
+            ver = info.get("version", "unknown") if info else "system"
             is_dep = " (dependency)" if p not in package_names else ""
             print(f"  • {Colors.CYAN}{p}{Colors.RESET} [{ver}]{is_dep}")
         print()
@@ -437,6 +480,22 @@ class PackageManager:
         # Step 2: Download & Extract Each Package
         for pkg_name in install_queue:
             pkg_info = self.repo.find_package(pkg_name)
+            url = pkg_info.get("url", "") if pkg_info else ""
+
+            # Check if this package can be installed via system apt
+            is_remote_http = url.startswith("http://") or url.startswith("https://")
+            local_exists = os.path.exists(url.replace("file://", "")) if url.startswith("file://") else False
+
+            if not pkg_info or (is_remote_http and not local_exists):
+                if shutil.which("apt-get"):
+                    log_step(f"Installing {pkg_name} via system package repository...")
+                    apt_name = "code" if pkg_name in ["vscode", "vs-code"] else ("spotify-client" if pkg_name == "spotify" else pkg_name)
+                    res = subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", apt_name])
+                    if res.returncode == 0:
+                        self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({apt_name})"}, [f"/usr/bin/{apt_name}"])
+                        log_success(f"Successfully installed {pkg_name} via system repository.")
+                        continue
+
             if not pkg_info:
                 log_error(f"Cannot find metadata for {pkg_name}")
                 return 1
@@ -445,6 +504,15 @@ class PackageManager:
                 archive_path = self.download_package(pkg_name, pkg_info)
                 self._extract_and_deploy(pkg_name, archive_path)
             except Exception as e:
+                # If download fails, attempt apt-get fallback
+                if shutil.which("apt-get"):
+                    log_warn(f"Failed to fetch .axis archive: {e}. Falling back to system apt repository...")
+                    apt_name = "code" if pkg_name in ["vscode", "vs-code"] else ("spotify-client" if pkg_name == "spotify" else pkg_name)
+                    res = subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", apt_name])
+                    if res.returncode == 0:
+                        self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({apt_name})"}, [f"/usr/bin/{apt_name}"])
+                        log_success(f"Successfully installed {pkg_name} via system repository.")
+                        continue
                 log_error(f"Failed to install package '{pkg_name}': {e}")
                 return 1
 

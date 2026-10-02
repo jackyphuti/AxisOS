@@ -161,7 +161,7 @@ const ALLOWED_FS_ROOTS = [
 
 // Allowed safe CLI utilities for terminal execution (strict whitelist mapping)
 const ALLOWED_TERMINAL_BINARIES = {
-  axis: '/usr/local/bin/axis',
+  axis: '/usr/bin/axis',
   cat: '/bin/cat',
   ps: '/bin/ps',
   kill: '/bin/kill',
@@ -196,9 +196,59 @@ const ALLOWED_TERMINAL_BINARIES = {
   dpkg: '/usr/bin/dpkg',
   sudo: '/usr/bin/sudo',
   neofetch: '/usr/bin/neofetch',
+  fastfetch: '/usr/bin/fastfetch',
   echo: '/bin/echo',
   sleep: '/bin/sleep',
+  code: '/usr/bin/code',
+  codium: '/usr/bin/codium',
+  vscodium: '/usr/bin/vscodium',
+  git: '/usr/bin/git',
+  python3: '/usr/bin/python3',
+  python: '/usr/bin/python3',
+  node: '/usr/bin/node',
+  nodejs: '/usr/bin/nodejs',
+  npm: '/usr/bin/npm',
+  curl: '/usr/bin/curl',
+  wget: '/usr/bin/wget',
+  nano: '/usr/bin/nano',
+  htop: '/usr/bin/htop',
+  vlc: '/usr/bin/vlc',
+  gimp: '/usr/bin/gimp',
+  blender: '/usr/bin/blender',
+  inkscape: '/usr/bin/inkscape',
+  obs: '/usr/bin/obs',
+  'obs-studio': '/usr/bin/obs',
+  libreoffice: '/usr/bin/libreoffice',
+  steam: '/usr/bin/steam',
+  discord: '/usr/bin/discord',
+  spotify: '/usr/bin/spotify',
+  bash: '/bin/bash',
+  sh: '/bin/sh',
+  tar: '/bin/tar',
+  gzip: '/bin/gzip',
+  btrfs: '/sbin/btrfs',
+  flatpak: '/usr/bin/flatpak',
+  docker: '/usr/bin/docker',
+  cargo: '/usr/bin/cargo',
+  rustc: '/usr/bin/rustc',
+  kitty: '/usr/bin/kitty',
 };
+
+// Dynamically resolve executable from PATH or whitelist
+function resolveBinaryPath(cmd) {
+  if (cmd.startsWith('/') && fs.existsSync(cmd)) return cmd;
+  const searchDirs = ['/usr/local/bin', '/usr/bin', '/bin', '/usr/local/sbin', '/usr/sbin', '/sbin'];
+  for (const dir of searchDirs) {
+    const full = path.join(dir, cmd);
+    if (fs.existsSync(full)) {
+      try {
+        fs.accessSync(full, fs.constants.X_OK);
+        return full;
+      } catch {}
+    }
+  }
+  return ALLOWED_TERMINAL_BINARIES[cmd] || null;
+}
 
 // POSIX-style shell argument parser
 function tokenizeCommandLine(cmdString) {
@@ -250,7 +300,7 @@ function executeTerminalCommand(cmdString, cwd, extraEnv) {
       if (tokens.length === 0) continue;
 
       const baseCmd = path.basename(tokens[0]);
-      const binaryPath = ALLOWED_TERMINAL_BINARIES[baseCmd];
+      const binaryPath = resolveBinaryPath(baseCmd);
       if (!binaryPath) {
         return resolve({
           stdout: '',
@@ -281,13 +331,16 @@ function executeTerminalCommand(cmdString, cwd, extraEnv) {
       let stderr = '';
       let isDone = false;
 
+      const isPkgCmd = /^(apt|apt-get|dpkg|axis|npm)$/.test(path.basename(binaryPath));
+      const timeoutMs = isPkgCmd ? 180000 : 30000;
+
       const timer = setTimeout(() => {
         if (!isDone) {
           isDone = true;
           try { proc.kill('SIGTERM'); } catch {}
-          resolve({ stdout, stderr: stderr + '\nExecution timed out (30s).', exitCode: 124 });
+          resolve({ stdout, stderr: stderr + `\nExecution timed out (${timeoutMs / 1000}s).`, exitCode: 124 });
         }
-      }, 30000);
+      }, timeoutMs);
 
       proc.stdout.on('data', (d) => { stdout += d.toString(); });
       proc.stderr.on('data', (d) => { stderr += d.toString(); });
