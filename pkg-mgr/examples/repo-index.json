@@ -10,7 +10,7 @@
       "dependencies": ["git", "curl"],
       "sha256": "4a71c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 89500000,
-      "url": "https://repo.axisos.org/packages/vscode-1.92.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/vscode-1.92.0.axis",
       "maintainer": "Microsoft & AxisOS Community <dev@axisos.org>",
       "binary": "/usr/bin/code"
     },
@@ -22,7 +22,7 @@
       "dependencies": ["git", "curl"],
       "sha256": "4a71c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 89500000,
-      "url": "https://repo.axisos.org/packages/vscode-1.92.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/vscode-1.92.0.axis",
       "maintainer": "Microsoft & AxisOS Community <dev@axisos.org>",
       "binary": "/usr/bin/code"
     },
@@ -34,7 +34,7 @@
       "dependencies": ["git"],
       "sha256": "b123c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 86200000,
-      "url": "https://repo.axisos.org/packages/codium-1.92.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/codium-1.92.0.axis",
       "maintainer": "VSCodium Team <dev@axisos.org>",
       "binary": "/usr/bin/codium"
     },
@@ -46,7 +46,7 @@
       "dependencies": ["libasound2", "libatomic1"],
       "sha256": "c234c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 84100000,
-      "url": "https://repo.axisos.org/packages/discord-0.0.60.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/discord-0.0.60.axis",
       "maintainer": "Discord Inc. & AxisOS <dev@axisos.org>",
       "binary": "/usr/bin/discord"
     },
@@ -58,7 +58,7 @@
       "dependencies": ["libasound2", "libcurl4"],
       "sha256": "d345c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 78900000,
-      "url": "https://repo.axisos.org/packages/spotify-1.2.42.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/spotify-1.2.42.axis",
       "maintainer": "Spotify AB & AxisOS <dev@axisos.org>",
       "binary": "/usr/bin/spotify"
     },
@@ -70,7 +70,7 @@
       "dependencies": [],
       "sha256": "e456c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 42000000,
-      "url": "https://repo.axisos.org/packages/telegram-5.4.1.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/telegram-5.4.1.axis",
       "maintainer": "Telegram FZ-LLC <dev@axisos.org>",
       "binary": "/usr/bin/telegram-desktop"
     },
@@ -82,7 +82,7 @@
       "dependencies": [],
       "sha256": "f567c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 36800000,
-      "url": "https://repo.axisos.org/packages/vlc-3.0.21.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/vlc-3.0.21.axis",
       "maintainer": "VideoLAN Community <dev@axisos.org>",
       "binary": "/usr/bin/vlc"
     },
@@ -94,7 +94,7 @@
       "dependencies": [],
       "sha256": "a678c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 178000000,
-      "url": "https://repo.axisos.org/packages/libreoffice-24.2.5.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/libreoffice-24.2.5.axis",
       "maintainer": "The Document Foundation <dev@axisos.org>",
       "binary": "/usr/bin/libreoffice"
     },
@@ -106,7 +106,7 @@
       "dependencies": [],
       "sha256": "b789c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 85000000,
-      "url": "https://repo.axisos.org/packages/gimp-2.10.38.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/gimp-2.10.38.axis",
       "maintainer": "The GIMP Team <dev@axisos.org>",
       "binary": "/usr/bin/gimp"
     },
@@ -118,7 +118,7 @@
       "dependencies": [],
       "sha256": "c890c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 240000000,
-      "url": "https://repo.axisos.org/packages/blender-4.2.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/blender-4.2.0.axis",
       "maintainer": "Blender Foundation <dev@axisos.org>",
       "binary": "/usr/bin/blender"
     },
@@ -130,7 +130,7 @@
       "dependencies": [],
       "sha256": "d901c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 48000000,
-      "url": "https://repo.axisos.org/packages/inkscape-1.3.2.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/inkscape-1.3.2.axis",
       "maintainer": "Inkscape Project <dev@axisos.org>",
       "binary": "/usr/bin/inkscape"
     },
@@ -142,7 +142,7 @@
       "dependencies": [],
       "sha256": "e012c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 65000000,
-      "url": "https://repo.axisos.org/packages/obs-studio-30.2.2.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/obs-studio-30.2.2.axis",
       "maintainer": "OBS Project <dev@axisos.org>",
       "binary": "/usr/bin/obs"
     },
@@ -154,7 +154,7 @@
       "dependencies": [],
       "sha256": "f123c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 32000000,
-      "url": "https://repo.axisos.org/packages/audacity-3.6.1.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/audacity-3.6.1.axis",
       "maintainer": "Audacity Team <dev@axisos.org>",
       "binary": "/usr/bin/audacity"
     },
@@ -166,7 +166,7 @@
       "dependencies": [],
       "sha256": "a234c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 620000000,
-      "url": "https://repo.axisos.org/packages/supertuxkart-1.4.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/supertuxkart-1.4.axis",
       "maintainer": "SuperTuxKart Team <dev@axisos.org>",
       "binary": "/usr/bin/supertuxkart"
     },
@@ -178,7 +178,7 @@
       "dependencies": [],
       "sha256": "b345c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 3200000,
-      "url": "https://repo.axisos.org/packages/steam-1.0.0.79.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/steam-1.0.0.79.axis",
       "maintainer": "Valve Corporation <dev@axisos.org>",
       "binary": "/usr/bin/steam"
     },
@@ -190,7 +190,7 @@
       "dependencies": [],
       "sha256": "c456c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 28000000,
-      "url": "https://repo.axisos.org/packages/minetest-5.8.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/minetest-5.8.0.axis",
       "maintainer": "Minetest Community <dev@axisos.org>",
       "binary": "/usr/bin/minetest"
     },
@@ -202,7 +202,7 @@
       "dependencies": [],
       "sha256": "d567c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 45000000,
-      "url": "https://repo.axisos.org/packages/retroarch-1.19.1.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/retroarch-1.19.1.axis",
       "maintainer": "Libretro Community <dev@axisos.org>",
       "binary": "/usr/bin/retroarch"
     },
@@ -214,7 +214,7 @@
       "dependencies": [],
       "sha256": "e678c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 32000000,
-      "url": "https://repo.axisos.org/packages/git-2.45.2.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/git-2.45.2.axis",
       "maintainer": "Git Core Team <dev@axisos.org>",
       "binary": "/usr/bin/git"
     },
@@ -226,7 +226,7 @@
       "dependencies": [],
       "sha256": "f789c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 42000000,
-      "url": "https://repo.axisos.org/packages/python3-3.12.5.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/python3-3.12.5.axis",
       "maintainer": "Python Software Foundation <dev@axisos.org>",
       "binary": "/usr/bin/python3"
     },
@@ -238,7 +238,7 @@
       "dependencies": [],
       "sha256": "a890c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 38000000,
-      "url": "https://repo.axisos.org/packages/nodejs-20.17.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/nodejs-20.17.0.axis",
       "maintainer": "Node.js Foundation <dev@axisos.org>",
       "binary": "/usr/bin/node"
     },
@@ -250,7 +250,7 @@
       "dependencies": [],
       "sha256": "b901c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 110000000,
-      "url": "https://repo.axisos.org/packages/rust-1.80.1.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/rust-1.80.1.axis",
       "maintainer": "Rust Core Team <dev@axisos.org>",
       "binary": "/usr/bin/rustc"
     },
@@ -262,7 +262,7 @@
       "dependencies": [],
       "sha256": "c012c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 95000000,
-      "url": "https://repo.axisos.org/packages/docker-27.1.1.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/docker-27.1.1.axis",
       "maintainer": "Docker Community <dev@axisos.org>",
       "binary": "/usr/bin/docker"
     },
@@ -274,7 +274,7 @@
       "dependencies": [],
       "sha256": "d123c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 2400000,
-      "url": "https://repo.axisos.org/packages/fastfetch-2.22.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/fastfetch-2.22.0.axis",
       "maintainer": "Fastfetch Team <dev@axisos.org>",
       "binary": "/usr/bin/fastfetch"
     },
@@ -286,7 +286,7 @@
       "dependencies": [],
       "sha256": "e234c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 1800000,
-      "url": "https://repo.axisos.org/packages/htop-3.3.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/htop-3.3.0.axis",
       "maintainer": "htop Developers <dev@axisos.org>",
       "binary": "/usr/bin/htop"
     },
@@ -298,7 +298,7 @@
       "dependencies": [],
       "sha256": "f345c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 450000,
-      "url": "https://repo.axisos.org/packages/neofetch-7.1.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/neofetch-7.1.0.axis",
       "maintainer": "Dylan Araps <dev@axisos.org>",
       "binary": "/usr/bin/neofetch"
     },
@@ -310,7 +310,7 @@
       "dependencies": [],
       "sha256": "a456c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 12000000,
-      "url": "https://repo.axisos.org/packages/tiler-1.4.2.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/tiler-1.4.2.axis",
       "maintainer": "Wayland Community <dev@axisos.org>",
       "binary": "/usr/bin/cage-tiler"
     },
@@ -322,7 +322,7 @@
       "dependencies": [],
       "sha256": "b567c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 98000000,
-      "url": "https://repo.axisos.org/packages/browser-128.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/browser-128.0.axis",
       "maintainer": "AxisOS Project <dev@axisos.org>",
       "binary": "/usr/bin/chromium"
     },
@@ -334,7 +334,7 @@
       "dependencies": [],
       "sha256": "c678c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 24000000,
-      "url": "https://repo.axisos.org/packages/terminal-0.36.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/terminal-0.36.0.axis",
       "maintainer": "Kovid Goyal & AxisOS <dev@axisos.org>",
       "binary": "/usr/bin/kitty"
     },
@@ -346,7 +346,7 @@
       "dependencies": [],
       "sha256": "d789c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 18000000,
-      "url": "https://repo.axisos.org/packages/photos-2.0.1.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/photos-2.0.1.axis",
       "maintainer": "AxisOS Studio <dev@axisos.org>",
       "binary": "/usr/bin/axis-photos"
     },
@@ -358,7 +358,7 @@
       "dependencies": [],
       "sha256": "e890c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 16000000,
-      "url": "https://repo.axisos.org/packages/music-2.0.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/music-2.0.0.axis",
       "maintainer": "Axis Sound Lab <dev@axisos.org>",
       "binary": "/usr/bin/axis-music"
     },
@@ -370,7 +370,7 @@
       "dependencies": [],
       "sha256": "814d4c18755d5955ccd4b308e9fa8d9818230d9b23a1fb6ecbfa011af8fcc28d",
       "size": 914,
-      "url": "https://repo.axisos.org/packages/axis-hello-1.0.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/axis-hello-1.0.0.axis",
       "maintainer": "AxisOS Core Team <dev@axisos.org>",
       "binary": "/usr/bin/axis-hello"
     },
@@ -382,7 +382,7 @@
       "dependencies": ["axis-hello"],
       "sha256": "bbf73d272fc21376065d15bfa59dd87c22734f66357dd5b504d2a5977f45e312",
       "size": 583,
-      "url": "https://repo.axisos.org/packages/axis-tools-1.2.0.axis",
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/axis-tools-1.2.0.axis",
       "maintainer": "AxisOS Core Team <dev@axisos.org>",
       "binary": "/usr/bin/axis-tools"
     }
