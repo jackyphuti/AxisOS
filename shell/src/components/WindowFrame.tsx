@@ -80,7 +80,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
         top: 28,
         left: 0,
         width: '100vw',
-        height: 'calc(100vh - 28px - 82px)',
+        height: 'calc(100vh - 28px)',
         zIndex: win.zIndex,
       }
     : {
@@ -96,17 +96,17 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
     <div
       style={windowStyle}
       onMouseDown={handleMouseDown}
-      className={`flex flex-col rounded-2xl overflow-hidden backdrop-blur-3xl transition-all duration-150 ${
+      className={`flex flex-col ${win.isMaximized ? 'rounded-none' : 'rounded-2xl'} overflow-hidden backdrop-blur-3xl transition-all duration-150 ${
         isFocused
-          ? 'ring-1 ring-white/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] opacity-100'
-          : 'ring-1 ring-white/10 shadow-[0_15px_35px_-10px_rgba(0,0,0,0.6)] opacity-95'
-      } bg-slate-950/85`}
+          ? 'ring-1 ring-black/10 dark:ring-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] opacity-100'
+          : 'ring-1 ring-black/5 dark:ring-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_15px_35px_-10px_rgba(0,0,0,0.6)] opacity-95'
+      } bg-[#F5F5F7] dark:bg-slate-950/85`}
     >
       {/* macOS Unified Titlebar */}
       <div
         onMouseDown={handleTitleBarMouseDown}
         onDoubleClick={() => toggleMaximizeWindow(win.id)}
-        className="h-9 px-3.5 flex items-center justify-between bg-slate-900/60 border-b border-white/10 cursor-default select-none relative"
+        className="h-9 px-3.5 flex items-center justify-between bg-[#EBEBEB] dark:bg-slate-900/60 border-b border-black/10 dark:border-white/10 cursor-default select-none relative"
       >
         {/* Left: macOS Traffic Lights */}
         <div
@@ -162,7 +162,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
 
         {/* Center: Window Title */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span className="text-xs font-semibold text-slate-300/90 tracking-tight truncate max-w-[55%]">
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-tight truncate max-w-[55%]">
             {win.title}
           </span>
         </div>
@@ -172,7 +172,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
       </div>
 
       {/* Window Body */}
-      <div className="flex-1 overflow-auto bg-slate-900/60 text-slate-100 relative">
+      <div className="flex-1 overflow-auto bg-[#F5F5F7] dark:bg-slate-900/60 text-slate-900 dark:text-slate-100 relative">
         {children}
       </div>
     </div>

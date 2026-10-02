@@ -505,6 +505,174 @@ function isAutoInstall() {
   return false;
 }
 
+// Query real hardware battery state from /sys/class/power_supply or upower
+async function getBatteryInfo() {
+  if (process.platform !== 'linux') {
+    return {
+      hasBattery: false,
+      level: 100,
+      charging: true,
+      status: 'AC Connected',
+    };
+  }
+
+  try {
+    const powerSupplyPath = '/sys/class/power_supply';
+    if (fs.existsSync(powerSupplyPath)) {
+      const supplies = fs.readdirSync(powerSupplyPath);
+      const batNames = supplies.filter((s) => s.startsWith('BAT') || s.toLowerCase().includes('battery'));
+      if (batNames.length > 0) {
+        const batDir = path.join(powerSupplyPath, batNames[0]);
+        let capacity = 100;
+        let status = 'Discharging';
+
+        if (fs.existsSync(path.join(batDir, 'capacity'))) {
+          const capStr = fs.readFileSync(path.join(batDir, 'capacity'), 'utf8').trim();
+          const capInt = parseInt(capStr, 10);
+          if (!isNaN(capInt)) capacity = Math.max(0, Math.min(100, capInt));
+        }
+
+        if (fs.existsSync(path.join(batDir, 'status'))) {
+          status = fs.readFileSync(path.join(batDir, 'status'), 'utf8').trim();
+        }
+
+        const isCharging = status === 'Charging' || status === 'Full' || status === 'Not charging';
+
+        return {
+          hasBattery: true,
+          level: capacity,
+          charging: isCharging,
+          status,
+        };
+      }
+
+      // Check if AC adapter is online
+      const acNames = supplies.filter((s) => s.startsWith('AC') || s.startsWith('ADP') || s.toLowerCase().includes('mains'));
+      let acOnline = true;
+      if (acNames.length > 0) {
+        const acOnlinePath = path.join(powerSupplyPath, acNames[0], 'online');
+        if (fs.existsSync(acOnlinePath)) {
+          acOnline = fs.readFileSync(acOnlinePath, 'utf8').trim() === '1';
+        }
+      }
+
+      return {
+        hasBattery: false,
+        level: 100,
+        charging: acOnline,
+        status: acOnline ? 'AC Connected' : 'No Battery',
+      };
+    }
+  } catch (err) {}
+
+  // Fallback to upower if /sys/class/power_supply was not readable
+  try {
+    const upowerRes = await runCmd('upower -i $(upower -e 2>/dev/null | grep -m1 battery) 2>/dev/null');
+    if (upowerRes.stdout) {
+      const capMatch = upowerRes.stdout.match(/percentage:\s+(\d+)%/);
+      const stateMatch = upowerRes.stdout.match(/state:\s+(\w+)/);
+      if (capMatch) {
+        const level = parseInt(capMatch[1], 10);
+        const state = stateMatch ? stateMatch[1] : 'discharging';
+        const charging = state === 'charging' || state === 'fully-charged';
+        return {
+          hasBattery: true,
+          level,
+          charging,
+          status: state,
+        };
+      }
+    }
+  } catch {}
+
+  return {
+    hasBattery: false,
+    level: 100,
+    charging: true,
+    status: 'AC Connected',
+  };
+}
+
+// Scan real nearby and paired Bluetooth devices via bluetoothctl (no demo fallbacks)
+async function getRealBluetoothDevices() {
+  const devices = [];
+  const seenMacs = new Set();
+
+  if (process.platform !== 'linux') return devices;
+
+  // 1. Check if controller is powered
+  const showRes = await runCmd('bluetoothctl show 2>/dev/null');
+  if (!showRes.stdout.includes('Powered: yes')) {
+    return devices;
+  }
+
+  // 2. Identify paired devices
+  const pairedRes = await runCmd('bluetoothctl paired-devices 2>/dev/null');
+  const pairedMacs = new Set();
+  if (pairedRes.stdout) {
+    for (const line of pairedRes.stdout.trim().split('\n')) {
+      const m = line.match(/^Device\s+([0-9A-Fa-f:]{17})\s+(.*)$/);
+      if (m) pairedMacs.add(m[1].toUpperCase());
+    }
+  }
+
+  // 3. Trigger discovery scan in background if not already active
+  if (!showRes.stdout.includes('Discovering: yes')) {
+    runCmd('bluetoothctl --timeout 3 scan on 2>/dev/null');
+  }
+
+  // 4. Query all discovered / nearby devices
+  const allDevRes = await runCmd('bluetoothctl devices 2>/dev/null');
+  if (allDevRes.stdout) {
+    for (const line of allDevRes.stdout.trim().split('\n')) {
+      const m = line.match(/^Device\s+([0-9A-Fa-f:]{17})\s+(.*)$/);
+      if (m) {
+        const mac = m[1].toUpperCase();
+        const rawName = m[2].trim();
+        const name = rawName || mac;
+        if (!seenMacs.has(mac)) {
+          seenMacs.add(mac);
+          const isPaired = pairedMacs.has(mac);
+          let icon = 'bluetooth';
+
+          const lower = name.toLowerCase();
+          if (lower.includes('airpod') || lower.includes('headphone') || lower.includes('buds') || lower.includes('wh-') || lower.includes('audio')) {
+            icon = 'headphones';
+          } else if (lower.includes('speaker') || lower.includes('soundbar') || lower.includes('jbl')) {
+            icon = 'speaker';
+          } else if (lower.includes('mouse') || lower.includes('trackpad')) {
+            icon = 'mouse';
+          } else if (lower.includes('keyboard') || lower.includes('keychron')) {
+            icon = 'keyboard';
+          } else if (lower.includes('phone') || lower.includes('iphone') || lower.includes('galaxy') || lower.includes('pixel')) {
+            icon = 'smartphone';
+          }
+
+          devices.push({
+            mac,
+            name,
+            connected: false,
+            paired: isPaired,
+            icon,
+          });
+        }
+      }
+    }
+  }
+
+  // Check connection status for paired devices
+  for (const dev of devices) {
+    if (dev.paired) {
+      try {
+        const infoRes = await runCmd(`bluetoothctl info ${dev.mac} 2>/dev/null`);
+        dev.connected = infoRes.stdout.includes('Connected: yes');
+      } catch {}
+    }
+  }
+
+  return devices;
+}
+
 // Real disk detection via lsblk with BitLocker, Windows, and Live Medium flags
 async function getStorageDisks() {
   if (process.platform === 'linux') {
@@ -721,7 +889,14 @@ const server = http.createServer(async (req, res) => {
         username: process.env.USER || 'axis',
         isLiveEnvironment: isLiveSession(),
         autoInstall: isAutoInstall(),
+        battery: await getBatteryInfo(),
       });
+    }
+
+    // Battery Telemetry
+    if (pathname === '/api/battery' && req.method === 'GET') {
+      const bat = await getBatteryInfo();
+      return sendJson(res, 200, bat);
     }
 
     // 2. Disks
@@ -1425,16 +1600,17 @@ const server = http.createServer(async (req, res) => {
       }
       return sendJson(res, 200, {
         enabled: true,
-        connected: true,
-        currentSsid: 'Axis-Fiber-5G',
-        signal: 88,
+        connected: false,
+        currentSsid: 'Not Connected',
+        signal: 0,
       });
     }
 
-    // 14. Wi-Fi: Scan
+    // 14. Wi-Fi: Scan (Real hardware networks only - no demo fallbacks)
     if (pathname === '/api/wifi/scan' && req.method === 'GET') {
       if (process.platform === 'linux') {
-        const scanRes = await runCmd('nmcli -t -f in-use,ssid,signal,bars,security dev wifi list --rescan yes 2>/dev/null');
+        await runCmd('nmcli dev wifi rescan 2>/dev/null');
+        const scanRes = await runCmd('nmcli -t -f in-use,ssid,signal,security dev wifi list 2>/dev/null');
         const networks = [];
         const seen = new Set();
         if (scanRes.stdout) {
@@ -1444,24 +1620,16 @@ const server = http.createServer(async (req, res) => {
             const inUse = parts[0] === '*';
             const ssid = (parts[1] || '').trim();
             const signal = parseInt(parts[2], 10) || 50;
-            const security = parts[4] || 'WPA2';
-            if (ssid && !seen.has(ssid)) {
+            const security = parts[3] || 'WPA2';
+            if (ssid && ssid !== '--' && !seen.has(ssid)) {
               seen.add(ssid);
               networks.push({ inUse, ssid, signal, security });
             }
           }
         }
-        return sendJson(res, 200, networks.length > 0 ? networks : [
-          { inUse: true, ssid: 'Axis-Fiber-5G', signal: 90, security: 'WPA2/WPA3' },
-          { inUse: false, ssid: 'Home-Network_2.4G', signal: 65, security: 'WPA2' },
-          { inUse: false, ssid: 'Guest-WiFi', signal: 45, security: 'Open' },
-        ]);
+        return sendJson(res, 200, networks);
       }
-      return sendJson(res, 200, [
-        { inUse: true, ssid: 'Axis-Fiber-5G', signal: 90, security: 'WPA2/WPA3' },
-        { inUse: false, ssid: 'Home-Network_2.4G', signal: 65, security: 'WPA2' },
-        { inUse: false, ssid: 'Guest-WiFi', signal: 45, security: 'Open' },
-      ]);
+      return sendJson(res, 200, []);
     }
 
     // 15. Wi-Fi: Toggle Radio (Shell-free)
@@ -1496,47 +1664,16 @@ const server = http.createServer(async (req, res) => {
         const controllerMatch = resShow.stdout.match(/Name:\s+(.*)/);
         return sendJson(res, 200, {
           enabled: isPowered,
-          controllerName: controllerMatch ? controllerMatch[1] : 'Axis Bluetooth Controller',
+          controllerName: controllerMatch ? controllerMatch[1] : 'Bluetooth Controller',
         });
       }
-      return sendJson(res, 200, { enabled: true, controllerName: 'Intel Wireless Bluetooth' });
+      return sendJson(res, 200, { enabled: true, controllerName: 'Bluetooth Controller' });
     }
 
-    // 18. Bluetooth: Devices Scan
+    // 18. Bluetooth: Devices Scan (Real nearby and paired devices - no demo fallbacks)
     if (pathname === '/api/bluetooth/devices' && req.method === 'GET') {
-      if (process.platform === 'linux') {
-        const paired = await runCmd('bluetoothctl paired-devices 2>/dev/null');
-        const devices = [];
-        if (paired.stdout) {
-          const lines = paired.stdout.trim().split('\n');
-          for (const line of lines) {
-            const m = line.match(/^Device\s+([0-9A-Fa-f:]+)\s+(.*)$/);
-            if (m) {
-              const mac = m[1];
-              const name = m[2];
-              const info = await runCmd(`bluetoothctl info ${mac} 2>/dev/null`);
-              const connected = info.stdout.includes('Connected: yes');
-              let icon = 'bluetooth';
-              if (name.toLowerCase().includes('airpod') || name.toLowerCase().includes('headphone') || name.toLowerCase().includes('wh-')) icon = 'headphones';
-              else if (name.toLowerCase().includes('speaker')) icon = 'speaker';
-              else if (name.toLowerCase().includes('mouse')) icon = 'mouse';
-              else if (name.toLowerCase().includes('keyboard')) icon = 'keyboard';
-
-              devices.push({ mac, name, connected, paired: true, icon });
-            }
-          }
-        }
-        return sendJson(res, 200, devices.length > 0 ? devices : [
-          { mac: '00:1B:66:81:45:90', name: 'Sony WH-1000XM4', connected: true, paired: true, icon: 'headphones', battery: 85 },
-          { mac: 'FC:E8:06:55:12:33', name: 'Logitech MX Master 3S', connected: true, paired: true, icon: 'mouse', battery: 92 },
-          { mac: 'A4:C3:F0:11:22:33', name: 'Keychron K2 Wireless', connected: false, paired: true, icon: 'keyboard', battery: 60 },
-        ]);
-      }
-      return sendJson(res, 200, [
-        { mac: '00:1B:66:81:45:90', name: 'Sony WH-1000XM4', connected: true, paired: true, icon: 'headphones', battery: 85 },
-        { mac: 'FC:E8:06:55:12:33', name: 'Logitech MX Master 3S', connected: true, paired: true, icon: 'mouse', battery: 92 },
-        { mac: 'A4:C3:F0:11:22:33', name: 'Keychron K2 Wireless', connected: false, paired: true, icon: 'keyboard', battery: 60 },
-      ]);
+      const devices = await getRealBluetoothDevices();
+      return sendJson(res, 200, devices);
     }
 
     // 19. Bluetooth: Toggle (Shell-free)

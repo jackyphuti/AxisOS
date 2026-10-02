@@ -33,6 +33,14 @@ export interface SystemHardwareData {
   homeDir: string;
   isLiveEnvironment?: boolean;
   autoInstall?: boolean;
+  battery?: BatteryStatus;
+}
+
+export interface BatteryStatus {
+  hasBattery: boolean;
+  level: number;
+  charging: boolean;
+  status: string;
 }
 
 export interface FileEntry {
@@ -588,13 +596,34 @@ export const systemService = {
     return { success: true, message: 'System update check scheduled.' };
   },
 
+  // ==================== BATTERY TELEMETRY ====================
+  async getBatteryStatus(): Promise<BatteryStatus> {
+    try {
+      const res = await fetch('/api/battery');
+      if (res.ok) return await res.json();
+    } catch {}
+    try {
+      const sysRes = await fetch('/api/system-info');
+      if (sysRes.ok) {
+        const data = await sysRes.json();
+        if (data.battery) return data.battery;
+      }
+    } catch {}
+    return {
+      hasBattery: false,
+      level: 100,
+      charging: true,
+      status: 'AC Connected',
+    };
+  },
+
   // ==================== WI-FI CONTROL ====================
   async getWifiStatus(): Promise<{ enabled: boolean; connected: boolean; currentSsid: string; signal: number }> {
     try {
       const res = await fetch('/api/wifi/status');
       if (res.ok) return await res.json();
     } catch {}
-    return { enabled: true, connected: true, currentSsid: 'Axis-Fiber-5G', signal: 85 };
+    return { enabled: true, connected: false, currentSsid: 'Not Connected', signal: 0 };
   },
 
   async scanWifi(): Promise<WifiNetwork[]> {
@@ -602,11 +631,7 @@ export const systemService = {
       const res = await fetch('/api/wifi/scan');
       if (res.ok) return await res.json();
     } catch {}
-    return [
-      { inUse: true, ssid: 'Axis-Fiber-5G', signal: 90, security: 'WPA2/WPA3' },
-      { inUse: false, ssid: 'Home-Network_2.4G', signal: 65, security: 'WPA2' },
-      { inUse: false, ssid: 'CoffeeShop-Guest', signal: 45, security: 'Open' },
-    ];
+    return [];
   },
 
   async toggleWifi(enabled: boolean): Promise<boolean> {
@@ -631,7 +656,7 @@ export const systemService = {
       });
       if (res.ok) return await res.json();
     } catch {}
-    return { success: true };
+    return { success: false, output: 'Connection failed' };
   },
 
   // ==================== BLUETOOTH CONTROL ====================
@@ -640,7 +665,7 @@ export const systemService = {
       const res = await fetch('/api/bluetooth/status');
       if (res.ok) return await res.json();
     } catch {}
-    return { enabled: true, controller: 'Intel Wireless Bluetooth 5.3' };
+    return { enabled: true, controller: 'Bluetooth Controller' };
   },
 
   async getBluetoothDevices(): Promise<BluetoothDevice[]> {
@@ -648,10 +673,7 @@ export const systemService = {
       const res = await fetch('/api/bluetooth/devices');
       if (res.ok) return await res.json();
     } catch {}
-    return [
-      { mac: '74:45:CE:12:34:56', name: 'AirPods Pro (2nd Gen)', paired: true, connected: true },
-      { mac: 'D0:5F:B8:9A:BC:DE', name: 'Logitech MX Master 3S', paired: true, connected: true },
-    ];
+    return [];
   },
 
   async toggleBluetooth(enabled: boolean): Promise<boolean> {

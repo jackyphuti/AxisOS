@@ -4,6 +4,7 @@ import {
   WifiOff,
   Battery,
   BatteryCharging,
+  Plug,
   Search,
   Sliders,
   Sparkles,
@@ -23,6 +24,7 @@ export const TopBar: React.FC = () => {
     wifiConnected,
     batteryLevel,
     isCharging,
+    hasBattery,
     isLiveEnvironment,
   } = useSystemState();
 
@@ -230,13 +232,25 @@ export const TopBar: React.FC = () => {
         </div>
 
         {/* Battery with percentage */}
-        <div className="flex items-center space-x-1 px-1 py-0.5 rounded hover:bg-white/10 cursor-pointer font-mono text-[11px]">
-          {isCharging ? (
-            <BatteryCharging className="w-4 h-4 text-emerald-400" />
+        <div
+          title={hasBattery ? (isCharging ? `Charging: ${batteryLevel}%` : `Battery: ${batteryLevel}%`) : 'Connected to AC Power'}
+          className="flex items-center space-x-1 px-1 py-0.5 rounded hover:bg-white/10 cursor-pointer font-mono text-[11px]"
+        >
+          {hasBattery ? (
+            <>
+              {isCharging ? (
+                <BatteryCharging className="w-4 h-4 text-emerald-400" />
+              ) : (
+                <Battery className="w-4 h-4 text-slate-200" />
+              )}
+              <span>{batteryLevel}%</span>
+            </>
           ) : (
-            <Battery className="w-4 h-4 text-slate-200" />
+            <>
+              <Plug className="w-3.5 h-3.5 text-emerald-400" />
+              <span>100%</span>
+            </>
           )}
-          <span>{batteryLevel}%</span>
         </div>
 
         {/* Spotlight Search Icon */}

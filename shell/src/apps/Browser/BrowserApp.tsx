@@ -231,9 +231,9 @@ export const BrowserApp: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-950 text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full bg-[#F5F5F7] dark:bg-[#1E1E1E] text-slate-900 dark:text-slate-100 select-none overflow-hidden font-sans">
       {/* Top Tab Strip */}
-      <div className="h-9 px-2 pt-1 flex items-center gap-1 bg-slate-900 border-b border-white/10 overflow-x-auto">
+      <div className="h-9 px-2 pt-1 flex items-center gap-1 bg-[#E5E5E7] dark:bg-slate-900 border-b border-black/5 dark:border-white/10 overflow-x-auto">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId;
           return (
@@ -242,8 +242,8 @@ export const BrowserApp: React.FC = () => {
               onClick={() => setActiveTabId(tab.id)}
               className={`group flex items-center space-x-2 px-3 py-1.5 rounded-t-xl text-xs max-w-[190px] min-w-[120px] cursor-pointer transition-all border-t border-x ${
                 isActive
-                  ? 'bg-slate-950 border-white/15 text-white font-medium shadow-sm'
-                  : 'bg-white/5 border-transparent text-slate-400 hover:bg-white/10 hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-950 border-black/10 dark:border-white/15 text-slate-800 dark:text-white font-medium shadow-xs'
+                  : 'bg-black/5 dark:bg-white/5 border-transparent text-slate-600 dark:text-slate-400 hover:bg-black/10 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-tr from-cyan-400 to-blue-600 flex items-center justify-center text-[8px] text-white shrink-0 font-black">
@@ -252,7 +252,7 @@ export const BrowserApp: React.FC = () => {
               <span className="truncate flex-1 text-[11px]">{tab.title}</span>
               <button
                 onClick={(e) => handleCloseTab(tab.id, e)}
-                className="opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-white/20 text-slate-400 hover:text-white transition-opacity"
+                className="opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/20 text-slate-400 hover:text-slate-700 dark:hover:text-white transition-opacity"
               >
                 <X className="w-3 h-3" />
               </button>
@@ -262,7 +262,7 @@ export const BrowserApp: React.FC = () => {
 
         <button
           onClick={handleCreateTab}
-          className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+          className="p-1 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           title="New Tab"
         >
           <Plus className="w-4 h-4" />
@@ -270,13 +270,13 @@ export const BrowserApp: React.FC = () => {
       </div>
 
       {/* Navigation & Address Bar */}
-      <div className="h-11 px-3 flex items-center gap-2 bg-slate-950/90 border-b border-white/10">
+      <div className="h-11 px-3 flex items-center gap-2 bg-[#F5F5F7] dark:bg-slate-950/90 border-b border-black/5 dark:border-white/10">
         <div className="flex items-center space-x-0.5">
           <button
             onClick={handleBack}
             disabled={activeTab.historyIdx === 0}
             className={`p-1.5 rounded-lg transition-colors ${
-              activeTab.historyIdx === 0 ? 'text-slate-600' : 'text-slate-300 hover:bg-white/10'
+              activeTab.historyIdx === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/10'
             }`}
           >
             <ChevronLeft className="w-4 h-4" />
@@ -285,20 +285,20 @@ export const BrowserApp: React.FC = () => {
             onClick={handleForward}
             disabled={activeTab.historyIdx >= activeTab.history.length - 1}
             className={`p-1.5 rounded-lg transition-colors ${
-              activeTab.historyIdx >= activeTab.history.length - 1 ? 'text-slate-600' : 'text-slate-300 hover:bg-white/10'
+              activeTab.historyIdx >= activeTab.history.length - 1 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/10'
             }`}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
           <button
             onClick={handleReload}
-            className="p-1.5 rounded-lg text-slate-300 hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${activeTab.isLoading ? 'animate-spin text-cyan-400' : ''}`} />
+            <RotateCw className={`w-3.5 h-3.5 ${activeTab.isLoading ? 'animate-spin text-cyan-500' : ''}`} />
           </button>
           <button
             onClick={() => navigateTo('about:home')}
-            className="p-1.5 rounded-lg text-slate-300 hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             title="Home"
           >
             <Home className="w-3.5 h-3.5" />
@@ -313,9 +313,9 @@ export const BrowserApp: React.FC = () => {
           }}
           className="flex-1 max-w-2xl mx-auto relative flex items-center"
         >
-          <div className="w-full flex items-center px-3 py-1.5 bg-slate-900 border border-white/10 focus-within:border-cyan-500 rounded-xl transition-all text-xs">
+          <div className="w-full flex items-center px-3 py-1.5 bg-white dark:bg-slate-900 border border-black/10 dark:border-white/10 focus-within:border-cyan-500 rounded-xl transition-all text-xs shadow-xs">
             {activeTab.url.startsWith('https://') ? (
-              <Lock className="w-3.5 h-3.5 text-emerald-400 mr-2 shrink-0" />
+              <Lock className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 mr-2 shrink-0" />
             ) : (
               <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" />
             )}
@@ -323,17 +323,17 @@ export const BrowserApp: React.FC = () => {
               type="text"
               value={activeTab.inputUrl}
               onChange={(e) => updateActiveTab({ inputUrl: e.target.value })}
-              className="w-full bg-transparent outline-none text-slate-200 text-xs font-sans placeholder-slate-500"
+              className="w-full bg-transparent outline-none text-slate-800 dark:text-slate-200 text-xs font-sans placeholder-slate-400"
               placeholder="Search or enter web address (Chromium Engine)..."
             />
             {activeTab.url !== 'about:home' && (
               <button
                 type="button"
                 onClick={toggleBookmark}
-                className="p-1 rounded text-slate-400 hover:text-amber-400 transition-colors"
+                className="p-1 rounded text-slate-400 hover:text-amber-500 transition-colors"
                 title="Bookmark page"
               >
-                <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-amber-400 text-amber-400' : ''}`} />
+                <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-amber-400 text-amber-500' : ''}`} />
               </button>
             )}
           </div>
@@ -345,10 +345,10 @@ export const BrowserApp: React.FC = () => {
           <button
             onClick={handleOpenNativeChromium}
             disabled={isNativeLaunching}
-            className="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[11px] font-medium flex items-center gap-1.5 transition-colors"
+            className="px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30 text-[11px] font-medium flex items-center gap-1.5 transition-colors"
             title="Launch full native Chromium browser window on desktop"
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse" />
             <span>{isNativeLaunching ? 'Opening Chromium...' : 'Native Chromium'}</span>
           </button>
 
@@ -357,7 +357,7 @@ export const BrowserApp: React.FC = () => {
               href={activeTab.url}
               target="_blank"
               rel="noreferrer"
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
               title="Open externally in host browser"
             >
               <ExternalLink className="w-4 h-4" />
@@ -372,25 +372,25 @@ export const BrowserApp: React.FC = () => {
                 setTimeout(() => setCopiedNotification(false), 1500);
               }
             }}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors relative"
+            className="p-1.5 rounded-lg text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors relative"
             title="Share / Copy Link"
           >
-            {copiedNotification ? <Check className="w-4 h-4 text-emerald-400" /> : <Share2 className="w-4 h-4" />}
+            {copiedNotification ? <Check className="w-4 h-4 text-emerald-500" /> : <Share2 className="w-4 h-4" />}
           </button>
         </div>
       </div>
 
       {/* Bookmarks Bar */}
       {bookmarks.length > 0 && (
-        <div className="h-7 px-3 flex items-center space-x-3 bg-slate-900/60 border-b border-white/5 text-[11px] text-slate-400 overflow-x-auto">
-          <Bookmark className="w-3 h-3 text-cyan-400 shrink-0" />
+        <div className="h-7 px-3 flex items-center space-x-3 bg-[#F5F5F7] dark:bg-slate-900/60 border-b border-black/5 dark:border-white/5 text-[11px] text-slate-600 dark:text-slate-400 overflow-x-auto">
+          <Bookmark className="w-3 h-3 text-cyan-500 shrink-0" />
           {bookmarks.map((bm) => {
             const label = bm.replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
             return (
               <button
                 key={bm}
                 onClick={() => navigateTo(bm)}
-                className="hover:text-white transition-colors truncate max-w-[130px]"
+                className="hover:text-slate-900 dark:hover:text-white transition-colors truncate max-w-[130px]"
                 title={bm}
               >
                 {label}
@@ -401,7 +401,7 @@ export const BrowserApp: React.FC = () => {
       )}
 
       {/* Main View Area */}
-      <div className="flex-1 relative overflow-hidden bg-slate-950 flex flex-col">
+      <div className="flex-1 relative overflow-hidden bg-[#FBFBFD] dark:bg-slate-950 flex flex-col">
         {activeTab.isLoading && (
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-cyan-400 to-blue-600 animate-pulse z-20" />
         )}
@@ -411,7 +411,7 @@ export const BrowserApp: React.FC = () => {
           <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
             {/* Axis Browser Chromium Badge Logo */}
             <div className="relative mb-4">
-              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-xl shadow-cyan-950/60">
+              <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-xl shadow-cyan-950/20">
                 <Globe className="w-8 h-8 text-white" />
               </div>
               <div className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-full bg-cyan-400 text-slate-950 font-black text-[9px] shadow-sm">
@@ -419,21 +419,21 @@ export const BrowserApp: React.FC = () => {
               </div>
             </div>
 
-            <h1 className="text-2xl font-black text-slate-100 tracking-tight">Axis Browser</h1>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm text-center">
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight">Axis Browser</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm text-center">
               Powered by Chromium (Blink & V8) with hardware accelerated Wayland rasterization.
             </p>
 
             {/* Search Engine Selector Pills */}
-            <div className="flex items-center gap-1.5 mt-4 p-1 rounded-xl bg-white/5 border border-white/10 text-[11px]">
+            <div className="flex items-center gap-1.5 mt-4 p-1 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 text-[11px]">
               {(['duckduckgo', 'google', 'bing'] as const).map((eng) => (
                 <button
                   key={eng}
                   onClick={() => setSearchEngine(eng)}
                   className={`px-2.5 py-1 rounded-lg capitalize transition-colors ${
                     searchEngine === eng
-                      ? 'bg-cyan-500 text-slate-950 font-bold'
-                      : 'text-slate-400 hover:text-white'
+                      ? 'bg-cyan-500 text-white font-bold shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   {eng}
@@ -454,14 +454,14 @@ export const BrowserApp: React.FC = () => {
                 value={activeTab.inputUrl}
                 onChange={(e) => updateActiveTab({ inputUrl: e.target.value })}
                 placeholder={`Search with ${searchEngine} or enter a URL...`}
-                className="w-full px-4 py-3 pl-11 rounded-2xl bg-slate-900 border border-white/10 text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 shadow-xl"
+                className="w-full px-4 py-3 pl-11 rounded-2xl bg-white dark:bg-slate-900 border border-black/10 dark:border-white/10 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-cyan-500 shadow-md placeholder-slate-400"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
             </form>
 
             {/* Favorites Grid */}
             <div className="mt-8 w-full max-w-xl">
-              <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 px-1 text-left">
+              <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 px-1 text-left">
                 Top Sites & Bookmarks
               </div>
               <div className="grid grid-cols-4 gap-3">
@@ -469,14 +469,14 @@ export const BrowserApp: React.FC = () => {
                   <button
                     key={site.title}
                     onClick={() => navigateTo(site.url)}
-                    className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/15 flex flex-col items-center gap-2 group transition-all text-center"
+                    className="p-3.5 rounded-2xl bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-black/5 dark:border-white/5 shadow-xs hover:shadow-md flex flex-col items-center gap-2 group transition-all text-center"
                   >
                     <div
                       className={`w-11 h-11 rounded-xl bg-gradient-to-tr ${site.bgGradient} flex items-center justify-center text-lg shadow-md group-hover:scale-105 transition-transform`}
                     >
                       {site.icon}
                     </div>
-                    <span className="text-xs font-medium text-slate-300 group-hover:text-white truncate max-w-full">
+                    <span className="text-xs font-medium text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white truncate max-w-full">
                       {site.title}
                     </span>
                   </button>
@@ -494,7 +494,7 @@ export const BrowserApp: React.FC = () => {
                 <span>Launch Native Chromium Window (Host Subsystem)</span>
               </button>
               <div className="flex items-center gap-2 text-[11px] text-slate-500 font-mono">
-                <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                <Shield className="w-3.5 h-3.5 text-emerald-500" />
                 <span>Chromium Engine 128.0 • Wayland Native GPU Sandbox Active</span>
               </div>
             </div>
@@ -513,11 +513,11 @@ export const BrowserApp: React.FC = () => {
       </div>
 
       {/* Chromium Engine Status Bar */}
-      <div className="h-6 px-3 bg-slate-900 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-mono">
+      <div className="h-6 px-3 bg-[#F5F5F7] dark:bg-slate-900 border-t border-black/5 dark:border-white/10 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-mono">
         <div className="flex items-center space-x-2">
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-400" />
+          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
           <span>Chromium Core (Blink/V8)</span>
-          <span className="text-slate-600">•</span>
+          <span className="text-slate-400 dark:text-slate-600">•</span>
           <span>GPU Raster: Hardware Accelerated</span>
         </div>
         <div>

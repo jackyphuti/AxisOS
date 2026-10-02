@@ -163,12 +163,12 @@ export const ClockApp: React.FC = () => {
     const hrDeg = (((h % 12) + m / 60) / 12) * 360;
 
     return (
-      <div className="relative w-28 h-28 rounded-full bg-slate-900 border-2 border-slate-700/80 shadow-inner flex items-center justify-center">
+      <div className="relative w-28 h-28 rounded-full bg-slate-100 dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700/80 shadow-inner flex items-center justify-center">
         {/* Ticks */}
         {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg) => (
           <div
             key={deg}
-            className={`absolute w-0.5 rounded-full ${deg % 90 === 0 ? 'h-2 bg-slate-400' : 'h-1 bg-slate-600'}`}
+            className={`absolute w-0.5 rounded-full ${deg % 90 === 0 ? 'h-2 bg-slate-500 dark:bg-slate-400' : 'h-1 bg-slate-300 dark:bg-slate-600'}`}
             style={{
               transform: `rotate(${deg}deg) translateY(-46px)`,
             }}
@@ -177,7 +177,7 @@ export const ClockApp: React.FC = () => {
 
         {/* Hour Hand */}
         <div
-          className="absolute w-1 bg-white rounded-full origin-bottom shadow-sm"
+          className="absolute w-1 bg-slate-800 dark:bg-white rounded-full origin-bottom shadow-sm"
           style={{
             height: '24px',
             transform: `translateY(-12px) rotate(${hrDeg}deg)`,
@@ -186,7 +186,7 @@ export const ClockApp: React.FC = () => {
 
         {/* Minute Hand */}
         <div
-          className="absolute w-0.75 bg-slate-300 rounded-full origin-bottom shadow-sm"
+          className="absolute w-0.75 bg-slate-600 dark:bg-slate-300 rounded-full origin-bottom shadow-sm"
           style={{
             height: '34px',
             transform: `translateY(-17px) rotate(${minDeg}deg)`,
@@ -209,10 +209,10 @@ export const ClockApp: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-950 text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full bg-[#F5F5F7] dark:bg-[#1E1E1E] text-slate-900 dark:text-slate-100 select-none overflow-hidden font-sans">
       {/* Top Segmented Controls */}
-      <div className="h-12 border-b border-white/10 px-4 bg-slate-900/60 flex items-center justify-center">
-        <div className="flex bg-slate-800/80 p-1 rounded-xl border border-white/10 space-x-1">
+      <div className="h-12 border-b border-black/5 dark:border-white/10 px-4 bg-white/80 dark:bg-slate-900/60 flex items-center justify-center">
+        <div className="flex bg-black/5 dark:bg-slate-800/80 p-1 rounded-xl border border-black/5 dark:border-white/10 space-x-1">
           {[
             { id: 'world', label: 'World Clock', icon: Globe },
             { id: 'alarm', label: 'Alarm', icon: AlarmClock },
@@ -227,8 +227,8 @@ export const ClockApp: React.FC = () => {
                 onClick={() => setActiveTab(tab.id as Tab)}
                 className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                   active
-                    ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
-                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    ? 'bg-[#007AFF] text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -245,7 +245,7 @@ export const ClockApp: React.FC = () => {
         {activeTab === 'world' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 World Clocks
               </h2>
               <span className="text-xs text-slate-500">
@@ -264,12 +264,12 @@ export const ClockApp: React.FC = () => {
                 return (
                   <div
                     key={city.id}
-                    className="p-4 rounded-2xl bg-slate-900/50 border border-white/10 flex items-center justify-between hover:bg-slate-900/80 transition-all"
+                    className="p-4 rounded-2xl bg-white dark:bg-slate-900/50 border border-black/5 dark:border-white/10 shadow-xs hover:shadow-md flex items-center justify-between transition-all"
                   >
                     <div>
-                      <h3 className="text-sm font-semibold text-white">{city.name}</h3>
-                      <p className="text-[11px] text-slate-400">{city.country}</p>
-                      <div className="mt-2 text-2xl font-light tracking-tight text-white font-mono">
+                      <h3 className="text-sm font-semibold text-slate-800 dark:text-white">{city.name}</h3>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{city.country}</p>
+                      <div className="mt-2 text-2xl font-light tracking-tight text-slate-900 dark:text-white font-mono">
                         {cityTime}
                       </div>
                     </div>
@@ -285,12 +285,12 @@ export const ClockApp: React.FC = () => {
         {activeTab === 'alarm' && (
           <div className="max-w-xl mx-auto space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 Alarms
               </h2>
               <button
                 onClick={() => setShowAddAlarm(!showAddAlarm)}
-                className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-medium text-white shadow-md shadow-blue-600/30 transition-all"
+                className="flex items-center space-x-1.5 px-3 py-1 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-xs font-medium text-white shadow-xs transition-all"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Alarm</span>
@@ -298,26 +298,26 @@ export const ClockApp: React.FC = () => {
             </div>
 
             {showAddAlarm && (
-              <div className="p-4 rounded-2xl bg-slate-900 border border-blue-500/30 space-y-3 animate-in fade-in duration-200">
+              <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-blue-500/30 space-y-3 shadow-md animate-in fade-in duration-200">
                 <div className="flex items-center space-x-3">
                   <input
                     type="time"
                     value={newAlarmTime}
                     onChange={(e) => setNewAlarmTime(e.target.value)}
-                    className="bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white font-mono"
+                    className="bg-black/5 dark:bg-slate-800 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white font-mono"
                   />
                   <input
                     type="text"
                     placeholder="Alarm Label"
                     value={newAlarmLabel}
                     onChange={(e) => setNewAlarmLabel(e.target.value)}
-                    className="flex-1 bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                    className="flex-1 bg-black/5 dark:bg-slate-800 border border-black/10 dark:border-white/10 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400"
                   />
                 </div>
                 <div className="flex justify-end space-x-2">
                   <button
                     onClick={() => setShowAddAlarm(false)}
-                    className="px-3 py-1.5 rounded-xl hover:bg-white/10 text-xs text-slate-400"
+                    className="px-3 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-xs text-slate-500 dark:text-slate-400"
                   >
                     Cancel
                   </button>
@@ -334,7 +334,7 @@ export const ClockApp: React.FC = () => {
                       ]);
                       setShowAddAlarm(false);
                     }}
-                    className="px-4 py-1.5 rounded-xl bg-blue-600 text-xs font-semibold text-white"
+                    className="px-4 py-1.5 rounded-xl bg-[#007AFF] text-xs font-semibold text-white"
                   >
                     Save
                   </button>
@@ -346,17 +346,17 @@ export const ClockApp: React.FC = () => {
               {alarms.map((alarm) => (
                 <div
                   key={alarm.id}
-                  className="p-4 rounded-2xl bg-slate-900/50 border border-white/10 flex items-center justify-between hover:bg-slate-900/80 transition-all"
+                  className="p-4 rounded-2xl bg-white dark:bg-slate-900/50 border border-black/5 dark:border-white/10 shadow-xs hover:shadow-md flex items-center justify-between transition-all"
                 >
                   <div className="flex items-center space-x-3">
                     <Bell
-                      className={`w-5 h-5 ${alarm.enabled ? 'text-blue-400' : 'text-slate-600'}`}
+                      className={`w-5 h-5 ${alarm.enabled ? 'text-blue-500' : 'text-slate-400 dark:text-slate-600'}`}
                     />
                     <div>
-                      <div className="text-2xl font-light font-mono text-white tracking-tight">
+                      <div className="text-2xl font-light font-mono text-slate-900 dark:text-white tracking-tight">
                         {alarm.time}
                       </div>
-                      <div className="text-xs text-slate-400">{alarm.label}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{alarm.label}</div>
                     </div>
                   </div>
 
@@ -368,7 +368,7 @@ export const ClockApp: React.FC = () => {
                         )
                       }
                       className={`w-11 h-6 rounded-full transition-colors relative ${
-                        alarm.enabled ? 'bg-emerald-500' : 'bg-slate-700'
+                        alarm.enabled ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'
                       }`}
                     >
                       <div
@@ -379,7 +379,7 @@ export const ClockApp: React.FC = () => {
                     </button>
                     <button
                       onClick={() => setAlarms(alarms.filter((a) => a.id !== alarm.id))}
-                      className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -393,7 +393,7 @@ export const ClockApp: React.FC = () => {
         {/* STOPWATCH */}
         {activeTab === 'stopwatch' && (
           <div className="max-w-md mx-auto flex flex-col items-center justify-center space-y-6 pt-4">
-            <div className="text-6xl font-light font-mono tracking-tight text-white py-6">
+            <div className="text-6xl font-light font-mono tracking-tight text-slate-900 dark:text-white py-6">
               {formatStopwatch(swTime)}
             </div>
 
@@ -401,7 +401,7 @@ export const ClockApp: React.FC = () => {
               <button
                 onClick={handleLap}
                 disabled={!swRunning}
-                className="w-16 h-16 rounded-full bg-slate-800 border border-white/10 hover:bg-slate-700 active:scale-95 text-xs font-semibold text-slate-300 disabled:opacity-40 transition-all"
+                className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-slate-700 active:scale-95 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs disabled:opacity-40 transition-all"
               >
                 Lap
               </button>
@@ -417,7 +417,7 @@ export const ClockApp: React.FC = () => {
               </button>
               <button
                 onClick={handleResetSw}
-                className="w-16 h-16 rounded-full bg-slate-800 border border-white/10 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-300 transition-all"
+                className="w-16 h-16 rounded-full bg-white dark:bg-slate-800 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-xs transition-all"
               >
                 <RotateCcw className="w-5 h-5" />
               </button>
@@ -425,14 +425,14 @@ export const ClockApp: React.FC = () => {
 
             {/* Laps List */}
             {laps.length > 0 && (
-              <div className="w-full border-t border-white/10 pt-4 max-h-56 overflow-y-auto space-y-1.5">
+              <div className="w-full border-t border-black/5 dark:border-white/10 pt-4 max-h-56 overflow-y-auto space-y-1.5">
                 {laps.map((lapMs, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-slate-900/60 text-xs font-mono"
+                    className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900/60 border border-black/5 dark:border-white/5 text-xs font-mono shadow-2xs"
                   >
-                    <span className="text-slate-400">Lap {laps.length - idx}</span>
-                    <span className="text-white font-medium">{formatStopwatch(lapMs)}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Lap {laps.length - idx}</span>
+                    <span className="text-slate-800 dark:text-white font-medium">{formatStopwatch(lapMs)}</span>
                   </div>
                 ))}
               </div>
@@ -450,7 +450,7 @@ export const ClockApp: React.FC = () => {
                   cx="112"
                   cy="112"
                   r="95"
-                  className="stroke-slate-800"
+                  className="stroke-slate-200 dark:stroke-slate-800"
                   strokeWidth="8"
                   fill="none"
                 />
@@ -469,10 +469,10 @@ export const ClockApp: React.FC = () => {
                 />
               </svg>
               <div className="absolute flex flex-col items-center">
-                <div className="text-4xl font-light font-mono text-white tracking-tight">
+                <div className="text-4xl font-light font-mono text-slate-900 dark:text-white tracking-tight">
                   {formatTimer(timerRemaining)}
                 </div>
-                <div className="text-[11px] text-slate-400 mt-1">Remaining</div>
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Remaining</div>
               </div>
             </div>
 
@@ -494,8 +494,8 @@ export const ClockApp: React.FC = () => {
                   }}
                   className={`px-3 py-1 rounded-xl text-xs font-semibold border transition-all ${
                     timerDuration === preset.sec
-                      ? 'bg-orange-500/20 text-orange-400 border-orange-500/50'
-                      : 'bg-slate-800/80 text-slate-300 border-white/10 hover:bg-slate-800'
+                      ? 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/50 shadow-xs'
+                      : 'bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-slate-800 shadow-xs'
                   }`}
                 >
                   {preset.label}
@@ -522,7 +522,7 @@ export const ClockApp: React.FC = () => {
                   setTimerRunning(false);
                   setTimerRemaining(timerDuration);
                 }}
-                className="w-12 h-12 rounded-full bg-slate-800 border border-white/10 hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-300 transition-all"
+                className="w-12 h-12 rounded-full bg-white dark:bg-slate-800 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-slate-700 active:scale-95 flex items-center justify-center text-slate-700 dark:text-slate-300 shadow-xs transition-all"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>

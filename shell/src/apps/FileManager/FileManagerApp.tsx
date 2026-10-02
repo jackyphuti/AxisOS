@@ -486,92 +486,92 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
   return (
     <div
       onClick={() => setContextMenu(null)}
-      className="flex h-full w-full bg-[#0a0e14] text-slate-100 select-none overflow-hidden font-sans text-xs"
+      className="flex h-full w-full bg-[#F5F5F7] dark:bg-[#0a0e14] text-slate-900 dark:text-slate-100 select-none overflow-hidden font-sans text-xs"
     >
       {/* ==================== LEFT MASTER SIDEBAR (PLACES) ==================== */}
-      <div className="w-56 bg-[#0f141c]/95 border-r border-slate-800/80 p-3 flex flex-col gap-1 text-xs shrink-0 select-none backdrop-blur-xl">
-        <div className="px-2 py-1 text-[11px] font-bold text-slate-400 tracking-wider uppercase">Favorites</div>
+      <div className="w-56 bg-white/70 dark:bg-[#0f141c]/95 border-r border-black/5 dark:border-slate-800/80 p-3 flex flex-col gap-1 text-xs shrink-0 select-none backdrop-blur-xl">
+        <div className="px-2 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase">Favorites</div>
 
         <button
           onClick={() => navigateTo(userHome)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath === userHome ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-white/5'
+            !isTrashView && currentPath === userHome ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Home className="w-4 h-4 text-blue-400" />
+          <Home className="w-4 h-4 text-blue-500 dark:text-blue-400" />
           <span>Home</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Desktop`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.endsWith('Desktop') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-white/5'
+            !isTrashView && currentPath.endsWith('Desktop') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Folder className="w-4 h-4 text-cyan-400" />
+          <Folder className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
           <span>Desktop</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Documents`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Documents') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-white/5'
+            !isTrashView && currentPath.includes('Documents') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Folder className="w-4 h-4 text-sky-400" />
+          <Folder className="w-4 h-4 text-sky-500 dark:text-sky-400" />
           <span>Documents</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Downloads`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Downloads') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-white/5'
+            !isTrashView && currentPath.includes('Downloads') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Download className="w-4 h-4 text-indigo-400" />
+          <Download className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
           <span>Downloads</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Pictures`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Pictures') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-white/5'
+            !isTrashView && currentPath.includes('Pictures') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <ImageIcon className="w-4 h-4 text-purple-400" />
+          <ImageIcon className="w-4 h-4 text-purple-500 dark:text-purple-400" />
           <span>Pictures</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Music`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Music') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-white/5'
+            !isTrashView && currentPath.includes('Music') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Music className="w-4 h-4 text-emerald-400" />
+          <Music className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
           <span>Music</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Videos`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Videos') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-white/5'
+            !isTrashView && currentPath.includes('Videos') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Film className="w-4 h-4 text-rose-400" />
+          <Film className="w-4 h-4 text-rose-500 dark:text-rose-400" />
           <span>Videos</span>
         </button>
 
-        <div className="my-2 border-t border-slate-800/80"></div>
-        <div className="px-2 py-1 text-[11px] font-bold text-slate-400 tracking-wider uppercase">Drives & Locations</div>
+        <div className="my-2 border-t border-slate-200 dark:border-slate-800/80"></div>
+        <div className="px-2 py-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 tracking-wider uppercase">Drives & Locations</div>
 
         <button
           onClick={() => navigateTo('/')}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath === '/' ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-300 hover:bg-white/5'
+            !isTrashView && currentPath === '/' ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <HardDrive className="w-4 h-4 text-slate-400" />
+          <HardDrive className="w-4 h-4 text-slate-500 dark:text-slate-400" />
           <span>AxisOS Root (/)</span>
         </button>
 
@@ -579,26 +579,26 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
         {removableDisks.map((d) => (
           <div
             key={d.id}
-            className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-white/5 text-slate-300 group"
+            className="flex items-center justify-between px-2.5 py-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300 group"
           >
             <button
               onClick={() => handleMountDisk(d)}
               className="flex items-center space-x-2 truncate flex-1 text-left"
             >
-              <Usb className="w-4 h-4 text-amber-400 shrink-0" />
+              <Usb className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
               <span className="truncate">{d.model || d.name}</span>
             </button>
             <button
               onClick={() => handleUnmountDisk(d)}
               title="Eject drive"
-              className="p-1 hover:bg-white/10 rounded text-slate-500 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="p-1 hover:bg-black/10 dark:hover:bg-white/10 rounded text-slate-400 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <X className="w-3 h-3" />
             </button>
           </div>
         ))}
 
-        <div className="my-2 border-t border-slate-800/80"></div>
+        <div className="my-2 border-t border-slate-200 dark:border-slate-800/80"></div>
 
         {/* XDG Trash Entry */}
         <button
@@ -607,15 +607,15 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
             loadTrash();
           }}
           className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            isTrashView ? 'bg-rose-600 text-white font-medium shadow-md shadow-rose-600/30' : 'text-slate-300 hover:bg-white/5'
+            isTrashView ? 'bg-rose-600 text-white font-medium shadow-md shadow-rose-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
           <div className="flex items-center space-x-2.5">
-            <Trash2 className="w-4 h-4 text-rose-400" />
+            <Trash2 className="w-4 h-4 text-rose-500 dark:text-rose-400" />
             <span>Trash</span>
           </div>
           {trashItems.length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full bg-rose-500/30 text-rose-200 text-[10px] font-bold">
+            <span className="px-1.5 py-0.2 rounded-full bg-rose-500/30 text-rose-700 dark:text-rose-200 text-[10px] font-bold">
               {trashItems.length}
             </span>
           )}
@@ -631,13 +631,13 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
         className="flex-1 flex flex-col bg-[#0d121a]/90 overflow-hidden"
       >
         {/* Top Navigation & Toolbar Bar */}
-        <div className="h-11 px-3.5 flex items-center justify-between border-b border-slate-800/80 bg-[#111722]/80 shrink-0 gap-2">
+        <div className="h-11 px-3.5 flex items-center justify-between border-b border-black/5 dark:border-slate-800/80 bg-white/80 dark:bg-[#111722]/80 shrink-0 gap-2">
           {/* Back, Forward, Up Navigation Controls */}
           <div className="flex items-center space-x-1.5">
             <button
               onClick={handleBack}
               disabled={histIdx === 0}
-              className={`p-1.5 rounded-md ${histIdx === 0 ? 'text-slate-600' : 'text-slate-300 hover:bg-white/10'}`}
+              className={`p-1.5 rounded-md ${histIdx === 0 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/10'}`}
               title="Back"
             >
               <ArrowLeft className="w-4 h-4" />
@@ -645,7 +645,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
             <button
               onClick={handleForward}
               disabled={histIdx >= history.length - 1}
-              className={`p-1.5 rounded-md ${histIdx >= history.length - 1 ? 'text-slate-600' : 'text-slate-300 hover:bg-white/10'}`}
+              className={`p-1.5 rounded-md ${histIdx >= history.length - 1 ? 'text-slate-300 dark:text-slate-600' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/10'}`}
               title="Forward"
             >
               <ArrowRight className="w-4 h-4" />
@@ -653,7 +653,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
             <button
               onClick={handleJumpUp}
               disabled={currentPath === '/' || isTrashView}
-              className={`p-1.5 rounded-md ${currentPath === '/' || isTrashView ? 'text-slate-600' : 'text-slate-300 hover:bg-white/10'}`}
+              className={`p-1.5 rounded-md ${currentPath === '/' || isTrashView ? 'text-slate-300 dark:text-slate-600' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/10'}`}
               title="Parent Directory"
             >
               <ArrowUp className="w-4 h-4" />
@@ -670,16 +670,16 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   onChange={(e) => setPathInput(e.target.value)}
                   onBlur={() => setIsEditingPath(false)}
                   autoFocus
-                  className="w-full bg-[#182232] border border-blue-500 rounded-lg px-2.5 py-1 text-xs text-white outline-none font-mono shadow-inner"
+                  className="w-full bg-white dark:bg-[#182232] border border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-white outline-none font-mono shadow-inner"
                 />
               </form>
             ) : (
               <div
                 onClick={() => setIsEditingPath(true)}
-                className="flex items-center bg-[#151c28] border border-slate-800 hover:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-300 cursor-text overflow-x-auto scrollbar-none"
+                className="flex items-center bg-black/5 dark:bg-[#151c28] border border-black/5 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-300 cursor-text overflow-x-auto scrollbar-none"
               >
                 {isTrashView ? (
-                  <span className="font-semibold text-rose-400">Trash Bin</span>
+                  <span className="font-semibold text-rose-500 dark:text-rose-400">Trash Bin</span>
                 ) : (
                   breadcrumbSegments.map((seg, idx) => (
                     <React.Fragment key={seg.path}>
@@ -688,12 +688,12 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                           e.stopPropagation();
                           navigateTo(seg.path);
                         }}
-                        className="hover:text-blue-400 font-medium px-1 py-0.5 rounded transition-colors whitespace-nowrap"
+                        className="hover:text-blue-600 dark:hover:text-blue-400 font-medium px-1 py-0.5 rounded transition-colors whitespace-nowrap"
                       >
                         {seg.name}
                       </button>
                       {idx < breadcrumbSegments.length - 1 && (
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-600 shrink-0" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 dark:text-slate-600 shrink-0" />
                       )}
                     </React.Fragment>
                   ))
@@ -708,7 +708,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
             {activeOps.length > 0 && (
               <button
                 onClick={() => setShowOpsQueue(!showOpsQueue)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[11px] animate-pulse"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/40 text-[11px] animate-pulse"
               >
                 <RefreshCw className="w-3 h-3 animate-spin" />
                 <span>{activeOps[0].speedMb} MB/s</span>
@@ -719,7 +719,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
               <button
                 onClick={handleEmptyTrash}
                 disabled={trashItems.length === 0}
-                className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 flex items-center gap-1 text-[11px] disabled:opacity-40"
+                className="px-2.5 py-1 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-600 dark:text-rose-300 border border-rose-500/40 flex items-center gap-1 text-[11px] disabled:opacity-40"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 <span>Empty Trash</span>
@@ -728,18 +728,18 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
               <>
                 <button
                   onClick={handleCreateFolder}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 flex items-center gap-1 text-[11px]"
+                  className="p-1.5 rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 flex items-center gap-1 text-[11px]"
                   title="New Folder"
                 >
-                  <FolderPlus className="w-3.5 h-3.5 text-cyan-400" />
+                  <FolderPlus className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span className="hidden sm:inline">New Folder</span>
                 </button>
                 <button
                   onClick={handleCreateFile}
-                  className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 flex items-center gap-1 text-[11px]"
+                  className="p-1.5 rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 flex items-center gap-1 text-[11px]"
                   title="New Document"
                 >
-                  <FilePlus className="w-3.5 h-3.5 text-emerald-400" />
+                  <FilePlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                   <span className="hidden sm:inline">New File</span>
                 </button>
               </>
@@ -747,24 +747,24 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
 
             <button
               onClick={() => (isTrashView ? loadTrash() : loadDirectory(currentPath))}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300"
+              className="p-1.5 rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300"
               title="Refresh"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-500' : ''}`} />
             </button>
 
             {/* View Mode Toggle */}
-            <div className="flex items-center p-0.5 rounded-lg bg-slate-900 border border-slate-800">
+            <div className="flex items-center p-0.5 rounded-lg bg-black/5 dark:bg-slate-900 border border-black/10 dark:border-slate-800">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
-                title="Icon Grid View"
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                title="Grid View"
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1 rounded ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`p-1 rounded ${viewMode === 'list' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                 title="Details List View"
               >
                 <List className="w-3.5 h-3.5" />
@@ -779,7 +779,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                 placeholder="Filter..."
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                className="pl-6 pr-2 py-1 bg-slate-900 border border-slate-800 rounded-lg text-[11px] text-slate-200 outline-none w-24 focus:w-36 transition-all"
+                className="pl-6 pr-2 py-1 bg-black/5 dark:bg-slate-900 border border-black/10 dark:border-slate-800 rounded-lg text-[11px] text-slate-800 dark:text-slate-200 outline-none w-24 focus:w-36 transition-all"
               />
             </div>
           </div>
@@ -787,7 +787,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
 
         {/* Operations Queue Floating Popover */}
         {showOpsQueue && activeOps.length > 0 && (
-          <div className="absolute top-12 right-6 w-80 bg-slate-900/95 border border-slate-700/80 rounded-xl p-3 shadow-2xl z-40 text-xs">
+          <div className="absolute top-12 right-6 w-80 bg-white/95 dark:bg-slate-900/95 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 shadow-2xl z-40 text-xs text-slate-800 dark:text-slate-200">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <span className="font-bold text-slate-200">Active File Operations</span>
               <button onClick={() => setShowOpsQueue(false)} className="text-slate-400 hover:text-white">
@@ -910,14 +910,14 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                       dragOverFolder === item.fullPath
                         ? 'bg-blue-600/40 border-blue-400 scale-105'
                         : selectedFile?.name === item.name
-                        ? 'bg-blue-600/30 border-blue-500 text-white shadow-lg shadow-blue-500/10'
-                        : 'border-transparent hover:bg-white/5 text-slate-300'
+                        ? 'bg-blue-100/80 dark:bg-blue-600/30 border-blue-500 text-blue-950 dark:text-white shadow-xs'
+                        : 'border-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-800 dark:text-slate-300'
                     }`}
                   >
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1 group-hover:scale-105 transition-transform">
                       {renderItemIcon(item)}
                     </div>
-                    <span className="text-xs font-medium truncate max-w-full group-hover:text-white px-1">
+                    <span className="text-xs font-medium truncate max-w-full group-hover:text-blue-600 dark:group-hover:text-white px-1">
                       {item.name}
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono mt-0.5">{item.size}</span>
@@ -928,17 +928,17 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
               /* Details List View */
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 font-semibold bg-[#111722]/60 select-none">
-                    <th onClick={() => toggleSort('name')} className="py-2 px-4 cursor-pointer hover:text-white">
+                  <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold bg-black/5 dark:bg-[#111722]/60 select-none">
+                    <th onClick={() => toggleSort('name')} className="py-2 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white">
                       Name {sortBy === 'name' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                     </th>
-                    <th onClick={() => toggleSort('size')} className="py-2 px-4 cursor-pointer hover:text-white">
+                    <th onClick={() => toggleSort('size')} className="py-2 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white">
                       Size {sortBy === 'size' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                     </th>
-                    <th onClick={() => toggleSort('type')} className="py-2 px-4 cursor-pointer hover:text-white">
+                    <th onClick={() => toggleSort('type')} className="py-2 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white">
                       Kind {sortBy === 'type' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                     </th>
-                    <th onClick={() => toggleSort('modified')} className="py-2 px-4 cursor-pointer hover:text-white">
+                    <th onClick={() => toggleSort('modified')} className="py-2 px-4 cursor-pointer hover:text-slate-900 dark:hover:text-white">
                       Date Modified {sortBy === 'modified' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
                     </th>
                     <th className="py-2 px-4">Permissions</th>
@@ -957,8 +957,8 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                         setSelectedFile(item);
                         setContextMenu({ x: e.clientX, y: e.clientY, targetItem: item });
                       }}
-                      className={`border-b border-slate-800/40 cursor-pointer hover:bg-white/5 transition-colors ${
-                        selectedFile?.name === item.name ? 'bg-blue-600/30 text-white' : 'text-slate-300'
+                      className={`border-b border-slate-200/60 dark:border-slate-800/40 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${
+                        selectedFile?.name === item.name ? 'bg-blue-100/70 dark:bg-blue-600/30 text-blue-950 dark:text-white' : 'text-slate-800 dark:text-slate-300'
                       }`}
                     >
                       <td className="py-1.5 px-4 flex items-center space-x-2">
@@ -981,7 +981,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
         )}
 
         {/* ==================== FOOTER STATUS BAR ==================== */}
-        <div className="h-6 px-4 bg-[#0f141c] border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400 font-mono shrink-0">
+        <div className="h-6 px-4 bg-white/80 dark:bg-[#0f141c] border-t border-black/5 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 font-mono shrink-0">
           <span>
             {isTrashView ? `${trashItems.length} items in Trash` : `${processedItems.length} items`}
           </span>
@@ -991,7 +991,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                 Selected: {selectedFile.name} ({selectedFile.size})
               </span>
             )}
-            <span className="text-slate-600">|</span>
+            <span className="text-slate-400 dark:text-slate-600">|</span>
             <span>AxisOS VFS (POSIX ext4)</span>
           </div>
         </div>
@@ -1001,7 +1001,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
       {contextMenu && (
         <div
           onClick={(e) => e.stopPropagation()}
-          className="fixed z-50 w-52 bg-slate-900/95 backdrop-blur-2xl border border-slate-700/80 rounded-xl p-1.5 shadow-2xl text-xs text-slate-200 flex flex-col gap-0.5 animate-in fade-in duration-100"
+          className="fixed z-50 w-52 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-700/80 rounded-xl p-1.5 shadow-2xl text-xs text-slate-800 dark:text-slate-200 flex flex-col gap-0.5 animate-in fade-in duration-100"
           style={{ top: Math.min(contextMenu.y, window.innerHeight - 280), left: Math.min(contextMenu.x, window.innerWidth - 220) }}
         >
           {contextMenu.targetItem ? (

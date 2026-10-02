@@ -31,6 +31,13 @@ export const DockOrTaskbar: React.FC = () => {
     useWindowManager();
   const { isLiveEnvironment } = useSystemState();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [isDockRevealed, setIsDockRevealed] = useState(false);
+
+  // Auto-hide dock when any focused or active window is maximized
+  const hasMaximizedWindow = windows.some(
+    (w) => w.isMaximized && !w.isMinimized && (w.id === activeWindowId || windows.filter((x) => !x.isMinimized).every((x) => x.zIndex <= w.zIndex))
+  );
+  const isDockHidden = hasMaximizedWindow && !isDockRevealed;
 
   const dockApps = isLiveEnvironment ? DOCK_APPS : DOCK_APPS.filter((a) => a.id !== 'installer');
 
@@ -55,11 +62,30 @@ export const DockOrTaskbar: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-2.5 left-1/2 -translate-x-1/2 z-40 select-none">
+    <>
+      {/* Bottom edge hover trigger hotspot when in fullscreen/maximized */}
+      {hasMaximizedWindow && (
+        <div
+          onMouseEnter={() => setIsDockRevealed(true)}
+          className="fixed bottom-0 left-0 w-full h-2.5 z-40 bg-transparent pointer-events-auto"
+        />
+      )}
+
       <div
-        onMouseLeave={() => setHoveredIdx(null)}
-        className="flex items-end space-x-2.5 px-3.5 py-2.5 rounded-2xl bg-white/10 dark:bg-slate-900/40 backdrop-blur-3xl border border-white/20 dark:border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
+        onMouseEnter={() => setIsDockRevealed(true)}
+        onMouseLeave={() => {
+          setHoveredIdx(null);
+          setIsDockRevealed(false);
+        }}
+        className={`fixed bottom-2.5 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-300 ease-in-out ${
+          isDockHidden
+            ? 'translate-y-36 opacity-0 pointer-events-none'
+            : 'translate-y-0 opacity-100 pointer-events-auto'
+        }`}
       >
+        <div
+          className="flex items-end space-x-2.5 px-3.5 py-2.5 rounded-2xl bg-white/20 dark:bg-slate-900/40 backdrop-blur-3xl border border-white/20 dark:border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
+        >
         {/* Dock Applications */}
         {dockApps.map((app, idx) => {
           const isRunning = isAppRunning(app.id);
@@ -124,5 +150,6 @@ export const DockOrTaskbar: React.FC = () => {
         </button>
       </div>
     </div>
-  );
+  </>
+);
 };

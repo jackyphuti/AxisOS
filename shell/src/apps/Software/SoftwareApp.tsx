@@ -407,9 +407,9 @@ export const SoftwareApp: React.FC = () => {
   ];
 
   return (
-    <div className="flex h-full w-full bg-[#0b0f17] text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-[#F5F5F7] dark:bg-[#0b0f17] text-slate-900 dark:text-slate-100 select-none overflow-hidden font-sans">
       {/* Sidebar Navigation (Mac App Store aesthetic) */}
-      <div className="w-60 border-r border-white/10 bg-slate-900/80 p-3 flex flex-col justify-between backdrop-blur-xl shrink-0">
+      <div className="w-60 border-r border-black/5 dark:border-white/10 bg-white/70 dark:bg-slate-900/80 p-3 flex flex-col justify-between backdrop-blur-xl shrink-0">
         <div className="space-y-4">
           {/* App Store Branding */}
           <div className="flex items-center space-x-2.5 px-2 py-1">
@@ -417,8 +417,8 @@ export const SoftwareApp: React.FC = () => {
               <Package className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h1 className="text-sm font-bold tracking-tight text-white">Axis Store</h1>
-              <p className="text-[10px] text-slate-400">Applications & APT Center</p>
+              <h1 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">Axis Store</h1>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Applications & APT Center</p>
             </div>
           </div>
 
@@ -441,7 +441,7 @@ export const SoftwareApp: React.FC = () => {
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
                     active
                       ? 'bg-[#007AFF] text-white shadow-md shadow-blue-600/30'
-                      : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
                   <div className="flex items-center space-x-2.5">
@@ -450,7 +450,7 @@ export const SoftwareApp: React.FC = () => {
                   </div>
                   <span
                     className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                      active ? 'bg-white/20 text-white' : 'text-slate-500 bg-white/5'
+                      active ? 'bg-white/20 text-white' : 'text-slate-500 dark:text-slate-400 bg-black/5 dark:bg-white/5'
                     }`}
                   >
                     {count}
@@ -462,21 +462,21 @@ export const SoftwareApp: React.FC = () => {
         </div>
 
         {/* Repository & System Security Card */}
-        <div className="p-3 rounded-2xl bg-white/5 border border-white/5 text-[11px] text-slate-400 space-y-1.5">
-          <div className="flex items-center space-x-1.5 text-slate-200 font-semibold">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-[11px] text-slate-600 dark:text-slate-400 space-y-1.5">
+          <div className="flex items-center space-x-1.5 text-slate-800 dark:text-slate-200 font-semibold">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
             <span>Verified Debian Repos</span>
           </div>
-          <p className="text-[10px] text-slate-400 leading-tight">
+          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">
             Signed APT packages with sandboxed permissions and unattended updates.
           </p>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-950">
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#F5F5F7] dark:bg-slate-950">
         {/* Top Search & Filter Bar */}
-        <div className="h-14 border-b border-white/10 px-6 flex items-center justify-between gap-4 bg-slate-900/40 shrink-0">
+        <div className="h-14 border-b border-black/5 dark:border-white/10 px-6 flex items-center justify-between gap-4 bg-white/80 dark:bg-slate-900/40 shrink-0">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <input
@@ -484,10 +484,10 @@ export const SoftwareApp: React.FC = () => {
               placeholder="Search apps by name, category, or package..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-800/80 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+              className="w-full bg-white dark:bg-slate-800/80 border border-slate-300/80 dark:border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all shadow-xs"
             />
           </div>
-          <div className="text-xs text-slate-400 font-mono">
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
             {filtered.length} {filtered.length === 1 ? 'app' : 'apps'} listed
           </div>
         </div>
@@ -544,14 +544,14 @@ export const SoftwareApp: React.FC = () => {
           {/* Section Header */}
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-base font-bold text-white capitalize">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white capitalize">
                 {selectedCategory === 'discover'
                   ? 'Popular & Essential Applications'
                   : selectedCategory === 'installed'
                   ? 'Installed Applications'
                   : `${selectedCategory} Apps`}
               </h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Install directly via Debian APT repositories onto your disk.
               </p>
             </div>
@@ -569,30 +569,30 @@ export const SoftwareApp: React.FC = () => {
                   onClick={() => setSelectedApp(pkg)}
                   className={`relative flex flex-col justify-between p-4 rounded-2xl border transition-all cursor-pointer ${
                     isSelected
-                      ? 'border-[#007AFF] bg-blue-950/20 ring-1 ring-[#007AFF]/40 shadow-lg'
-                      : 'border-white/10 bg-slate-900/50 hover:bg-slate-900/80 hover:border-white/20'
+                      ? 'border-[#007AFF] bg-blue-50/70 dark:bg-blue-950/20 ring-1 ring-[#007AFF]/40 shadow-md'
+                      : 'border-slate-200/80 dark:border-white/10 bg-white dark:bg-slate-900/50 hover:bg-slate-50 dark:hover:bg-slate-900/80 hover:border-slate-300 dark:hover:border-white/20 shadow-xs'
                   }`}
                 >
                   <div>
                     <div className="flex items-start justify-between mb-3">
-                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-2xl shadow-inner border border-white/10">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-white/10 flex items-center justify-center text-2xl shadow-inner border border-slate-200 dark:border-white/10">
                         {pkg.icon}
                       </div>
                       {pkg.badge && (
-                        <span className="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        <span className="text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30">
                           {pkg.badge}
                         </span>
                       )}
                     </div>
 
-                    <h3 className="text-sm font-semibold text-white tracking-tight">{pkg.name}</h3>
-                    <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">{pkg.name}</h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                       {pkg.description}
                     </p>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between">
-                    <div className="text-[10px] text-slate-400">
+                  <div className="mt-4 pt-3 border-t border-slate-100 dark:border-white/10 flex items-center justify-between">
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400">
                       <span>{pkg.size}</span> • <span className="font-mono">{pkg.packageName}</span>
                     </div>
 
@@ -603,7 +603,7 @@ export const SoftwareApp: React.FC = () => {
                             e.stopPropagation();
                             handleLaunchApp(pkg);
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition-colors"
+                          className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 text-slate-800 dark:text-white text-[11px] font-medium transition-colors"
                         >
                           Open
                         </button>
@@ -613,7 +613,7 @@ export const SoftwareApp: React.FC = () => {
                             e.stopPropagation();
                             handleUninstall(pkg);
                           }}
-                          className="p-1 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-400 transition-colors"
+                          className="p-1 rounded-lg hover:bg-red-500/20 text-slate-400 hover:text-red-500 transition-colors"
                           title="Uninstall package"
                         >
                           <Trash2 className="w-3.5 h-3.5" />

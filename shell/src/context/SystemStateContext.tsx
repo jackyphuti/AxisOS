@@ -110,6 +110,8 @@ interface SystemStateContextType {
   setNightLight: (nl: boolean) => void;
   batteryLevel: number;
   isCharging: boolean;
+  hasBattery: boolean;
+  batteryStatus: string;
   isQuickSettingsOpen: boolean;
   setIsQuickSettingsOpen: (open: boolean) => void;
   isAppMenuOpen: boolean;
@@ -151,18 +153,20 @@ const initialSystemInfo: SystemInfo = {
 const SystemStateContext = createContext<SystemStateContextType | null>(null);
 
 export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<SystemTheme>('dark');
+  const [theme, setTheme] = useState<SystemTheme>('light');
   const [accentColor, setAccentColor] = useState<AccentColor>('blue');
   const [wallpaper, setWallpaper] = useState<WallpaperOption>(WALLPAPERS[0]);
   const [volume, setVolume] = useState<number>(75);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [brightness, setBrightness] = useState<number>(85);
-  const [wifiConnected, setWifiConnected] = useState<boolean>(true);
-  const [wifiSsid, setWifiSsid] = useState<string>('Axis-Fiber-5G');
+  const [wifiConnected, setWifiConnected] = useState<boolean>(false);
+  const [wifiSsid, setWifiSsid] = useState<string>('Not Connected');
   const [bluetoothEnabled, setBluetoothEnabled] = useState<boolean>(true);
   const [nightLight, setNightLight] = useState<boolean>(false);
-  const [batteryLevel] = useState<number>(92);
-  const [isCharging] = useState<boolean>(true);
+  const [batteryLevel, setBatteryLevel] = useState<number>(100);
+  const [isCharging, setIsCharging] = useState<boolean>(true);
+  const [hasBattery, setHasBattery] = useState<boolean>(false);
+  const [batteryStatus, setBatteryStatus] = useState<string>('AC Connected');
   const [isQuickSettingsOpen, setIsQuickSettingsOpen] = useState<boolean>(false);
   const [isAppMenuOpen, setIsAppMenuOpen] = useState<boolean>(false);
   const [isSpotlightOpen, setIsSpotlightOpen] = useState<boolean>(false);
@@ -170,6 +174,17 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [isLiveEnvironment, setIsLiveEnvironment] = useState<boolean>(false);
   const [autoInstall, setAutoInstall] = useState<boolean>(false);
   const [systemInfo, setSystemInfo] = useState<SystemInfo>(initialSystemInfo);
+
+  // Sync theme class to document element for Tailwind dark variants
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+  }, [theme]);
 
   // Load real host hardware dynamically
   useEffect(() => {
@@ -226,6 +241,28 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  // Real host hardware battery polling
+  useEffect(() => {
+    let isMounted = true;
+    const fetchBattery = async () => {
+      try {
+        const bat = await systemService.getBatteryStatus();
+        if (!isMounted) return;
+        setBatteryLevel(bat.level);
+        setIsCharging(bat.charging);
+        setHasBattery(bat.hasBattery);
+        setBatteryStatus(bat.status);
+      } catch {}
+    };
+
+    fetchBattery();
+    const interval = setInterval(fetchBattery, 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
     };
   }, []);
 
@@ -330,6 +367,8 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setNightLight,
         batteryLevel,
         isCharging,
+        hasBattery,
+        batteryStatus,
         isQuickSettingsOpen,
         setIsQuickSettingsOpen,
         isAppMenuOpen,
