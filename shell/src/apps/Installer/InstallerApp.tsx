@@ -26,6 +26,7 @@ import { useInstaller, INSTALL_STEPS } from '../../context/InstallerContext';
 import { useSystemState, ACCENT_COLOR_MAP } from '../../context/SystemStateContext';
 import { useWindowManager } from '../../context/WindowManagerContext';
 import { systemService } from '../../services/systemService';
+import { AxisLogo } from '../../components/AxisLogo';
 
 // Comprehensive language, location, and keyboard datasets
 const LANGUAGE_OPTIONS = [
@@ -176,8 +177,8 @@ export const InstallerApp: React.FC = () => {
       {/* Windows Setup Header Bar */}
       <div className="h-12 bg-slate-900 border-b border-white/10 px-5 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-white text-xs shadow-md ring-1 ring-white/20">
-            ▲
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md ring-1 ring-white/20">
+            <AxisLogo size={14} variant="white" />
           </div>
           <span className="text-sm font-semibold tracking-tight text-slate-200">
             AxisOS Setup

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { HardDrive, Sparkles, X, ShieldCheck, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useSystemState, ACCENT_COLOR_MAP } from '../context/SystemStateContext';
 import { useWindowManager } from '../context/WindowManagerContext';
+import { AxisLogo } from './AxisLogo';
 
 export const LiveWelcomeModal: React.FC = () => {
   const { isLiveEnvironment, autoInstall, accentColor } = useSystemState();
@@ -41,7 +42,7 @@ export const LiveWelcomeModal: React.FC = () => {
 
         {/* Logo Badge */}
         <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 via-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xl shadow-cyan-950/60 mb-5 ring-4 ring-white/10">
-          <span className="text-2xl font-black tracking-tighter">▲</span>
+          <AxisLogo size={36} variant="white" />
         </div>
 
         {/* Title & Description */}

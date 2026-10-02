@@ -16,6 +16,7 @@ import { useWindowManager } from '../context/WindowManagerContext';
 
 export const QuickSettings: React.FC = () => {
   const {
+    wifiEnabled,
     wifiConnected,
     wifiSsid,
     bluetoothEnabled,
@@ -44,20 +45,20 @@ export const QuickSettings: React.FC = () => {
         <div className="p-2.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex flex-col gap-2.5">
           {/* Wi-Fi */}
           <button
-            onClick={toggleWifi}
+            onClick={() => toggleWifi(!wifiEnabled)}
             className="flex items-center space-x-2.5 text-left w-full group cursor-pointer"
           >
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                wifiConnected ? 'bg-blue-500 text-white shadow-md' : 'bg-black/10 dark:bg-white/10 text-slate-500 dark:text-slate-400'
+                wifiEnabled ? 'bg-blue-500 text-white shadow-md' : 'bg-black/10 dark:bg-white/10 text-slate-500 dark:text-slate-400'
               }`}
             >
-              {wifiConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+              {wifiEnabled ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
             </div>
             <div className="overflow-hidden">
               <div className="text-xs font-semibold leading-tight text-slate-800 dark:text-slate-100">Wi-Fi</div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                {wifiConnected ? wifiSsid : 'Off'}
+                {!wifiEnabled ? 'Off' : wifiConnected ? wifiSsid : 'Searching...'}
               </div>
             </div>
           </button>

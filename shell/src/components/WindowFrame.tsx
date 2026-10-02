@@ -70,7 +70,7 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
     };
   }, [isDragging, win.id, updateWindowPosition]);
 
-  if (win.isMinimized) {
+  if (win.isMinimized && !win.animating) {
     return null;
   }
 
@@ -125,8 +125,14 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
       onDoubleClick={(e) => {
         if (hasIntegratedTitlebar) handleIntegratedDoubleClick(e);
       }}
-      className={`flex flex-col ${win.isMaximized ? 'rounded-none' : 'rounded-2xl'} overflow-hidden backdrop-blur-3xl transition-all duration-150 ${
-        isFocused
+      className={`flex flex-col ${win.isMaximized ? 'rounded-none' : 'rounded-2xl'} overflow-hidden backdrop-blur-3xl transition-all duration-200 ease-out ${
+        win.animating === 'closing'
+          ? 'scale-90 opacity-0 blur-[2px] pointer-events-none duration-180 ease-in'
+          : win.animating === 'minimizing'
+          ? 'translate-y-32 scale-50 opacity-0 blur-[1px] pointer-events-none duration-200 ease-in'
+          : win.animating === 'restoring'
+          ? 'animate-in fade-in zoom-in-95 duration-200 ease-out'
+          : isFocused
           ? 'ring-1 ring-black/10 dark:ring-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] opacity-100'
           : 'ring-1 ring-black/5 dark:ring-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_15px_35px_-10px_rgba(0,0,0,0.6)] opacity-95'
       } bg-white dark:bg-slate-950/85`}

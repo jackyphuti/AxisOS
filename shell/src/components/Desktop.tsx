@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Terminal as TerminalIcon, Folder, Settings, Palette, Info, Monitor } from 'lucide-react';
+import { Sparkles, Terminal as TerminalIcon, Folder, Settings, Palette, Info, Monitor, HardDrive } from 'lucide-react';
 import { useSystemState } from '../context/SystemStateContext';
 import { useWindowManager } from '../context/WindowManagerContext';
 import { WindowFrame } from './WindowFrame';
@@ -10,6 +10,10 @@ import { SpotlightSearch } from './SpotlightSearch';
 import { PowerModal } from './PowerModal';
 import { LiveWelcomeModal } from './LiveWelcomeModal';
 import { MacIcon } from './MacIcon';
+import { AppMenu } from './AppMenu';
+import { DynamicIsland } from './DynamicIsland';
+import { LockScreen } from './LockScreen';
+import { BootSplashScreen } from './BootSplashScreen';
 
 // Apps
 import { InstallerApp } from '../apps/Installer/InstallerApp';
@@ -98,6 +102,18 @@ export const Desktop: React.FC = () => {
       className="relative h-screen w-screen overflow-hidden select-none bg-cover bg-center transition-all duration-700"
       style={{ background: wallpaper.gradient }}
     >
+      {/* Boot Splash Screen */}
+      <BootSplashScreen />
+
+      {/* iOS Lock Screen */}
+      <LockScreen />
+
+      {/* Dynamic Island Floating Notification Pill */}
+      <DynamicIsland />
+
+      {/* macOS / Debian App Launcher Menu (Triggered by Windows Key or Menu Bar) */}
+      <AppMenu />
+
       {/* macOS Menu Bar */}
       <TopBar />
 
@@ -115,16 +131,16 @@ export const Desktop: React.FC = () => {
 
       {/* Desktop Drive & Shortcuts (Top Right in true macOS fashion!) */}
       <div className="absolute top-10 right-4 flex flex-col items-center gap-5 z-10">
-        {/* Macintosh HD / Root Drive */}
+        {/* Axis System HD / Root Drive */}
         <button
           onDoubleClick={() => openApp('file-manager')}
           className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/15 active:bg-blue-600/30 group cursor-pointer w-22 transition-all text-center"
         >
-          <div className="w-13 h-13 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-105 drop-shadow-lg">
-            <span className="text-4xl">💾</span>
+          <div className="w-13 h-13 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-slate-100 shadow-xl group-hover:scale-105 transition-transform">
+            <HardDrive className="w-7 h-7 text-cyan-300 drop-shadow" />
           </div>
           <span className="text-[11px] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-tight">
-            Macintosh HD
+            Axis System HD
           </span>
         </button>
 

@@ -22,6 +22,7 @@ export const AppMenu: React.FC = () => {
     isAppMenuOpen,
     setIsAppMenuOpen,
     setPowerModalOpen,
+    lockSession,
     accentColor,
     isLiveEnvironment,
   } = useSystemState();
@@ -53,7 +54,7 @@ export const AppMenu: React.FC = () => {
   return (
     <div
       id="app-menu-panel"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md select-none"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-2xl select-none animate-in fade-in duration-150"
       onClick={() => setIsAppMenuOpen(false)}
     >
       <div
@@ -129,6 +130,16 @@ export const AppMenu: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                setIsAppMenuOpen(false);
+                lockSession();
+              }}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5 text-xs font-medium transition-colors"
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Lock</span>
+            </button>
             <button
               onClick={() => {
                 setIsAppMenuOpen(false);

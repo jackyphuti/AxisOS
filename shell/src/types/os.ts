@@ -37,6 +37,7 @@ export interface WindowState {
   isMinimized: boolean;
   isMaximized: boolean;
   zIndex: number;
+  animating?: 'closing' | 'minimizing' | 'restoring';
   params?: Record<string, any>;
 }
 

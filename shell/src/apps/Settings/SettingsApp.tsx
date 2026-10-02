@@ -118,6 +118,7 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
     nightLight,
     setNightLight,
     systemInfo,
+    wifiEnabled,
     wifiConnected,
     wifiSsid,
     setWifiSsid,
@@ -980,26 +981,26 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
             {/* Toggle Card */}
             <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-4 flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white ${wifiConnected ? 'bg-[#007AFF]' : 'bg-slate-400'}`}>
-                  {wifiConnected ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5" />}
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white ${wifiEnabled ? 'bg-[#007AFF]' : 'bg-slate-400'}`}>
+                  {wifiEnabled ? <Wifi className="w-5 h-5" /> : <WifiOff className="w-5 h-5" />}
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">Wi-Fi</div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {wifiConnected ? `Connected to ${wifiSsid}` : 'Disconnected'}
+                    {!wifiEnabled ? 'Turned Off' : wifiConnected ? `Connected to ${wifiSsid}` : 'Searching for networks...'}
                   </div>
                 </div>
               </div>
 
               <button
-                onClick={toggleWifi}
+                onClick={() => toggleWifi(!wifiEnabled)}
                 className={`w-12 h-6.5 rounded-full transition-colors relative p-0.5 ${
-                  wifiConnected ? 'bg-[#34C759]' : 'bg-slate-300 dark:bg-slate-600'
+                  wifiEnabled ? 'bg-[#34C759]' : 'bg-slate-300 dark:bg-slate-600'
                 }`}
               >
                 <div
                   className={`w-5.5 h-5.5 rounded-full bg-white shadow-md transition-transform ${
-                    wifiConnected ? 'translate-x-5.5' : 'translate-x-0'
+                    wifiEnabled ? 'translate-x-5.5' : 'translate-x-0'
                   }`}
                 />
               </button>
@@ -1038,7 +1039,7 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
             )}
 
             {/* Network List */}
-            {wifiConnected && (
+            {wifiEnabled && (
               <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-4 flex flex-col gap-3">
                 <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                   Available Networks
