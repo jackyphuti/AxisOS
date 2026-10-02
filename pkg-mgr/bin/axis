@@ -31,7 +31,7 @@ DEFAULT_STATE_DIR = "/var/lib/axis"
 DEFAULT_CACHE_DIR = "/var/lib/axis/cache"
 DEFAULT_DB_FILE = "/var/lib/axis/installed.json"
 DEFAULT_INDEX_FILE = "/var/lib/axis/repo-index.json"
-DEFAULT_REPO_URL = "https://repo.axisos.org"
+DEFAULT_REPO_URL = "https://raw.githubusercontent.com/jackyphuti/AxisOS/main/pkg-mgr/examples"
 
 # Color formatting for terminal
 class Colors:
