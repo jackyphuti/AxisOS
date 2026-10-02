@@ -27,12 +27,17 @@ if (-not $SkipShellBuild) {
     Write-Host "[1/3] Skipping Shell build as requested." -ForegroundColor DarkGray
 }
 
-# 2. Check for Docker or Podman on Windows
+# 2. Check for Docker, Podman, or WSL
 $ContainerTool = $null
 if (Get-Command podman -ErrorAction SilentlyContinue) {
     $ContainerTool = "podman"
 } elseif (Get-Command docker -ErrorAction SilentlyContinue) {
-    $ContainerTool = "docker"
+    try {
+        & docker info >$null 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            $ContainerTool = "docker"
+        }
+    } catch {}
 }
 
 if ($ContainerTool) {
@@ -45,7 +50,7 @@ FROM debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     live-build debootstrap squashfs-tools xorriso isolinux syslinux-common syslinux-efi \
-    grub-pc-bin grub-efi-amd64-bin mtools dosfstools ca-certificates curl rsync \
+    grub-pc-bin grub-efi-amd64-bin mtools dosfstools ca-certificates curl rsync python3 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 CMD ["bash"]
@@ -55,21 +60,21 @@ CMD ["bash"]
     Write-Host "Building builder container image..." -ForegroundColor Yellow
     & $ContainerTool build -t axisos-builder -f (Join-Path $BuildDir "Containerfile") $BuildDir
 
-    Write-Host "[3/3] Executing live-build inside container..." -ForegroundColor Yellow
-    & $ContainerTool run --privileged --rm -v "${RootDir}:/workspace" axisos-builder /workspace/os-build/scripts/inner-build.sh
+    Write-Host "[3/3] Executing build inside container..." -ForegroundColor Yellow
+    & $ContainerTool run --privileged --rm -v "${RootDir}:/workspace" -e "WORKSPACE_DIR=/workspace" axisos-builder python3 /workspace/os-build/scripts/build-hybrid-uefi-iso.py
 } else {
-    Write-Host "[2/3] Docker/Podman not found on Windows host." -ForegroundColor Yellow
+    Write-Host "[2/3] Docker daemon not active or not installed." -ForegroundColor Yellow
     Write-Host "Checking for WSL..." -ForegroundColor Yellow
 
     if (Get-Command wsl -ErrorAction SilentlyContinue) {
-        Write-Host "WSL detected! Executing live-build inside WSL Ubuntu (root)..." -ForegroundColor Green
+        Write-Host "WSL detected! Executing ISO build inside WSL Ubuntu (root)..." -ForegroundColor Green
         
         $Full = [System.IO.Path]::GetFullPath($RootDir)
         $Drive = $Full.Substring(0, 1).ToLower()
         $Rest = $Full.Substring(2).Replace('\', '/')
         $WslRootDir = "/mnt/$Drive$Rest"
 
-        wsl -d Ubuntu-26.04 -u root bash -c "cd '$WslRootDir' && ./os-build/scripts/inner-build.sh"
+        wsl -d Ubuntu-26.04 -u root bash -c "cd '$WslRootDir' && python3 ./os-build/scripts/build-hybrid-uefi-iso.py"
     } else {
         Write-Host "Neither Docker, Podman, nor WSL found. Please install Docker Desktop or WSL." -ForegroundColor Red
         exit 1

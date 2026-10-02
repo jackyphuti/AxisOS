@@ -7,11 +7,73 @@ import subprocess
 build_dir = "/build"
 chroot_dir = f"{build_dir}/chroot"
 binary_dir = f"{build_dir}/binary"
-workspace_dir = "/mnt/c/Users/jacky/documents/github/AxisOS"
+
+workspace_dir = os.environ.get("WORKSPACE_DIR")
+if not workspace_dir:
+    for candidate in [
+        "/mnt/c/Users/jacky/Documents/GitHub/AxisOS",
+        "/mnt/c/Users/jacky/documents/github/AxisOS",
+        os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")),
+    ]:
+        if os.path.exists(candidate):
+            workspace_dir = candidate
+            break
+if not workspace_dir:
+    workspace_dir = "/build"
 
 print("==================================================")
 print("  AxisOS Dual-Boot UEFI + Legacy BIOS ISO Engine  ")
 print("==================================================")
+print(f"Workspace Dir: {workspace_dir}")
+print(f"Chroot Dir:    {chroot_dir}")
+print(f"Binary Dir:    {binary_dir}")
+
+# Step 0: Sync latest workspace assets into chroot
+print("--> 0. Synchronizing latest workspace assets into chroot")
+shell_dist_src = os.path.join(workspace_dir, "shell", "dist")
+shell_dist_dst = os.path.join(chroot_dir, "opt", "axisos-shell", "dist")
+if os.path.exists(shell_dist_src):
+    print("    Syncing shell/dist -> /opt/axisos-shell/dist")
+    if os.path.exists(shell_dist_dst):
+        shutil.rmtree(shell_dist_dst)
+    shutil.copytree(shell_dist_src, shell_dist_dst)
+
+pkg_axis_src = os.path.join(workspace_dir, "pkg-mgr", "bin", "axis")
+if os.path.exists(pkg_axis_src):
+    for dst in [os.path.join(chroot_dir, "usr", "bin", "axis"), os.path.join(chroot_dir, "usr", "local", "bin", "axis")]:
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(pkg_axis_src, dst)
+        os.chmod(dst, 0o755)
+
+axis_conf_src = os.path.join(workspace_dir, "pkg-mgr", "configs", "axis.conf")
+if os.path.exists(axis_conf_src):
+    dst = os.path.join(chroot_dir, "etc", "axis", "axis.conf")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copyfile(axis_conf_src, dst)
+
+repo_index_src = os.path.join(workspace_dir, "pkg-mgr", "examples", "repo-index.json")
+if os.path.exists(repo_index_src):
+    for dst in [os.path.join(chroot_dir, "etc", "axis", "repo-index.json"), os.path.join(chroot_dir, "var", "lib", "axis", "repo-index.json")]:
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(repo_index_src, dst)
+
+daemon_src = os.path.join(workspace_dir, "os-build", "configs", "cage-session", "axisos-daemon.cjs")
+if os.path.exists(daemon_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "axisos-daemon.cjs")
+    shutil.copyfile(daemon_src, dst)
+    os.chmod(dst, 0o755)
+
+kiosk_src = os.path.join(workspace_dir, "os-build", "configs", "cage-session", "axisos-kiosk.sh")
+if os.path.exists(kiosk_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "axisos-kiosk.sh")
+    shutil.copyfile(kiosk_src, dst)
+    os.chmod(dst, 0o755)
+
+installer_src = os.path.join(workspace_dir, "os-build", "scripts", "axisos-install.sh")
+if os.path.exists(installer_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "axisos-installer.sh")
+    shutil.copyfile(installer_src, dst)
+    os.chmod(dst, 0o755)
 
 # Step 1: Generate filesystem.squashfs
 print("--> 1. Building filesystem.squashfs with parallel XZ compression")
