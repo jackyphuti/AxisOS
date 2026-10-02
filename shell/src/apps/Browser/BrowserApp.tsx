@@ -44,6 +44,14 @@ interface FavoriteItem {
 
 const FAVORITES: FavoriteItem[] = [
   {
+    id: 'google',
+    label: 'Google',
+    icon: Search,
+    bg: 'bg-[#E1F0FF]',
+    color: 'text-[#007AFF]',
+    url: 'https://www.google.com/webhp?igu=1',
+  },
+  {
     id: 'docs',
     label: 'Docs',
     icon: FileText,
@@ -53,15 +61,15 @@ const FAVORITES: FavoriteItem[] = [
   },
   {
     id: 'mail',
-    label: 'Mail',
+    label: 'Gmail',
     icon: Mail,
-    bg: 'bg-[#E2F7E7]',
-    color: 'text-[#16A34A]',
+    bg: 'bg-[#FCE7F0]',
+    color: 'text-[#EA4335]',
     url: 'https://mail.google.com',
   },
   {
     id: 'code',
-    label: 'Code',
+    label: 'GitHub',
     icon: Code2,
     bg: 'bg-[#EBE9FD]',
     color: 'text-[#6366F1]',
@@ -69,19 +77,19 @@ const FAVORITES: FavoriteItem[] = [
   },
   {
     id: 'video',
-    label: 'Video',
+    label: 'YouTube',
     icon: Play,
-    bg: 'bg-[#FCE7F0]',
-    color: 'text-[#E11D48]',
+    bg: 'bg-[#FEE2E2]',
+    color: 'text-[#DC2626]',
     url: 'https://youtube.com',
   },
   {
     id: 'maps',
     label: 'Maps',
     icon: MapPin,
-    bg: 'bg-[#E1F0FF]',
-    color: 'text-[#007AFF]',
-    url: 'https://www.openstreetmap.org',
+    bg: 'bg-[#E2F7E7]',
+    color: 'text-[#16A34A]',
+    url: 'https://maps.google.com',
   },
 ];
 
@@ -115,9 +123,9 @@ export const BrowserApp: React.FC = () => {
       const saved = localStorage.getItem('axis_browser_bookmarks');
       return saved
         ? JSON.parse(saved)
-        : ['https://wayland.freedesktop.org/docs/html/', 'https://github.com'];
+        : ['https://www.google.com/webhp?igu=1', 'https://wayland.freedesktop.org/docs/html/', 'https://github.com'];
     } catch {
-      return ['https://wayland.freedesktop.org/docs/html/', 'https://github.com'];
+      return ['https://www.google.com/webhp?igu=1', 'https://wayland.freedesktop.org/docs/html/', 'https://github.com'];
     }
   });
 
@@ -140,7 +148,11 @@ export const BrowserApp: React.FC = () => {
     );
   };
 
-  const navigateTo = (rawUrl: string) => {
+  const navigateTo = (
+    rawUrl: string,
+    searchCategory?: 'all' | 'images' | 'news' | 'videos' | 'maps',
+    lucky?: boolean
+  ) => {
     let target = rawUrl.trim();
     if (!target) return;
 
@@ -160,11 +172,34 @@ export const BrowserApp: React.FC = () => {
       if (target.includes('.') && !target.includes(' ')) {
         target = `https://${target}`;
       } else {
-        target = `https://duckduckgo.com/?q=${encodeURIComponent(target)}`;
+        const q = encodeURIComponent(target);
+        if (lucky) {
+          target = `https://www.google.com/search?igu=1&btnI=1&q=${q}`;
+        } else if (searchCategory === 'images') {
+          target = `https://www.google.com/search?igu=1&tbm=isch&q=${q}`;
+        } else if (searchCategory === 'news') {
+          target = `https://www.google.com/search?igu=1&tbm=nws&q=${q}`;
+        } else if (searchCategory === 'videos') {
+          target = `https://www.google.com/search?igu=1&tbm=vid&q=${q}`;
+        } else if (searchCategory === 'maps') {
+          target = `https://maps.google.com/maps?q=${q}`;
+        } else {
+          target = `https://www.google.com/search?igu=1&q=${q}`;
+        }
       }
     }
 
     let pageTitle = target.replace(/^https?:\/\//, '').split('/')[0];
+    if (target.includes('google.com/search')) {
+      const qMatch = target.match(/[?&]q=([^&]+)/);
+      if (qMatch) {
+        pageTitle = `${decodeURIComponent(qMatch[1])} - Google Search`;
+      } else {
+        pageTitle = 'Google Search';
+      }
+    } else if (target.includes('google.com')) {
+      pageTitle = 'Google';
+    }
 
     updateActiveTab({
       url: target,
@@ -258,7 +293,7 @@ export const BrowserApp: React.FC = () => {
 
   const handleOpenNativeChromium = async () => {
     setIsNativeLaunching(true);
-    const targetUrl = activeTab.url === 'about:home' ? 'https://duckduckgo.com' : activeTab.url;
+    const targetUrl = activeTab.url === 'about:home' ? 'https://www.google.com' : activeTab.url;
     await systemService.openInNativeChromium(targetUrl);
     setTimeout(() => setIsNativeLaunching(false), 1500);
   };
@@ -267,6 +302,10 @@ export const BrowserApp: React.FC = () => {
 
   const getEmbedUrl = (raw: string) => {
     if (raw === 'about:home') return 'about:blank';
+    if (raw.includes('google.com') && !raw.includes('igu=1')) {
+      const separator = raw.includes('?') ? '&' : '?';
+      return `${raw}${separator}igu=1`;
+    }
     return raw;
   };
 
@@ -407,7 +446,14 @@ export const BrowserApp: React.FC = () => {
           className="flex-1 max-w-xl mx-auto relative flex items-center"
         >
           <div className="w-full flex items-center px-3.5 py-1.5 bg-[#F0F1F4] rounded-full border border-transparent focus-within:border-black/10 focus-within:bg-white transition-all text-xs shadow-2xs">
-            {activeTab.url.startsWith('https://') ? (
+            {activeTab.url.includes('google.com') ? (
+              <div className="flex items-center gap-0.5 mr-2 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#4285F4]"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#EA4335]"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#FBBC05]"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-[#34A853]"></span>
+              </div>
+            ) : activeTab.url.startsWith('https://') ? (
               <Lock className="w-3.5 h-3.5 text-[#34C759] mr-2 shrink-0" strokeWidth={2} />
             ) : (
               <Search className="w-3.5 h-3.5 text-[#8E8E93] mr-2 shrink-0" strokeWidth={2} />
@@ -417,7 +463,7 @@ export const BrowserApp: React.FC = () => {
               value={activeTab.inputUrl}
               onChange={(e) => updateActiveTab({ inputUrl: e.target.value })}
               className="w-full bg-transparent outline-none text-[#1C1C1E] text-xs font-sans placeholder-[#8E8E93]"
-              placeholder="Search or enter website address..."
+              placeholder="Search with Google or enter website address..."
             />
             {activeTab.url !== 'about:home' && (
               <button
@@ -484,47 +530,111 @@ export const BrowserApp: React.FC = () => {
           <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#007AFF] animate-pulse z-20" />
         )}
 
-        {/* If Home Screen (about:home), show Pixel-Perfect Mockup 2 */}
+        {/* If Home Screen (about:home), show Google-Powered Search Home */}
         {activeTab.url === 'about:home' ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
             {/* Centered pastel blue squircle icon */}
-            <div className="w-16 h-16 rounded-2xl bg-[#E1F0FF] text-[#007AFF] flex items-center justify-center shadow-2xs mb-4">
+            <div className="w-16 h-16 rounded-2xl bg-[#E1F0FF] text-[#007AFF] flex items-center justify-center shadow-2xs mb-3">
               <Globe className="w-8 h-8" strokeWidth={1.75} />
             </div>
 
-            {/* Title */}
-            <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight mb-4">
+            {/* Title & Google Search Indicator */}
+            <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight mb-1">
               Axis Browser
             </h1>
+            <div className="flex items-center gap-1.5 mb-5 text-xs text-[#8E8E93]">
+              <span>Powered by</span>
+              <span className="font-semibold flex items-center gap-0.5 text-[#1C1C1E]">
+                <span className="text-[#4285F4]">G</span>
+                <span className="text-[#EA4335]">o</span>
+                <span className="text-[#FBBC05]">o</span>
+                <span className="text-[#4285F4]">g</span>
+                <span className="text-[#34A853]">l</span>
+                <span className="text-[#EA4335]">e</span>
+              </span>
+              <span>Search</span>
+            </div>
 
-            {/* Centered Search Pill */}
+            {/* Centered Google Search Pill */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 navigateTo(searchQuery);
               }}
-              className="w-full max-w-md relative"
+              className="w-full max-w-lg relative"
             >
-              <div className="w-full h-10 px-4 rounded-full bg-[#F0F1F4] border border-transparent focus-within:border-black/10 focus-within:bg-white flex items-center gap-2.5 text-xs text-[#1C1C1E] shadow-2xs transition-all">
-                <Search className="w-4 h-4 text-[#8E8E93] shrink-0" strokeWidth={2} />
+              <div className="w-full h-11 px-4 rounded-full bg-[#F0F1F4] border border-transparent focus-within:border-black/10 focus-within:bg-white flex items-center gap-2.5 text-xs text-[#1C1C1E] shadow-2xs transition-all">
+                <div className="flex items-center gap-0.5 mr-1 shrink-0">
+                  <span className="w-2 h-2 rounded-full bg-[#4285F4]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#EA4335]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#FBBC05]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#34A853]"></span>
+                </div>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search the web or enter address"
+                  placeholder="Search Google or enter website address..."
                   className="w-full bg-transparent outline-none text-xs placeholder-[#8E8E93]"
+                  autoFocus
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="p-1 rounded-full hover:bg-black/5 text-[#8E8E93] hover:text-[#1C1C1E]"
+                  >
+                    <X className="w-3.5 h-3.5" strokeWidth={2} />
+                  </button>
+                )}
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center justify-center gap-3 mt-4">
+                <button
+                  type="submit"
+                  className="px-4 py-2 rounded-xl bg-[#F0F1F4] hover:bg-[#E5E7EB] text-xs font-medium text-[#1C1C1E] transition-colors cursor-pointer active:scale-95"
+                >
+                  Google Search
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigateTo(searchQuery, 'all', true)}
+                  className="px-4 py-2 rounded-xl bg-[#F0F1F4] hover:bg-[#E5E7EB] text-xs font-medium text-[#1C1C1E] transition-colors cursor-pointer active:scale-95"
+                >
+                  I'm Feeling Lucky
+                </button>
+              </div>
+
+              {/* Category Search Chips */}
+              <div className="flex items-center justify-center gap-2 mt-3">
+                {[
+                  { label: 'All', cat: 'all' as const },
+                  { label: 'Images', cat: 'images' as const },
+                  { label: 'News', cat: 'news' as const },
+                  { label: 'Videos', cat: 'videos' as const },
+                  { label: 'Maps', cat: 'maps' as const },
+                ].map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => navigateTo(searchQuery || 'Google', item.cat)}
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium text-[#5C5C60] hover:text-[#1C1C1E] hover:bg-black/5 transition-colors cursor-pointer"
+                  >
+                    {item.label}
+                  </button>
+                ))}
               </div>
             </form>
 
             {/* Favorites Section */}
-            <div className="mt-10 flex flex-col items-center">
-              <div className="text-xs font-semibold text-[#8E8E93] uppercase tracking-wider mb-5">
-                Favorites
+            <div className="mt-8 flex flex-col items-center">
+              <div className="text-xs font-semibold text-[#8E8E93] uppercase tracking-wider mb-4">
+                Favorites & Shortcuts
               </div>
 
-              {/* 5 Pastel Squircle Tiles */}
-              <div className="flex items-center gap-6">
+              {/* 6 Pastel Squircle Tiles */}
+              <div className="flex items-center gap-5 flex-wrap justify-center max-w-xl">
                 {FAVORITES.map((fav) => {
                   const Icon = fav.icon;
                   return (
