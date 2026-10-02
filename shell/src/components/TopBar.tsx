@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useSystemState } from '../context/SystemStateContext';
 import { useWindowManager, APP_REGISTRY } from '../context/WindowManagerContext';
+import { AxisLogo } from './AxisLogo';
 
 export const TopBar: React.FC = () => {
   const {
@@ -21,6 +22,8 @@ export const TopBar: React.FC = () => {
     isAppMenuOpen,
     setIsAppMenuOpen,
     setPowerModalOpen,
+    lockSession,
+    wifiEnabled,
     wifiConnected,
     batteryLevel,
     isCharging,
@@ -74,11 +77,11 @@ export const TopBar: React.FC = () => {
         <div className="relative" id="apple-menu">
           <button
             onClick={() => setAppleMenuOpen(!appleMenuOpen)}
-            className={`px-2 py-0.5 rounded transition-colors flex items-center justify-center font-black ${
+            className={`px-2 py-0.5 rounded transition-colors flex items-center justify-center ${
               appleMenuOpen ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-slate-200'
             }`}
           >
-            <span className="text-[13px] leading-none -translate-y-0.5">▲</span>
+            <AxisLogo size={14} variant="white" />
           </button>
 
           {appleMenuOpen && (
@@ -153,12 +156,12 @@ export const TopBar: React.FC = () => {
               <button
                 onClick={() => {
                   setAppleMenuOpen(false);
-                  setPowerModalOpen(true);
+                  lockSession();
                 }}
                 className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-between"
               >
                 <span>Lock Screen</span>
-                <span className="text-[10px] text-slate-400">⌃⌘Q</span>
+                <span className="text-[10px] text-slate-400">⊞ L</span>
               </button>
             </div>
           )}
@@ -223,9 +226,15 @@ export const TopBar: React.FC = () => {
         )}
 
         {/* Wi-Fi Icon */}
-        <div className="px-1 py-0.5 rounded hover:bg-white/10 cursor-pointer">
+        <div
+          onClick={() => setIsQuickSettingsOpen(!isQuickSettingsOpen)}
+          className="px-1 py-0.5 rounded hover:bg-white/10 cursor-pointer"
+          title={wifiConnected ? 'Wi-Fi: Connected' : wifiEnabled ? 'Wi-Fi: On (Not Connected)' : 'Wi-Fi: Disabled'}
+        >
           {wifiConnected ? (
             <Wifi className="w-3.5 h-3.5 text-slate-200" />
+          ) : wifiEnabled ? (
+            <Wifi className="w-3.5 h-3.5 text-slate-400" />
           ) : (
             <WifiOff className="w-3.5 h-3.5 text-rose-400" />
           )}

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Sparkles, Check, RefreshCw, ExternalLink, ShieldCheck, ArrowDownCircle, Cpu } from 'lucide-react';
 import { useSystemState } from '../../context/SystemStateContext';
 import { systemService } from '../../services/systemService';
+import { AxisLogo } from '../../components/AxisLogo';
 
 export const AboutApp: React.FC = () => {
   const { systemInfo } = useSystemState();
@@ -39,8 +40,8 @@ export const AboutApp: React.FC = () => {
   return (
     <div className="flex flex-col items-center justify-center p-6 text-center h-full bg-[#F5F5F7] dark:bg-slate-950 text-slate-900 dark:text-slate-100 select-none overflow-y-auto">
       {/* OS Logo Badge */}
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center font-black text-white text-2xl shadow-xl shadow-blue-500/20 mb-3">
-        ▲
+      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-xl shadow-blue-500/20 mb-3">
+        <AxisLogo size={36} variant="white" />
       </div>
 
       <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">{systemInfo.osName}</h1>

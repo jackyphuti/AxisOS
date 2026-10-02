@@ -109,24 +109,6 @@ export const CATALOG_PACKAGES: CatalogPackage[] = [
     aliases: ['player', 'audio', 'sound'],
     binaryPath: '/usr/bin/axis-music',
   },
-  {
-    id: 'tiler',
-    name: 'Tiler',
-    packageName: 'cage-tiler',
-    version: '1.4.2',
-    category: 'apps',
-    description: 'Tiling, gestures, and native Wayland apps',
-    longDescription:
-      'Automatic window tiling manager and multi-touch trackpad gesture daemon for the Cage Wayland compositor.',
-    size: '12 MB',
-    iconType: 'generic',
-    squircleBg: 'bg-[#EEF0FF]',
-    iconColor: 'text-[#6366F1]',
-    installed: false,
-    developer: 'Wayland Community',
-    aliases: ['cage-tiler', 'wm', 'tiling'],
-    binaryPath: '/usr/bin/cage-tiler',
-  },
 
   // ----------------------------------------------------
   // Developer Applications

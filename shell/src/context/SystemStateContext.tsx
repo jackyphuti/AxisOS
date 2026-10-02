@@ -100,6 +100,11 @@ interface SystemStateContextType {
   setIsMuted: (muted: boolean) => void;
   brightness: number;
   setBrightness: (br: number) => void;
+  isLocked: boolean;
+  setIsLocked: (locked: boolean) => void;
+  lockSession: () => void;
+  wifiEnabled: boolean;
+  setWifiEnabled: (en: boolean) => void;
   wifiConnected: boolean;
   setWifiConnected: (conn: boolean) => void;
   wifiSsid: string;
@@ -124,7 +129,7 @@ interface SystemStateContextType {
   isLiveEnvironment: boolean;
   setIsLiveEnvironment: (live: boolean) => void;
   autoInstall: boolean;
-  toggleWifi: () => Promise<void>;
+  toggleWifi: (desired?: boolean) => Promise<void>;
   toggleBluetooth: () => Promise<void>;
   changeVolume: (vol: number) => Promise<void>;
   toggleMute: () => Promise<void>;
@@ -159,6 +164,8 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [volume, setVolume] = useState<number>(75);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [brightness, setBrightness] = useState<number>(85);
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [wifiEnabled, setWifiEnabled] = useState<boolean>(true);
   const [wifiConnected, setWifiConnected] = useState<boolean>(false);
   const [wifiSsid, setWifiSsid] = useState<string>('Not Connected');
   const [bluetoothEnabled, setBluetoothEnabled] = useState<boolean>(true);
@@ -266,14 +273,33 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
     };
   }, []);
 
+  const lockSession = () => {
+    setIsLocked(true);
+    setIsAppMenuOpen(false);
+    setIsQuickSettingsOpen(false);
+    setIsSpotlightOpen(false);
+    setPowerModalOpen(false);
+  };
+
   // Hardware control functions
-  const toggleWifi = async () => {
-    const next = !wifiConnected;
-    setWifiConnected(next);
+  const toggleWifi = async (desired?: boolean) => {
+    const next = typeof desired === 'boolean' ? desired : !wifiEnabled;
+    setWifiEnabled(next);
+    if (!next) {
+      setWifiConnected(false);
+      setWifiSsid('Wi-Fi Disabled');
+    }
     await systemService.toggleWifi(next);
     const updated = await systemService.getWifiStatus();
+    setWifiEnabled(updated.enabled);
     setWifiConnected(updated.connected);
-    if (updated.currentSsid) setWifiSsid(updated.currentSsid);
+    if (updated.currentSsid) {
+      setWifiSsid(updated.currentSsid);
+    } else if (!updated.enabled) {
+      setWifiSsid('Wi-Fi Disabled');
+    } else {
+      setWifiSsid('Not Connected');
+    }
   };
 
   const toggleBluetooth = async () => {
@@ -294,9 +320,16 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
     await systemService.toggleAudioMute();
   };
 
-  // Keyboard shortcut: Windows button launches App Menu, Cmd+Space / Ctrl+Space for Spotlight
+  // Keyboard shortcut: Windows button launches App Menu, Meta+L locks screen, Cmd+Space / Ctrl+Space for Spotlight
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Lock screen shortcut: Meta + L or Ctrl + Alt + L
+      if ((e.metaKey && e.key.toLowerCase() === 'l') || (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'l')) {
+        e.preventDefault();
+        lockSession();
+        return;
+      }
+
       // Windows Button (Meta / Super / OS key standalone) launches App Menu
       if (
         (e.key === 'Meta' || e.key === 'OS' || e.code === 'MetaLeft' || e.code === 'MetaRight' || e.keyCode === 91 || e.keyCode === 92) &&
@@ -355,8 +388,13 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setVolume,
         isMuted,
         setIsMuted,
+        isLocked,
+        setIsLocked,
+        lockSession,
         brightness,
         setBrightness,
+        wifiEnabled,
+        setWifiEnabled,
         wifiConnected,
         setWifiConnected,
         wifiSsid,

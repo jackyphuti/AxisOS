@@ -194,6 +194,7 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
               ? {
                   ...w,
                   isMinimized: false,
+                  animating: 'restoring',
                   zIndex: zCounter,
                   params: params ? { ...w.params, ...params } : w.params,
                 }
@@ -201,6 +202,11 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
           )
         );
         setActiveWindowId(existing.id);
+        setTimeout(() => {
+          setWindows((prev) =>
+            prev.map((w) => (w.id === existing.id ? { ...w, animating: undefined } : w))
+          );
+        }, 220);
         return;
       }
 
@@ -225,34 +231,55 @@ export const WindowManagerProvider: React.FC<{ children: React.ReactNode }> = ({
         height: Math.min(appDef.defaultHeight, screenHeight - 100),
         isMinimized: false,
         isMaximized: false,
+        animating: 'restoring',
         zIndex: zCounter,
         params,
       };
 
       setWindows((prev) => [...prev, newWindow]);
       setActiveWindowId(newWindow.id);
+      setTimeout(() => {
+        setWindows((prev) =>
+          prev.map((w) => (w.id === newWindow.id ? { ...w, animating: undefined } : w))
+        );
+      }, 220);
     },
     [windows, focusWindow]
   );
 
   const closeWindow = useCallback((id: string) => {
-    setWindows((prev) => prev.filter((w) => w.id !== id));
-    setActiveWindowId((current) => (current === id ? null : current));
+    setWindows((prev) =>
+      prev.map((w) => (w.id === id ? { ...w, animating: 'closing' } : w))
+    );
+    setTimeout(() => {
+      setWindows((prev) => prev.filter((w) => w.id !== id));
+      setActiveWindowId((current) => (current === id ? null : current));
+    }, 180);
   }, []);
 
   const closeApp = useCallback((appId: AppId) => {
-    setWindows((prev) => prev.filter((w) => w.appId !== appId));
-    setActiveWindowId((current) => {
-      const closing = windows.find((w) => w.appId === appId);
-      return closing && closing.id === current ? null : current;
-    });
+    setWindows((prev) =>
+      prev.map((w) => (w.appId === appId ? { ...w, animating: 'closing' } : w))
+    );
+    setTimeout(() => {
+      setWindows((prev) => prev.filter((w) => w.appId !== appId));
+      setActiveWindowId((current) => {
+        const closing = windows.find((w) => w.appId === appId);
+        return closing && closing.id === current ? null : current;
+      });
+    }, 180);
   }, [windows]);
 
   const minimizeWindow = useCallback((id: string) => {
     setWindows((prev) =>
-      prev.map((w) => (w.id === id ? { ...w, isMinimized: true } : w))
+      prev.map((w) => (w.id === id ? { ...w, animating: 'minimizing' } : w))
     );
     setActiveWindowId((current) => (current === id ? null : current));
+    setTimeout(() => {
+      setWindows((prev) =>
+        prev.map((w) => (w.id === id ? { ...w, isMinimized: true, animating: undefined } : w))
+      );
+    }, 200);
   }, []);
 
   const toggleMaximizeWindow = useCallback((id: string) => {
