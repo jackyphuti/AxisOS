@@ -74,17 +74,17 @@ export const SystemMonitorApp: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-950 text-slate-100 select-none">
+    <div className="flex flex-col h-full w-full bg-[#F5F5F7] dark:bg-slate-950 text-slate-900 dark:text-slate-100 select-none">
       {/* Top Activity Monitor Toolbar */}
-      <div className="h-10 px-3 flex items-center justify-between border-b border-white/10 bg-slate-900/60 text-xs">
+      <div className="h-10 px-3 flex items-center justify-between border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-slate-900/60 text-xs">
         {/* Tabs */}
-        <div className="flex items-center p-0.5 rounded-lg bg-white/5 border border-white/10">
+        <div className="flex items-center p-0.5 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10">
           {(['cpu', 'memory', 'disk'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
               className={`px-3 py-1 rounded-md uppercase font-medium text-[10px] tracking-wider transition-colors ${
-                activeTab === tab ? 'bg-white/20 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                activeTab === tab ? 'bg-white dark:bg-white/20 text-slate-900 dark:text-white shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
               {tab}
@@ -92,12 +92,12 @@ export const SystemMonitorApp: React.FC = () => {
           ))}
         </div>
 
-        <div className="flex items-center space-x-2 text-slate-400 text-xs">
+        <div className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 text-xs">
           {selectedPid && (
             <button
               onClick={handleKillProcess}
               disabled={isKilling}
-              className="flex items-center space-x-1 px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-[11px] font-semibold transition-colors"
+              className="flex items-center space-x-1 px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-600 dark:text-rose-300 border border-rose-500/30 text-[11px] font-semibold transition-colors"
             >
               <XCircle className="w-3.5 h-3.5" />
               <span>{isKilling ? 'Killing...' : `Force Quit (${selectedPid})`}</span>
@@ -108,13 +108,13 @@ export const SystemMonitorApp: React.FC = () => {
       </div>
 
       {/* Overview Cards */}
-      <div className="p-4 grid grid-cols-3 gap-3 border-b border-white/10 bg-slate-900/40">
-        <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+      <div className="p-4 grid grid-cols-3 gap-3 border-b border-black/5 dark:border-white/10 bg-black/[0.02] dark:bg-slate-900/40">
+        <div className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/5 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>CPU Usage</span>
-            <Cpu className="w-4 h-4 text-cyan-400" />
+            <Cpu className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
           </div>
-          <div className="text-xl font-bold text-cyan-400 font-mono mt-1">{cpuUsage}%</div>
+          <div className="text-xl font-bold text-cyan-600 dark:text-cyan-400 font-mono mt-1">{cpuUsage}%</div>
           <div className="h-6 flex items-end gap-1 mt-2">
             {cpuHistory.map((val, idx) => (
               <div
@@ -126,35 +126,35 @@ export const SystemMonitorApp: React.FC = () => {
           </div>
         </div>
 
-        <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/5 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>Memory Pressure</span>
-            <Activity className="w-4 h-4 text-emerald-400" />
+            <Activity className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
           </div>
-          <div className="text-xl font-bold text-emerald-400 font-mono mt-1">
+          <div className="text-xl font-bold text-emerald-600 dark:text-emerald-400 font-mono mt-1">
             {systemInfo.totalMemory}
           </div>
-          <div className="w-full bg-slate-800 rounded-full h-2 mt-4 overflow-hidden">
+          <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 mt-4 overflow-hidden">
             <div className="bg-emerald-500 h-full w-[32%]"></div>
           </div>
         </div>
 
-        <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
-          <div className="flex items-center justify-between text-xs text-slate-400">
+        <div className="p-3 rounded-2xl bg-white dark:bg-white/5 border border-slate-200/80 dark:border-white/5 shadow-xs">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
             <span>Primary Disk</span>
-            <HardDrive className="w-4 h-4 text-purple-400" />
+            <HardDrive className="w-4 h-4 text-purple-500 dark:text-purple-400" />
           </div>
-          <div className="text-base font-bold text-purple-300 truncate mt-1">
+          <div className="text-base font-bold text-purple-600 dark:text-purple-300 truncate mt-1">
             {systemInfo.storageCapacity}
           </div>
-          <div className="w-full bg-slate-800 rounded-full h-2 mt-4 overflow-hidden">
+          <div className="w-full bg-slate-200 dark:bg-slate-800 rounded-full h-2 mt-4 overflow-hidden">
             <div className="bg-purple-500 h-full w-[20%]"></div>
           </div>
         </div>
       </div>
 
       {/* Process Table Header */}
-      <div className="px-4 py-1.5 bg-slate-900 border-b border-white/10 flex text-[11px] font-semibold text-slate-400 font-mono">
+      <div className="px-4 py-1.5 bg-slate-100/90 dark:bg-slate-900 border-b border-black/5 dark:border-white/10 flex text-[11px] font-semibold text-slate-500 dark:text-slate-400 font-mono">
         <span className="w-20">Process Name</span>
         <span className="w-16">PID</span>
         <span className="w-20">User</span>
@@ -168,18 +168,18 @@ export const SystemMonitorApp: React.FC = () => {
           <div
             key={i}
             onClick={() => setSelectedPid(proc.pid === selectedPid ? null : proc.pid)}
-            className={`px-4 py-1.5 border-b border-white/5 flex items-center transition-colors cursor-pointer ${
-              selectedPid === proc.pid ? 'bg-cyan-500/20 border-cyan-500/40' : 'hover:bg-white/5'
+            className={`px-4 py-1.5 border-b border-slate-200/60 dark:border-white/5 flex items-center transition-colors cursor-pointer ${
+              selectedPid === proc.pid ? 'bg-blue-100/70 dark:bg-cyan-500/20 text-blue-950 dark:text-white' : 'hover:bg-black/5 dark:hover:bg-white/5 text-slate-700 dark:text-slate-300'
             }`}
           >
-            <span className="w-20 font-sans text-white font-medium truncate flex items-center gap-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${proc.status === 'running' ? 'bg-emerald-400' : 'bg-slate-600'}`}></span>
+            <span className="w-20 font-sans text-slate-900 dark:text-white font-medium truncate flex items-center gap-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${proc.status === 'running' ? 'bg-emerald-500' : 'bg-slate-400'}`}></span>
               {proc.name}
             </span>
-            <span className="w-16 text-slate-500">{proc.pid}</span>
-            <span className="w-20 text-slate-400 truncate">{proc.user}</span>
-            <span className="w-20 text-right text-cyan-400">{proc.cpu}%</span>
-            <span className="w-24 text-right text-slate-300">{proc.mem}</span>
+            <span className="w-16 text-slate-400 dark:text-slate-500">{proc.pid}</span>
+            <span className="w-20 text-slate-500 dark:text-slate-400 truncate">{proc.user}</span>
+            <span className="w-20 text-right text-cyan-600 dark:text-cyan-400">{proc.cpu}%</span>
+            <span className="w-24 text-right text-slate-600 dark:text-slate-300">{proc.mem}</span>
           </div>
         ))}
       </div>

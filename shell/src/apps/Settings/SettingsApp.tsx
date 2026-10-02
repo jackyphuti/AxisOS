@@ -206,19 +206,16 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
     ['EDITOR', 'nano'],
   ]);
 
-  // Read real Linux battery and hardware via IPC
+  // Read real Linux battery and hardware via systemService
   useEffect(() => {
     let isMounted = true;
-    systemService.executeCommand('cat /sys/class/power_supply/BAT0/capacity 2>/dev/null && cat /sys/class/power_supply/BAT0/status 2>/dev/null')
-      .then((res) => {
+    systemService.getBatteryStatus()
+      .then((bat) => {
         if (!isMounted) return;
-        if (res.stdout) {
-          const lines = res.stdout.trim().split('\n');
-          setRealBatteryData({
-            capacity: lines[0] || '95',
-            status: lines[1] || 'Normal',
-          });
-        }
+        setRealBatteryData({
+          capacity: String(bat.level),
+          status: bat.hasBattery ? bat.status : 'AC Power (Desktop / Mains)',
+        });
       })
       .catch(() => {});
     return () => {

@@ -326,7 +326,7 @@ export const MusicApp: React.FC = () => {
   };
 
   return (
-    <div className="flex h-full w-full bg-slate-950 text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-[#F5F5F7] dark:bg-[#1E1E1E] text-slate-900 dark:text-slate-100 select-none overflow-hidden font-sans">
       <input
         type="file"
         ref={fileInputRef}
@@ -336,26 +336,26 @@ export const MusicApp: React.FC = () => {
       />
 
       {/* Left Sidebar / Playlist */}
-      <div className="w-64 bg-slate-900/80 border-r border-white/10 p-4 flex flex-col justify-between">
+      <div className="w-64 bg-white/70 dark:bg-slate-900/80 backdrop-blur-md border-r border-black/5 dark:border-white/10 p-4 flex flex-col justify-between">
         <div>
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 flex items-center justify-center text-white shadow-md shadow-rose-950">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 flex items-center justify-center text-white shadow-md shadow-rose-950/20">
                 <Music className="w-4 h-4" />
               </div>
-              <span className="font-bold text-sm text-slate-100">Axis Music</span>
+              <span className="font-bold text-sm text-slate-800 dark:text-slate-100">Axis Music</span>
             </div>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 transition-colors text-xs flex items-center gap-1"
+              className="p-1.5 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors text-xs flex items-center gap-1"
               title="Import audio file"
             >
               <FolderOpen className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2 px-1">
+          <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">
             Now Playing Queue
           </div>
 
@@ -373,22 +373,22 @@ export const MusicApp: React.FC = () => {
                   }}
                   className={`flex items-center justify-between p-2 rounded-xl text-left transition-all ${
                     isSelected
-                      ? 'bg-rose-500/20 text-white border border-rose-500/40'
-                      : 'hover:bg-white/5 text-slate-400 hover:text-slate-200'
+                      ? 'bg-rose-500/15 text-slate-900 dark:text-white border border-rose-500/30 shadow-xs'
+                      : 'hover:bg-black/5 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                   }`}
                 >
                   <div className="flex items-center space-x-2.5 truncate">
                     <div
-                      className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${track.coverGradient} flex items-center justify-center text-white shrink-0 text-[10px] font-bold`}
+                      className={`w-7 h-7 rounded-lg bg-gradient-to-tr ${track.coverGradient} flex items-center justify-center text-white shrink-0 text-[10px] font-bold shadow-xs`}
                     >
                       {idx + 1}
                     </div>
                     <div className="truncate">
-                      <div className="text-xs font-semibold truncate leading-tight">{track.title}</div>
-                      <div className="text-[10px] text-slate-500 truncate">{track.artist}</div>
+                      <div className="text-xs font-semibold truncate leading-tight text-slate-800 dark:text-slate-100">{track.title}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">{track.artist}</div>
                     </div>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-500 shrink-0 ml-2">
+                  <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 shrink-0 ml-2">
                     {formatTime(track.duration)}
                   </span>
                 </button>
@@ -398,22 +398,22 @@ export const MusicApp: React.FC = () => {
         </div>
 
         {/* Ambient Mode Badge */}
-        <div className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-[11px] text-slate-400 flex items-center gap-2">
-          <Sliders className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="p-2.5 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 text-[11px] text-slate-600 dark:text-slate-400 flex items-center gap-2">
+          <Sliders className="w-3.5 h-3.5 text-cyan-500" />
           <span>Real-time Web Audio Synthesizer</span>
         </div>
       </div>
 
       {/* Main Player Display */}
-      <div className="flex-1 flex flex-col justify-between p-6 bg-slate-950/70 relative">
+      <div className="flex-1 flex flex-col justify-between p-6 bg-white dark:bg-slate-950/70 relative">
         {/* Top bar */}
         <div className="flex items-center justify-between">
-          <span className="text-xs font-mono text-slate-400">
+          <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
             {currentTrack.album} • {currentTrackIndex + 1} of {playlist.length}
           </span>
           <button
             onClick={() => toggleLike(currentTrack.id)}
-            className={`p-2 rounded-full hover:bg-white/10 transition-colors ${
+            className={`p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${
               likedTracks[currentTrack.id] ? 'text-rose-500' : 'text-slate-400'
             }`}
           >
@@ -425,7 +425,7 @@ export const MusicApp: React.FC = () => {
         <div className="flex flex-col items-center justify-center my-auto">
           {/* Vinyl / Cover Art Box */}
           <div
-            className={`w-44 h-44 rounded-3xl bg-gradient-to-tr ${currentTrack.coverGradient} shadow-2xl shadow-rose-950/40 p-4 flex flex-col justify-between relative overflow-hidden transition-all duration-700 ${
+            className={`w-44 h-44 rounded-3xl bg-gradient-to-tr ${currentTrack.coverGradient} shadow-2xl shadow-rose-950/20 p-4 flex flex-col justify-between relative overflow-hidden transition-all duration-700 ${
               isPlaying ? 'scale-105' : 'scale-95 opacity-80'
             }`}
           >
@@ -443,8 +443,8 @@ export const MusicApp: React.FC = () => {
 
           {/* Title & Artist info */}
           <div className="mt-4 text-center">
-            <h2 className="text-lg font-bold text-slate-100">{currentTrack.title}</h2>
-            <p className="text-xs text-slate-400 mt-0.5">{currentTrack.artist}</p>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100">{currentTrack.title}</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{currentTrack.artist}</p>
           </div>
 
           {/* Live Frequency Spectrum Canvas */}
@@ -456,7 +456,7 @@ export const MusicApp: React.FC = () => {
         {/* Player Controls Bar */}
         <div className="flex flex-col gap-3 max-w-lg mx-auto w-full">
           {/* Scrub bar */}
-          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+          <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 dark:text-slate-400">
             <span>{formatTime(currentTime)}</span>
             <input
               type="range"
@@ -464,7 +464,7 @@ export const MusicApp: React.FC = () => {
               max={currentTrack.duration}
               value={currentTime}
               onChange={(e) => setCurrentTime(parseInt(e.target.value, 10))}
-              className="flex-1 accent-rose-500 h-1 bg-white/10 rounded-full cursor-pointer"
+              className="flex-1 accent-rose-500 h-1 bg-black/10 dark:bg-white/10 rounded-full cursor-pointer"
             />
             <span>{formatTime(currentTrack.duration)}</span>
           </div>
@@ -475,7 +475,7 @@ export const MusicApp: React.FC = () => {
               <button
                 onClick={() => setIsShuffle(!isShuffle)}
                 className={`p-2 rounded-lg transition-colors ${
-                  isShuffle ? 'text-rose-400 bg-rose-500/10' : 'text-slate-400 hover:text-white'
+                  isShuffle ? 'text-rose-500 bg-rose-500/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                 }`}
                 title="Shuffle"
               >
@@ -484,7 +484,7 @@ export const MusicApp: React.FC = () => {
               <button
                 onClick={() => setIsRepeat(!isRepeat)}
                 className={`p-2 rounded-lg transition-colors ${
-                  isRepeat ? 'text-rose-400 bg-rose-500/10' : 'text-slate-400 hover:text-white'
+                  isRepeat ? 'text-rose-500 bg-rose-500/10' : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                 }`}
                 title="Repeat"
               >
@@ -496,7 +496,7 @@ export const MusicApp: React.FC = () => {
             <div className="flex items-center space-x-4">
               <button
                 onClick={handlePrev}
-                className="p-2 text-slate-300 hover:text-white transition-colors"
+                className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                 title="Previous track"
               >
                 <SkipBack className="w-5 h-5" />
@@ -504,7 +504,7 @@ export const MusicApp: React.FC = () => {
 
               <button
                 onClick={togglePlay}
-                className="w-12 h-12 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white flex items-center justify-center shadow-lg shadow-rose-950 transition-transform active:scale-95"
+                className="w-12 h-12 rounded-full bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white flex items-center justify-center shadow-lg shadow-rose-950/30 transition-transform active:scale-95"
                 title={isPlaying ? 'Pause' : 'Play'}
               >
                 {isPlaying ? <Pause className="w-6 h-6 fill-white" /> : <Play className="w-6 h-6 fill-white ml-0.5" />}
@@ -512,7 +512,7 @@ export const MusicApp: React.FC = () => {
 
               <button
                 onClick={handleNext}
-                className="p-2 text-slate-300 hover:text-white transition-colors"
+                className="p-2 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                 title="Next track"
               >
                 <SkipForward className="w-5 h-5" />
@@ -523,7 +523,7 @@ export const MusicApp: React.FC = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setIsMuted(!isMuted)}
-                className="text-slate-400 hover:text-white transition-colors"
+                className="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors"
                 title={isMuted ? 'Unmute' : 'Mute'}
               >
                 {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -538,7 +538,7 @@ export const MusicApp: React.FC = () => {
                   setVolume(parseFloat(e.target.value));
                   setIsMuted(false);
                 }}
-                className="w-20 accent-rose-500 h-1 bg-white/10 rounded-full cursor-pointer"
+                className="w-20 accent-rose-500 h-1 bg-black/10 dark:bg-white/10 rounded-full cursor-pointer"
               />
             </div>
           </div>

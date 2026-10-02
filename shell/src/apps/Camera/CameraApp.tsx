@@ -168,7 +168,7 @@ export const CameraApp: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-slate-950 text-white select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full bg-[#F5F5F7] dark:bg-slate-950 text-slate-900 dark:text-white select-none overflow-hidden font-sans">
       {/* Hidden processing canvas */}
       <canvas ref={canvasRef} className="hidden" />
 
@@ -189,11 +189,11 @@ export const CameraApp: React.FC = () => {
         {/* Live Video Feed or Fallback Pattern */}
         {hasPermission === false ? (
           <div className="flex flex-col items-center justify-center text-center p-6 space-y-4">
-            <div className="w-20 h-20 rounded-3xl bg-slate-800 flex items-center justify-center text-slate-500">
+            <div className="w-20 h-20 rounded-3xl bg-slate-800/80 flex items-center justify-center text-slate-400">
               <Camera className="w-10 h-10" />
             </div>
             <div>
-              <h2 className="text-sm font-semibold text-slate-200">No Webcam Connected</h2>
+              <h2 className="text-sm font-semibold text-white">No Webcam Connected</h2>
               <p className="text-xs text-slate-400 mt-1 max-w-sm">
                 Webcam device not detected or permission denied. You can connect a USB camera or test inside real hardware.
               </p>
@@ -266,9 +266,9 @@ export const CameraApp: React.FC = () => {
       </div>
 
       {/* Captured Photos Bottom Strip */}
-      <div className="h-28 border-t border-white/10 bg-slate-900/90 px-4 py-2 flex items-center space-x-3 overflow-x-auto">
+      <div className="h-28 border-t border-black/5 dark:border-white/10 bg-white/80 dark:bg-slate-900/90 px-4 py-2 flex items-center space-x-3 overflow-x-auto">
         {photos.length === 0 ? (
-          <div className="text-xs text-slate-500 flex items-center space-x-2">
+          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center space-x-2">
             <ImageIcon className="w-4 h-4" />
             <span>Captured snapshots will appear here</span>
           </div>
@@ -280,7 +280,7 @@ export const CameraApp: React.FC = () => {
                 key={p.id}
                 onClick={() => setSelectedPhoto(p)}
                 className={`relative w-24 h-20 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer group ${
-                  isSelected ? 'border-blue-500 scale-105 shadow-lg' : 'border-white/20 opacity-80 hover:opacity-100'
+                  isSelected ? 'border-blue-500 scale-105 shadow-lg' : 'border-black/10 dark:border-white/20 opacity-80 hover:opacity-100'
                 }`}
               >
                 <img src={p.dataUrl} alt="Snapshot" className="w-full h-full object-cover" />
