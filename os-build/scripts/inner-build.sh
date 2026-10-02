@@ -117,8 +117,12 @@ mkdir -p config/includes.chroot/var/lib/axis/cache
 
 # Deploy Axis Package Manager CLI
 cp "$WORKSPACE_DIR/pkg-mgr/bin/axis" config/includes.chroot/usr/bin/axis
+cp "$WORKSPACE_DIR/pkg-mgr/bin/axis" config/includes.chroot/usr/local/bin/axis
 chmod +x config/includes.chroot/usr/bin/axis
+chmod +x config/includes.chroot/usr/local/bin/axis
 cp "$WORKSPACE_DIR/pkg-mgr/configs/axis.conf" config/includes.chroot/etc/axis/axis.conf
+cp "$WORKSPACE_DIR/pkg-mgr/examples/repo-index.json" config/includes.chroot/etc/axis/repo-index.json
+cp "$WORKSPACE_DIR/pkg-mgr/examples/repo-index.json" config/includes.chroot/var/lib/axis/repo-index.json
 
 cp "$SCRIPTS_DIR/axisos-install.sh" config/includes.chroot/usr/local/bin/axisos-installer.sh
 cp "$CHROOT_CONFIG_DIR/cage-session/axisos-daemon.cjs" config/includes.chroot/usr/local/bin/axisos-daemon.cjs
