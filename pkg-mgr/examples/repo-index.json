@@ -385,6 +385,138 @@
       "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/axis-tools-1.2.0.axis",
       "maintainer": "AxisOS Core Team <dev@axisos.org>",
       "binary": "/usr/bin/axis-tools"
+    },
+    "neovim": {
+      "name": "neovim",
+      "version": "0.10.1",
+      "description": "Hyperextensible Vim-based text editor engineered for peak terminal editing velocity",
+      "category": "develop",
+      "dependencies": [],
+      "sha256": "e123c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 14000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/neovim-0.10.1.axis",
+      "maintainer": "Neovim Core Team <dev@axisos.org>",
+      "binary": "/usr/bin/nvim"
+    },
+    "cpp-tools": {
+      "name": "cpp-tools",
+      "version": "12.9",
+      "description": "C/C++ Build Toolchain (GCC, Clang, CMake, GNU Make, GDB)",
+      "category": "develop",
+      "dependencies": [],
+      "sha256": "f234c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 135000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/cpp-tools-12.9.axis",
+      "maintainer": "GNU & LLVM Community <dev@axisos.org>",
+      "binary": "/usr/bin/gcc"
+    },
+    "dotnet": {
+      "name": "dotnet",
+      "version": "8.0.401",
+      "description": "Microsoft .NET 8 SDK and C# runtime environment",
+      "category": "develop",
+      "dependencies": [],
+      "sha256": "a345c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 210000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/dotnet-8.0.401.axis",
+      "maintainer": "Microsoft Corporation <dev@axisos.org>",
+      "binary": "/usr/bin/dotnet"
+    },
+    "flutter": {
+      "name": "flutter",
+      "version": "3.24.2",
+      "description": "Google Flutter & Dart SDK for multi-platform UI applications",
+      "category": "develop",
+      "dependencies": ["git", "curl"],
+      "sha256": "b456c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 480000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/flutter-3.24.2.axis",
+      "maintainer": "Google LLC <dev@axisos.org>",
+      "binary": "/usr/bin/flutter"
+    },
+    "php": {
+      "name": "php",
+      "version": "8.3.10",
+      "description": "PHP 8 Runtime, CLI, and PHP-FPM for modern web applications",
+      "category": "develop",
+      "dependencies": [],
+      "sha256": "c567c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 28000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/php-8.3.10.axis",
+      "maintainer": "The PHP Group <dev@axisos.org>",
+      "binary": "/usr/bin/php"
+    },
+    "postgresql": {
+      "name": "postgresql",
+      "version": "16.4",
+      "description": "PostgreSQL relational database server and client utilities",
+      "category": "develop",
+      "dependencies": [],
+      "sha256": "d678c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 64000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/postgresql-16.4.axis",
+      "maintainer": "PostgreSQL Global Development Group <dev@axisos.org>",
+      "binary": "/usr/bin/psql"
+    },
+    "mongodb": {
+      "name": "mongodb",
+      "version": "7.0.12",
+      "description": "MongoDB Community Server and mongosh interactive shell",
+      "category": "develop",
+      "dependencies": [],
+      "sha256": "e789c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 82000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/mongodb-7.0.12.axis",
+      "maintainer": "MongoDB Inc. <dev@axisos.org>",
+      "binary": "/usr/bin/mongosh"
+    },
+    "mssql-tools": {
+      "name": "mssql-tools",
+      "version": "18.2.0",
+      "description": "Microsoft SQL Server Command-Line Utilities (sqlcmd, bcp)",
+      "category": "develop",
+      "dependencies": [],
+      "sha256": "f890c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 16000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/mssql-tools-18.2.0.axis",
+      "maintainer": "Microsoft Corporation <dev@axisos.org>",
+      "binary": "/opt/mssql-tools18/bin/sqlcmd"
+    },
+    "vercel": {
+      "name": "vercel",
+      "version": "34.2.7",
+      "description": "Vercel Command-Line Interface for cloud deployment and edge previews",
+      "category": "develop",
+      "dependencies": ["nodejs"],
+      "sha256": "a901c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 18000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/vercel-34.2.7.axis",
+      "maintainer": "Vercel Inc. <dev@axisos.org>",
+      "binary": "/usr/bin/vercel"
+    },
+    "firebase": {
+      "name": "firebase",
+      "version": "13.15.1",
+      "description": "Firebase CLI management suite for Hosting, Firestore, and Cloud Functions",
+      "category": "develop",
+      "dependencies": ["nodejs"],
+      "sha256": "b012c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 24000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/firebase-13.15.1.axis",
+      "maintainer": "Google LLC <dev@axisos.org>",
+      "binary": "/usr/bin/firebase"
+    },
+    "supabase": {
+      "name": "supabase",
+      "version": "1.191.3",
+      "description": "Supabase CLI for local Docker stack, database migrations, and cloud synchronization",
+      "category": "develop",
+      "dependencies": ["docker"],
+      "sha256": "c123c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
+      "size": 36000000,
+      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/supabase-1.191.3.axis",
+      "maintainer": "Supabase Inc. <dev@axisos.org>",
+      "binary": "/usr/bin/supabase"
     }
   }
 }
