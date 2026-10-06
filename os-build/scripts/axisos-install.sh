@@ -273,9 +273,37 @@ mount --bind /sys /mnt/sys
 mount --bind /run /mnt/run
 mount -t efivarfs efivarfs /mnt/sys/firmware/efi/efivars 2>/dev/null || true
 
+# Enable 32-bit multiarch for Steam, Proton, and Wine compatibility
+report 78 "Enabling 32-bit multiarch (i386) for gaming compatibility..."
+chroot /mnt dpkg --add-architecture i386 || true
+
+# Gaming & High-Performance Sysctl optimizations (Proton / Steam max_map_count)
+mkdir -p /mnt/etc/sysctl.d
+cat << 'EOF' > /mnt/etc/sysctl.d/99-axisos-gaming.conf
+# AxisOS Gaming & Development Performance Tuning
+# Critical for Steam Proton (ESync, FSync, Unreal Engine 5)
+vm.max_map_count = 2147483642
+fs.file-max = 524288
+fs.inotify.max_user_watches = 524288
+fs.inotify.max_user_instances = 8192
+vm.swappiness = 10
+EOF
+
+# Enable Flathub for universal application distribution
+if chroot /mnt command -v flatpak >/dev/null 2>&1; then
+    report 79 "Configuring Flathub universal software repository..."
+    chroot /mnt flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+fi
+
 # Create user if it doesn't already exist
+chroot /mnt groupadd -f gamemode 2>/dev/null || true
+chroot /mnt groupadd -f games 2>/dev/null || true
+chroot /mnt groupadd -f docker 2>/dev/null || true
+
 if ! chroot /mnt id -u "$USERNAME" >/dev/null 2>&1; then
-    chroot /mnt useradd -m -s /bin/bash -c "$USER_FULLNAME" -G sudo,video,audio,render,input,seat,netdev "$USERNAME"
+    chroot /mnt useradd -m -s /bin/bash -c "$USER_FULLNAME" -G sudo,video,audio,render,input,seat,netdev,gamemode,games,docker "$USERNAME"
+else
+    chroot /mnt usermod -aG sudo,video,audio,render,input,seat,netdev,gamemode,games,docker "$USERNAME" 2>/dev/null || true
 fi
 
 # Set passwords
@@ -456,7 +484,7 @@ cat << 'EOF' > /mnt/etc/default/grub
 GRUB_DEFAULT=0
 GRUB_TIMEOUT=2
 GRUB_DISTRIBUTOR="AxisOS"
-GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1"
 GRUB_CMDLINE_LINUX=""
 GRUB_DISABLE_OS_PROBER=false
 EOF

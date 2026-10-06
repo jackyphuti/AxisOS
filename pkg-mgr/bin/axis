@@ -486,13 +486,39 @@ class PackageManager:
             is_remote_http = url.startswith("http://") or url.startswith("https://")
             local_exists = os.path.exists(url.replace("file://", "")) if url.startswith("file://") else False
 
+            # Dynamic package name mapping for system Debian repos and gaming/dev suites
+            APT_MAP = {
+                "vscode": "code",
+                "vs-code": "code",
+                "spotify": "spotify-client",
+                "steam": "steam-installer",
+                "cpp-tools": "build-essential",
+                "c++": "build-essential",
+                "gcc": "build-essential",
+                "g++": "build-essential",
+                "docker": "docker.io docker-compose-v2",
+                "gamemode": "gamemode",
+                "mangohud": "mangohud",
+                "vkbasalt": "vkbasalt",
+                "distrobox": "distrobox podman",
+                "podman": "podman",
+                "flatpak": "flatpak",
+                "lutris": "lutris",
+                "heroic": "heroic",
+                "protonup": "protonup-qt",
+                "protonup-qt": "protonup-qt",
+                "bottles": "bottles",
+                "wine": "wine wine64 winetricks",
+            }
+            target_apt = APT_MAP.get(pkg_name.lower(), pkg_name)
+
             if not pkg_info or (is_remote_http and not local_exists):
                 if shutil.which("apt-get"):
-                    log_step(f"Installing {pkg_name} via system package repository...")
-                    apt_name = "code" if pkg_name in ["vscode", "vs-code"] else ("spotify-client" if pkg_name == "spotify" else pkg_name)
-                    res = subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", apt_name])
+                    log_step(f"Installing {pkg_name} via system package repository ({target_apt})...")
+                    apt_args = ["apt-get", "install", "-y", "--no-install-recommends"] + target_apt.split()
+                    res = subprocess.run(apt_args)
                     if res.returncode == 0:
-                        self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({apt_name})"}, [f"/usr/bin/{apt_name}"])
+                        self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({target_apt})"}, [f"/usr/bin/{pkg_name}"])
                         log_success(f"Successfully installed {pkg_name} via system repository.")
                         continue
 
@@ -507,10 +533,10 @@ class PackageManager:
                 # If download fails, attempt apt-get fallback
                 if shutil.which("apt-get"):
                     log_warn(f"Failed to fetch .axis archive: {e}. Falling back to system apt repository...")
-                    apt_name = "code" if pkg_name in ["vscode", "vs-code"] else ("spotify-client" if pkg_name == "spotify" else pkg_name)
-                    res = subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", apt_name])
+                    apt_args = ["apt-get", "install", "-y", "--no-install-recommends"] + target_apt.split()
+                    res = subprocess.run(apt_args)
                     if res.returncode == 0:
-                        self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({apt_name})"}, [f"/usr/bin/{apt_name}"])
+                        self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({target_apt})"}, [f"/usr/bin/{pkg_name}"])
                         log_success(f"Successfully installed {pkg_name} via system repository.")
                         continue
                 log_error(f"Failed to install package '{pkg_name}': {e}")
