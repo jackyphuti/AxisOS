@@ -509,8 +509,38 @@ class PackageManager:
                 "protonup-qt": "protonup-qt",
                 "bottles": "bottles",
                 "wine": "wine wine64 winetricks",
+                "nvidia": "nvidia-driver nvidia-smi nvidia-prime",
+                "nvidia-driver": "nvidia-driver nvidia-smi nvidia-prime",
+                "mesa": "mesa-vulkan-drivers mesa-va-drivers libgl1-mesa-dri",
+                "build-essential": "build-essential git curl wget make cmake",
+                "toolchain": "build-essential gcc g++ clang cmake make gdb git",
             }
             target_apt = APT_MAP.get(pkg_name.lower(), pkg_name)
+
+            # Performance Gaming Kernels (XanMod, Liquorix)
+            if pkg_name.lower() in ("xanmod", "kernel-xanmod", "liquorix", "kernel-liquorix"):
+                k_target = "xanmod" if "xanmod" in pkg_name.lower() else "liquorix"
+                if self.manage_kernel("install", k_target) == 0:
+                    continue
+                else:
+                    return 1
+
+            # Backports Mesa drivers
+            if pkg_name.lower() in ("backports-mesa", "mesa-backports"):
+                self.manage_backports("enable")
+                subprocess.run(["apt-get", "install", "-y", "-t", "bookworm-backports", "mesa-vulkan-drivers", "mesa-va-drivers", "libgl1-mesa-dri"])
+                continue
+
+            # Flatpak fallback mapping for community games & bleeding-edge IDEs
+            FLATPAK_MAP = {
+                "heroic": "com.heroicgameslauncher.hgl",
+                "protonup": "net.davidotek.pupgui2",
+                "protonup-qt": "net.davidotek.pupgui2",
+                "bottles": "com.usebottles.bottles",
+                "discord": "com.discordapp.Discord",
+                "obs": "com.obsproject.Studio",
+                "obs-studio": "com.obsproject.Studio",
+            }
 
             if not pkg_info or (is_remote_http and not local_exists):
                 if shutil.which("apt-get"):
@@ -521,8 +551,24 @@ class PackageManager:
                         self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({target_apt})"}, [f"/usr/bin/{pkg_name}"])
                         log_success(f"Successfully installed {pkg_name} via system repository.")
                         continue
+                    elif shutil.which("flatpak") and pkg_name.lower() in FLATPAK_MAP:
+                        f_id = FLATPAK_MAP[pkg_name.lower()]
+                        log_step(f"APT failed; installing {pkg_name} via Flathub Flatpak runtime ({f_id})...")
+                        f_res = subprocess.run(["flatpak", "install", "-y", "flathub", f_id])
+                        if f_res.returncode == 0:
+                            self.db.add_package(pkg_name, {"version": "flatpak", "description": f"Installed via Flatpak Flathub ({f_id})"}, [f"/var/lib/flatpak/app/{f_id}"])
+                            log_success(f"Successfully installed {pkg_name} via Flathub.")
+                            continue
 
             if not pkg_info:
+                if shutil.which("flatpak") and pkg_name.lower() in FLATPAK_MAP:
+                    f_id = FLATPAK_MAP[pkg_name.lower()]
+                    log_step(f"Installing {pkg_name} via Flathub Flatpak runtime ({f_id})...")
+                    f_res = subprocess.run(["flatpak", "install", "-y", "flathub", f_id])
+                    if f_res.returncode == 0:
+                        self.db.add_package(pkg_name, {"version": "flatpak", "description": f"Installed via Flatpak Flathub ({f_id})"}, [f"/var/lib/flatpak/app/{f_id}"])
+                        log_success(f"Successfully installed {pkg_name} via Flathub.")
+                        continue
                 log_error(f"Cannot find metadata for {pkg_name}")
                 return 1
 
@@ -821,6 +867,95 @@ class PackageManager:
         print(f"  SHA256: {sha}")
         return 0
 
+    def manage_kernel(self, action: str, kernel_name: str = "xanmod") -> int:
+        """Inspects, lists, or installs high-performance gaming kernels (XanMod, Liquorix, Backports)."""
+        self.check_permissions()
+        if action in ("list", "status"):
+            uname = subprocess.run(["uname", "-r"], capture_output=True, text=True).stdout.strip()
+            print(f"\n{Colors.BOLD}AxisOS Performance Kernel Telemetry:{Colors.RESET}")
+            print(f"  Current Running Kernel: {Colors.CYAN}{uname}{Colors.RESET}")
+            print(f"\n{Colors.BOLD}Available Gaming & Development Kernels:{Colors.RESET}")
+            print(f"  • {Colors.GREEN}xanmod{Colors.RESET}   : XanMod Linux (BORE/CACULE CPU scheduler, 500Hz/1000Hz, low-latency gaming)")
+            print(f"  • {Colors.GREEN}liquorix{Colors.RESET} : Liquorix Linux (ZEN interactive scheduler, preemptive desktop responsiveness)")
+            print(f"  • {Colors.GREEN}backports{Colors.RESET}: Debian 12 Backports Kernel (Latest upstream stable LTS with modern GPU drivers)")
+            print(f"  • {Colors.GREEN}stock{Colors.RESET}    : Debian 12 Default Enterprise Stable LTS (linux-image-amd64)\n")
+            print("Install command: sudo axis kernel install <xanmod|liquorix|backports>\n")
+            return 0
+
+        if action == "install":
+            target = (kernel_name or "xanmod").lower()
+            if "xanmod" in target:
+                log_step("Configuring official XanMod Linux Gaming Kernel repository...")
+                os.makedirs("/etc/apt/keyrings", exist_ok=True)
+                key_cmd = "wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg"
+                repo_line = "deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main\n"
+                subprocess.run(key_cmd, shell=True, check=False)
+                with open("/etc/apt/sources.list.d/xanmod-release.list", "w") as f:
+                    f.write(repo_line)
+                log_step("Updating package indices with XanMod repository...")
+                subprocess.run(["apt-get", "update"])
+                log_step("Installing XanMod performance kernel (linux-xanmod-x64v3)...")
+                res = subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", "linux-xanmod-x64v3"])
+                if res.returncode != 0:
+                    log_warn("Falling back to generic x64v1 compatibility build...")
+                    res = subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", "linux-xanmod-x64v1"])
+                if res.returncode == 0:
+                    log_success("XanMod Gaming Kernel successfully installed! Reboot to activate.")
+                    return 0
+                return 1
+
+            elif "liquorix" in target:
+                log_step("Setting up official Liquorix Linux Kernel repository...")
+                curl_cmd = "curl -s 'https://liquorix.net/install-liquorix.sh' | bash"
+                res = subprocess.run(curl_cmd, shell=True)
+                if res.returncode == 0:
+                    log_success("Liquorix Gaming Kernel successfully installed! Reboot to activate.")
+                    return 0
+                return 1
+
+            elif "backports" in target:
+                log_step("Installing latest Linux kernel from Debian Bookworm Backports...")
+                self.manage_backports("enable")
+                res = subprocess.run(["apt-get", "install", "-y", "-t", "bookworm-backports", "linux-image-amd64", "linux-headers-amd64"])
+                if res.returncode == 0:
+                    log_success("Debian Backports Kernel successfully installed! Reboot to activate.")
+                    return 0
+                return 1
+
+            log_error(f"Unknown kernel target: '{kernel_name}'. Choose xanmod, liquorix, or backports.")
+            return 1
+
+        return 0
+
+    def manage_backports(self, action: str = "status") -> int:
+        """Enables Debian Bookworm Backports for bleeding-edge Mesa drivers and kernels."""
+        self.check_permissions()
+        backports_file = "/etc/apt/sources.list.d/backports.list"
+        if action in ("status", "check"):
+            has_bp = os.path.exists(backports_file) or (
+                os.path.exists("/etc/apt/sources.list") and "bookworm-backports" in open("/etc/apt/sources.list").read()
+            )
+            print(f"\n{Colors.BOLD}Debian Bookworm Backports Status:{Colors.RESET}")
+            print(f"  Backports Repository: {Colors.GREEN if has_bp else Colors.YELLOW}{'Active & Enabled' if has_bp else 'Disabled'}{Colors.RESET}")
+            print("  Provides: Latest Mesa 24+ Vulkan/OpenGL drivers, modern kernel releases, and updated firmware.\n")
+            print("Enable command: sudo axis backports enable\n")
+            return 0
+
+        if action == "enable":
+            log_step("Configuring Debian Bookworm Backports repository...")
+            line = (
+                "deb http://deb.debian.org/debian/ bookworm-backports main contrib non-free non-free-firmware\n"
+                "deb-src http://deb.debian.org/debian/ bookworm-backports main contrib non-free non-free-firmware\n"
+            )
+            with open(backports_file, "w") as f:
+                f.write(line)
+            log_step("Updating package indices with Bookworm Backports...")
+            subprocess.run(["apt-get", "update"])
+            log_success("Debian Bookworm Backports enabled.")
+            return 0
+
+        return 0
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -831,6 +966,9 @@ def main():
 Examples:
   axis update                      Sync remote repository indices
   axis install fastfetch vlc       Install fastfetch and vlc with dependencies
+  axis install xanmod              Install XanMod low-latency gaming kernel
+  axis kernel list                 List available performance gaming kernels
+  axis backports enable            Enable Debian Backports for modern Mesa drivers
   axis remove vlc                  Remove vlc and clean installed files
   axis list                        Show all installed packages
   axis search editor               Search available packages
@@ -867,6 +1005,15 @@ Examples:
     p_info = subparsers.add_parser("info", help="Display package details")
     p_info.add_argument("package", help="Name of package to inspect")
 
+    # kernel
+    p_kernel = subparsers.add_parser("kernel", help="Manage high-performance gaming & low-latency kernels")
+    p_kernel.add_argument("kernel_action", choices=["list", "status", "install"], help="Kernel management action")
+    p_kernel.add_argument("kernel_name", nargs="?", default="xanmod", help="Kernel to install (xanmod | liquorix | backports)")
+
+    # backports
+    p_bp = subparsers.add_parser("backports", help="Manage Debian Bookworm Backports (Mesa & hardware enablement)")
+    p_bp.add_argument("bp_action", choices=["status", "enable"], nargs="?", default="status", help="Backports action")
+
     # build
     p_build = subparsers.add_parser("build", help="Build a .axis package from directory")
     p_build.add_argument("source_dir", help="Directory containing metadata.json and rootfs/")
@@ -897,6 +1044,10 @@ Examples:
             sys.exit(mgr.search(args.query))
         elif args.command == "info":
             sys.exit(mgr.info(args.package))
+        elif args.command == "kernel":
+            sys.exit(mgr.manage_kernel(args.kernel_action, kernel_name=args.kernel_name))
+        elif args.command == "backports":
+            sys.exit(mgr.manage_backports(args.bp_action))
         elif args.command == "build":
             sys.exit(mgr.build_package(args.source_dir, output_path=args.output))
     except KeyboardInterrupt:
