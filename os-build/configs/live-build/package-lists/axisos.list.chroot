@@ -12,13 +12,15 @@ live-config-systemd
 live-tools
 firmware-linux-free
 
-# Universal Hardware Firmware & Wireless Drivers (Intel, Realtek, Atheros, Broadcom)
+# Universal Hardware Firmware & Wireless Drivers (Intel, AMD, Realtek, Atheros, Broadcom)
 firmware-linux
 firmware-linux-nonfree
 firmware-misc-nonfree
+firmware-amd-graphics
 firmware-iwlwifi
 firmware-realtek
 firmware-atheros
+firmware-brcm80211
 firmware-intel-sound
 firmware-sof-signed
 
@@ -51,6 +53,7 @@ ca-certificates
 # Bluetooth Stack & Utilities
 bluez
 bluez-tools
+blueman
 libspa-0.2-bluetooth
 
 # Audio Infrastructure (PipeWire, ALSA, WirePlumber)
@@ -92,6 +95,14 @@ gdisk
 fdisk
 rsync
 util-linux
+udisks2
+
+# Mobile Device Recognition & MTP (Android, iOS, HarmonyOS)
+gvfs-backends
+gvfs-fuse
+android-sdk-platform-tools-common
+libimobiledevice-utils
+usbmuxd
 
 # GRUB & EFI Bootloader Suite
 grub-efi-amd64-signed
@@ -124,6 +135,7 @@ vkbasalt
 cpufrequtils
 linux-cpupower
 nvtop
+steam-installer
 
 # ==============================================================================
 # AxisOS Developer Stack & Container Isolation (Distrobox, Podman, Docker)

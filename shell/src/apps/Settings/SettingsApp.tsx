@@ -466,14 +466,14 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
                       onClick={() => setActiveTab(item.id)}
                       className={`relative flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-colors text-left ${
                         isActive
-                          ? 'bg-[#007AFF] text-white font-medium shadow-xs'
+                          ? 'bg-[#87cf3e] text-black font-semibold shadow-xs'
                           : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
                       }`}
                     >
                       <div className="flex items-center space-x-2.5 truncate">
                         <div
-                          className={`w-5 h-5 rounded-md flex items-center justify-center text-white shrink-0 ${
-                            isActive ? 'bg-white/20' : item.color
+                          className={`w-5 h-5 rounded-md flex items-center justify-center shrink-0 ${
+                            isActive ? 'bg-black/15 text-black' : `${item.color} text-white`
                           }`}
                         >
                           {item.icon}
@@ -1655,11 +1655,12 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
               <div className="pt-3 border-t border-black/5 dark:border-white/5 flex flex-col gap-2">
                 <span className="text-xs font-semibold">Accent Color</span>
                 <div className="flex items-center gap-3">
-                  {(['blue', 'cyan', 'purple', 'emerald', 'amber', 'rose'] as const).map((col) => (
+                  {(['mint', 'blue', 'cyan', 'purple', 'emerald', 'amber', 'rose'] as const).map((col) => (
                     <button
                       key={col}
                       onClick={() => setAccentColor(col)}
                       className={`w-7 h-7 rounded-full flex items-center justify-center transition-transform hover:scale-110 ${
+                        col === 'mint' ? 'bg-[#87cf3e]' :
                         col === 'blue' ? 'bg-[#007AFF]' :
                         col === 'cyan' ? 'bg-cyan-500' :
                         col === 'purple' ? 'bg-purple-500' :
@@ -1667,7 +1668,7 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
                         col === 'amber' ? 'bg-amber-500' : 'bg-rose-500'
                       }`}
                     >
-                      {accentColor === col && <Check className="w-3.5 h-3.5 text-white" />}
+                      {accentColor === col && <Check className={`w-3.5 h-3.5 ${col === 'mint' ? 'text-black font-bold' : 'text-white'}`} />}
                     </button>
                   ))}
                 </div>

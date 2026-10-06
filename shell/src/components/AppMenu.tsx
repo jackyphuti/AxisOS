@@ -58,7 +58,7 @@ export const AppMenu: React.FC = () => {
       onClick={() => setIsAppMenuOpen(false)}
     >
       <div
-        className="w-full max-w-2xl bg-slate-950/90 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl shadow-black/90 p-6 flex flex-col gap-5 animate-in zoom-in-95 duration-150"
+        className="w-full max-w-2xl bg-[#141b16]/95 backdrop-blur-3xl rounded-2xl border border-[#87cf3e]/25 shadow-2xl shadow-black/90 p-6 flex flex-col gap-5 animate-in zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Bar */}
@@ -70,12 +70,12 @@ export const AppMenu: React.FC = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             autoFocus
-            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 text-sm"
+            className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#87cf3e]/50 text-sm"
           />
         </div>
 
         {/* Categories Bar */}
-        <div className="flex items-center space-x-2 border-b border-white/10 pb-3 text-xs">
+        <div className="flex items-center space-x-2 border-b border-[#87cf3e]/15 pb-3 text-xs">
           {(['all', 'system', 'utilities', 'accessories'] as const).map((cat) => (
             <button
               key={cat}
@@ -100,7 +100,7 @@ export const AppMenu: React.FC = () => {
             <button
               key={app.id}
               onClick={() => handleLaunchApp(app.id)}
-              className="group flex items-start space-x-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/15 transition-all text-left"
+              className="group flex items-start space-x-3 p-3 rounded-xl bg-white/5 hover:bg-[#87cf3e]/10 border border-white/5 hover:border-[#87cf3e]/30 transition-all text-left"
             >
               <div className="shrink-0 group-hover:scale-105 transition-transform">
                 <MacIcon id={app.id} size={42} />
@@ -118,9 +118,9 @@ export const AppMenu: React.FC = () => {
         </div>
 
         {/* Bottom User Bar & Power Controls */}
-        <div className="flex items-center justify-between pt-3 border-t border-white/10">
+        <div className="flex items-center justify-between pt-3 border-t border-[#87cf3e]/15">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-600 to-blue-500 flex items-center justify-center font-bold text-white text-xs">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#76bb33] to-[#87cf3e] flex items-center justify-center font-bold text-black text-xs">
               AX
             </div>
             <div>

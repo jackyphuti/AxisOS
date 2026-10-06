@@ -84,7 +84,7 @@ export const DockOrTaskbar: React.FC = () => {
         }`}
       >
         <div
-          className="flex items-end space-x-2.5 px-3.5 py-2.5 rounded-2xl bg-white/20 dark:bg-slate-900/40 backdrop-blur-3xl border border-white/20 dark:border-white/15 shadow-[0_20px_50px_rgba(0,0,0,0.3)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)]"
+          className="flex items-end space-x-2.5 px-3.5 py-2.5 rounded-2xl bg-white/40 dark:bg-[#18201b]/75 backdrop-blur-3xl border border-black/10 dark:border-[#87cf3e]/25 shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
         >
         {/* Dock Applications */}
         {dockApps.map((app, idx) => {
@@ -111,15 +111,15 @@ export const DockOrTaskbar: React.FC = () => {
                   <span
                     className={`rounded-full transition-all ${
                       isActive
-                        ? 'w-1.5 h-1.5 bg-white shadow-[0_0_6px_rgba(255,255,255,0.9)]'
-                        : 'w-1 h-1 bg-white/50'
+                        ? 'w-1.5 h-1.5 bg-[#87cf3e] shadow-[0_0_8px_rgba(135,207,62,0.95)]'
+                        : 'w-1 h-1 bg-[#87cf3e]/60'
                     }`}
                   />
                 )}
               </div>
 
               {/* macOS Tooltip */}
-              <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-slate-900/90 text-[11px] text-white font-medium border border-white/10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md">
+              <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#18201b]/95 text-[11px] text-white font-medium border border-[#87cf3e]/30 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md">
                 {app.title}
               </span>
             </button>
@@ -127,7 +127,7 @@ export const DockOrTaskbar: React.FC = () => {
         })}
 
         {/* Vertical divider */}
-        <div className="h-10 w-[1px] bg-white/20 mx-1 mb-1"></div>
+        <div className="h-10 w-[1px] bg-[#87cf3e]/20 mx-1 mb-1"></div>
 
         {/* Trash */}
         <button
@@ -144,7 +144,7 @@ export const DockOrTaskbar: React.FC = () => {
           </div>
           <div className="h-1.5 mt-1" />
 
-          <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-slate-900/90 text-[11px] text-white font-medium border border-white/10 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md">
+          <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#18201b]/95 text-[11px] text-white font-medium border border-[#87cf3e]/30 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md">
             Trash
           </span>
         </button>

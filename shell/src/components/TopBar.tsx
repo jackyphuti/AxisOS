@@ -70,7 +70,7 @@ export const TopBar: React.FC = () => {
   }, []);
 
   return (
-    <header className="h-7 w-full bg-slate-950/40 backdrop-blur-2xl border-b border-white/10 px-3 flex items-center justify-between z-40 select-none text-[12px] font-normal text-slate-200">
+    <header className="h-7 w-full bg-[#18201b]/80 dark:bg-[#111713]/90 backdrop-blur-2xl border-b border-[#87cf3e]/20 px-3 flex items-center justify-between z-40 select-none text-[12px] font-normal text-slate-200">
       {/* Left: Apple / Axis Menu & Active App Menus */}
       <div className="flex items-center space-x-1" id="app-menus-container">
         {/* Apple/Axis Brand Menu */}
@@ -78,30 +78,30 @@ export const TopBar: React.FC = () => {
           <button
             onClick={() => setAppleMenuOpen(!appleMenuOpen)}
             className={`px-2 py-0.5 rounded transition-colors flex items-center justify-center ${
-              appleMenuOpen ? 'bg-white/20 text-white' : 'hover:bg-white/10 text-slate-200'
+              appleMenuOpen ? 'bg-[#87cf3e]/30 text-[#87cf3e]' : 'hover:bg-white/10 text-slate-200'
             }`}
           >
             <AxisLogo size={14} variant="white" />
           </button>
 
           {appleMenuOpen && (
-            <div className="absolute top-7 left-0 w-56 bg-slate-900/90 backdrop-blur-3xl border border-white/15 rounded-xl shadow-2xl shadow-black p-1.5 flex flex-col gap-0.5 z-50 text-xs animate-in fade-in duration-100">
+            <div className="absolute top-7 left-0 w-56 bg-[#18221b]/95 backdrop-blur-3xl border border-[#87cf3e]/25 rounded-xl shadow-2xl shadow-black p-1.5 flex flex-col gap-0.5 z-50 text-xs animate-in fade-in duration-100 text-slate-100">
               <button
                 onClick={() => {
                   setAppleMenuOpen(false);
                   openApp('about');
                 }}
-                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors"
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-[#87cf3e] hover:text-black transition-colors font-medium"
               >
                 About This AxisPC
               </button>
-              <div className="my-1 border-t border-white/10" />
+              <div className="my-1 border-t border-[#87cf3e]/15" />
               <button
                 onClick={() => {
                   setAppleMenuOpen(false);
                   setIsAppMenuOpen(true);
                 }}
-                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-between"
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-[#87cf3e] hover:text-black transition-colors font-medium flex items-center justify-between"
               >
                 <span>Applications Menu</span>
                 <span className="text-[10px] opacity-70 font-mono">⊞ Win</span>
@@ -111,7 +111,7 @@ export const TopBar: React.FC = () => {
                   setAppleMenuOpen(false);
                   openApp('settings');
                 }}
-                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-between"
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-[#87cf3e] hover:text-black transition-colors font-medium flex items-center justify-between"
               >
                 <span>System Settings...</span>
               </button>
@@ -120,17 +120,17 @@ export const TopBar: React.FC = () => {
                   setAppleMenuOpen(false);
                   openApp('software');
                 }}
-                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors"
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-[#87cf3e] hover:text-black transition-colors font-medium"
               >
                 Axis Store (App Center)...
               </button>
-              <div className="my-1 border-t border-white/10" />
+              <div className="my-1 border-t border-[#87cf3e]/15" />
               <button
                 onClick={() => {
                   setAppleMenuOpen(false);
                   setPowerModalOpen(true);
                 }}
-                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors"
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-[#87cf3e] hover:text-black transition-colors font-medium"
               >
                 Sleep
               </button>
@@ -139,7 +139,7 @@ export const TopBar: React.FC = () => {
                   setAppleMenuOpen(false);
                   setPowerModalOpen(true);
                 }}
-                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors"
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-[#87cf3e] hover:text-black transition-colors font-medium"
               >
                 Restart...
               </button>
@@ -148,17 +148,17 @@ export const TopBar: React.FC = () => {
                   setAppleMenuOpen(false);
                   setPowerModalOpen(true);
                 }}
-                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-rose-600 hover:text-white transition-colors text-rose-300"
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-rose-600 hover:text-white transition-colors text-rose-300 font-medium"
               >
                 Shut Down...
               </button>
-              <div className="my-1 border-t border-white/10" />
+              <div className="my-1 border-t border-[#87cf3e]/15" />
               <button
                 onClick={() => {
                   setAppleMenuOpen(false);
                   lockSession();
                 }}
-                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-between"
+                className="w-full px-2.5 py-1 text-left rounded-md hover:bg-[#87cf3e] hover:text-black transition-colors font-medium flex items-center justify-between"
               >
                 <span>Lock Screen</span>
                 <span className="text-[10px] text-slate-400">⊞ L</span>

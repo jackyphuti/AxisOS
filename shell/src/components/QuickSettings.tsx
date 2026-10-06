@@ -37,7 +37,7 @@ export const QuickSettings: React.FC = () => {
   return (
     <div
       id="quick-settings-panel"
-      className="absolute top-8 right-2.5 w-80 p-3 rounded-2xl bg-white/75 dark:bg-slate-900/85 backdrop-blur-3xl border border-black/10 dark:border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] z-50 text-slate-800 dark:text-slate-100 flex flex-col gap-2.5 select-none animate-in fade-in slide-in-from-top-1 duration-150"
+      className="absolute top-8 right-2.5 w-80 p-3 rounded-2xl bg-white/85 dark:bg-[#18201b]/95 backdrop-blur-3xl border border-black/10 dark:border-[#87cf3e]/20 shadow-[0_25px_60px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.8)] z-50 text-slate-800 dark:text-slate-100 flex flex-col gap-2.5 select-none animate-in fade-in slide-in-from-top-1 duration-150"
     >
       {/* Top 2-Column Section */}
       <div className="grid grid-cols-2 gap-2">
@@ -50,7 +50,7 @@ export const QuickSettings: React.FC = () => {
           >
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                wifiEnabled ? 'bg-blue-500 text-white shadow-md' : 'bg-black/10 dark:bg-white/10 text-slate-500 dark:text-slate-400'
+                wifiEnabled ? 'bg-[#87cf3e] text-black font-bold shadow-md' : 'bg-black/10 dark:bg-white/10 text-slate-500 dark:text-slate-400'
               }`}
             >
               {wifiEnabled ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
@@ -70,7 +70,7 @@ export const QuickSettings: React.FC = () => {
           >
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                bluetoothEnabled ? 'bg-blue-500 text-white shadow-md' : 'bg-black/10 dark:bg-white/10 text-slate-500 dark:text-slate-400'
+                bluetoothEnabled ? 'bg-[#87cf3e] text-black font-bold shadow-md' : 'bg-black/10 dark:bg-white/10 text-slate-500 dark:text-slate-400'
               }`}
             >
               <Bluetooth className="w-3.5 h-3.5" />
@@ -107,7 +107,7 @@ export const QuickSettings: React.FC = () => {
           >
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                theme === 'dark' ? 'bg-blue-500 text-white shadow-md' : 'bg-amber-500 text-white'
+                theme === 'dark' ? 'bg-[#87cf3e] text-black font-bold shadow-md' : 'bg-amber-500 text-white'
               }`}
             >
               {theme === 'dark' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
@@ -131,7 +131,7 @@ export const QuickSettings: React.FC = () => {
             max="100"
             value={brightness}
             onChange={(e) => setBrightness(Number(e.target.value))}
-            className="flex-1 h-2 bg-slate-300 dark:bg-slate-700/60 rounded-full appearance-none cursor-pointer accent-blue-500"
+            className="flex-1 h-2 bg-slate-300 dark:bg-slate-700/60 rounded-full appearance-none cursor-pointer accent-[#87cf3e]"
           />
           <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 w-8 text-right">{brightness}%</span>
         </div>
@@ -160,7 +160,7 @@ export const QuickSettings: React.FC = () => {
             max="100"
             value={isMuted ? 0 : volume}
             onChange={(e) => changeVolume(Number(e.target.value))}
-            className="flex-1 h-2 bg-slate-300 dark:bg-slate-700/60 rounded-full appearance-none cursor-pointer accent-blue-500"
+            className="flex-1 h-2 bg-slate-300 dark:bg-slate-700/60 rounded-full appearance-none cursor-pointer accent-[#87cf3e]"
           />
           <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 w-8 text-right">
             {isMuted ? '0%' : `${volume}%`}

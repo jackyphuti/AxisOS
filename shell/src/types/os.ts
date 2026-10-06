@@ -43,7 +43,7 @@ export interface WindowState {
 
 export type SystemTheme = 'dark' | 'light';
 
-export type AccentColor = 'blue' | 'cyan' | 'purple' | 'emerald' | 'amber' | 'rose';
+export type AccentColor = 'mint' | 'blue' | 'cyan' | 'purple' | 'emerald' | 'amber' | 'rose';
 
 export interface SystemInfo {
   osName: string;

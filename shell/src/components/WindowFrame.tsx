@@ -133,16 +133,16 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
           : win.animating === 'restoring'
           ? 'animate-in fade-in zoom-in-95 duration-200 ease-out'
           : isFocused
-          ? 'ring-1 ring-black/10 dark:ring-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] opacity-100'
+          ? 'ring-1 ring-black/10 dark:ring-[#87cf3e]/30 shadow-[0_20px_50px_rgba(0,0,0,0.2)] dark:shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)] opacity-100'
           : 'ring-1 ring-black/5 dark:ring-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_15px_35px_-10px_rgba(0,0,0,0.6)] opacity-95'
-      } bg-white dark:bg-slate-950/85`}
+      } bg-white dark:bg-[#141b16]/95`}
     >
       {/* macOS Unified Titlebar for standard apps */}
       {!hasIntegratedTitlebar && (
         <div
           onMouseDown={handleTitleBarMouseDown}
           onDoubleClick={() => toggleMaximizeWindow(win.id)}
-          className="h-9 px-3.5 flex items-center justify-between bg-[#EBEBEB] dark:bg-slate-900/60 border-b border-black/10 dark:border-white/10 cursor-default select-none relative shrink-0"
+          className="h-9 px-3.5 flex items-center justify-between bg-[#F0F2F0] dark:bg-[#1a231d]/90 border-b border-black/10 dark:border-[#87cf3e]/15 cursor-default select-none relative shrink-0"
         >
           {/* Left: macOS Traffic Lights */}
           <div

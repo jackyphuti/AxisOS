@@ -1,0 +1,15 @@
+[Unit]
+Description=AxisOS Dynamic GPU Autodetection & Hardware Provisioning
+After=network-online.target systemd-networkd.service NetworkManager.service
+Wants=network-online.target
+ConditionPathExists=!/var/lib/axis/gpu-autodetect.done
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/gpu-autodetect.sh
+RemainAfterExit=yes
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
