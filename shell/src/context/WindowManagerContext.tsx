@@ -4,7 +4,7 @@ import { AppId, AppDefinition, WindowState } from '../types/os';
 export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   'file-manager': {
     id: 'file-manager',
-    title: 'Finder',
+    title: 'Axis Files',
     category: 'accessories',
     description: 'Browse local files, directories, drives, and network locations.',
     defaultWidth: 840,
@@ -13,16 +13,16 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   browser: {
     id: 'browser',
-    title: 'Axis Browser',
+    title: 'Axis Web',
     category: 'utilities',
-    description: 'High-performance web browser powered by Chromium engine.',
+    description: 'High-performance web browser powered by Google Chromium engine.',
     defaultWidth: 960,
     defaultHeight: 620,
     isPinned: true,
   },
   terminal: {
     id: 'terminal',
-    title: 'Terminal',
+    title: 'Axis Console',
     category: 'utilities',
     description: 'Real interactive Linux bash shell with host hardware access.',
     defaultWidth: 780,
@@ -31,7 +31,7 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   'system-monitor': {
     id: 'system-monitor',
-    title: 'Activity Monitor',
+    title: 'Axis Diagnostics',
     category: 'system',
     description: 'Inspect live CPU threads, memory pressure, and Linux processes.',
     defaultWidth: 820,
@@ -40,16 +40,16 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   'text-editor': {
     id: 'text-editor',
-    title: 'TextEdit',
+    title: 'Axis Write',
     category: 'accessories',
-    description: 'Simple and elegant plain text and code editor.',
+    description: 'Modern code and text editor with syntax highlighting.',
     defaultWidth: 740,
     defaultHeight: 500,
     isPinned: false,
   },
   music: {
     id: 'music',
-    title: 'Music',
+    title: 'Axis Audio',
     category: 'accessories',
     description: 'Audio player with real-time synthesizer, spectrum visualizer, and local audio import.',
     defaultWidth: 840,
@@ -58,7 +58,7 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   photos: {
     id: 'photos',
-    title: 'Photos',
+    title: 'Axis Gallery',
     category: 'accessories',
     description: 'Image gallery, dynamic wallpapers, and media viewer.',
     defaultWidth: 860,
@@ -67,7 +67,7 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   notes: {
     id: 'notes',
-    title: 'Notes',
+    title: 'Axis Memo',
     category: 'accessories',
     description: 'Quick notes, organized folders, and checkable lists.',
     defaultWidth: 800,
@@ -76,16 +76,16 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   calculator: {
     id: 'calculator',
-    title: 'Calculator',
+    title: 'Axis Calc',
     category: 'accessories',
-    description: 'Standard and scientific macOS-style calculator.',
+    description: 'Standard and scientific precision calculator.',
     defaultWidth: 320,
     defaultHeight: 460,
     isPinned: true,
   },
   settings: {
     id: 'settings',
-    title: 'System Settings',
+    title: 'Control Center',
     category: 'system',
     description: 'Configure appearance, displays, hardware, and preferences.',
     defaultWidth: 860,
@@ -94,7 +94,7 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   installer: {
     id: 'installer',
-    title: 'Install AxisOS',
+    title: 'Axis Setup',
     category: 'system',
     description: 'System setup and installation wizard for AxisOS.',
     defaultWidth: 880,
@@ -103,7 +103,7 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   about: {
     id: 'about',
-    title: 'About This AxisPC',
+    title: 'About AxisOS',
     category: 'system',
     description: 'Hardware overview, processor, memory, and kernel details.',
     defaultWidth: 600,
@@ -121,7 +121,7 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   clock: {
     id: 'clock',
-    title: 'Clock',
+    title: 'Axis Chrono',
     category: 'accessories',
     description: 'World clock, alarms, precision stopwatch, and countdown timer.',
     defaultWidth: 680,
@@ -130,7 +130,7 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   weather: {
     id: 'weather',
-    title: 'Weather',
+    title: 'Axis Climate',
     category: 'accessories',
     description: 'Real-time weather forecasts, hourly forecasts, and atmospheric conditions.',
     defaultWidth: 720,
@@ -139,7 +139,7 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
   },
   camera: {
     id: 'camera',
-    title: 'Photo Booth',
+    title: 'Axis Lens',
     category: 'accessories',
     description: 'Capture photos, apply real-time creative filters, and set desktop wallpapers.',
     defaultWidth: 760,

@@ -479,6 +479,23 @@ class PackageManager:
 
         # Step 2: Download & Extract Each Package
         for pkg_name in install_queue:
+            # Direct .deb Debian package file handling (dpkg / apt)
+            if pkg_name.endswith(".deb") or (os.path.isfile(pkg_name) and pkg_name.endswith(".deb")):
+                deb_path = os.path.abspath(pkg_name)
+                log_step(f"Installing local Debian package {deb_path} via dpkg/apt...")
+                res = subprocess.run(["apt-get", "install", "-y", deb_path])
+                if res.returncode != 0:
+                    subprocess.run(["dpkg", "-i", deb_path])
+                    res = subprocess.run(["apt-get", "install", "-f", "-y"])
+                if res.returncode == 0:
+                    base_name = os.path.basename(deb_path).split("_")[0]
+                    self.db.add_package(base_name, {"version": "deb-local", "description": f"Installed from {deb_path}"}, [deb_path])
+                    log_success(f"Successfully installed Debian package {base_name}.")
+                    continue
+                else:
+                    log_error(f"Failed to install Debian package: {deb_path}")
+                    return 1
+
             pkg_info = self.repo.find_package(pkg_name)
             url = pkg_info.get("url", "") if pkg_info else ""
 
@@ -956,6 +973,90 @@ class PackageManager:
 
         return 0
 
+    def manage_flatpak(self, action: str, app_id: Optional[str] = None) -> int:
+        """Manages Flatpak sandboxed applications and Flathub repository."""
+        if not shutil.which("flatpak"):
+            log_error("Flatpak runtime is not installed on this system.")
+            return 1
+
+        if action in ("setup", "remote-add", "enable"):
+            self.check_permissions()
+            log_step("Configuring official Flathub remote repository...")
+            res = subprocess.run([
+                "flatpak", "remote-add", "--if-not-exists", "flathub",
+                "https://dl.flathub.org/repo/flathub.flatpakrepo"
+            ])
+            if res.returncode == 0:
+                log_success("Flathub remote successfully configured.")
+                return 0
+            return res.returncode
+
+        if action == "list":
+            subprocess.run(["flatpak", "list"])
+            return 0
+
+        if action == "install":
+            if not app_id:
+                log_error("Specify application ID or name to install via Flatpak.")
+                return 1
+            log_step(f"Installing sandboxed Flatpak package: {app_id} ...")
+            res = subprocess.run(["flatpak", "install", "-y", "flathub", app_id])
+            if res.returncode == 0:
+                self.db.add_package(app_id, {"version": "flatpak", "description": f"Flatpak application ({app_id})"}, [f"/var/lib/flatpak/app/{app_id}"])
+                log_success(f"Installed {app_id} via Flatpak.")
+            return res.returncode
+
+        if action == "remove":
+            if not app_id:
+                log_error("Specify application ID or name to remove via Flatpak.")
+                return 1
+            log_step(f"Removing Flatpak application: {app_id} ...")
+            res = subprocess.run(["flatpak", "uninstall", "-y", app_id])
+            if res.returncode == 0:
+                self.db.remove_package(app_id)
+                log_success(f"Removed {app_id}.")
+            return res.returncode
+
+        if action == "search":
+            if not app_id:
+                log_error("Specify search query for Flatpak.")
+                return 1
+            subprocess.run(["flatpak", "search", app_id])
+            return 0
+
+        log_error(f"Unknown flatpak action: {action}. Use install, remove, list, search, or setup.")
+        return 1
+
+    def manage_display(self, action: str = "status") -> int:
+        """Inspects and manages Cinnamon display server (X11 default, experimental Wayland)."""
+        xdg_type = os.environ.get("XDG_SESSION_TYPE", "unknown")
+        gdk_backend = os.environ.get("GDK_BACKEND", "x11")
+
+        if action == "status":
+            print(f"\n{Colors.BOLD}AxisOS Cinnamon Display Server Diagnostics:{Colors.RESET}")
+            print(f"  Current Session Type:   {Colors.CYAN}{xdg_type.upper()}{Colors.RESET}")
+            print(f"  Default Display Server: {Colors.GREEN}X11 (Stable - Muffin Compositor){Colors.RESET}")
+            print(f"  Experimental Support:   {Colors.YELLOW}Wayland (cinnamon-wayland session available){Colors.RESET}")
+            print(f"  GDK Rendering Backend:  {gdk_backend}")
+            print(f"  Display Manager:        LightDM (slick-greeter)")
+            print("\nTo test experimental Wayland, select 'AxisOS Cinnamon (Wayland - Experimental)' at login, or run:")
+            print("  axis display test-wayland\n")
+            return 0
+
+        if action == "test-wayland":
+            log_step("Launching experimental Cinnamon Wayland session...")
+            if shutil.which("cinnamon-session"):
+                os.environ["GDK_BACKEND"] = "wayland,x11"
+                os.environ["QT_QPA_PLATFORM"] = "wayland;xcb"
+                os.environ["CLUTTER_BACKEND"] = "wayland"
+                subprocess.run(["cinnamon-session", "--wayland"])
+                return 0
+            else:
+                log_error("cinnamon-session binary not found.")
+                return 1
+
+        return 0
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -1019,6 +1120,15 @@ Examples:
     p_build.add_argument("source_dir", help="Directory containing metadata.json and rootfs/")
     p_build.add_argument("--output", "-o", default=None, help="Output .axis archive destination")
 
+    # flatpak
+    p_flatpak = subparsers.add_parser("flatpak", help="Manage Flatpak sandboxed applications & Flathub")
+    p_flatpak.add_argument("flatpak_action", choices=["install", "remove", "list", "search", "setup"], help="Flatpak action")
+    p_flatpak.add_argument("app_id", nargs="?", default=None, help="Application ID or search query")
+
+    # display
+    p_display = subparsers.add_parser("display", help="Manage Cinnamon display server (X11 default, Wayland experimental)")
+    p_display.add_argument("display_action", choices=["status", "test-wayland"], nargs="?", default="status", help="Display server action")
+
     args = parser.parse_args()
 
     if args.no_color or not sys.stdout.isatty():
@@ -1048,6 +1158,10 @@ Examples:
             sys.exit(mgr.manage_kernel(args.kernel_action, kernel_name=args.kernel_name))
         elif args.command == "backports":
             sys.exit(mgr.manage_backports(args.bp_action))
+        elif args.command == "flatpak":
+            sys.exit(mgr.manage_flatpak(args.flatpak_action, app_id=args.app_id))
+        elif args.command == "display":
+            sys.exit(mgr.manage_display(args.display_action))
         elif args.command == "build":
             sys.exit(mgr.build_package(args.source_dir, output_path=args.output))
     except KeyboardInterrupt:

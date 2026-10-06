@@ -10,20 +10,20 @@ interface DockItem {
 }
 
 const DOCK_APPS: DockItem[] = [
-  { id: 'file-manager', title: 'Finder' },
-  { id: 'browser', title: 'Axis Browser' },
-  { id: 'music', title: 'Music' },
-  { id: 'photos', title: 'Photos' },
-  { id: 'notes', title: 'Notes' },
-  { id: 'camera', title: 'Photo Booth' },
+  { id: 'file-manager', title: 'Axis Files' },
+  { id: 'browser', title: 'Axis Web' },
+  { id: 'terminal', title: 'Axis Console' },
+  { id: 'system-monitor', title: 'Axis Diagnostics' },
   { id: 'software', title: 'Axis Store' },
-  { id: 'clock', title: 'Clock' },
-  { id: 'weather', title: 'Weather' },
-  { id: 'terminal', title: 'Terminal' },
-  { id: 'system-monitor', title: 'Activity Monitor' },
-  { id: 'calculator', title: 'Calculator' },
-  { id: 'settings', title: 'System Settings' },
-  { id: 'installer', title: 'Install AxisOS' },
+  { id: 'music', title: 'Axis Audio' },
+  { id: 'photos', title: 'Axis Gallery' },
+  { id: 'notes', title: 'Axis Memo' },
+  { id: 'camera', title: 'Axis Lens' },
+  { id: 'clock', title: 'Axis Chrono' },
+  { id: 'weather', title: 'Axis Climate' },
+  { id: 'calculator', title: 'Axis Calc' },
+  { id: 'settings', title: 'Control Center' },
+  { id: 'installer', title: 'Axis Setup' },
 ];
 
 export const DockOrTaskbar: React.FC = () => {

@@ -1,13 +1,23 @@
 import React from 'react';
 import { AppId } from '../types/os';
 
-interface MacIconProps {
+interface IconProps {
   id: AppId | 'trash' | 'browser' | 'calculator';
   size?: number; // size in px, defaults to 54
   className?: string;
 }
 
-export const MacIcon: React.FC<MacIconProps> = ({ id, size = 54, className = '' }) => {
+/**
+ * AxisOS Native Icon Engine
+ * =========================
+ * Replaces generic macOS squircles and skeuomorphic clones with an original,
+ * high-tech Linux Mint & AxisOS visual identity.
+ * Features:
+ * - Geometric modern tiles (16px radius, subtle border rings, ambient shadows)
+ * - Mint Green (#87cf3e) and Charcoal Slate (#141b16 / #18201b) signature palette
+ * - Vector-crafted iconography for every native application
+ */
+export const MacIcon: React.FC<IconProps> = ({ id, size = 54, className = '' }) => {
   const containerStyle = {
     width: `${size}px`,
     height: `${size}px`,
@@ -15,408 +25,471 @@ export const MacIcon: React.FC<MacIconProps> = ({ id, size = 54, className = '' 
 
   switch (id) {
     case 'file-manager':
-      // macOS Finder Icon (Blue smiley face)
+      // Axis Files: Dual-pane folder with cyber compass bookmark in Mint Charcoal
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-blue-950/40 overflow-hidden flex items-center justify-center transition-transform ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center transition-transform ${className}`}
         >
-          {/* Base gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#60a5fa] via-[#3b82f6] to-[#1d4ed8]"></div>
-          {/* Subtle glass reflection highlight */}
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
-          {/* Finder Face SVG */}
-          <svg viewBox="0 0 100 100" className="w-[82%] h-[82%] z-10 drop-shadow-md">
-            {/* Split face background tone */}
+          {/* Base Charcoal Slate */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1e2922] via-[#141b16] to-[#0c110e]"></div>
+          {/* Subtle Top Specular Glass */}
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
+          
+          {/* Vector Folder Icon */}
+          <svg viewBox="0 0 64 64" className="w-[72%] h-[72%] z-10 drop-shadow-md">
+            {/* Folder Back Tab */}
             <path
-              d="M18,18 Q50,14 82,18 Q86,50 82,82 Q50,86 18,82 Q14,50 18,18 Z"
-              fill="#93c5fd"
+              d="M10,18 Q10,14 14,14 L24,14 L28,18 L50,18 Q54,18 54,22 L54,46 Q54,50 50,50 L14,50 Q10,50 10,46 Z"
+              fill="#26382c"
             />
-            {/* Left face shadow */}
+            {/* Document sheet sticking out */}
+            <rect x="18" y="20" width="28" height="20" rx="2" fill="#d1ddd5" opacity="0.85" />
+            <line x1="22" y1="26" x2="36" y2="26" stroke="#18201b" strokeWidth="2" strokeLinecap="round" />
+            <line x1="22" y1="31" x2="42" y2="31" stroke="#18201b" strokeWidth="2" strokeLinecap="round" />
+            {/* Folder Front Flap */}
             <path
-              d="M18,18 Q50,14 50,50 Q50,86 18,82 Q14,50 18,18 Z"
-              fill="#60a5fa"
+              d="M8,26 Q8,22 12,22 L52,22 Q56,22 56,26 L54,46 Q54,50 50,50 L14,50 Q10,50 8,46 Z"
+              fill="url(#folderGrad)"
             />
-            {/* Eyes */}
-            <ellipse cx="36" cy="38" rx="4.5" ry="6" fill="#1e293b" />
-            <ellipse cx="64" cy="38" rx="4.5" ry="6" fill="#1e293b" />
-            {/* Nose line */}
-            <path
-              d="M50,30 Q46,48 40,54 L52,54"
-              stroke="#1e293b"
-              strokeWidth="4"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              fill="none"
-            />
-            {/* Smiling mouth */}
-            <path
-              d="M32,66 Q50,80 68,66"
-              stroke="#1e293b"
-              strokeWidth="4.5"
-              strokeLinecap="round"
-              fill="none"
-            />
+            {/* Cyber Compass Bookmark */}
+            <circle cx="32" cy="36" r="6" fill="#141b16" stroke="#87cf3e" strokeWidth="2" />
+            <polygon points="32,32 34,36 32,40 30,36" fill="#87cf3e" />
+
+            <defs>
+              <linearGradient id="folderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#3d5743" />
+                <stop offset="100%" stopColor="#1a261e" />
+              </linearGradient>
+            </defs>
           </svg>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/30 pointer-events-none"></div>
         </div>
       );
 
     case 'terminal':
-      // macOS Terminal Icon
+      // Axis Console: Deep obsidian tile with glowing neon mint prompt and matrix scanline
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-black/60 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/60 overflow-hidden flex items-center justify-center ${className}`}
         >
           {/* Deep dark brushed slate */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#334155] via-[#1e293b] to-[#0f172a]"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#18201b] via-[#101612] to-[#080d0a]"></div>
           {/* Glass glare */}
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent"></div>
+          
           {/* Terminal Screen frame */}
-          <div className="w-[82%] h-[82%] rounded-[18%] bg-black/90 border border-slate-700/80 p-2 flex flex-col justify-between z-10 shadow-inner">
-            <div className="flex items-center space-x-1">
-              <span className="text-[#38bdf8] font-mono font-black text-sm select-none leading-none">&gt;_</span>
+          <div className="w-[82%] h-[82%] rounded-xl bg-black/95 border border-[#87cf3e]/30 p-2 flex flex-col justify-between z-10 shadow-inner">
+            <div className="flex items-center space-x-1.5">
+              <span className="text-[#87cf3e] font-mono font-black text-sm select-none leading-none">&gt;</span>
+              <span className="text-slate-300 font-mono text-[9px]">axis:~#</span>
             </div>
-            <div className="w-2.5 h-1 bg-[#34d399] rounded-xs animate-pulse"></div>
+            <div className="flex items-center justify-between">
+              <div className="w-2.5 h-1.5 bg-[#87cf3e] rounded-xs animate-pulse"></div>
+              <span className="text-[7px] font-mono text-[#87cf3e]/60">sh</span>
+            </div>
           </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/20 pointer-events-none"></div>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/25 pointer-events-none"></div>
         </div>
       );
 
     case 'browser':
-      // Axis Browser Icon (Chromium-Powered Modern Squircle)
+      // Axis Web: Dimensional planetary nexus with glowing orbital rings & mint pulse
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-cyan-950/50 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-cyan-950/60 overflow-hidden flex items-center justify-center ${className}`}
         >
           {/* Base gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0ea5e9] via-[#0284c7] to-[#0f172a]"></div>
-          {/* Glass reflection highlight */}
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0c2e36] via-[#091b22] to-[#040d12]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"></div>
           
-          {/* Chromium Tri-Color Orbit Ring & Core */}
-          <div className="relative w-[78%] h-[78%] rounded-full bg-slate-950/80 p-1 flex items-center justify-center shadow-inner">
-            <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow">
-              {/* Top segment (Cyan) */}
-              <path
-                d="M50,12 A38,38 0 0,1 83,31 L64,64 L50,50 Z"
-                fill="#38bdf8"
-              />
-              {/* Bottom right segment (Emerald) */}
-              <path
-                d="M83,31 A38,38 0 0,1 50,88 L50,50 L64,64 Z"
-                fill="#34d399"
-              />
-              {/* Left segment (Amber/Rose) */}
-              <path
-                d="M50,88 A38,38 0 0,1 17,31 L50,50 Z"
-                fill="#fbbf24"
-              />
-              {/* Center orb */}
-              <circle cx="50" cy="50" r="18" fill="#ffffff" />
-              <circle cx="50" cy="50" r="14" fill="#0284c7" />
-              <circle cx="45" cy="45" r="4" fill="#ffffff" opacity="0.6" />
-            </svg>
-          </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/35 pointer-events-none"></div>
+          {/* Dimensional Orbit & Globe */}
+          <svg viewBox="0 0 64 64" className="w-[78%] h-[78%] z-10 drop-shadow-md">
+            {/* Outer Orbit Ring */}
+            <ellipse cx="32" cy="32" rx="26" ry="10" fill="none" stroke="#00e5ff" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.6" transform="rotate(-30 32 32)" />
+            {/* Core Nexus Sphere */}
+            <circle cx="32" cy="32" r="18" fill="url(#globeGrad)" stroke="#00e5ff" strokeWidth="1.5" />
+            {/* Latitude & Longitude curves */}
+            <ellipse cx="32" cy="32" rx="18" ry="7" fill="none" stroke="#87cf3e" strokeWidth="1.2" opacity="0.75" />
+            <ellipse cx="32" cy="32" rx="7" ry="18" fill="none" stroke="#87cf3e" strokeWidth="1.2" opacity="0.75" />
+            {/* Navigational Pulse Beacon */}
+            <circle cx="44" cy="22" r="3.5" fill="#87cf3e" />
+            <circle cx="44" cy="22" r="6" fill="none" stroke="#87cf3e" strokeWidth="1" opacity="0.6" className="animate-ping" />
+
+            <defs>
+              <radialGradient id="globeGrad" cx="35%" cy="35%" r="70%">
+                <stop offset="0%" stopColor="#00b4d8" />
+                <stop offset="70%" stopColor="#03045e" />
+                <stop offset="100%" stopColor="#000814" />
+              </radialGradient>
+            </defs>
+          </svg>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-cyan-400/30 pointer-events-none"></div>
         </div>
       );
 
     case 'settings':
-      // macOS System Settings Mechanical Gears
+      // Control Center: Dual precision sliders with glowing knobs and hexagonal cog
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-slate-950/50 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          {/* Brushed metallic aluminum background */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#94a3b8] via-[#64748b] to-[#475569]"></div>
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
-          {/* Gear icon */}
-          <svg viewBox="0 0 24 24" className="w-[62%] h-[62%] z-10 text-white drop-shadow-md">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#27332c] via-[#1a231e] to-[#101713]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[74%] h-[74%] z-10 text-white drop-shadow-md">
+            {/* Hexagonal Cog in center */}
             <path
-              fill="currentColor"
-              d="M12 15.5A3.5 3.5 0 0 1 8.5 12A3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5a3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.04-.32.07-.64.07-.97c0-.33-.03-.66-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.31-.61-.22l-2.49 1c-.52-.39-1.06-.73-1.69-.98l-.37-2.65A.506.506 0 0 0 14 2h-4c-.25 0-.46.18-.5.42l-.37 2.65c-.63.25-1.17.59-1.69.98l-2.49-1c-.22-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.04.34-.07.67-.07 1c0 .33.03.65.07.97l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.06.74 1.69.99l.37 2.65c.04.24.25.42.5.42h4c.25 0 .46-.18.5-.42l.37-2.65c.63-.26 1.17-.59 1.69-.99l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66Z"
+              d="M32 14 L36 14 L38 18 L43 19 L46 16 L49 19 L46 22 L47 27 L51 29 L51 33 L47 35 L46 40 L49 43 L46 46 L43 43 L38 44 L36 48 L32 48 L30 44 L25 43 L22 46 L19 43 L22 40 L21 35 L17 33 L17 29 L21 27 L22 22 L19 19 L22 16 L25 19 L30 18 Z"
+              fill="#2a3d31"
+              stroke="#87cf3e"
+              strokeWidth="1.5"
             />
+            <circle cx="32" cy="31" r="5" fill="#141b16" stroke="#87cf3e" strokeWidth="2" />
+            
+            {/* Horizontal precision control tracks */}
+            <line x1="12" y1="52" x2="52" y2="52" stroke="#ffffff" strokeWidth="2" opacity="0.2" strokeLinecap="round" />
+            <circle cx="24" cy="52" r="3.5" fill="#87cf3e" />
+            <line x1="12" y1="10" x2="52" y2="10" stroke="#ffffff" strokeWidth="2" opacity="0.2" strokeLinecap="round" />
+            <circle cx="40" cy="10" r="3.5" fill="#87cf3e" />
           </svg>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/25 pointer-events-none"></div>
         </div>
       );
 
     case 'system-monitor':
-      // Activity Monitor
+      // Axis Diagnostics: Digital oscilloscope with CPU waveform and memory telemetry
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          {/* Deep dark screen */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1e293b] via-[#0f172a] to-[#020617]"></div>
-          {/* Grid lines */}
-          <div className="absolute inset-2 grid grid-cols-4 grid-rows-4 border border-cyan-500/20 rounded-md">
-            <div className="border-r border-b border-cyan-500/10"></div>
-            <div className="border-r border-b border-cyan-500/10"></div>
-            <div className="border-r border-b border-cyan-500/10"></div>
-            <div className="border-b border-cyan-500/10"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#101813] via-[#0b100d] to-[#040605]"></div>
+          
+          {/* Oscilloscope Grid */}
+          <div className="absolute inset-2 grid grid-cols-4 grid-rows-4 border border-[#87cf3e]/20 rounded-lg">
+            <div className="border-r border-b border-[#87cf3e]/10"></div>
+            <div className="border-r border-b border-[#87cf3e]/10"></div>
+            <div className="border-r border-b border-[#87cf3e]/10"></div>
+            <div className="border-b border-[#87cf3e]/10"></div>
           </div>
-          {/* Neon ECG wave */}
-          <svg viewBox="0 0 100 60" className="w-[80%] h-[60%] z-10 drop-shadow-[0_0_8px_rgba(52,211,153,0.8)]">
+          
+          {/* Vector Pulse Waveform (Mint & Cyan) */}
+          <svg viewBox="0 0 100 60" className="w-[84%] h-[64%] z-10 drop-shadow-[0_0_8px_rgba(135,207,62,0.8)]">
             <path
-              d="M0,30 L25,30 L35,10 L45,50 L55,20 L65,35 L72,30 L100,30"
+              d="M0,30 L22,30 L30,12 L40,48 L50,18 L60,36 L68,30 L100,30"
               fill="none"
-              stroke="#34d399"
+              stroke="#87cf3e"
               strokeWidth="4"
               strokeLinecap="round"
               strokeLinejoin="round"
             />
           </svg>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/20 pointer-events-none"></div>
+
+          {/* Microchip Telemetry Nodes */}
+          <div className="absolute bottom-2 left-3 flex space-x-1 z-10">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#00e5ff]"></div>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#87cf3e]"></div>
+            <div className="w-1.5 h-1.5 rounded-full bg-[#ffab00]"></div>
+          </div>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/30 pointer-events-none"></div>
         </div>
       );
 
     case 'text-editor':
-      // macOS Notes / TextEdit Icon
+      // Axis Write: Modern code notebook with syntax-highlighted lines and laser stylus
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-amber-950/40 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          {/* Yellow Legal Pad */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#fef08a] via-[#fde047] to-[#eab308]"></div>
-          {/* Top binder strip */}
-          <div className="absolute inset-x-0 top-0 h-4 bg-gradient-to-r from-amber-600 to-amber-700 border-b border-amber-800"></div>
-          {/* Ruled lines */}
-          <div className="w-[78%] h-[65%] mt-3 flex flex-col justify-around z-10">
-            <div className="h-[1.5px] bg-amber-400/80 w-full"></div>
-            <div className="h-[1.5px] bg-amber-400/80 w-full"></div>
-            <div className="h-[1.5px] bg-amber-400/80 w-4/5"></div>
-            <div className="h-[1.5px] bg-amber-400/80 w-3/5"></div>
-          </div>
-          {/* Pencil */}
-          <div className="absolute bottom-2 right-2 w-7 h-7 -rotate-45 drop-shadow-md">
-            <svg viewBox="0 0 24 24" className="w-full h-full text-slate-800 fill-amber-500">
-              <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
-            </svg>
-          </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2a3830] via-[#1c2721] to-[#121915]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[75%] h-[75%] z-10 drop-shadow-md">
+            {/* Document sheet */}
+            <rect x="12" y="10" width="40" height="44" rx="4" fill="#141c17" stroke="#87cf3e" strokeWidth="1.5" />
+            {/* Syntax lines */}
+            <line x1="18" y1="18" x2="32" y2="18" stroke="#87cf3e" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="36" y1="18" x2="44" y2="18" stroke="#00e5ff" strokeWidth="2.5" strokeLinecap="round" />
+            
+            <line x1="18" y1="26" x2="26" y2="26" stroke="#fbbf24" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="30" y1="26" x2="46" y2="26" stroke="#e0e8e3" strokeWidth="2.5" strokeLinecap="round" />
+
+            <line x1="18" y1="34" x2="38" y2="34" stroke="#87cf3e" strokeWidth="2.5" strokeLinecap="round" />
+            <line x1="18" y1="42" x2="30" y2="42" stroke="#00e5ff" strokeWidth="2.5" strokeLinecap="round" />
+
+            {/* Angular Laser Stylus / Pen Nib */}
+            <polygon points="48,34 56,42 42,52 38,48" fill="#87cf3e" stroke="#ffffff" strokeWidth="1" />
+            <circle cx="54" cy="40" r="1.5" fill="#ffffff" />
+          </svg>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/25 pointer-events-none"></div>
         </div>
       );
 
     case 'calculator':
-      // macOS Calculator
+      // Axis Calc: Modern digital LED arithmetic console
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#334155] via-[#1e293b] to-[#0f172a]"></div>
-          <div className="grid grid-cols-2 gap-1.5 p-2 z-10 w-full h-full items-center justify-center">
-            <div className="w-4 h-4 rounded-full bg-slate-600 flex items-center justify-center text-[9px] font-bold text-white">C</div>
-            <div className="w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center text-[9px] font-bold text-white">÷</div>
-            <div className="w-4 h-4 rounded-full bg-slate-700 flex items-center justify-center text-[9px] font-bold text-white">7</div>
-            <div className="w-4 h-4 rounded-full bg-amber-500 flex items-center justify-center text-[9px] font-bold text-white">=</div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1e2722] via-[#141b17] to-[#0c120e]"></div>
+          
+          <div className="grid grid-cols-2 gap-1.5 p-2.5 z-10 w-[84%] h-[84%] items-center justify-center bg-black/70 rounded-xl border border-[#87cf3e]/30 shadow-inner">
+            <div className="w-5 h-5 rounded-md bg-[#25362b] flex items-center justify-center text-[10px] font-bold text-[#87cf3e]">C</div>
+            <div className="w-5 h-5 rounded-md bg-[#87cf3e] flex items-center justify-center text-[10px] font-bold text-black">÷</div>
+            <div className="w-5 h-5 rounded-md bg-[#1f2a23] flex items-center justify-center text-[10px] font-bold text-white">7</div>
+            <div className="w-5 h-5 rounded-md bg-[#ffab00] flex items-center justify-center text-[10px] font-bold text-black">=</div>
           </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/20 pointer-events-none"></div>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/20 pointer-events-none"></div>
         </div>
       );
 
     case 'installer':
-      // AxisOS Installer
+      // Axis Setup: Diamond rocket / chevron storage installer
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-cyan-950/50 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/60 overflow-hidden flex items-center justify-center ${className}`}
         >
-          {/* Deep royal gradient */}
-          <div className="absolute inset-0 bg-gradient-to-b from-[#06b6d4] via-[#2563eb] to-[#4f46e5]"></div>
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
-          {/* Disk and arrow */}
-          <svg viewBox="0 0 60 60" className="w-[70%] h-[70%] z-10 drop-shadow-md text-white">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#183a27] via-[#0f2419] to-[#08150e]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[74%] h-[74%] z-10 text-white drop-shadow-md">
+            {/* Deploy Arrow / Rocket Chevron */}
             <path
-              fill="currentColor"
-              d="M30 10 L44 26 L34 26 L34 40 L26 40 L26 26 L16 26 Z"
+              fill="#87cf3e"
+              d="M32 10 L46 26 L36 26 L36 40 L28 40 L28 26 L18 26 Z"
             />
-            <path
-              fill="currentColor"
-              d="M10 46 L50 46 A 4 4 0 0 1 50 54 L10 54 A 4 4 0 0 1 10 46 Z"
-            />
+            {/* Storage Drive Platter */}
+            <rect x="12" y="44" width="40" height="10" rx="3" fill="#1e2c23" stroke="#87cf3e" strokeWidth="1.5" />
+            <circle cx="20" cy="49" r="2" fill="#00e5ff" />
+            <circle cx="26" cy="49" r="2" fill="#87cf3e" />
           </svg>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/30 pointer-events-none"></div>
         </div>
       );
 
     case 'music':
-      // Apple Music Style Icon
+      // Axis Audio: Audio spectrum equalizer & acoustic resonance wave
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-rose-950/40 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#fb7185] via-[#f43f5e] to-[#e11d48]"></div>
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
-          {/* Musical Notes SVG */}
-          <svg viewBox="0 0 60 60" className="w-[65%] h-[65%] z-10 text-white drop-shadow-md">
-            <path
-              fill="currentColor"
-              d="M24 12 L44 8 L44 38 A 7 7 0 1 1 38 32 L38 20 L24 23 L24 44 A 7 7 0 1 1 18 38 L18 12 Z"
-            />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1b2b20] via-[#121c16] to-[#090e0b]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[74%] h-[74%] z-10 drop-shadow-md">
+            {/* Sound Equalizer Bars */}
+            <rect x="14" y="28" width="4" height="18" rx="2" fill="#87cf3e" />
+            <rect x="22" y="16" width="4" height="30" rx="2" fill="#00e5ff" />
+            <rect x="30" y="22" width="4" height="24" rx="2" fill="#87cf3e" />
+            <rect x="38" y="12" width="4" height="34" rx="2" fill="#00e5ff" />
+            <rect x="46" y="24" width="4" height="22" rx="2" fill="#87cf3e" />
+
+            {/* Concentric soundwaves */}
+            <circle cx="32" cy="32" r="24" fill="none" stroke="#87cf3e" strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
           </svg>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/30 pointer-events-none"></div>
         </div>
       );
 
     case 'photos':
-      // Apple Photos Flower / Petals Style Icon
+      // Axis Gallery: Aperture lens framing geometric mountain sunrise
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-black/40 overflow-hidden flex items-center justify-center bg-white ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white to-transparent pointer-events-none"></div>
-          {/* Flower Petals */}
-          <div className="relative w-[75%] h-[75%] flex items-center justify-center z-10">
-            <span className="text-3xl">🌸</span>
-          </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-black/10 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1a2e22] via-[#111e16] to-[#09110d]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[76%] h-[76%] z-10 drop-shadow-md">
+            {/* Outer Frame */}
+            <rect x="10" y="12" width="44" height="40" rx="6" fill="#141c17" stroke="#87cf3e" strokeWidth="1.5" />
+            {/* Solar Orb */}
+            <circle cx="42" cy="24" r="5" fill="#ffab00" />
+            {/* Mountain Peaks */}
+            <polygon points="12,48 28,28 38,40 52,22 52,48" fill="#253d2d" />
+            <polygon points="28,28 38,40 52,22 52,48 20,48" fill="#3a5c44" opacity="0.8" />
+            {/* Horizon Line */}
+            <line x1="12" y1="48" x2="52" y2="48" stroke="#87cf3e" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/25 pointer-events-none"></div>
         </div>
       );
 
     case 'notes':
-      // macOS Notes App Icon
+      // Axis Memo: Structured task board with glowing checkmark
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-amber-950/40 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#fef08a] via-[#fde047] to-[#eab308]"></div>
-          <div className="absolute inset-x-0 top-0 h-3.5 bg-gradient-to-r from-amber-600 to-amber-700 border-b border-amber-800"></div>
-          <div className="w-[78%] h-[60%] mt-3 flex flex-col justify-around z-10">
-            <div className="h-[1.5px] bg-amber-500/80 w-full"></div>
-            <div className="h-[1.5px] bg-amber-500/80 w-full"></div>
-            <div className="h-[1.5px] bg-amber-500/80 w-3/4"></div>
-          </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#2a3627] via-[#1c241a] to-[#10150f]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[74%] h-[74%] z-10 drop-shadow-md">
+            {/* Memo Board */}
+            <rect x="12" y="10" width="40" height="44" rx="4" fill="#141b14" stroke="#ffab00" strokeWidth="1.5" />
+            {/* Top Binder Clip */}
+            <rect x="24" y="8" width="16" height="5" rx="1.5" fill="#ffab00" />
+
+            {/* Checkmark 1 */}
+            <circle cx="20" cy="22" r="3" fill="#87cf3e" />
+            <line x1="26" y1="22" x2="44" y2="22" stroke="#e0e8e3" strokeWidth="2" strokeLinecap="round" />
+
+            {/* Checkmark 2 */}
+            <circle cx="20" cy="32" r="3" fill="#87cf3e" />
+            <line x1="26" y1="32" x2="40" y2="32" stroke="#e0e8e3" strokeWidth="2" strokeLinecap="round" />
+
+            {/* Task 3 */}
+            <circle cx="20" cy="42" r="3" fill="none" stroke="#87cf3e" strokeWidth="1.5" />
+            <line x1="26" y1="42" x2="36" y2="42" stroke="#87cf3e" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-amber-400/25 pointer-events-none"></div>
         </div>
       );
 
     case 'software':
-      // macOS App Store Icon
+      // Axis Store: Layered isometric package prism with mint download vector
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-blue-950/50 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/60 overflow-hidden flex items-center justify-center ${className}`}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#38bdf8] via-[#0284c7] to-[#1e40af]"></div>
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
-          {/* App Store 'A' made of ruler/pencil rods */}
-          <svg viewBox="0 0 64 64" className="w-[68%] h-[68%] z-10 drop-shadow-md">
-            <line x1="16" y1="52" x2="32" y2="14" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
-            <line x1="48" y1="52" x2="32" y2="14" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
-            <line x1="12" y1="42" x2="52" y2="42" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#143d2b] via-[#0d261b] to-[#06140e]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[76%] h-[76%] z-10 drop-shadow-md">
+            {/* Isometric Package Cube */}
+            <polygon points="32,12 50,22 32,32 14,22" fill="#2d5e42" stroke="#87cf3e" strokeWidth="1.5" />
+            <polygon points="14,22 32,32 32,52 14,42" fill="#1a3d2b" stroke="#87cf3e" strokeWidth="1.5" />
+            <polygon points="50,22 32,32 32,52 50,42" fill="#224d36" stroke="#87cf3e" strokeWidth="1.5" />
+            
+            {/* Glowing Download Vector */}
+            <path
+              d="M32,20 L32,36 M27,31 L32,36 L37,31"
+              stroke="#ffffff"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/35 pointer-events-none"></div>
         </div>
       );
 
     case 'clock':
-      // macOS Clock Icon
+      // Axis Chrono: Precision chronograph dial with tachymeter markings
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#1e293b] to-[#0f172a]"></div>
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"></div>
-          {/* Clock face */}
-          <div className="relative w-[78%] h-[78%] rounded-full bg-slate-900 border border-slate-700 flex items-center justify-center shadow-inner">
-            {/* Ticks */}
-            <div className="absolute top-1 w-0.5 h-1.5 bg-slate-300"></div>
-            <div className="absolute bottom-1 w-0.5 h-1.5 bg-slate-300"></div>
-            <div className="absolute left-1 w-1.5 h-0.5 bg-slate-300"></div>
-            <div className="absolute right-1 w-1.5 h-0.5 bg-slate-300"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#18241d] via-[#101813] to-[#0a0e0c]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[78%] h-[78%] z-10 drop-shadow-md">
+            <circle cx="32" cy="32" r="24" fill="#121a14" stroke="#87cf3e" strokeWidth="1.5" />
+            {/* Hour markers */}
+            <line x1="32" y1="12" x2="32" y2="16" stroke="#87cf3e" strokeWidth="2" />
+            <line x1="32" y1="48" x2="32" y2="52" stroke="#87cf3e" strokeWidth="2" />
+            <line x1="12" y1="32" x2="16" y2="32" stroke="#87cf3e" strokeWidth="2" />
+            <line x1="48" y1="32" x2="52" y2="32" stroke="#87cf3e" strokeWidth="2" />
+
             {/* Hands */}
-            <div className="absolute w-0.75 h-5 bg-white -translate-y-2 rounded-full origin-bottom rotate-45"></div>
-            <div className="absolute w-0.5 h-7 bg-orange-400 -translate-y-3 rounded-full origin-bottom -rotate-45"></div>
-            <div className="w-1.5 h-1.5 rounded-full bg-orange-500 z-10 border border-white"></div>
-          </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/25 pointer-events-none"></div>
+            <line x1="32" y1="32" x2="42" y2="24" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+            <line x1="32" y1="32" x2="32" y2="20" stroke="#00e5ff" strokeWidth="2" strokeLinecap="round" />
+            <line x1="32" y1="32" x2="24" y2="38" stroke="#87cf3e" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="32" cy="32" r="2.5" fill="#87cf3e" />
+          </svg>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/25 pointer-events-none"></div>
         </div>
       );
 
     case 'weather':
-      // macOS Weather Icon
+      // Axis Climate: Dynamic solar orb with atmospheric isobar curves
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-sky-950/40 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/50 overflow-hidden flex items-center justify-center ${className}`}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#38bdf8] via-[#0284c7] to-[#0369a1]"></div>
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent"></div>
-          {/* Sun & Cloud */}
-          <div className="relative w-[75%] h-[75%] flex items-center justify-center">
-            {/* Sun */}
-            <div className="absolute -top-1 right-1 w-7 h-7 rounded-full bg-amber-400 shadow-md shadow-amber-500/50"></div>
-            {/* Cloud */}
-            <svg viewBox="0 0 40 40" className="w-[85%] h-[85%] z-10 drop-shadow-md">
-              <path
-                d="M10,28 Q6,28 6,24 Q6,20 10,20 Q11,14 17,14 Q22,14 24,18 Q28,18 28,22 Q30,22 30,25 Q30,28 26,28 Z"
-                fill="#ffffff"
-                opacity="0.95"
-              />
-            </svg>
-          </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#123038] via-[#0b1e24] to-[#061216]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/20 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[78%] h-[78%] z-10 drop-shadow-md">
+            {/* Solar Flare Orb */}
+            <circle cx="26" cy="24" r="10" fill="#ffab00" />
+            {/* Atmospheric Cloud Curve */}
+            <path
+              d="M18,44 Q14,44 14,38 Q14,32 20,32 Q22,22 32,22 Q40,22 43,28 Q48,28 48,34 Q50,34 50,38 Q50,44 44,44 Z"
+              fill="#223e44"
+              stroke="#00e5ff"
+              strokeWidth="1.5"
+            />
+            {/* Rain Crystal Particles */}
+            <line x1="24" y1="48" x2="22" y2="52" stroke="#87cf3e" strokeWidth="2" strokeLinecap="round" />
+            <line x1="32" y1="48" x2="30" y2="52" stroke="#00e5ff" strokeWidth="2" strokeLinecap="round" />
+            <line x1="40" y1="48" x2="38" y2="52" stroke="#87cf3e" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-cyan-400/30 pointer-events-none"></div>
         </div>
       );
 
     case 'camera':
-      // macOS Camera / Photo Booth Icon
+      // Axis Lens: Multi-coated optical objective with aperture reflection
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] shadow-lg shadow-slate-950/60 overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl shadow-lg shadow-black/60 overflow-hidden flex items-center justify-center ${className}`}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#64748b] via-[#475569] to-[#334155]"></div>
-          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/30 to-transparent"></div>
-          {/* Camera body and lens */}
-          <div className="relative w-[78%] h-[70%] rounded-xl bg-gradient-to-b from-slate-800 to-slate-950 border border-slate-600 flex items-center justify-center shadow-md">
-            {/* Lens outer */}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-b from-slate-900 to-black border-2 border-slate-500 flex items-center justify-center shadow-inner">
-              {/* Lens glass reflection */}
-              <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-sky-900 to-blue-500 opacity-80 flex items-center justify-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-white/70 -translate-x-0.5 -translate-y-0.5"></div>
-              </div>
-            </div>
-            {/* Flash / Tally dot */}
-            <div className="absolute top-1.5 right-2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-sm shadow-red-500"></div>
-          </div>
-          <div className="absolute inset-0 rounded-[22%] ring-1 ring-inset ring-white/30 pointer-events-none"></div>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#202924] via-[#141b17] to-[#0a0e0c]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/15 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[78%] h-[78%] z-10 drop-shadow-md">
+            <rect x="10" y="16" width="44" height="36" rx="6" fill="#18221b" stroke="#87cf3e" strokeWidth="1.5" />
+            {/* Shutter Button & Sensor */}
+            <rect x="18" y="12" width="8" height="4" rx="1" fill="#87cf3e" />
+            <circle cx="46" cy="22" r="2" fill="#ff5555" />
+
+            {/* Lens Outer Bezel */}
+            <circle cx="32" cy="34" r="14" fill="#101712" stroke="#87cf3e" strokeWidth="2" />
+            {/* Lens Glass Iris Reflection */}
+            <circle cx="32" cy="34" r="9" fill="#00e5ff" opacity="0.3" />
+            <circle cx="30" cy="32" r="3" fill="#ffffff" opacity="0.8" />
+          </svg>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/25 pointer-events-none"></div>
         </div>
       );
 
     case 'trash':
-      // macOS Trash Can
+      // Wastebasket: Minimalist geometric recycling prism
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] overflow-hidden flex items-center justify-center ${className}`}
+          className={`relative rounded-2xl overflow-hidden flex items-center justify-center ${className}`}
         >
-          <svg viewBox="0 0 60 60" className="w-[80%] h-[80%] drop-shadow text-slate-300">
-            {/* Trash mesh body */}
+          <svg viewBox="0 0 64 64" className="w-[74%] h-[74%] drop-shadow text-slate-300">
+            {/* Receptacle Frame */}
             <path
-              d="M16,20 L20,52 Q21,55 24,55 L36,55 Q39,55 40,52 L44,20 Z"
-              fill="rgba(255,255,255,0.15)"
-              stroke="currentColor"
-              strokeWidth="2.5"
+              d="M18,22 L22,50 Q23,54 27,54 L37,54 Q41,54 42,50 L46,22 Z"
+              fill="rgba(135,207,62,0.12)"
+              stroke="#87cf3e"
+              strokeWidth="2"
             />
-            {/* Vertical lines */}
-            <line x1="25" y1="23" x2="27" y2="49" stroke="currentColor" strokeWidth="1.5" />
-            <line x1="30" y1="23" x2="30" y2="49" stroke="currentColor" strokeWidth="1.5" />
-            <line x1="35" y1="23" x2="33" y2="49" stroke="currentColor" strokeWidth="1.5" />
-            {/* Rim */}
-            <ellipse cx="30" cy="18" rx="15" ry="4" fill="none" stroke="currentColor" strokeWidth="2.5" />
+            {/* Top Rim */}
+            <rect x="14" y="18" width="36" height="4" rx="2" fill="#243328" stroke="#87cf3e" strokeWidth="1.5" />
+            <rect x="26" y="14" width="12" height="4" rx="1" fill="#87cf3e" />
+            {/* Vertical Flutes */}
+            <line x1="26" y1="26" x2="28" y2="48" stroke="#87cf3e" strokeWidth="1.5" opacity="0.7" />
+            <line x1="32" y1="26" x2="32" y2="48" stroke="#87cf3e" strokeWidth="1.5" opacity="0.7" />
+            <line x1="38" y1="26" x2="36" y2="48" stroke="#87cf3e" strokeWidth="1.5" opacity="0.7" />
           </svg>
         </div>
       );
@@ -425,10 +498,13 @@ export const MacIcon: React.FC<MacIconProps> = ({ id, size = 54, className = '' 
       return (
         <div
           style={containerStyle}
-          className={`relative rounded-[22%] bg-gradient-to-tr from-cyan-600 to-blue-600 flex items-center justify-center shadow-md text-white font-bold ${className}`}
+          className={`relative rounded-2xl bg-gradient-to-br from-[#18201b] to-[#121814] border border-[#87cf3e]/30 flex items-center justify-center shadow-md text-[#87cf3e] font-bold ${className}`}
         >
-          ▲
+          ◈
         </div>
       );
   }
 };
+
+// Aliased export for modern architecture
+export const AxisIcon = MacIcon;

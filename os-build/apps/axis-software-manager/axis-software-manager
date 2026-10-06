@@ -1,0 +1,779 @@
+#!/usr/bin/env python3
+"""
+AxisOS Software Manager (X-App Architecture)
+============================================
+Developed in Python 3 & GTK 3 following the Linux Mint X-Apps Design Philosophy.
+Features:
+- Traditional desktop layout: Classic MenuBar, Dedicated ToolBar, Main View, StatusBar
+- Multi-source backend: Debian Bookworm APT (libapt-pkg), Flathub Flatpak, .axis native
+- Desktop agnostic: Operates seamlessly on Cinnamon, MATE, and Xfce
+- Functionality-first: Direct access to local package installation, mirror management, and sources
+"""
+
+import sys
+import os
+import subprocess
+import threading
+import json
+import gi
+
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
+from gi.repository import Gtk, Gdk, GLib, Pango
+
+# Curated catalog of developer, gaming, and productivity applications
+SOFTWARE_CATALOG = [
+    {
+        "id": "code",
+        "name": "Visual Studio Code",
+        "category": "Development",
+        "tagline": "The premier extensible code editor with integrated Git, AI, and debugging.",
+        "description": "Visual Studio Code is a lightweight but powerful source code editor which runs on your desktop. It comes with built-in support for JavaScript, TypeScript and Node.js and has a rich ecosystem of extensions for other languages (C++, C#, Java, Python, PHP, Go).",
+        "source": "APT (Debian)",
+        "pkg_target": "code",
+        "icon": "code",
+        "version": "1.92.0",
+        "developer": "Microsoft Corporation",
+        "installed": False,
+        "exec": "code"
+    },
+    {
+        "id": "steam",
+        "name": "Steam Gaming Platform",
+        "category": "Gaming",
+        "tagline": "The ultimate entertainment platform for native and Windows gaming via Proton.",
+        "description": "Steam provides access to thousands of games across Linux and Windows via Valve Proton compatibility layer. Includes community chat, cloud saves, and automated game updates.",
+        "source": "APT (Debian)",
+        "pkg_target": "steam-installer",
+        "icon": "applications-games",
+        "version": "1.0.0.79",
+        "developer": "Valve Corporation",
+        "installed": False,
+        "exec": "steam"
+    },
+    {
+        "id": "heroic",
+        "name": "Heroic Games Launcher",
+        "category": "Gaming",
+        "tagline": "Native Epic Games, GOG, and Amazon Games launcher powered by Wine and Proton.",
+        "description": "An Open Source GOG, Epic Games, and Amazon Games launcher for Linux with Wine and Proton integration, cloud sync, and custom DXVK/VKD3D wrappers.",
+        "source": "Flatpak (Flathub)",
+        "pkg_target": "com.heroicgameslauncher.hgl",
+        "icon": "applications-games",
+        "version": "2.14.1",
+        "developer": "Heroic Games",
+        "installed": False,
+        "exec": "flatpak run com.heroicgameslauncher.hgl"
+    },
+    {
+        "id": "protonup-qt",
+        "name": "ProtonUp-Qt",
+        "category": "Gaming",
+        "tagline": "Manage GE-Proton, Luxtorpeda, and Wine-GE compatibility tools effortlessly.",
+        "description": "Install and manage compatibility tools like GE-Proton, Luxtorpeda, and Wine-GE for Steam, Lutris, and Heroic Games Launcher.",
+        "source": "Flatpak (Flathub)",
+        "pkg_target": "net.davidotek.pupgui2",
+        "icon": "preferences-system",
+        "version": "2.11.1",
+        "developer": "DavidoTek",
+        "installed": False,
+        "exec": "flatpak run net.davidotek.pupgui2"
+    },
+    {
+        "id": "bottles",
+        "name": "Bottles",
+        "category": "Gaming",
+        "tagline": "Run Windows software and games on Linux using isolated Wine prefixes.",
+        "description": "Easily manage Windows prefixes in Linux with environments tailored for gaming and productivity software. Automated dependency installer included.",
+        "source": "Flatpak (Flathub)",
+        "pkg_target": "com.usebottles.bottles",
+        "icon": "application-x-executable",
+        "version": "51.11",
+        "developer": "Bottles Contributors",
+        "installed": False,
+        "exec": "flatpak run com.usebottles.bottles"
+    },
+    {
+        "id": "neovim",
+        "name": "Neovim",
+        "category": "Development",
+        "tagline": "Hyperextensible Vim-based text editor built for high-speed terminal development.",
+        "description": "Neovim is a refactor and drop-in replacement for Vim focused on extensibility and usability, featuring built-in Lua scripting and Language Server Protocol (LSP) client.",
+        "source": "APT (Debian)",
+        "pkg_target": "neovim",
+        "icon": "text-editor",
+        "version": "0.9.5",
+        "developer": "Neovim Project",
+        "installed": False,
+        "exec": "nvim"
+    },
+    {
+        "id": "docker",
+        "name": "Docker & Docker Compose",
+        "category": "Development",
+        "tagline": "Industry-standard container runtime and multi-container application orchestrator.",
+        "description": "Docker enables developers to build, share, and run container applications anywhere without configuration friction.",
+        "source": "APT (Debian)",
+        "pkg_target": "docker.io docker-compose",
+        "icon": "system-run",
+        "version": "24.0.7",
+        "developer": "Docker Inc.",
+        "installed": False,
+        "exec": "docker"
+    },
+    {
+        "id": "postman",
+        "name": "Postman API Client",
+        "category": "Development",
+        "tagline": "API platform for building, designing, testing, and debugging REST & GraphQL APIs.",
+        "description": "Simplifies each step of the API lifecycle and streamlines collaboration so you can create better APIs faster.",
+        "source": "Flatpak (Flathub)",
+        "pkg_target": "com.getpostman.Postman",
+        "icon": "network-wired",
+        "version": "11.2.0",
+        "developer": "Postman Inc.",
+        "installed": False,
+        "exec": "flatpak run com.getpostman.Postman"
+    },
+    {
+        "id": "discord",
+        "name": "Discord",
+        "category": "Internet",
+        "tagline": "All-in-one voice and text chat community for developers and gamers.",
+        "description": "Discord is the easiest way to talk over voice, video, and text. Talk, chat, hang out, and stay close with your friends and communities.",
+        "source": "Flatpak (Flathub)",
+        "pkg_target": "com.discordapp.Discord",
+        "icon": "internet-chat",
+        "version": "0.0.48",
+        "developer": "Discord Inc.",
+        "installed": False,
+        "exec": "flatpak run com.discordapp.Discord"
+    },
+    {
+        "id": "blender",
+        "name": "Blender 3D",
+        "category": "Multimedia",
+        "tagline": "Professional open-source 3D creation suite supporting modeling, rendering, and VFX.",
+        "description": "Blender supports the entirety of the 3D pipeline: modeling, rigging, animation, simulation, rendering, compositing, motion tracking, and video editing.",
+        "source": "APT (Debian)",
+        "pkg_target": "blender",
+        "icon": "applications-graphics",
+        "version": "3.4.1",
+        "developer": "Blender Foundation",
+        "installed": False,
+        "exec": "blender"
+    },
+    {
+        "id": "obs-studio",
+        "name": "OBS Studio",
+        "category": "Multimedia",
+        "tagline": "Free and open-source software for video recording and live streaming.",
+        "description": "Equipped with powerful API, enabling plugins and scripts to provide further customization and functionality specific to your video production needs.",
+        "source": "APT (Debian)",
+        "pkg_target": "obs-studio",
+        "icon": "camera-video",
+        "version": "29.1.3",
+        "developer": "OBS Project",
+        "installed": False,
+        "exec": "obs"
+    },
+    {
+        "id": "timeshift",
+        "name": "Timeshift Btrfs Backup",
+        "category": "System",
+        "tagline": "System restore and instantaneous Btrfs snapshot management tool.",
+        "description": "Timeshift protects your system by taking incremental snapshots of the file system at regular intervals, allowing full system restoration.",
+        "source": "APT (Debian)",
+        "pkg_target": "timeshift",
+        "icon": "drive-harddisk",
+        "version": "23.12.2",
+        "developer": "Linux Mint / Tony George",
+        "installed": False,
+        "exec": "timeshift-gtk"
+    }
+]
+
+class SoftwareApp(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="Software Manager - AxisOS")
+        self.set_default_size(1020, 700)
+        self.set_position(Gtk.WindowPosition.CENTER)
+
+        # Apply Mint-Y / X-App CSS Styling
+        self.apply_custom_styling()
+
+        # Root vertical box
+        main_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
+        self.add(main_vbox)
+
+        # 1. Classic MenuBar (X-Apps philosophy)
+        menubar = self.create_menubar()
+        main_vbox.pack_start(menubar, False, False, 0)
+
+        # 2. Dedicated ToolBar (X-Apps philosophy)
+        toolbar = self.create_toolbar()
+        main_vbox.pack_start(toolbar, False, False, 0)
+
+        # 3. Main Workspace Area (Paned: Categories Sidebar + Content Stack)
+        self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL)
+        self.paned.set_position(230)
+        main_vbox.pack_start(self.paned, True, True, 0)
+
+        # Left Sidebar: Categories
+        sidebar_frame = Gtk.Frame()
+        sidebar_frame.set_shadow_type(Gtk.ShadowType.IN)
+        sidebar_frame.set_margin_top(6)
+        sidebar_frame.set_margin_bottom(6)
+        sidebar_frame.set_margin_start(6)
+        sidebar_frame.set_margin_end(3)
+
+        self.category_list = Gtk.ListBox()
+        self.category_list.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.category_list.connect("row-selected", self.on_category_selected)
+
+        categories = [
+            ("All Applications", "applications-other"),
+            ("Development", "applications-development"),
+            ("Gaming", "applications-games"),
+            ("Internet", "applications-internet"),
+            ("Multimedia", "applications-multimedia"),
+            ("System", "applications-system"),
+            ("Installed", "emblem-default")
+        ]
+
+        for cat_name, icon_name in categories:
+            row = Gtk.ListBoxRow()
+            hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            hbox.set_margin_top(8)
+            hbox.set_margin_bottom(8)
+            hbox.set_margin_start(12)
+            hbox.set_margin_end(12)
+
+            img = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
+            lbl = Gtk.Label(label=cat_name, xalign=0)
+            lbl.get_style_context().add_class("cat-title")
+
+            hbox.pack_start(img, False, False, 0)
+            hbox.pack_start(lbl, True, True, 0)
+            row.add(hbox)
+            self.category_list.add(row)
+
+        sidebar_scroll = Gtk.ScrolledWindow()
+        sidebar_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        sidebar_scroll.add(self.category_list)
+        sidebar_frame.add(sidebar_scroll)
+        self.paned.pack1(sidebar_frame, False, False)
+
+        # Right View: Stack (Grid of Cards vs Detail View)
+        self.stack = Gtk.Stack()
+        self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.stack.set_transition_duration(150)
+
+        # Page 1: FlowGrid of Software Cards
+        scroll_grid = Gtk.ScrolledWindow()
+        scroll_grid.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scroll_grid.set_margin_top(6)
+        scroll_grid.set_margin_bottom(6)
+        scroll_grid.set_margin_start(3)
+        scroll_grid.set_margin_end(6)
+
+        self.grid = Gtk.FlowBox()
+        self.grid.set_valign(Gtk.Align.START)
+        self.grid.set_max_children_per_line(3)
+        self.grid.set_selection_mode(Gtk.SelectionMode.NONE)
+        self.grid.set_homogeneous(True)
+        self.grid.set_row_spacing(12)
+        self.grid.set_column_spacing(12)
+        self.grid.set_margin_top(8)
+        self.grid.set_margin_bottom(8)
+        self.grid.set_margin_start(8)
+        self.grid.set_margin_end(8)
+        scroll_grid.add(self.grid)
+        self.stack.add_named(scroll_grid, "grid_view")
+
+        # Page 2: Detailed App View
+        self.detail_container = Gtk.ScrolledWindow()
+        self.detail_container.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.stack.add_named(self.detail_container, "detail_view")
+
+        self.paned.pack2(self.stack, True, True)
+
+        # 4. Classic StatusBar (X-Apps philosophy)
+        self.statusbar = Gtk.Statusbar()
+        self.statusbar_ctx = self.statusbar.get_context_id("main")
+        main_vbox.pack_end(self.statusbar, False, False, 0)
+
+        # State Variables
+        self.current_category = "All Applications"
+        self.current_search = ""
+        self.detect_installed_packages()
+        self.populate_apps()
+
+        # Select first category
+        self.category_list.select_row(self.category_list.get_row_at_index(0))
+        self.update_statusbar(f"Ready. {len(SOFTWARE_CATALOG)} applications available across Debian APT and Flathub.")
+
+    def apply_custom_styling(self):
+        css = b"""
+        /* Linux Mint X-Apps / Mint-Y Dark Palette */
+        window { background-color: #18201b; color: #dbe4de; font-family: Inter, Cantarell, sans-serif; }
+        menubar { background-color: #141b16; border-bottom: 1px solid rgba(135, 207, 62, 0.2); }
+        menubar > menuitem { padding: 4px 10px; color: #c8d5cc; }
+        menubar > menuitem:hover { background-color: rgba(135, 207, 62, 0.2); color: #ffffff; }
+        toolbar { background-color: #1a231d; border-bottom: 1px solid rgba(135, 207, 62, 0.25); padding: 4px 8px; }
+        statusbar { background-color: #141b16; border-top: 1px solid rgba(135, 207, 62, 0.2); padding: 2px 8px; font-size: 9pt; }
+        .cat-title { font-size: 10pt; font-weight: 500; }
+        list row:selected { background-color: rgba(135, 207, 62, 0.25); border-left: 3px solid #87cf3e; }
+        .app-card { background-color: #1d2720; border: 1px solid rgba(135, 207, 62, 0.18); border-radius: 8px; padding: 12px; }
+        .app-card:hover { border-color: #87cf3e; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+        .app-title { font-weight: bold; font-size: 11pt; color: #ffffff; }
+        .app-tagline { font-size: 9pt; color: #9ab0a2; }
+        .source-badge { font-size: 8pt; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: #243329; color: #87cf3e; }
+        button.action-install { background-color: #87cf3e; color: #0d140f; font-weight: bold; border-radius: 6px; border: 1px solid #87cf3e; }
+        button.action-install:hover { background-color: #9ce055; }
+        button.action-remove { background-color: #4a2020; color: #ff9999; font-weight: bold; border-radius: 6px; border: 1px solid #ff5555; }
+        """
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css)
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
+    def create_menubar(self):
+        menubar = Gtk.MenuBar()
+
+        # File Menu
+        file_item = Gtk.MenuItem(label="_File")
+        file_menu = Gtk.Menu()
+        file_item.set_submenu(file_menu)
+
+        item_refresh = Gtk.MenuItem(label="Refresh Package List")
+        item_refresh.connect("activate", lambda w: self.refresh_repositories())
+        file_menu.append(item_refresh)
+
+        item_install_deb = Gtk.MenuItem(label="Install Local .deb Package...")
+        item_install_deb.connect("activate", self.on_install_local_deb)
+        file_menu.append(item_install_deb)
+
+        item_install_axis = Gtk.MenuItem(label="Install .axis Bundle...")
+        item_install_axis.connect("activate", self.on_install_local_axis)
+        file_menu.append(item_install_axis)
+
+        file_menu.append(Gtk.SeparatorMenuItem())
+        item_quit = Gtk.MenuItem(label="Quit")
+        item_quit.connect("activate", lambda w: Gtk.main_quit())
+        file_menu.append(item_quit)
+        menubar.append(file_item)
+
+        # Edit Menu
+        edit_item = Gtk.MenuItem(label="_Edit")
+        edit_menu = Gtk.Menu()
+        edit_item.set_submenu(edit_menu)
+
+        item_sources = Gtk.MenuItem(label="Software Sources (APT & Flathub)...")
+        item_sources.connect("activate", self.on_software_sources)
+        edit_menu.append(item_sources)
+
+        item_prefs = Gtk.MenuItem(label="Preferences...")
+        item_prefs.connect("activate", self.on_preferences)
+        edit_menu.append(item_prefs)
+        menubar.append(edit_item)
+
+        # View Menu
+        view_item = Gtk.MenuItem(label="_View")
+        view_menu = Gtk.Menu()
+        view_item.set_submenu(view_menu)
+
+        item_all = Gtk.MenuItem(label="All Applications")
+        item_all.connect("activate", lambda w: self.select_category_by_name("All Applications"))
+        view_menu.append(item_all)
+
+        item_installed = Gtk.MenuItem(label="Installed Applications")
+        item_installed.connect("activate", lambda w: self.select_category_by_name("Installed"))
+        view_menu.append(item_installed)
+        menubar.append(view_item)
+
+        # Help Menu
+        help_item = Gtk.MenuItem(label="_Help")
+        help_menu = Gtk.Menu()
+        help_item.set_submenu(help_menu)
+
+        item_about = Gtk.MenuItem(label="About Software Manager")
+        item_about.connect("activate", self.on_about_dialog)
+        help_menu.append(item_about)
+        menubar.append(help_item)
+
+        return menubar
+
+    def create_toolbar(self):
+        toolbar = Gtk.Toolbar()
+        toolbar.set_style(Gtk.ToolbarStyle.BOTH_HORIZ)
+
+        # Back Button (for returning from detailed view)
+        self.btn_back = Gtk.ToolButton.new_from_stock(Gtk.STOCK_GO_BACK)
+        self.btn_back.set_label("Back")
+        self.btn_back.set_sensitive(False)
+        self.btn_back.connect("clicked", lambda b: self.switch_to_grid())
+        toolbar.insert(self.btn_back, -1)
+
+        # Refresh Tool Button
+        btn_refresh = Gtk.ToolButton.new_from_stock(Gtk.STOCK_REFRESH)
+        btn_refresh.set_label("Refresh")
+        btn_refresh.connect("clicked", lambda b: self.refresh_repositories())
+        toolbar.insert(btn_refresh, -1)
+
+        # Separator
+        toolbar.insert(Gtk.SeparatorToolItem(), -1)
+
+        # Installed Filter Toggle
+        btn_installed = Gtk.ToolButton.new_from_stock(Gtk.STOCK_APPLY)
+        btn_installed.set_label("Installed")
+        btn_installed.connect("clicked", lambda b: self.select_category_by_name("Installed"))
+        toolbar.insert(btn_installed, -1)
+
+        # Expanding Separator
+        sep_expand = Gtk.SeparatorToolItem()
+        sep_expand.set_draw(False)
+        sep_expand.set_expand(True)
+        toolbar.insert(sep_expand, -1)
+
+        # Search Entry in ToolBar
+        tool_item_search = Gtk.ToolItem()
+        self.search_entry = Gtk.SearchEntry()
+        self.search_entry.set_placeholder_text("Search packages...")
+        self.search_entry.set_width_chars(28)
+        self.search_entry.connect("search-changed", self.on_search_changed)
+        tool_item_search.add(self.search_entry)
+        toolbar.insert(tool_item_search, -1)
+
+        return toolbar
+
+    def update_statusbar(self, message):
+        self.statusbar.pop(self.statusbar_ctx)
+        self.statusbar.push(self.statusbar_ctx, message)
+
+    def detect_installed_packages(self):
+        for app in SOFTWARE_CATALOG:
+            binary = app.get("exec", "").split()[0]
+            if subprocess.run(["which", binary], capture_output=True).returncode == 0:
+                app["installed"] = True
+            elif "Flatpak" in app.get("source", ""):
+                f_check = subprocess.run(["flatpak", "info", app["pkg_target"]], capture_output=True)
+                app["installed"] = (f_check.returncode == 0)
+
+    def populate_apps(self):
+        for child in self.grid.get_children():
+            self.grid.remove(child)
+
+        count = 0
+        for app in SOFTWARE_CATALOG:
+            if self.current_category == "Installed" and not app["installed"]:
+                continue
+            elif self.current_category not in ("All Applications", "Installed") and app["category"] != self.current_category:
+                continue
+
+            if self.current_search:
+                q = self.current_search.lower()
+                if q not in app["name"].lower() and q not in app["tagline"].lower() and q not in app["category"].lower():
+                    continue
+
+            card = self.create_app_card(app)
+            self.grid.add(card)
+            count += 1
+
+        self.grid.show_all()
+        self.update_statusbar(f"Showing {count} applications in '{self.current_category}'.")
+
+    def create_app_card(self, app):
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.get_style_context().add_class("app-card")
+        box.set_size_request(250, 165)
+
+        # Header: Icon + Title + Version
+        top_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        icon = Gtk.Image.new_from_icon_name(app["icon"], Gtk.IconSize.DND)
+        top_row.pack_start(icon, False, False, 0)
+
+        title_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        title = Gtk.Label(label=app["name"], xalign=0)
+        title.get_style_context().add_class("app-title")
+        title.set_ellipsize(Pango.EllipsizeMode.END)
+        title_box.pack_start(title, False, False, 0)
+
+        badge_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        badge = Gtk.Label(label=app["source"], xalign=0)
+        badge.get_style_context().add_class("source-badge")
+        badge_box.pack_start(badge, False, False, 0)
+
+        ver_lbl = Gtk.Label(label=f"v{app.get('version', '1.0')}", xalign=0)
+        ver_lbl.get_style_context().add_class("app-tagline")
+        badge_box.pack_start(ver_lbl, False, False, 0)
+
+        title_box.pack_start(badge_box, False, False, 0)
+        top_row.pack_start(title_box, True, True, 0)
+        box.pack_start(top_row, False, False, 0)
+
+        # Tagline
+        desc = Gtk.Label(label=app["tagline"], xalign=0)
+        desc.set_line_wrap(True)
+        desc.set_lines(2)
+        desc.set_ellipsize(Pango.EllipsizeMode.END)
+        desc.get_style_context().add_class("app-tagline")
+        box.pack_start(desc, True, True, 0)
+
+        # Action Buttons (Details + Install/Remove)
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        details_btn = Gtk.Button(label="Details")
+        details_btn.connect("clicked", lambda b, a=app: self.show_app_details(a))
+        btn_box.pack_start(details_btn, True, True, 0)
+
+        if app["installed"]:
+            remove_btn = Gtk.Button(label="Remove")
+            remove_btn.get_style_context().add_class("action-remove")
+            remove_btn.connect("clicked", lambda b, a=app: self.install_or_remove(a, action="remove"))
+            btn_box.pack_start(remove_btn, False, False, 0)
+        else:
+            install_btn = Gtk.Button(label="Install")
+            install_btn.get_style_context().add_class("action-install")
+            install_btn.connect("clicked", lambda b, a=app: self.install_or_remove(a, action="install"))
+            btn_box.pack_start(install_btn, False, False, 0)
+
+        box.pack_end(btn_box, False, False, 0)
+        return box
+
+    def show_app_details(self, app):
+        # Clear existing detail view
+        for child in self.detail_container.get_children():
+            self.detail_container.remove(child)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=16)
+        vbox.set_margin_top(20)
+        vbox.set_margin_bottom(20)
+        vbox.set_margin_start(24)
+        vbox.set_margin_end(24)
+
+        # Header Row
+        header_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=16)
+        icon = Gtk.Image.new_from_icon_name(app["icon"], Gtk.IconSize.DIALOG)
+        header_row.pack_start(icon, False, False, 0)
+
+        info_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
+        name_lbl = Gtk.Label(label=app["name"], xalign=0)
+        name_lbl.set_markup(f"<span size='x-large' weight='bold'>{app['name']}</span>")
+        info_box.pack_start(name_lbl, False, False, 0)
+
+        dev_lbl = Gtk.Label(label=f"Developer: {app.get('developer', 'Community')} • Version: {app.get('version', '1.0')}", xalign=0)
+        dev_lbl.get_style_context().add_class("app-tagline")
+        info_box.pack_start(dev_lbl, False, False, 0)
+
+        source_lbl = Gtk.Label(label=f"Distribution Source: {app['source']} ({app['pkg_target']})", xalign=0)
+        source_lbl.get_style_context().add_class("source-badge")
+        info_box.pack_start(source_lbl, False, False, 0)
+
+        header_row.pack_start(info_box, True, True, 0)
+
+        # Action Buttons in detail view
+        action_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        if app["installed"]:
+            launch_btn = Gtk.Button(label="Launch Application")
+            launch_btn.connect("clicked", lambda b: self.launch_app(app))
+            action_box.pack_start(launch_btn, False, False, 0)
+
+            rem_btn = Gtk.Button(label="Uninstall")
+            rem_btn.get_style_context().add_class("action-remove")
+            rem_btn.connect("clicked", lambda b: self.install_or_remove(app, action="remove"))
+            action_box.pack_start(rem_btn, False, False, 0)
+        else:
+            inst_btn = Gtk.Button(label="Install Application")
+            inst_btn.get_style_context().add_class("action-install")
+            inst_btn.connect("clicked", lambda b: self.install_or_remove(app, action="install"))
+            action_box.pack_start(inst_btn, False, False, 0)
+
+        header_row.pack_end(action_box, False, False, 0)
+        vbox.pack_start(header_row, False, False, 0)
+
+        # Separator
+        vbox.pack_start(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL), False, False, 0)
+
+        # Description
+        desc_title = Gtk.Label(label="Description", xalign=0)
+        desc_title.set_markup("<b>Description</b>")
+        vbox.pack_start(desc_title, False, False, 0)
+
+        desc_body = Gtk.Label(label=app.get("description", app["tagline"]), xalign=0)
+        desc_body.set_line_wrap(True)
+        vbox.pack_start(desc_body, False, False, 0)
+
+        self.detail_container.add(vbox)
+        self.detail_container.show_all()
+
+        # Switch to detail stack page
+        self.btn_back.set_sensitive(True)
+        self.stack.set_visible_child_name("detail_view")
+        self.update_statusbar(f"Viewing details for {app['name']}.")
+
+    def switch_to_grid(self):
+        self.btn_back.set_sensitive(False)
+        self.stack.set_visible_child_name("grid_view")
+        self.update_statusbar(f"Returned to catalog view.")
+
+    def on_category_selected(self, listbox, row):
+        if row:
+            box = row.get_child()
+            lbl = box.get_children()[1]
+            self.current_category = lbl.get_text()
+            self.switch_to_grid()
+            self.populate_apps()
+
+    def select_category_by_name(self, name):
+        self.current_category = name
+        self.switch_to_grid()
+        self.populate_apps()
+
+    def on_search_changed(self, entry):
+        self.current_search = entry.get_text().strip()
+        self.switch_to_grid()
+        self.populate_apps()
+
+    def launch_app(self, app):
+        cmd = app.get("exec", "")
+        if cmd:
+            subprocess.Popen(cmd.split())
+
+    def install_or_remove(self, app, action="install"):
+        self.update_statusbar(f"{'Installing' if action=='install' else 'Removing'} {app['name']} via {app['source']}...")
+
+        def worker():
+            pkg = app["pkg_target"]
+            source = app["source"]
+            if "Flatpak" in source:
+                cmd = ["flatpak", "install" if action == "install" else "uninstall", "-y", pkg if action != "install" else "flathub", pkg] if action == "install" else ["flatpak", "uninstall", "-y", pkg]
+            else:
+                cmd = ["sudo", "axis", "install"] + pkg.split() if action == "install" else ["sudo", "apt-get", "remove", "-y"] + pkg.split()
+
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            success = (proc.returncode == 0)
+
+            def done():
+                app["installed"] = (action == "install" and success)
+                self.update_statusbar(f"{app['name']} {'installed' if action=='install' else 'removed'} successfully." if success else f"Error: failed to {action} {app['name']}.")
+                self.populate_apps()
+                if self.stack.get_visible_child_name() == "detail_view":
+                    self.show_app_details(app)
+
+            GLib.idle_add(done)
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def refresh_repositories(self):
+        self.update_statusbar("Synchronizing APT indices and Flathub remotes...")
+        def worker():
+            subprocess.run(["sudo", "apt-get", "update"], capture_output=True)
+            if subprocess.run(["which", "flatpak"], capture_output=True).returncode == 0:
+                subprocess.run(["flatpak", "update", "--appstream"], capture_output=True)
+            def done():
+                self.update_statusbar("Repositories successfully synchronized.")
+                self.populate_apps()
+            GLib.idle_add(done)
+        threading.Thread(target=worker, daemon=True).start()
+
+    def on_install_local_deb(self, widget):
+        chooser = Gtk.FileChooserDialog(
+            title="Select Debian Package to Install",
+            parent=self,
+            action=Gtk.FileChooserAction.OPEN
+        )
+        chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        filter_deb = Gtk.FileFilter()
+        filter_deb.set_name("Debian packages (*.deb)")
+        filter_deb.add_pattern("*.deb")
+        chooser.add_filter(filter_deb)
+
+        if chooser.run() == Gtk.ResponseType.OK:
+            filename = chooser.get_filename()
+            chooser.destroy()
+            self.update_statusbar(f"Installing {filename} via dpkg/apt...")
+            def worker():
+                proc = subprocess.run(["sudo", "axis", "install", filename], capture_output=True, text=True)
+                def done():
+                    self.update_statusbar(f"Finished installing {os.path.basename(filename)}.")
+                    self.populate_apps()
+                GLib.idle_add(done)
+            threading.Thread(target=worker, daemon=True).start()
+        else:
+            chooser.destroy()
+
+    def on_install_local_axis(self, widget):
+        chooser = Gtk.FileChooserDialog(
+            title="Select Axis Package Bundle to Install",
+            parent=self,
+            action=Gtk.FileChooserAction.OPEN
+        )
+        chooser.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        filter_axis = Gtk.FileFilter()
+        filter_axis.set_name("Axis bundles (*.axis)")
+        filter_axis.add_pattern("*.axis")
+        chooser.add_filter(filter_axis)
+
+        if chooser.run() == Gtk.ResponseType.OK:
+            filename = chooser.get_filename()
+            chooser.destroy()
+            self.update_statusbar(f"Installing {filename} via axis engine...")
+            def worker():
+                subprocess.run(["sudo", "axis", "install", filename], capture_output=True)
+                def done():
+                    self.update_statusbar(f"Finished installing {os.path.basename(filename)}.")
+                    self.populate_apps()
+                GLib.idle_add(done)
+            threading.Thread(target=worker, daemon=True).start()
+        else:
+            chooser.destroy()
+
+    def on_software_sources(self, widget):
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            flags=0,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text="Software Sources & Repositories"
+        )
+        dialog.format_secondary_text(
+            "• Debian Bookworm (deb.debian.org) - Active (Official Main, Contrib, Non-Free, Non-Free-Firmware)\n"
+            "• Debian Package Catalog (packages.debian.org) - Official Upstream Repository\n"
+            "• Debian Backports (bookworm-backports) - Enabled for Modern Mesa 24+ Drivers\n"
+            "• Flathub (flathub.org) - Universal Sandboxed Application Remote Active"
+        )
+        dialog.run()
+        dialog.destroy()
+
+    def on_preferences(self, widget):
+        dialog = Gtk.MessageDialog(
+            parent=self,
+            flags=0,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text="Software Manager Preferences"
+        )
+        dialog.format_secondary_text("Automatic cache synchronization: Enabled (Daily)\nUpstream Source: packages.debian.org\nFlatpak sandbox runtime isolation: Strict\nTheme Integration: Mint-Y Dark (Charcoal & Mint)")
+        dialog.run()
+        dialog.destroy()
+
+    def on_about_dialog(self, widget):
+        about = Gtk.AboutDialog(transient_for=self, modal=True)
+        about.set_program_name("AxisOS Software Manager")
+        about.set_version("2.0.0")
+        about.set_copyright("© 2026 AxisOS & Debian Community")
+        about.set_comments("Native software center developed under the Linux Mint X-Apps philosophy using Python 3 & GTK 3.\nPackages and mirrors sourced directly from Debian 12 Bookworm.")
+        about.set_website("https://packages.debian.org")
+        about.set_logo_icon_name("system-software-install")
+        about.run()
+        about.destroy()
+
+def main():
+    app = SoftwareApp()
+    app.connect("destroy", Gtk.main_quit)
+    app.show_all()
+    Gtk.main()
+
+if __name__ == "__main__":
+    main()

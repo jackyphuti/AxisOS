@@ -87,6 +87,65 @@ if os.path.exists(gpu_svc_src):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(gpu_svc_src, dst)
 
+# Cinnamon Desktop Environment Sessions, Themes & Configuration
+cinnamon_dir = os.path.join(workspace_dir, "os-build", "configs", "cinnamon")
+if os.path.exists(cinnamon_dir):
+    print("    Syncing Cinnamon desktop configurations, sessions, and themes...")
+    # Sessions
+    sess_x11 = os.path.join(cinnamon_dir, "sessions", "cinnamon.desktop")
+    if os.path.exists(sess_x11):
+        dst = os.path.join(chroot_dir, "usr", "share", "xsessions", "cinnamon.desktop")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(sess_x11, dst)
+
+    sess_wayland = os.path.join(cinnamon_dir, "sessions", "cinnamon-wayland.desktop")
+    if os.path.exists(sess_wayland):
+        dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "cinnamon-wayland.desktop")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(sess_wayland, dst)
+
+    # LightDM
+    lightdm_conf = os.path.join(cinnamon_dir, "lightdm", "00-axisos-cinnamon.conf")
+    if os.path.exists(lightdm_conf):
+        dst = os.path.join(chroot_dir, "etc", "lightdm", "lightdm.conf.d", "00-axisos-cinnamon.conf")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(lightdm_conf, dst)
+
+    # Dconf
+    dconf_src = os.path.join(cinnamon_dir, "dconf", "00-axisos-cinnamon")
+    if os.path.exists(dconf_src):
+        dst = os.path.join(chroot_dir, "etc", "dconf", "db", "local.d", "00-axisos-cinnamon")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        shutil.copyfile(dconf_src, dst)
+
+    # Themes (Dark, Light, Mixed variants)
+    themes_root = os.path.join(cinnamon_dir, "themes")
+    if os.path.exists(themes_root):
+        for t_name in os.listdir(themes_root):
+            t_src = os.path.join(themes_root, t_name)
+            if os.path.isdir(t_src):
+                dst = os.path.join(chroot_dir, "usr", "share", "themes", t_name)
+                if os.path.exists(dst):
+                    shutil.rmtree(dst)
+                shutil.copytree(t_src, dst)
+
+# Deploy Native GTK Apps (Software Manager, Update Manager, Task Manager)
+apps_dir = os.path.join(workspace_dir, "os-build", "apps")
+if os.path.exists(apps_dir):
+    print("    Syncing native GTK apps (Software, Updates, Task Manager)...")
+    for app_name in ["axis-software-manager", "axis-update-manager", "axis-task-manager"]:
+        app_bin = os.path.join(apps_dir, app_name, app_name)
+        app_desktop = os.path.join(apps_dir, app_name, f"{app_name}.desktop")
+        if os.path.exists(app_bin):
+            dst = os.path.join(chroot_dir, "usr", "local", "bin", app_name)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(app_bin, dst)
+            os.chmod(dst, 0o755)
+        if os.path.exists(app_desktop):
+            dst = os.path.join(chroot_dir, "usr", "share", "applications", f"{app_name}.desktop")
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(app_desktop, dst)
+
 # Deploy prime-run helper
 primerun_dst = os.path.join(chroot_dir, "usr", "local", "bin", "prime-run")
 with open(primerun_dst, "w") as f:

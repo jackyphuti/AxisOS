@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=AxisOS Cinnamon (X11)
+Comment=AxisOS Flagship Desktop Environment (Muffin X11 Compositor)
+Exec=cinnamon-session
+TryExec=cinnamon-session
+Icon=cinnamon
+Type=Application
+DesktopNames=X-Cinnamon;GNOME;
+Keywords=cinnamon;muffin;axisos;desktop;
+X-Ubuntu-Gettext-Domain=cinnamon
