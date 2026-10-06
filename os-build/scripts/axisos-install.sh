@@ -277,6 +277,24 @@ mount -t efivarfs efivarfs /mnt/sys/firmware/efi/efivars 2>/dev/null || true
 report 78 "Enabling 32-bit multiarch (i386) for gaming compatibility..."
 chroot /mnt dpkg --add-architecture i386 || true
 
+# Configure Debian Bookworm repositories including contrib, non-free, non-free-firmware, and backports
+report 78 "Configuring Debian Bookworm repositories with non-free and backports..."
+mkdir -p /mnt/etc/apt
+cat << 'EOF' > /mnt/etc/apt/sources.list
+deb http://deb.debian.org/debian/ bookworm main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian/ bookworm main contrib non-free non-free-firmware
+
+deb http://deb.debian.org/debian-security/ bookworm-security main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian-security/ bookworm-security main contrib non-free non-free-firmware
+
+deb http://deb.debian.org/debian/ bookworm-updates main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian/ bookworm-updates main contrib non-free non-free-firmware
+
+# Debian Bookworm Backports (Modern Mesa 24+ Vulkan/OpenGL drivers, modern kernel releases)
+deb http://deb.debian.org/debian/ bookworm-backports main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian/ bookworm-backports main contrib non-free non-free-firmware
+EOF
+
 # Gaming & High-Performance Sysctl optimizations (Proton / Steam max_map_count)
 mkdir -p /mnt/etc/sysctl.d
 cat << 'EOF' > /mnt/etc/sysctl.d/99-axisos-gaming.conf

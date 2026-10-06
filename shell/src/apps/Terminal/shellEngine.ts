@@ -787,11 +787,53 @@ Description:  ${found.description}
           return;
         }
 
+        if (sub === 'kernel') {
+          const action = (subArgs[0] || 'list').toLowerCase();
+          const target = (subArgs[1] || 'xanmod').toLowerCase();
+          if (action === 'list' || action === 'status') {
+            ctx.stdout = `\n\x1b[1mAxisOS Performance Kernel Telemetry:\x1b[0m
+  Current Running Kernel: \x1b[36mLinux 6.12.0-axisos-amd64\x1b[0m
+
+\x1b[1mAvailable Gaming & Development Kernels:\x1b[0m
+  • \x1b[32mxanmod\x1b[0m   : XanMod Linux (BORE/CACULE CPU scheduler, 500Hz/1000Hz, low-latency gaming)
+  • \x1b[32mliquorix\x1b[0m : Liquorix Linux (ZEN interactive scheduler, preemptive desktop responsiveness)
+  • \x1b[32mbackports\x1b[0m: Debian 12 Backports Kernel (Latest upstream stable LTS with modern GPU drivers)
+  • \x1b[32mstock\x1b[0m    : Debian 12 Default Enterprise Stable LTS (linux-image-amd64)
+
+Install command: \x1b[33msudo axis kernel install <xanmod|liquorix|backports>\x1b[0m\n`;
+            ctx.exitCode = 0;
+            return;
+          }
+          if (action === 'install') {
+            ctx.stdout = `\x1b[36m[axis-kernel]\x1b[0m Setting up ${target} performance kernel repository...\n\x1b[32m[axis-kernel]\x1b[0m Fetching kernel packages and updating initramfs...\n\x1b[32;1m✓ Kernel ${target} successfully deployed. Reboot to boot into the new scheduler.\x1b[0m`;
+            ctx.exitCode = 0;
+            return;
+          }
+        }
+
+        if (sub === 'backports') {
+          const action = (subArgs[0] || 'status').toLowerCase();
+          if (action === 'enable') {
+            ctx.stdout = `\x1b[36m[axis-backports]\x1b[0m Added bookworm-backports to /etc/apt/sources.list.d/backports.list\n\x1b[32;1m✓ Debian Bookworm Backports enabled. Mesa 24+ and modern GPU drivers ready.\x1b[0m`;
+            ctx.exitCode = 0;
+            return;
+          }
+          ctx.stdout = `\n\x1b[1mDebian Bookworm Backports Status:\x1b[0m
+  Backports Repository: \x1b[32mActive & Enabled\x1b[0m
+  Provides: Latest Mesa 24+ Vulkan/OpenGL drivers, modern kernel releases, and updated firmware.
+
+Enable command: \x1b[33msudo axis backports enable\x1b[0m\n`;
+          ctx.exitCode = 0;
+          return;
+        }
+
         ctx.stdout = `\x1b[1;36mAxisOS Package Manager & Update Engine (axis)\x1b[0m
 
 Usage:
   axis update                     Sync repository package indices & system mirrors
   axis install <pkg...>           Install software packages (e.g. vscode, discord, vlc)
+  axis kernel <list|install>      Manage XanMod / Liquorix gaming kernels
+  axis backports <status|enable>  Manage Debian Bookworm Backports (Mesa drivers)
   axis remove <pkg...>            Remove software packages
   axis list                       List installed software packages
   axis search <query>             Search repository for applications and tools
@@ -802,7 +844,10 @@ Usage:
 
 Examples:
   sudo axis update
-  sudo axis install vscode discord vlc
+  sudo axis install xanmod
+  sudo axis install vscode discord steam
+  sudo axis kernel install xanmod
+  sudo axis backports enable
   axis search editor
   axis list`;
         ctx.exitCode = 0;
