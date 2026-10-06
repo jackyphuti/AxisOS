@@ -47,7 +47,7 @@ if [ -n "$CHROME_BIN" ]; then
     cage -s -d -- "$CHROME_BIN" \
         --kiosk \
         --ozone-platform=wayland \
-        --enable-features=UseOzonePlatform \
+        --enable-features=UseOzonePlatform,WaylandWindowDecorations,Vulkan \
         --no-sandbox \
         --disable-dev-shm-usage \
         --disable-gpu-sandbox \

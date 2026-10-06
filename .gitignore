@@ -37,3 +37,7 @@ yarn-error.log*
 *.sln
 *.sw?
 .DS_Store
+
+# Python
+__pycache__/
+*.py[cod]

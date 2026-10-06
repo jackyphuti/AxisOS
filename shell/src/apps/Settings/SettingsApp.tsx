@@ -43,6 +43,10 @@ import {
   FileCode,
   CheckCircle2,
   ExternalLink,
+  Gamepad2,
+  Box,
+  Gauge,
+  Rocket,
 } from 'lucide-react';
 import { useSystemState, WALLPAPERS } from '../../context/SystemStateContext';
 import { useWindowManager } from '../../context/WindowManagerContext';
@@ -51,6 +55,7 @@ import { systemService, WifiNetwork, BluetoothDevice } from '../../services/syst
 export type SettingsTab =
   // System & Hardware
   | 'displays'
+  | 'gaming-performance'
   | 'power'
   | 'storage'
   // Devices & Peripherals
@@ -134,7 +139,7 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
     setAccentColor,
   } = useSystemState();
 
-  const { closeWindow, minimizeWindow, toggleMaximizeWindow, windows } = useWindowManager();
+  const { closeWindow, minimizeWindow, toggleMaximizeWindow, windows, openApp } = useWindowManager();
   const currentWindow = windows.find((w) => w.appId === 'settings');
 
   const [activeTab, setActiveTab] = useState<SettingsTab>(() => (params?.tab as SettingsTab) || 'displays');
@@ -147,6 +152,24 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
   const [useAsMode, setUseAsMode] = useState<string>('Extended display');
   const [isArranging, setIsArranging] = useState<boolean>(false);
   const [trueTone, setTrueTone] = useState<boolean>(true);
+  const [vrrMode, setVrrMode] = useState<'adaptive' | 'always' | 'disabled'>('adaptive');
+  const [hdrEnabled, setHdrEnabled] = useState<boolean>(true);
+  const [gpuProfile, setGpuProfile] = useState<string>('hybrid');
+  const [gameModeActive, setGameModeActive] = useState<boolean>(true);
+  const [mangoHudActive, setMangoHudActive] = useState<boolean>(false);
+  const [mangoHudPreset, setMangoHudPreset] = useState<'compact' | 'detailed' | 'horizontal'>('detailed');
+  const [vkBasaltSharpening, setVkBasaltSharpening] = useState<number>(50);
+  const [selectedDistrobox, setSelectedDistrobox] = useState<string>('arch-linux-dev');
+  const [distroboxList, setDistroboxList] = useState<Array<{ id: string; name: string; status: string; image: string; dist?: string }>>([
+    { id: 'box-arch', name: 'arch-linux-dev', status: 'ready', image: 'archlinux:latest', dist: 'Arch Linux (Rolling GCC/Rust/Node)' },
+    { id: 'box-fedora', name: 'fedora-workstation', status: 'ready', image: 'fedora:latest', dist: 'Fedora 40 (Bleeding-edge Toolchain)' },
+    { id: 'box-alpine', name: 'alpine-minimal', status: 'ready', image: 'alpine:latest', dist: 'Alpine Linux (Micro-services & C)' },
+  ]);
+  const [flatpakInfo, setFlatpakInfo] = useState<{ available: boolean; flathub: boolean; runtime: string }>({
+    available: true,
+    flathub: true,
+    runtime: 'org.freedesktop.Platform 24.08',
+  });
   const [realBatteryData, setRealBatteryData] = useState<{ capacity: string; status: string } | null>(null);
 
   // Deep linking: Automatically jump to tab when window parameters change
@@ -294,6 +317,20 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
       handleScanWifi();
     } else if (activeTab === 'bluetooth') {
       handleScanBluetooth();
+    } else if (activeTab === 'gaming-performance') {
+      systemService.getGpuProfile().then((data) => {
+        setGpuProfile(data.activeProfile);
+      }).catch(() => {});
+      systemService.getGameModeStatus().then((gm) => {
+        setGameModeActive(gm.active);
+      }).catch(() => {});
+    } else if (activeTab === 'dev-tools') {
+      systemService.getDistroboxContainers().then((list) => {
+        if (list && list.length > 0) setDistroboxList(list);
+      }).catch(() => {});
+      systemService.getFlatpakStatus().then((fp) => {
+        setFlatpakInfo(fp);
+      }).catch(() => {});
     }
   }, [activeTab]);
 
@@ -303,6 +340,7 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
       groupName: 'SYSTEM & HARDWARE',
       items: [
         { id: 'displays', label: 'Displays', icon: <Monitor className="w-3.5 h-3.5" />, color: 'bg-[#007AFF]' },
+        { id: 'gaming-performance', label: 'Gaming & GPU', icon: <Gamepad2 className="w-3.5 h-3.5" />, color: 'bg-emerald-600', badge: 'VRR' },
         { id: 'power', label: 'Power & Battery', icon: <Battery className="w-3.5 h-3.5" />, color: 'bg-emerald-500' },
         { id: 'storage', label: 'Storage & Disks', icon: <HardDrive className="w-3.5 h-3.5" />, color: 'bg-purple-500' },
       ],
@@ -556,7 +594,7 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
               <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/5">
                 <div>
                   <div className="text-xs font-semibold">Refresh Rate</div>
-                  <div className="text-[10px] text-slate-400">Variable rate refresh & Adaptive Sync (VRR)</div>
+                  <div className="text-[10px] text-slate-400">High-speed esports panel synchronization</div>
                 </div>
                 <select
                   value={refreshRate}
@@ -565,9 +603,56 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
                 >
                   <option value="60Hz">60.00 Hz (Standard)</option>
                   <option value="120Hz">120.00 Hz (ProMotion)</option>
-                  <option value="144Hz">144.00 Hz (High Precision)</option>
+                  <option value="144Hz">144.00 Hz (Gaming Standard)</option>
+                  <option value="165Hz">165.00 Hz (Esports Fast)</option>
                   <option value="240Hz">240.00 Hz (Ultra High Speed)</option>
+                  <option value="360Hz">360.00 Hz (Competitive Pro)</option>
                 </select>
+              </div>
+
+              {/* Variable Refresh Rate (VRR / FreeSync / G-Sync) */}
+              <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/5">
+                <div>
+                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                    <span>Variable Refresh Rate (VRR)</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/10 text-emerald-500 font-bold border border-emerald-500/20">
+                      FreeSync / G-Sync
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">Eliminate screen tearing without input latency on Wayland</div>
+                </div>
+                <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 p-0.5 rounded-lg text-xs">
+                  {(['adaptive', 'always', 'disabled'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setVrrMode(m)}
+                      className={`px-2 py-0.5 rounded-md capitalize transition-all ${
+                        vrrMode === m ? 'bg-[#007AFF] text-white font-semibold' : 'text-slate-500 hover:text-white'
+                      }`}
+                    >
+                      {m === 'adaptive' ? 'Auto (Gaming)' : m === 'always' ? 'Always On' : 'Off'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* High Dynamic Range (HDR) */}
+              <div className="flex items-center justify-between pb-3 border-b border-black/5 dark:border-white/5">
+                <div>
+                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                    <span>High Dynamic Range (HDR)</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded bg-indigo-500/10 text-indigo-500 font-bold border border-indigo-500/20">
+                      10-Bit BT.2020
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">Enable wide color gamut and 1000 nits peak luminance</div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={hdrEnabled}
+                  onChange={(e) => setHdrEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-[#007AFF] cursor-pointer"
+                />
               </div>
 
               {/* UI Scaling with Restart Warning */}
@@ -612,6 +697,259 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
                   className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-[#007AFF]"
                 />
                 <span className="text-xs font-mono w-8 text-right">{brightness}%</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== GAMING & GPU PERFORMANCE TAB ==================== */}
+        {activeTab === 'gaming-performance' && (
+          <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Gaming & GPU Performance</h1>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold border border-emerald-500/20">
+                  Vulkan & Mesa Ready
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Graphics hardware profile switching, Feral GameMode daemon, MangoHud telemetry, and Proton-GE compatibility.
+              </p>
+            </div>
+
+            {/* GPU Architecture & Driver Switching Platter */}
+            <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold">GPU Hardware & Graphics Switching</span>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    PRIME GPU offload management via Linux DRM / DRI3
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 text-xs font-medium border border-emerald-500/20">
+                  <Gamepad2 className="w-3.5 h-3.5" />
+                  <span>Mesa 24+ / Vulkan 1.3</span>
+                </div>
+              </div>
+
+              {/* Detected GPUs list */}
+              <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col gap-1.5 text-xs">
+                <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Detected Graphics Processors
+                </div>
+                <div className="flex flex-col gap-1 text-slate-800 dark:text-slate-200 font-mono text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span>iGPU: Mesa Intel(R) UHD Graphics / AMD Radeon Graphics</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span>dGPU: NVIDIA GeForce RTX / AMD Radeon RX Dedicated GPU</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* GPU Profiles Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  {
+                    id: 'hybrid',
+                    title: 'Hybrid Graphics',
+                    sub: 'PRIME Dynamic Offload',
+                    desc: 'Desktop runs on power-efficient iGPU; games trigger dedicated GPU via prime-run.',
+                  },
+                  {
+                    id: 'discrete',
+                    title: 'Dedicated GPU',
+                    sub: 'Maximum High FPS',
+                    desc: 'Forces high-power NVIDIA/AMD GPU for entire session for lowest latency and top frame rates.',
+                  },
+                  {
+                    id: 'integrated',
+                    title: 'Battery Saver',
+                    sub: 'Integrated iGPU Only',
+                    desc: 'Completely powers down dGPU to maximize mobile battery life when on the go.',
+                  },
+                ].map((prof) => (
+                  <button
+                    key={prof.id}
+                    onClick={() => {
+                      setGpuProfile(prof.id);
+                      systemService.switchGpuProfile(prof.id);
+                    }}
+                    className={`p-3.5 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                      gpuProfile === prof.id
+                        ? 'border-[#007AFF] bg-blue-50/40 dark:bg-blue-950/20 ring-1 ring-[#007AFF]'
+                        : 'border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'
+                    }`}
+                  >
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 dark:text-white">{prof.title}</div>
+                      <div className="text-[10px] font-medium text-blue-600 dark:text-blue-400 mt-0.5">{prof.sub}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-1.5 leading-relaxed">{prof.desc}</div>
+                    </div>
+                    {gpuProfile === prof.id && <Check className="w-4 h-4 text-[#007AFF] mt-3 self-end" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Feral GameMode Card */}
+            <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold flex items-center gap-2">
+                    <span>Feral GameMode Daemon</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      gameModeActive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-slate-500/10 text-slate-400'
+                    }`}>
+                      {gameModeActive ? 'Daemon Running (Active)' : 'Disabled'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Automatically elevates CPU scheduler to performance governor, adjusts I/O niceness, and inhibits desktop sleeping.
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={gameModeActive}
+                  onChange={(e) => {
+                    setGameModeActive(e.target.checked);
+                    systemService.toggleGameMode(e.target.checked);
+                  }}
+                  className="w-4 h-4 accent-[#007AFF] cursor-pointer"
+                />
+              </div>
+
+              <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                <span>Launch command wrapper:</span>
+                <code className="font-mono bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded text-blue-600 dark:text-blue-400">
+                  gamemoderun %command%
+                </code>
+              </div>
+            </div>
+
+            {/* MangoHud Overlay Configuration */}
+            <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold flex items-center gap-2">
+                    <span>MangoHud Performance HUD</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      mangoHudActive ? 'bg-blue-500/10 text-blue-500' : 'bg-slate-500/10 text-slate-400'
+                    }`}>
+                      {mangoHudActive ? 'Global Hook Active' : 'Off'}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Vulkan & OpenGL real-time overlay displaying FPS, frametime graphs, GPU temperature, and VRAM utilization.
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={mangoHudActive}
+                  onChange={(e) => setMangoHudActive(e.target.checked)}
+                  className="w-4 h-4 accent-[#007AFF] cursor-pointer"
+                />
+              </div>
+
+              {mangoHudActive && (
+                <div className="pt-3 border-t border-black/5 dark:border-white/5 flex flex-col gap-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <span>Telemetry Detail Preset</span>
+                    <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 p-0.5 rounded-lg text-xs">
+                      {[
+                        { id: 'compact', label: 'Compact FPS' },
+                        { id: 'detailed', label: 'Detailed Telemetry' },
+                        { id: 'horizontal', label: 'Horizontal Bar' },
+                      ].map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => setMangoHudPreset(p.id as any)}
+                          className={`px-2.5 py-1 rounded-md text-xs transition-all ${
+                            mangoHudPreset === p.id
+                              ? 'bg-[#007AFF] text-white font-semibold shadow-xs'
+                              : 'text-slate-500 hover:text-white'
+                          }`}
+                        >
+                          {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                    <span>In-Game Toggle Hotkey:</span>
+                    <kbd className="px-1.5 py-0.5 bg-black/5 dark:bg-white/10 rounded font-mono text-[10px]">
+                      Right Shift + F12
+                    </kbd>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* vkBasalt Post-Processing & Sharpening */}
+            <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-5 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold">vkBasalt FidelityFX Contrast Adaptive Sharpening (CAS)</div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Hardware post-processing layer sharpening textures and anti-aliased geometry in real-time.
+                  </div>
+                </div>
+                <span className="text-xs font-mono font-bold text-blue-600 dark:text-blue-400">{vkBasaltSharpening}%</span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={vkBasaltSharpening}
+                onChange={(e) => setVkBasaltSharpening(Number(e.target.value))}
+                className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full appearance-none cursor-pointer accent-[#007AFF]"
+              />
+            </div>
+
+            {/* Subsystem Readiness Indicators */}
+            <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-5 flex flex-col gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Gaming Subsystem & Kernel Readiness
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">32-Bit Multiarch (i386)</span>
+                    <span className="text-emerald-500 font-bold text-[10px]">Enabled</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    dpkg --add-architecture i386 active for legacy games & 32-bit Wine prefixes.
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">vm.max_map_count</span>
+                    <span className="text-emerald-500 font-bold font-mono text-[10px]">2147483642</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Configured in /etc/sysctl.d/99-axisos-gaming.conf for Steam & UE5 stability.
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">Wayland VRR / FreeSync</span>
+                    <span className="text-emerald-500 font-bold text-[10px]">Active</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    amdgpu.freesync_video=1 kernel flag active; zero tearing on high-refresh panels.
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">Proton-GE Compatibility</span>
+                    <span className="text-emerald-500 font-bold text-[10px]">ProtonUp-Qt Ready</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Managed via ProtonUp-Qt for automated GloriousEggroll Wine builds.
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1551,6 +1889,138 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
                     <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold">
                       {mod.state}
                     </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ==================== DEVELOPER SUBSYSTEM & TOOLS TAB ==================== */}
+        {activeTab === 'dev-tools' && (
+          <div className="max-w-2xl mx-auto w-full flex flex-col gap-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Developer Subsystem</h1>
+                <span className="px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 text-[10px] font-bold border border-sky-500/20">
+                  Containers & Toolchains
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Isolated Distrobox Linux workspaces, universal Flatpak runtime management, and native build toolchains.
+              </p>
+            </div>
+
+            {/* Distrobox Workspaces Platter */}
+            <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold">Distrobox Isolated Workspaces (Rootless Podman)</span>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Run bleeding-edge rolling distros seamlessly mounted to your AxisOS home directory without host library pollution.
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400 text-xs font-medium border border-sky-500/20">
+                  <Box className="w-3.5 h-3.5" />
+                  <span>Podman OCI Engine</span>
+                </div>
+              </div>
+
+              {/* Containers List */}
+              <div className="flex flex-col divide-y divide-black/5 dark:divide-white/5">
+                {distroboxList.map((box) => (
+                  <div key={box.id} className="py-3 flex items-center justify-between text-xs">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-9 h-9 rounded-xl bg-sky-500/10 text-sky-500 flex items-center justify-center font-bold">
+                        <Terminal className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-slate-900 dark:text-white">{box.name}</div>
+                        <div className="text-[10px] text-slate-400">
+                          {box.dist || box.image} • Image: <span className="font-mono">{box.image}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-semibold">
+                        {box.status}
+                      </span>
+                      <button
+                        onClick={() => {
+                          openApp('terminal', { command: `distrobox enter ${box.name}` });
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-[#007AFF] text-white text-[11px] font-semibold hover:bg-[#0062cc] transition-colors flex items-center gap-1"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>Enter</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Quick Container Creation hint */}
+              <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 text-[11px] text-slate-600 dark:text-slate-400 flex items-center justify-between">
+                <span>Create new environment in Terminal:</span>
+                <code className="font-mono bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded text-sky-600 dark:text-sky-400">
+                  distrobox create --name ubuntu-lts --image ubuntu:24.04
+                </code>
+              </div>
+            </div>
+
+            {/* Universal Flatpak & Flathub Status */}
+            <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-5 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-semibold flex items-center gap-2">
+                    <span>Universal Flatpak & Flathub Integration</span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 text-[10px] font-bold">
+                      Connected
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 mt-0.5">
+                    Sandboxed application runtime with official Flathub upstream mirror and Wayland XDG Desktop Portals.
+                  </div>
+                </div>
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
+                  <Rocket className="w-4 h-4" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Remote Repository</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">flathub (dl.flathub.org)</span>
+                  <span className="text-[10px] text-emerald-500 font-medium">Automatic system updates active</span>
+                </div>
+                <div className="p-3 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col gap-1">
+                  <span className="text-[10px] text-slate-400 uppercase font-semibold">Active Base Runtime</span>
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">{flatpakInfo.runtime}</span>
+                  <span className="text-[10px] text-slate-400 font-medium">Desktop Portal WLR Isolation</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Native Host Build Toolchain Status */}
+            <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-5 flex flex-col gap-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Native Host Toolchain Status
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                {[
+                  { name: 'GCC / G++', ver: 'v12.2 (Debian)', stat: 'Ready' },
+                  { name: 'Clang / LLVM', ver: 'v14.0 / v16.0', stat: 'Ready' },
+                  { name: 'CMake & Make', ver: 'v3.25.1', stat: 'Ready' },
+                  { name: 'Git & GH CLI', ver: 'v2.39.5', stat: 'Ready' },
+                  { name: 'Python 3 / pip', ver: 'v3.11.2', stat: 'Ready' },
+                  { name: 'Node.js / npm', ver: 'v20.x LTS', stat: 'Ready' },
+                  { name: 'Podman / OCI', ver: 'v4.3.1 rootless', stat: 'Ready' },
+                  { name: 'GDB Debugger', ver: 'v13.1-3', stat: 'Ready' },
+                ].map((tool) => (
+                  <div key={tool.name} className="p-2.5 bg-slate-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 flex flex-col">
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">{tool.name}</span>
+                    <span className="text-[10px] text-slate-400 font-mono mt-0.5">{tool.ver}</span>
+                    <span className="text-[9px] text-emerald-500 font-bold mt-1">{tool.stat}</span>
                   </div>
                 ))}
               </div>

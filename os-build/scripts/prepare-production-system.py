@@ -186,8 +186,12 @@ WantedBy=graphical.target
         os.remove(def_target)
     os.symlink("/lib/systemd/system/graphical.target", def_target)
 
-    # User groups
-    for grp in ["video", "render", "input", "audio", "seat", "tty", "netdev", "sudo"]:
+    # Enable 32-bit multiarch for gaming and compatibility
+    print("--> 7b. Enabling 32-bit multiarch (i386) for Steam and Wine")
+    chroot_exec("dpkg --add-architecture i386 || true")
+
+    # User groups (including gaming and virtualization)
+    for grp in ["video", "render", "input", "audio", "seat", "tty", "netdev", "sudo", "gamemode", "games", "docker"]:
         chroot_exec(f"groupadd -f {grp} || true")
         chroot_exec(f"usermod -aG {grp} axis || true")
 

@@ -112,3 +112,34 @@ htop
 nano
 neofetch
 librsvg2-bin
+
+# ==============================================================================
+# AxisOS Gaming Subsystem (Vulkan, GameMode, Overlays, Compatibility)
+# ==============================================================================
+vulkan-tools
+libvulkan1
+gamemode
+mangohud
+vkbasalt
+cpufrequtils
+linux-cpupower
+nvtop
+
+# ==============================================================================
+# AxisOS Developer Stack & Container Isolation (Distrobox, Podman, Docker)
+# ==============================================================================
+build-essential
+gcc
+g++
+clang
+cmake
+make
+gdb
+git
+pkg-config
+distrobox
+podman
+flatpak
+xdg-desktop-portal
+xdg-desktop-portal-wlr
+

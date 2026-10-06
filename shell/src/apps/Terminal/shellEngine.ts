@@ -1381,6 +1381,189 @@ These shell commands are defined internally. Type 'help' to see this list.
         break;
       }
 
+      case 'gamemode':
+      case 'gamemoderun': {
+        const sub = (args[0] || '').toLowerCase();
+        if (name === 'gamemoderun' || sub === 'run') {
+          const runCmd = name === 'gamemoderun' ? args.join(' ') : args.slice(1).join(' ');
+          if (!runCmd) {
+            ctx.stderr = 'gamemoderun: error: no target executable specified\nusage: gamemoderun <command> [args...]';
+            ctx.exitCode = 1;
+            return;
+          }
+          ctx.stdout = `\x1b[32m[gamemode]\x1b[0m Requesting high-priority CPU governor (performance)...
+\x1b[32m[gamemode]\x1b[0m Setting I/O scheduler to real-time (ioprio class 1)...
+\x1b[32m[gamemode]\x1b[0m Locking GPU clock frequencies to maximum P-State...
+\x1b[36m[gamemode]\x1b[0m Executing: ${runCmd}
+\x1b[32m[gamemode]\x1b[0m GameMode active for process.`;
+          ctx.exitCode = 0;
+          return;
+        }
+        if (sub === '-s' || sub === '--status') {
+          ctx.stdout = `\x1b[1;32m● gamemoded.service\x1b[0m - Feral GameMode daemon
+   Active: \x1b[32mactive (running)\x1b[0m since boot
+   Current Governor: performance (auto-boost ready)
+   Proton / Wine hook: enabled (/usr/lib/libgamemodeauto.so)`;
+          ctx.exitCode = 0;
+          return;
+        }
+        ctx.stdout = `Feral Interactive GameMode Daemon v1.8.1
+Usage: gamemode [-s|--status] or gamemoderun <game-executable>`;
+        ctx.exitCode = 0;
+        break;
+      }
+
+      case 'mangohud': {
+        if (args.length === 0) {
+          ctx.stdout = `MangoHud v0.7.2 - A Vulkan and OpenGL overlay for monitoring FPS, temperatures, CPU/GPU load and more.
+Usage: mangohud <game-executable> [args...]
+Config file: ~/.config/MangoHud/MangoHud.conf`;
+          ctx.exitCode = 0;
+          return;
+        }
+        ctx.stdout = `\x1b[33m[MangoHud]\x1b[0m Hooked Vulkan/OpenGL swapchain presentation layer.
+\x1b[33m[MangoHud]\x1b[0m Displaying HUD overlay: FPS • Frametime Graph • GPU Temp • VRAM • CPU Usage.
+\x1b[36m[MangoHud]\x1b[0m Executing: ${args.join(' ')}`;
+        ctx.exitCode = 0;
+        break;
+      }
+
+      case 'vkbasalt': {
+        ctx.stdout = `vkBasalt v0.3.2.10 - Vulkan post-processing layer
+Effects loaded: Contrast Adaptive Sharpening (CAS: 0.50), FXAA (enabled)
+Target: Any Vulkan game via ENABLE_VKBASALT=1`;
+        ctx.exitCode = 0;
+        break;
+      }
+
+      case 'distrobox':
+      case 'distrobox-list':
+      case 'distrobox-enter':
+      case 'distrobox-create': {
+        const sub = (name.startsWith('distrobox-') ? name.replace('distrobox-', '') : (args[0] || 'list')).toLowerCase();
+        if (sub === 'list') {
+          ctx.stdout = `\x1b[1mID           | NAME                  | STATUS     | IMAGE                                \x1b[0m
+-------------+-----------------------+------------+--------------------------------------
+\x1b[36m9f81a2b3c4d5\x1b[0m | \x1b[32march-linux-dev\x1b[0m        | \x1b[32mready (up)\x1b[0m | docker.io/library/archlinux:latest  
+\x1b[36m3e72b1c4d9a8\x1b[0m | \x1b[32mfedora-workstation\x1b[0m   | \x1b[32mready\x1b[0m      | registry.fedoraproject.org/fedora:40
+\x1b[36m5c62a8e1b3d4\x1b[0m | \x1b[32malpine-minimal\x1b[0m       | \x1b[32mready\x1b[0m      | docker.io/library/alpine:latest     
+
+\x1b[34m[INFO]\x1b[0m All containers seamlessly share host /home/axis, Wayland sockets, and GPU acceleration.
+\x1b[34m[INFO]\x1b[0m Run \x1b[1mdistrobox enter arch-linux-dev\x1b[0m to enter bleeding-edge rolling container.`;
+          ctx.exitCode = 0;
+          return;
+        }
+        if (sub === 'enter') {
+          const target = args[1] || 'arch-linux-dev';
+          ctx.stdout = `\x1b[36m:: Entering isolated Distrobox environment [${target}]...\x1b[0m
+Mounted: /home/axis -> /home/axis (Full Read/Write)
+Wayland Display: ${this.state.env['WAYLAND_DISPLAY'] || 'wayland-0'} (Hardware Accelerated)
+Package Manager inside container: pacman / dnf / apk (Independent of Debian host)
+\x1b[32mWelcome to ${target}! Host system libraries are completely protected.\x1b[0m`;
+          ctx.exitCode = 0;
+          return;
+        }
+        if (sub === 'create') {
+          const cName = args[args.indexOf('-n') + 1] || args[args.indexOf('--name') + 1] || 'my-container';
+          ctx.stdout = `\x1b[32m[distrobox]\x1b[0m Creating container '${cName}' using rootless Podman engine...
+\x1b[32m[distrobox]\x1b[0m Pulling OCI image layers... Done.
+\x1b[32m[distrobox]\x1b[0m Integrating host XDG runtime directories, user groups, and DRI render devices... Done.
+\x1b[32;1m[OK]\x1b[0m Container '${cName}' created successfully. Run 'distrobox enter ${cName}' to use it.`;
+          ctx.exitCode = 0;
+          return;
+        }
+        ctx.stdout = `distrobox: Use any Linux distribution inside your terminal.
+Commands:
+  distrobox list                List available isolated containers
+  distrobox enter <name>        Enter an isolated environment
+  distrobox create -i <img> -n <name>  Create a new container (e.g. archlinux:latest, fedora:40)`;
+        ctx.exitCode = 0;
+        break;
+      }
+
+      case 'flatpak': {
+        const sub = (args[0] || 'list').toLowerCase();
+        if (sub === 'remotes') {
+          ctx.stdout = `Name     Options
+flathub  system,oci,https://dl.flathub.org/repo/flathub.flatpakrepo`;
+          ctx.exitCode = 0;
+          return;
+        }
+        if (sub === 'list') {
+          ctx.stdout = `\x1b[1mName                       Application ID                     Version   Branch   Installation\x1b[0m
+Freedesktop Platform       org.freedesktop.Platform           24.08.3   24.08    system
+Mesa Vulkan Drivers        org.freedesktop.Platform.GL.default 24.2.3   24.08    system
+Heroic Games Launcher      com.heroicgameslauncher.hgl        2.14.1    stable   system
+ProtonUp-Qt                net.davidotek.pupgui2              2.9.2     stable   system
+Bottles                    com.usebottles.bottles             51.13     stable   system`;
+          ctx.exitCode = 0;
+          return;
+        }
+        if (sub === 'search') {
+          const q = args[1] || '';
+          ctx.stdout = `\x1b[1mApplication ID                     Version   Branch   Remotes   Description\x1b[0m
+com.valvesoftware.Steam            1.0.0.79  stable   flathub   Manage and play games on Steam
+net.davidotek.pupgui2              2.9.2     stable   flathub   Install and manage Proton-GE & Wine-GE
+com.heroicgameslauncher.hgl        2.14.1    stable   flathub   An Open Source Games Launcher for GOG and Epic
+com.usebottles.bottles             51.13     stable   flathub   Run Windows software and games on Linux`;
+          ctx.exitCode = 0;
+          return;
+        }
+        ctx.stdout = `Flatpak 1.14.8 - Application deployment and sandboxing framework
+Usage: flatpak [list|search|install|update|remotes]`;
+        ctx.exitCode = 0;
+        break;
+      }
+
+      case 'prime-run': {
+        if (args.length === 0) {
+          ctx.stderr = 'prime-run: error: specify an executable to launch with dedicated NVIDIA GPU offload';
+          ctx.exitCode = 1;
+          return;
+        }
+        ctx.stdout = `\x1b[32m[PRIME Offload]\x1b[0m __NV_PRIME_RENDER_OFFLOAD=1 __GLX_VENDOR_LIBRARY_NAME=nvidia
+\x1b[32m[PRIME Offload]\x1b[0m Launching with High-Performance Discrete GPU: ${args.join(' ')}`;
+        ctx.exitCode = 0;
+        break;
+      }
+
+      case 'nvidia-smi': {
+        ctx.stdout = `+-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 550.90.07              Driver Version: 550.90.07      CUDA Version: 12.4     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 4060 Mobile On  | 00000000:01:00.0   Off |                  N/A |
+| N/A   46C    P8              14W / 115W |     624MiB /  8188MiB  |      3%      Default |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|    0   N/A  N/A      1420      G   /usr/bin/cage                                 124MiB |
+|    0   N/A  N/A      1832      G   /usr/bin/chromium                             480MiB |
++-----------------------------------------------------------------------------------------+`;
+        ctx.exitCode = 0;
+        break;
+      }
+
+      case 'nvtop': {
+        ctx.stdout = `\x1b[1;36m[nvtop GPU Monitor]\x1b[0m
+Device 0: [NVIDIA GeForce RTX 4060 Mobile] • Temp: 48°C • Power: 22W / 115W • Fan: 35%
+  GPU Clock: 1845 MHz  |  Mem Clock: 8000 MHz
+  GPU Util: [|||||                               ] 14%
+  VRAM Util: [||||||||||||||                     ] 2,410 MiB / 8,188 MiB (29%)
+  PCIe: Gen4 x8 @ 16.0 GT/s
+
+Device 1: [Intel(R) UHD Graphics 620] • Temp: 42°C • Display Output: eDP-1 (Active)
+  Render Util: [|||                              ] 8%`;
+        ctx.exitCode = 0;
+        break;
+      }
+
       case 'exit': {
         ctx.stdout = 'logout';
         ctx.exitCode = 0;
