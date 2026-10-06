@@ -75,6 +75,42 @@ if os.path.exists(installer_src):
     shutil.copyfile(installer_src, dst)
     os.chmod(dst, 0o755)
 
+gpu_detect_src = os.path.join(workspace_dir, "os-build", "scripts", "gpu-autodetect.sh")
+if os.path.exists(gpu_detect_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "gpu-autodetect.sh")
+    shutil.copyfile(gpu_detect_src, dst)
+    os.chmod(dst, 0o755)
+
+gpu_svc_src = os.path.join(workspace_dir, "os-build", "configs", "systemd", "gpu-autodetect.service")
+if os.path.exists(gpu_svc_src):
+    dst = os.path.join(chroot_dir, "etc", "systemd", "system", "gpu-autodetect.service")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copyfile(gpu_svc_src, dst)
+
+# Deploy prime-run helper
+primerun_dst = os.path.join(chroot_dir, "usr", "local", "bin", "prime-run")
+with open(primerun_dst, "w") as f:
+    f.write("""#!/usr/bin/env bash
+# AxisOS NVIDIA PRIME Render Offload Runner
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export __VK_LAYER_NV_optimus=NVIDIA_only
+exec "$@"
+""")
+os.chmod(primerun_dst, 0o755)
+
+# Deploy Android & HarmonyOS universal udev rules
+udev_rules_dst = os.path.join(chroot_dir, "etc", "udev", "rules.d", "51-android.rules")
+os.makedirs(os.path.dirname(udev_rules_dst), exist_ok=True)
+with open(udev_rules_dst, "w") as f:
+    f.write("""# Universal Android & HarmonyOS USB rules
+SUBSYSTEM=="usb", ATTR{idVendor}=="[0-9a-fA-F]*", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="12d1", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="2717", MODE="0666", GROUP="plugdev"
+""")
+
 # Deploy Gaming & High-Performance Sysctl configs (Proton/Steam max_map_count)
 gaming_sysctl_dst = os.path.join(chroot_dir, "etc", "sysctl.d", "99-axisos-gaming.conf")
 os.makedirs(os.path.dirname(gaming_sysctl_dst), exist_ok=True)

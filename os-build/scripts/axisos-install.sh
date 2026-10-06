@@ -403,6 +403,59 @@ EOF
 # Ensure native Axis package manager is executable in installed system
 [ -f /mnt/usr/bin/axis ] && chmod +x /mnt/usr/bin/axis
 
+# ------------------------------------------------------------------------------
+# Hardware Enablement, GPU Autodetect & Developer Runtimes
+# ------------------------------------------------------------------------------
+report 88 "Configuring hardware enablement, GPU autodetection & device drivers..."
+
+# Copy GPU autodetect script and systemd service
+if [[ -f /usr/local/bin/gpu-autodetect.sh ]]; then
+    cp /usr/local/bin/gpu-autodetect.sh /mnt/usr/local/bin/gpu-autodetect.sh
+    chmod +x /mnt/usr/local/bin/gpu-autodetect.sh
+fi
+
+if [[ -f /etc/systemd/system/gpu-autodetect.service ]]; then
+    cp /etc/systemd/system/gpu-autodetect.service /mnt/etc/systemd/system/gpu-autodetect.service
+    chroot /mnt systemctl enable gpu-autodetect.service 2>/dev/null || true
+fi
+
+# Ensure prime-run is present
+cat << 'EOF' > /mnt/usr/local/bin/prime-run
+#!/usr/bin/env bash
+# AxisOS NVIDIA PRIME Render Offload Runner
+export __NV_PRIME_RENDER_OFFLOAD=1
+export __GLX_VENDOR_LIBRARY_NAME=nvidia
+export __VK_LAYER_NV_optimus=NVIDIA_only
+exec "$@"
+EOF
+chmod 755 /mnt/usr/local/bin/prime-run
+
+# Mobile device udev rules (Android/HarmonyOS MTP & ADB)
+mkdir -p /mnt/etc/udev/rules.d
+cat << 'EOF' > /mnt/etc/udev/rules.d/51-android.rules
+# Universal Android & HarmonyOS USB rules
+SUBSYSTEM=="usb", ATTR{idVendor}=="[0-9a-fA-F]*", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="12d1", MODE="0666", GROUP="plugdev"
+SUBSYSTEM=="usb", ATTR{idVendor}=="2717", MODE="0666", GROUP="plugdev"
+EOF
+chmod 644 /mnt/etc/udev/rules.d/51-android.rules
+
+# Enable hardware services in target
+chroot /mnt systemctl enable udisks2.service 2>/dev/null || true
+chroot /mnt systemctl enable usbmuxd.service 2>/dev/null || true
+chroot /mnt systemctl enable bluetooth.service 2>/dev/null || true
+
+# Pre-configure official Microsoft VS Code repository
+mkdir -p /mnt/etc/apt/keyrings /mnt/etc/apt/sources.list.d
+if [[ -f /etc/apt/keyrings/packages.microsoft.gpg ]]; then
+    cp /etc/apt/keyrings/packages.microsoft.gpg /mnt/etc/apt/keyrings/packages.microsoft.gpg
+fi
+cat << 'EOF' > /mnt/etc/apt/sources.list.d/vscode.list
+deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
+EOF
+
 # Enable apt-daily background timers
 report 90 "Installing and generating Microsoft-signed UEFI Secure Bootloader..."
 if [[ "$IS_UEFI" == "true" ]]; then

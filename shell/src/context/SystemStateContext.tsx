@@ -11,8 +11,20 @@ export interface WallpaperOption {
 
 export const WALLPAPERS: WallpaperOption[] = [
   {
+    id: 'mint-aurora',
+    name: 'Mint Aurora (Default)',
+    gradient: 'radial-gradient(ellipse at 75% 20%, #87cf3e 0%, #356b1f 28%, #1f2b23 55%, #121815 80%, #0a0d0c 100%), radial-gradient(circle at 20% 80%, #5b9a28 0%, #1a251e 40%, transparent 70%)',
+    previewColor: '#87cf3e',
+  },
+  {
+    id: 'mint-slate',
+    name: 'Mint Charcoal & Slate',
+    gradient: 'linear-gradient(135deg, #1b241f 0%, #222d27 25%, #18201c 60%, #0d1210 100%), radial-gradient(circle at 80% 20%, #87cf3e28 0%, transparent 55%)',
+    previewColor: '#2f343f',
+  },
+  {
     id: 'sonoma-horizon',
-    name: 'Sonoma Horizon (Default)',
+    name: 'Sonoma Horizon',
     gradient: 'radial-gradient(ellipse at top right, #1d4ed8 0%, #1e1b4b 35%, #0f172a 70%, #020617 100%), radial-gradient(ellipse at bottom left, #0284c7 0%, transparent 60%)',
     previewColor: '#1d4ed8',
   },
@@ -43,6 +55,13 @@ export const WALLPAPERS: WallpaperOption[] = [
 ];
 
 export const ACCENT_COLOR_MAP: Record<AccentColor, { primary: string; bg: string; border: string; text: string; ring: string }> = {
+  mint: {
+    primary: 'bg-[#87cf3e] hover:bg-[#76bb33] text-black',
+    bg: 'bg-[#87cf3e]/20',
+    border: 'border-[#87cf3e]/40',
+    text: 'text-[#87cf3e]',
+    ring: 'focus:ring-[#87cf3e]',
+  },
   blue: {
     primary: 'bg-blue-500 hover:bg-blue-600',
     bg: 'bg-blue-500/20',
@@ -159,7 +178,7 @@ const SystemStateContext = createContext<SystemStateContextType | null>(null);
 
 export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<SystemTheme>('light');
-  const [accentColor, setAccentColor] = useState<AccentColor>('blue');
+  const [accentColor, setAccentColor] = useState<AccentColor>('mint');
   const [wallpaper, setWallpaper] = useState<WallpaperOption>(WALLPAPERS[0]);
   const [volume, setVolume] = useState<number>(75);
   const [isMuted, setIsMuted] = useState<boolean>(false);
