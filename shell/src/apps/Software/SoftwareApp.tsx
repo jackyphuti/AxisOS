@@ -17,17 +17,13 @@ import {
   Play,
   Trash2,
   RefreshCw,
-  X,
   Layers,
-  ShieldCheck,
-  ExternalLink,
   MessageSquare,
   Film,
   FileSpreadsheet,
   Box,
   Cpu,
   Activity,
-  Sliders,
 } from 'lucide-react';
 import { systemService } from '../../services/systemService';
 import { useWindowManager } from '../../context/WindowManagerContext';
@@ -104,16 +100,22 @@ export const SoftwareApp: React.FC = () => {
   };
 
   const handleLaunch = (pkg: CatalogPackage) => {
-    if (['browser', 'terminal', 'photos', 'music', 'settings'].includes(pkg.id)) {
-      openApp(pkg.id as any);
-    } else {
-      systemService.executeCommand(`${pkg.packageName} &`).catch(() => {});
+    if (pkg.id === 'browser' || pkg.id === 'chromium') openApp('browser');
+    else if (pkg.id === 'terminal') openApp('terminal');
+    else if (pkg.id === 'music') openApp('music');
+    else if (pkg.id === 'photos') openApp('photos');
+    else if (pkg.id === 'notes') openApp('notes');
+    else if (pkg.id === 'calculator') openApp('calculator');
+    else if (pkg.id === 'settings') openApp('settings');
+    else if (pkg.id === 'system-monitor') openApp('system-monitor');
+    else {
+      systemService.executeCommand(`${pkg.binaryPath} &`);
     }
   };
 
-  // Render app squircle outline icon
-  const renderAppIcon = (iconType: string, className = 'w-6 h-6') => {
-    switch (iconType) {
+  const renderAppIcon = (type: CatalogPackage['iconType']) => {
+    const className = 'w-6 h-6';
+    switch (type) {
       case 'browser':
         return <Globe className={className} strokeWidth={1.75} />;
       case 'terminal':
@@ -175,13 +177,13 @@ export const SoftwareApp: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#FFFFFF] text-[#1C1C1E] select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full bg-[#18201b] text-slate-100 select-none overflow-hidden font-sans">
       {/* ======================================================== */}
       {/* TITLE BAR: Traffic lights & Centered Rounded Search Bar */}
       {/* ======================================================== */}
       <div
         data-window-drag
-        className="h-11 px-4 flex items-center justify-between border-b border-[#EAEAEB] bg-[#F7F7F9] shrink-0 relative"
+        className="h-11 px-4 flex items-center justify-between border-b border-[#87cf3e]/15 bg-[#141b16] shrink-0 relative"
       >
         {/* Left: Traffic Lights */}
         <div
@@ -232,14 +234,14 @@ export const SoftwareApp: React.FC = () => {
 
         {/* Center: Rounded Search Bar */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-72 h-7 rounded-xl bg-[#EFEFF1] flex items-center px-3 gap-2 border border-black/5 pointer-events-auto shadow-2xs">
-            <Search className="w-3.5 h-3.5 text-[#8E8E93]" strokeWidth={2} />
+          <div className="w-80 h-7 rounded-xl bg-[#1c261f] flex items-center px-3 gap-2 border border-[#87cf3e]/20 pointer-events-auto shadow-inner">
+            <Search className="w-3.5 h-3.5 text-[#87cf3e]" strokeWidth={2} />
             <input
               type="text"
-              placeholder="Search apps and packages"
+              placeholder="Search native Debian apps & packages..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent text-xs text-[#1C1C1E] placeholder-[#8E8E93] outline-none font-normal"
+              className="w-full bg-transparent text-xs text-slate-100 placeholder-slate-400 outline-none font-normal"
             />
           </div>
         </div>
@@ -249,13 +251,13 @@ export const SoftwareApp: React.FC = () => {
       </div>
 
       {/* ======================================================== */}
-      {/* BODY: Frosted Sidebar (Left) + Pure White Content (Right) */}
+      {/* BODY: Linux Mint Charcoal Sidebar + Dark Content Canvas  */}
       {/* ======================================================== */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
         <div
           data-window-drag
-          className="w-48 bg-[#F7F7F9] border-r border-[#EAEAEB] p-3 flex flex-col justify-between shrink-0"
+          className="w-48 bg-[#141b16] border-r border-[#87cf3e]/15 p-3 flex flex-col justify-between shrink-0"
         >
           {/* Top navigation */}
           <div className="flex flex-col gap-1">
@@ -266,10 +268,10 @@ export const SoftwareApp: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
-                      : 'text-[#5C5C60] hover:bg-black/5 font-medium'
+                      ? 'bg-[#87cf3e] text-black font-bold shadow-sm'
+                      : 'text-slate-300 hover:bg-[#87cf3e]/10 font-medium'
                   }`}
                 >
                   <Icon className="w-4 h-4" strokeWidth={1.8} />
@@ -280,7 +282,7 @@ export const SoftwareApp: React.FC = () => {
           </div>
 
           {/* Bottom navigation */}
-          <div className="flex flex-col gap-1 border-t border-[#EAEAEB] pt-3">
+          <div className="flex flex-col gap-1 border-t border-[#87cf3e]/15 pt-3">
             {bottomNavItems.map((item) => {
               const Icon = item.icon;
               const isSelected = activeTab === item.id;
@@ -288,10 +290,10 @@ export const SoftwareApp: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all cursor-pointer ${
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
-                      : 'text-[#5C5C60] hover:bg-black/5 font-medium'
+                      ? 'bg-[#87cf3e] text-black font-bold shadow-sm'
+                      : 'text-slate-300 hover:bg-[#87cf3e]/10 font-medium'
                   }`}
                 >
                   <Icon className="w-4 h-4" strokeWidth={1.8} />
@@ -303,12 +305,12 @@ export const SoftwareApp: React.FC = () => {
         </div>
 
         {/* Main Content Area */}
-        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-[#FFFFFF]">
+        <div className="flex-1 overflow-y-auto p-8 flex flex-col gap-6 bg-[#18201b]">
           {/* Header */}
           <div>
-            <div className="text-xs font-medium text-[#8E8E93] mb-0.5">{formattedDate}</div>
-            <h1 className="text-3xl font-bold text-[#1C1C1E] tracking-tight capitalize">
-              {activeTab === 'today' ? 'Today' : activeTab}
+            <div className="text-xs font-medium text-[#87cf3e] mb-0.5">{formattedDate}</div>
+            <h1 className="text-3xl font-bold text-slate-100 tracking-tight capitalize">
+              {activeTab === 'today' ? 'Discover' : activeTab}
             </h1>
           </div>
 
@@ -317,64 +319,67 @@ export const SoftwareApp: React.FC = () => {
           {/* ==================================================== */}
           {activeTab === 'today' && !searchQuery ? (
             <>
-              {/* Large Rounded Featured Card in Pale Amber (#FFF1D6) */}
-              <div className="rounded-3xl bg-[#FFF1D6] border border-[#FDE6B8] p-7 md:p-8 flex items-center justify-between shadow-2xs relative overflow-hidden">
+              {/* Large Rounded Featured Card in Linux Mint Slate Theme */}
+              <div className="rounded-3xl bg-gradient-to-r from-[#1b261f] to-[#25362b] border border-[#87cf3e]/30 p-7 md:p-8 flex items-center justify-between shadow-lg relative overflow-hidden">
                 <div className="max-w-md">
-                  <div className="text-xs font-semibold text-[#A06412] mb-1 tracking-wide">
-                    App of the day
+                  <div className="text-xs font-semibold text-[#87cf3e] mb-1 tracking-wide uppercase">
+                    Developer & Gaming Platform
                   </div>
-                  <h2 className="text-2xl md:text-3xl font-bold text-[#422503] tracking-tight leading-snug">
-                    Compose your desktop
+                  <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-snug">
+                    Debian Bookworm Native Apps
                   </h2>
-                  <p className="text-xs md:text-sm text-[#7D5318] mt-1 font-normal">
-                    Tiling, gestures, and native Wayland apps
+                  <p className="text-xs md:text-sm text-slate-300 mt-1 font-normal">
+                    Pre-bundled with Steam and Visual Studio Code. Zero configuration required.
                   </p>
                 </div>
 
-                {/* Right Floating App Card Platter */}
-                <div className="bg-white rounded-2xl p-2.5 px-4 shadow-sm border border-black/5 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#EEF0FF] text-[#6366F1] flex items-center justify-center">
-                    <Layers className="w-5 h-5" strokeWidth={1.8} />
+                {/* Right Floating Quick Action Card */}
+                <div className="bg-[#141b16] rounded-2xl p-3 px-4 shadow-md border border-[#87cf3e]/20 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-[#87cf3e]/20 text-[#87cf3e] flex items-center justify-center">
+                    <Code2 className="w-5 h-5" strokeWidth={1.8} />
                   </div>
-                  <span className="text-sm font-semibold text-[#1C1C1E]">Tiler</span>
+                  <div>
+                    <span className="text-sm font-semibold text-white block">VS Code</span>
+                    <span className="text-[10px] text-slate-400">Pre-Installed</span>
+                  </div>
                   <button
                     onClick={() => {
-                      const tiler = packages.find((p) => p.id === 'tiler');
-                      if (tiler) handleInstall(tiler);
+                      const vsc = packages.find((p) => p.id === 'vscode');
+                      if (vsc) handleLaunch(vsc);
                     }}
-                    className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1.5 rounded-full transition-colors active:scale-95 cursor-pointer"
+                    className="bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs px-4 py-1.5 rounded-full transition-colors active:scale-95 cursor-pointer ml-1"
                   >
-                    {packages.find((p) => p.id === 'tiler')?.installed ? 'Open' : 'Get'}
+                    Open
                   </button>
                 </div>
               </div>
 
               {/* Essential Apps Section */}
               <div className="flex flex-col gap-3">
-                <h3 className="text-base font-bold text-[#1C1C1E]">Essential apps</h3>
+                <h3 className="text-base font-bold text-slate-100">Essential applications</h3>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
-                  {packages.slice(0, 8).map((pkg) => (
+                  {packages.slice(0, 10).map((pkg) => (
                     <div
                       key={pkg.id}
-                      className="flex items-center justify-between border-b border-[#EFEFF1] pb-3"
+                      className="flex items-center justify-between border-b border-[#87cf3e]/10 pb-3"
                     >
                       <div className="flex items-center gap-3.5">
                         <div
-                          className={`w-12 h-12 rounded-2xl ${pkg.squircleBg} ${pkg.iconColor} flex items-center justify-center shrink-0 shadow-2xs`}
+                          className={`w-12 h-12 rounded-2xl ${pkg.squircleBg} ${pkg.iconColor} flex items-center justify-center shrink-0 shadow-sm`}
                         >
                           {renderAppIcon(pkg.iconType)}
                         </div>
                         <div>
-                          <h4 className="text-sm font-semibold text-[#1C1C1E]">{pkg.name}</h4>
-                          <p className="text-xs text-[#8E8E93] line-clamp-1">{pkg.description}</p>
+                          <h4 className="text-sm font-semibold text-slate-100">{pkg.name}</h4>
+                          <p className="text-xs text-slate-400 line-clamp-1">{pkg.description}</p>
                         </div>
                       </div>
 
                       {pkg.installed ? (
                         <button
                           onClick={() => handleLaunch(pkg)}
-                          className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
+                          className="bg-[#87cf3e]/15 hover:bg-[#87cf3e]/25 text-[#87cf3e] border border-[#87cf3e]/30 font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
                         >
                           Open
                         </button>
@@ -382,7 +387,7 @@ export const SoftwareApp: React.FC = () => {
                         <button
                           disabled={installingId === pkg.id}
                           onClick={() => handleInstall(pkg)}
-                          className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
+                          className="bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
                         >
                           {installingId === pkg.id ? 'Installing...' : 'Get'}
                         </button>
@@ -396,21 +401,21 @@ export const SoftwareApp: React.FC = () => {
             /* Category / Search Results List */
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
               {filteredApps.map((pkg) => (
-                <div key={pkg.id} className="flex items-center justify-between border-b border-[#EFEFF1] pb-3.5">
+                <div key={pkg.id} className="flex items-center justify-between border-b border-[#87cf3e]/10 pb-3.5">
                   <div className="flex items-center gap-3.5">
-                    <div className={`w-12 h-12 rounded-2xl ${pkg.squircleBg} ${pkg.iconColor} flex items-center justify-center shrink-0 shadow-2xs`}>
+                    <div className={`w-12 h-12 rounded-2xl ${pkg.squircleBg} ${pkg.iconColor} flex items-center justify-center shrink-0 shadow-sm`}>
                       {renderAppIcon(pkg.iconType)}
                     </div>
                     <div>
-                      <h4 className="text-sm font-semibold text-[#1C1C1E]">{pkg.name}</h4>
-                      <p className="text-xs text-[#8E8E93] line-clamp-1">{pkg.description}</p>
+                      <h4 className="text-sm font-semibold text-slate-100">{pkg.name}</h4>
+                      <p className="text-xs text-slate-400 line-clamp-1">{pkg.description}</p>
                     </div>
                   </div>
 
                   {pkg.installed ? (
                     <button
                       onClick={() => handleLaunch(pkg)}
-                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
+                      className="bg-[#87cf3e]/15 hover:bg-[#87cf3e]/25 text-[#87cf3e] border border-[#87cf3e]/30 font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
                     >
                       Open
                     </button>
@@ -418,7 +423,7 @@ export const SoftwareApp: React.FC = () => {
                     <button
                       disabled={installingId === pkg.id}
                       onClick={() => handleInstall(pkg)}
-                      className="bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
+                      className="bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs px-4 py-1 rounded-full transition-colors active:scale-95 cursor-pointer shrink-0"
                     >
                       {installingId === pkg.id ? 'Installing...' : 'Get'}
                     </button>

@@ -266,6 +266,10 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
         setWifiPasswordPrompt(null);
         setWifiPasswordInput('');
         handleScanWifi();
+
+        if (res.captivePortal) {
+          openApp('browser');
+        }
       }
     } catch {}
     setConnectingSsid(null);
@@ -1346,29 +1350,33 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
 
             {/* Password Modal */}
             {wifiPasswordPrompt && (
-              <div className="bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex flex-col gap-3">
-                <div className="flex items-center space-x-2 text-xs font-semibold text-blue-900 dark:text-blue-200">
-                  <Key className="w-4 h-4 text-[#007AFF]" />
-                  <span>Enter password for "{wifiPasswordPrompt}"</span>
+              <div className="bg-[#18201b] border border-[#87cf3e]/30 rounded-xl p-4 flex flex-col gap-3 shadow-xl">
+                <div className="flex items-center space-x-2 text-xs font-semibold text-slate-100">
+                  <Key className="w-4 h-4 text-[#87cf3e]" />
+                  <span>Enter Wi-Fi Password for "{wifiPasswordPrompt}"</span>
                 </div>
                 <div className="flex gap-2">
                   <input
                     type="password"
-                    placeholder="WPA2/WPA3 Pre-Shared Key"
+                    placeholder="Enter Wi-Fi Password"
                     value={wifiPasswordInput}
                     onChange={(e) => setWifiPasswordInput(e.target.value)}
-                    className="flex-1 px-3 py-1.5 bg-white dark:bg-[#1E1E1E] border border-blue-300 dark:border-blue-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-[#007AFF]"
+                    autoFocus
+                    className="flex-1 px-3 py-1.5 bg-[#121814] border border-[#87cf3e]/30 rounded-lg text-xs text-slate-100 placeholder-slate-400 outline-none focus:ring-1 focus:ring-[#87cf3e]"
                   />
                   <button
                     onClick={() => handleConnectWifi(wifiPasswordPrompt, wifiPasswordInput)}
                     disabled={connectingSsid === wifiPasswordPrompt}
-                    className="px-3 py-1.5 bg-[#007AFF] text-white rounded-lg text-xs font-semibold hover:bg-blue-600 transition-colors"
+                    className="px-4 py-1.5 bg-[#87cf3e] text-black rounded-lg text-xs font-bold hover:bg-[#76bb33] transition-colors"
                   >
                     {connectingSsid === wifiPasswordPrompt ? 'Connecting...' : 'Join'}
                   </button>
                   <button
-                    onClick={() => setWifiPasswordPrompt(null)}
-                    className="px-3 py-1.5 bg-black/5 dark:bg-white/10 rounded-lg text-xs text-slate-600 dark:text-slate-300"
+                    onClick={() => {
+                      setWifiPasswordPrompt(null);
+                      setWifiPasswordInput('');
+                    }}
+                    className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-slate-300 transition-colors"
                   >
                     Cancel
                   </button>
@@ -1378,46 +1386,49 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
 
             {/* Network List */}
             {wifiEnabled && (
-              <div className="bg-white dark:bg-[#282828] rounded-xl shadow-xs border border-black/5 dark:border-white/10 p-4 flex flex-col gap-3">
-                <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <div className="bg-[#18201b] rounded-xl shadow-xs border border-[#87cf3e]/20 p-4 flex flex-col gap-3">
+                <div className="text-xs font-semibold text-[#87cf3e] uppercase tracking-wider">
                   Available Networks
                 </div>
-                <div className="flex flex-col divide-y divide-black/5 dark:divide-white/5">
+                <div className="flex flex-col divide-y divide-[#87cf3e]/10">
                   {wifiNetworks.map((net) => {
                     const isCurrent = net.ssid === wifiSsid;
+                    const isOpen = net.security === 'Open';
                     return (
                       <div
                         key={net.ssid}
-                        className="py-2.5 flex items-center justify-between text-xs hover:bg-black/5 dark:hover:bg-white/5 px-2 rounded-lg transition-colors"
+                        className="py-2.5 flex items-center justify-between text-xs hover:bg-[#87cf3e]/5 px-2 rounded-lg transition-colors"
                       >
                         <div className="flex items-center space-x-2.5">
-                          <Wifi className={`w-4 h-4 ${isCurrent ? 'text-[#007AFF]' : 'text-slate-400'}`} />
+                          <Wifi className={`w-4 h-4 ${isCurrent ? 'text-[#87cf3e]' : 'text-slate-400'}`} />
                           <div className="flex flex-col">
-                            <span className="font-semibold text-slate-800 dark:text-slate-200">{net.ssid}</span>
-                            <span className="text-[10px] text-slate-400">{net.security} • Signal: {net.signal}%</span>
+                            <span className="font-semibold text-slate-100">{net.ssid}</span>
+                            <span className="text-[10px] text-slate-400">
+                              {isOpen ? 'Open / Captive Portal (Browser Login)' : net.security} • Signal: {net.signal}%
+                            </span>
                           </div>
                         </div>
 
                         <div className="flex items-center space-x-2">
-                          {net.security !== 'Open' && <Lock className="w-3.5 h-3.5 text-slate-400" />}
+                          {!isOpen && <Lock className="w-3.5 h-3.5 text-slate-400" />}
                           {isCurrent ? (
-                            <span className="flex items-center space-x-1 text-[11px] font-semibold text-[#34C759]">
+                            <span className="flex items-center space-x-1 text-[11px] font-semibold text-[#87cf3e]">
                               <Check className="w-3.5 h-3.5" />
                               <span>Connected</span>
                             </span>
                           ) : (
                             <button
                               onClick={() => {
-                                if (net.security === 'Open') {
+                                if (isOpen) {
                                   handleConnectWifi(net.ssid);
                                 } else {
                                   setWifiPasswordPrompt(net.ssid);
                                 }
                               }}
                               disabled={connectingSsid === net.ssid}
-                              className="px-2.5 py-1 bg-[#007AFF]/10 hover:bg-[#007AFF]/20 text-[#007AFF] dark:text-blue-400 rounded-md text-[11px] font-medium transition-colors"
+                              className="px-3 py-1 bg-[#87cf3e]/15 hover:bg-[#87cf3e]/25 text-[#87cf3e] border border-[#87cf3e]/30 rounded-md text-[11px] font-semibold transition-colors"
                             >
-                              {connectingSsid === net.ssid ? 'Connecting...' : 'Connect'}
+                              {connectingSsid === net.ssid ? 'Connecting...' : isOpen ? 'Connect (Open)' : 'Connect'}
                             </button>
                           )}
                         </div>

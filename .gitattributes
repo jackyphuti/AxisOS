@@ -1,0 +1,5 @@
+# Ensure shell scripts always have Unix line endings (LF)
+*.sh text eol=lf
+*.bash text eol=lf
+*.cjs text eol=lf
+*.py text eol=lf

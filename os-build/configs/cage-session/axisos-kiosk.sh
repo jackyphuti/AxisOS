@@ -22,6 +22,21 @@ export QT_QPA_PLATFORM=wayland
 export WLR_LIBINPUT_NO_DEVICES=1
 export WLR_RENDERER_ALLOW_SOFTWARE=1
 
+# Initialize and unmute physical audio devices (PipeWire / ALSA)
+alsactl init 2>/dev/null || true
+amixer sset Master unmute 100% 2>/dev/null || true
+amixer -c 0 sset Master unmute 100% 2>/dev/null || true
+amixer sset Speaker unmute 100% 2>/dev/null || true
+amixer sset Headphone unmute 100% 2>/dev/null || true
+amixer sset PCM unmute 100% 2>/dev/null || true
+
+# Ensure user audio daemons are running
+if command -v pipewire >/dev/null 2>&1; then
+    pgrep -x pipewire >/dev/null || pipewire &
+    pgrep -x pipewire-pulse >/dev/null || pipewire-pulse &
+    pgrep -x wireplumber >/dev/null || wireplumber &
+fi
+
 # Create user directories
 mkdir -p /home/axis/.config/chromium 2>/dev/null || true
 mkdir -p /home/axis/.cache 2>/dev/null || true
@@ -47,7 +62,9 @@ if [ -n "$CHROME_BIN" ]; then
     cage -s -d -- "$CHROME_BIN" \
         --kiosk \
         --ozone-platform=wayland \
-        --enable-features=UseOzonePlatform,WaylandWindowDecorations,Vulkan \
+        --enable-features=UseOzonePlatform,WaylandWindowDecorations,Vulkan,AudioServiceOutOfProcess \
+        --autoplay-policy=no-user-gesture-required \
+        --audio-output-channels=2 \
         --no-sandbox \
         --disable-dev-shm-usage \
         --disable-gpu-sandbox \

@@ -647,7 +647,7 @@ export const systemService = {
     }
   },
 
-  async connectWifi(ssid: string, password?: string): Promise<{ success: boolean; output?: string }> {
+  async connectWifi(ssid: string, password?: string): Promise<{ success: boolean; output?: string; captivePortal?: boolean; loginUrl?: string }> {
     try {
       const res = await fetch('/api/wifi/connect', {
         method: 'POST',

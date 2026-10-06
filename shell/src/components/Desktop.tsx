@@ -11,7 +11,6 @@ import { PowerModal } from './PowerModal';
 import { LiveWelcomeModal } from './LiveWelcomeModal';
 import { MacIcon } from './MacIcon';
 import { AppMenu } from './AppMenu';
-import { DynamicIsland } from './DynamicIsland';
 import { LockScreen } from './LockScreen';
 import { BootSplashScreen } from './BootSplashScreen';
 
@@ -107,9 +106,6 @@ export const Desktop: React.FC = () => {
 
       {/* iOS Lock Screen */}
       <LockScreen />
-
-      {/* Dynamic Island Floating Notification Pill */}
-      <DynamicIsland />
 
       {/* macOS / Debian App Launcher Menu (Triggered by Windows Key or Menu Bar) */}
       <AppMenu />

@@ -177,7 +177,7 @@ const initialSystemInfo: SystemInfo = {
 const SystemStateContext = createContext<SystemStateContextType | null>(null);
 
 export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setTheme] = useState<SystemTheme>('light');
+  const [theme, setTheme] = useState<SystemTheme>('dark');
   const [accentColor, setAccentColor] = useState<AccentColor>('mint');
   const [wallpaper, setWallpaper] = useState<WallpaperOption>(WALLPAPERS[0]);
   const [volume, setVolume] = useState<number>(75);
