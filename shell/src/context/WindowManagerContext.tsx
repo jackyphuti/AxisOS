@@ -146,6 +146,15 @@ export const APP_REGISTRY: Record<AppId, AppDefinition> = {
     defaultHeight: 560,
     isPinned: true,
   },
+  steam: {
+    id: 'steam',
+    title: 'Steam',
+    category: 'utilities',
+    description: 'Ultimate gaming platform. Play thousands of titles powered by Valve Proton compatibility.',
+    defaultWidth: 980,
+    defaultHeight: 640,
+    isPinned: true,
+  },
 };
 
 interface WindowManagerContextType {

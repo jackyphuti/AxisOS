@@ -313,6 +313,42 @@ if chroot /mnt command -v flatpak >/dev/null 2>&1; then
     chroot /mnt flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 fi
 
+# Deploy Steam pre-installed launcher & menu entry
+mkdir -p /mnt/usr/share/applications /mnt/usr/local/bin
+cat << 'EOF' > /mnt/usr/share/applications/steam.desktop
+[Desktop Entry]
+Name=Steam
+Comment=Application for managing and playing games on Steam
+Exec=/usr/local/bin/steam %U
+Icon=steam
+Terminal=false
+Type=Application
+Categories=Network;FileTransfer;Game;
+MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;
+Actions=Store;Community;Library;Servers;Screenshots;News;Settings;BigPicture;Friends;
+EOF
+
+cat << 'EOF' > /mnt/usr/local/bin/steam
+#!/usr/bin/env bash
+# AxisOS Steam Unified Launcher with Proton & GameMode
+if [ -x "/usr/games/steam" ]; then
+    exec /usr/games/steam "$@"
+elif command -v steam >/dev/null 2>&1 && [ "$(which steam)" != "/usr/local/bin/steam" ]; then
+    exec "$(which steam)" "$@"
+elif command -v steam-installer >/dev/null 2>&1; then
+    exec steam-installer "$@"
+elif command -v flatpak >/dev/null 2>&1 && flatpak info com.valvesoftware.Steam >/dev/null 2>&1; then
+    exec flatpak run com.valvesoftware.Steam "$@"
+else
+    echo "Starting Steam setup..."
+    apt-get update -qq && apt-get install -y steam-installer || true
+    if [ -x "/usr/games/steam" ]; then
+        exec /usr/games/steam "$@"
+    fi
+fi
+EOF
+chmod 0755 /mnt/usr/local/bin/steam
+
 # Create user if it doesn't already exist
 chroot /mnt groupadd -f gamemode 2>/dev/null || true
 chroot /mnt groupadd -f games 2>/dev/null || true

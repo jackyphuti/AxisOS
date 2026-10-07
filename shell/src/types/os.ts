@@ -14,7 +14,8 @@ export type AppId =
   | 'software'
   | 'clock'
   | 'weather'
-  | 'camera';
+  | 'camera'
+  | 'steam';
 
 export interface AppDefinition {
   id: AppId;

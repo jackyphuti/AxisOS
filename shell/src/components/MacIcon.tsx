@@ -494,6 +494,34 @@ export const MacIcon: React.FC<IconProps> = ({ id, size = 54, className = '' }) 
         </div>
       );
 
+    case 'steam':
+      // Steam: Valve gaming platform icon with precision mechanical linkage
+      return (
+        <div
+          style={containerStyle}
+          className={`relative rounded-2xl shadow-lg shadow-black/60 overflow-hidden flex items-center justify-center ${className}`}
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-[#172332] via-[#121a24] to-[#0a0f16]"></div>
+          <div className="absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-[#87cf3e]/15 to-transparent"></div>
+
+          <svg viewBox="0 0 64 64" className="w-[82%] h-[82%] z-10 drop-shadow-md">
+            {/* Connecting piston shaft */}
+            <line x1="24" y1="40" x2="42" y2="24" stroke="#ffffff" strokeWidth="6" strokeLinecap="round" />
+            <line x1="24" y1="40" x2="42" y2="24" stroke="#87cf3e" strokeWidth="3" strokeLinecap="round" />
+
+            {/* Small top pivot */}
+            <circle cx="42" cy="24" r="9" fill="#1b2838" stroke="#87cf3e" strokeWidth="2.5" />
+            <circle cx="42" cy="24" r="4.5" fill="#ffffff" />
+
+            {/* Main large drive wheel */}
+            <circle cx="24" cy="40" r="13" fill="#101822" stroke="#87cf3e" strokeWidth="3" />
+            <circle cx="24" cy="40" r="7" fill="none" stroke="#ffffff" strokeWidth="2" />
+            <circle cx="24" cy="40" r="3" fill="#87cf3e" />
+          </svg>
+          <div className="absolute inset-0 rounded-2xl ring-1 ring-inset ring-[#87cf3e]/30 pointer-events-none"></div>
+        </div>
+      );
+
     default:
       return (
         <div

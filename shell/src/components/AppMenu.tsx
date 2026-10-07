@@ -49,6 +49,7 @@ export const AppMenu: React.FC = () => {
     'terminal',
     'file-manager',
     'software',
+    'steam',
     'system-monitor',
     'settings',
     'text-editor',
