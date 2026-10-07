@@ -158,6 +158,45 @@ exec "$@"
 """)
 os.chmod(primerun_dst, 0o755)
 
+# Deploy Steam pre-installed launcher & menu entry
+steam_desktop_dst = os.path.join(chroot_dir, "usr", "share", "applications", "steam.desktop")
+os.makedirs(os.path.dirname(steam_desktop_dst), exist_ok=True)
+with open(steam_desktop_dst, "w") as f:
+    f.write("""[Desktop Entry]
+Name=Steam
+Comment=Application for managing and playing games on Steam
+Exec=/usr/local/bin/steam %U
+Icon=steam
+Terminal=false
+Type=Application
+Categories=Network;FileTransfer;Game;
+MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;
+Actions=Store;Community;Library;Servers;Screenshots;News;Settings;BigPicture;Friends;
+""")
+
+steam_wrapper_dst = os.path.join(chroot_dir, "usr", "local", "bin", "steam")
+os.makedirs(os.path.dirname(steam_wrapper_dst), exist_ok=True)
+with open(steam_wrapper_dst, "w") as f:
+    f.write("""#!/usr/bin/env bash
+# AxisOS Steam Unified Launcher with Proton & GameMode
+if [ -x "/usr/games/steam" ]; then
+    exec /usr/games/steam "$@"
+elif command -v steam >/dev/null 2>&1 && [ "$(which steam)" != "/usr/local/bin/steam" ]; then
+    exec "$(which steam)" "$@"
+elif command -v steam-installer >/dev/null 2>&1; then
+    exec steam-installer "$@"
+elif command -v flatpak >/dev/null 2>&1 && flatpak info com.valvesoftware.Steam >/dev/null 2>&1; then
+    exec flatpak run com.valvesoftware.Steam "$@"
+else
+    echo "Starting Steam setup..."
+    apt-get update -qq && apt-get install -y steam-installer || true
+    if [ -x "/usr/games/steam" ]; then
+        exec /usr/games/steam "$@"
+    fi
+fi
+""")
+os.chmod(steam_wrapper_dst, 0o755)
+
 # Deploy Android & HarmonyOS universal udev rules
 udev_rules_dst = os.path.join(chroot_dir, "etc", "udev", "rules.d", "51-android.rules")
 os.makedirs(os.path.dirname(udev_rules_dst), exist_ok=True)

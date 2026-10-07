@@ -15,6 +15,7 @@ const DOCK_APPS: DockItem[] = [
   { id: 'terminal', title: 'Axis Console' },
   { id: 'system-monitor', title: 'Axis Diagnostics' },
   { id: 'software', title: 'Axis Store' },
+  { id: 'steam', title: 'Steam' },
   { id: 'music', title: 'Axis Audio' },
   { id: 'photos', title: 'Axis Gallery' },
   { id: 'notes', title: 'Axis Memo' },

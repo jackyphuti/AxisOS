@@ -31,6 +31,7 @@ import { SoftwareApp } from '../apps/Software/SoftwareApp';
 import { ClockApp } from '../apps/Clock/ClockApp';
 import { WeatherApp } from '../apps/Weather/WeatherApp';
 import { CameraApp } from '../apps/Camera/CameraApp';
+import { SteamApp } from '../apps/Steam/SteamApp';
 import { AppId } from '../types/os';
 
 export const Desktop: React.FC = () => {
@@ -89,6 +90,8 @@ export const Desktop: React.FC = () => {
         return <SystemMonitorApp />;
       case 'about':
         return <AboutApp />;
+      case 'steam':
+        return <SteamApp />;
       default:
         return <div className="p-4 text-xs text-slate-400">Application not loaded.</div>;
     }
