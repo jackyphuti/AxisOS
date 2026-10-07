@@ -1490,8 +1490,11 @@ const server = http.createServer(async (req, res) => {
       if (isLinux) {
         if (!isRoot) {
           cmd = 'sudo';
+          cmdArgs = ['/bin/bash', scriptPath, ...args.slice(1)];
+          installJob.log.push('[System] Elevating installer process with sudo bash');
+        } else {
+          cmd = '/bin/bash';
           cmdArgs = [scriptPath, ...args.slice(1)];
-          installJob.log.push('[System] Elevating installer process with sudo');
         }
       } else {
         args.push('--dry-run');

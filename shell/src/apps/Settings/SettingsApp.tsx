@@ -258,18 +258,18 @@ export const SettingsApp: React.FC<{ params?: Record<string, any> }> = ({ params
 
   // Ubuntu GNOME Control Center categories
   const sidebarItems: SidebarItem[] = [
-    { id: 'wifi', label: 'Wi-Fi', icon: <Wifi className="w-4 h-4" />, iconBg: 'bg-blue-500' },
-    { id: 'network', label: 'Network', icon: <Network className="w-4 h-4" />, iconBg: 'bg-teal-500' },
-    { id: 'bluetooth', label: 'Bluetooth', icon: <Bluetooth className="w-4 h-4" />, iconBg: 'bg-indigo-500' },
-    { id: 'appearance', label: 'Appearance', icon: <Palette className="w-4 h-4" />, iconBg: 'bg-pink-500' },
-    { id: 'background', label: 'Background', icon: <ImageIcon className="w-4 h-4" />, iconBg: 'bg-emerald-500' },
-    { id: 'displays', label: 'Displays', icon: <Monitor className="w-4 h-4" />, iconBg: 'bg-amber-500' },
-    { id: 'sound', label: 'Sound', icon: <Volume2 className="w-4 h-4" />, iconBg: 'bg-rose-500' },
-    { id: 'power', label: 'Power', icon: <Battery className="w-4 h-4" />, iconBg: 'bg-emerald-600' },
-    { id: 'mouse-touchpad', label: 'Mouse & Touchpad', icon: <Mouse className="w-4 h-4" />, iconBg: 'bg-cyan-600' },
-    { id: 'keyboard', label: 'Keyboard', icon: <Keyboard className="w-4 h-4" />, iconBg: 'bg-purple-500' },
-    { id: 'printers', label: 'Printers', icon: <Printer className="w-4 h-4" />, iconBg: 'bg-slate-500' },
-    { id: 'about', label: 'About', icon: <Info className="w-4 h-4" />, iconBg: 'bg-slate-600' },
+    { id: 'wifi', label: 'Wi-Fi', icon: <Wifi className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'network', label: 'Network', icon: <Network className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'bluetooth', label: 'Bluetooth', icon: <Bluetooth className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'appearance', label: 'Appearance', icon: <Palette className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'background', label: 'Background', icon: <ImageIcon className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'displays', label: 'Displays', icon: <Monitor className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'sound', label: 'Sound', icon: <Volume2 className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'power', label: 'Power', icon: <Battery className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'mouse-touchpad', label: 'Mouse & Touchpad', icon: <Mouse className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'keyboard', label: 'Keyboard', icon: <Keyboard className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'printers', label: 'Printers', icon: <Printer className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
+    { id: 'about', label: 'About', icon: <Info className="w-4 h-4" />, iconBg: 'bg-[#87cf3e]/20 text-[#87cf3e]' },
   ];
 
   const filteredSidebar = sidebarItems.filter((item) =>

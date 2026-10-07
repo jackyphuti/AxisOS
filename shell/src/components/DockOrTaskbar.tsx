@@ -54,12 +54,11 @@ export const DockOrTaskbar: React.FC = () => {
   };
 
   const getScaleClass = (index: number) => {
-    if (hoveredIdx === null) return 'scale-100';
+    if (hoveredIdx === null) return 'scale-100 relative z-0';
     const dist = Math.abs(hoveredIdx - index);
-    if (dist === 0) return 'scale-135 -translate-y-2.5';
-    if (dist === 1) return 'scale-118 -translate-y-1.5';
-    if (dist === 2) return 'scale-106 -translate-y-0.5';
-    return 'scale-100';
+    if (dist === 0) return 'scale-115 -translate-y-1.5 relative z-20';
+    if (dist === 1) return 'scale-105 -translate-y-0.5 relative z-10';
+    return 'scale-100 relative z-0';
   };
 
   return (
@@ -78,111 +77,111 @@ export const DockOrTaskbar: React.FC = () => {
           setHoveredIdx(null);
           setIsDockRevealed(false);
         }}
-        className={`fixed bottom-2.5 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-300 ease-in-out ${
+        className={`fixed bottom-2 left-1/2 -translate-x-1/2 z-40 select-none transition-all duration-300 ease-in-out max-w-[96vw] ${
           isDockHidden
             ? 'translate-y-36 opacity-0 pointer-events-none'
             : 'translate-y-0 opacity-100 pointer-events-auto'
         }`}
       >
         <div
-          className="flex items-end space-x-2.5 px-3.5 py-2.5 rounded-2xl bg-white/40 dark:bg-[#18201b]/85 backdrop-blur-3xl border border-black/10 dark:border-[#87cf3e]/25 shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
+          className="flex items-end gap-1.5 px-3 py-2 rounded-2xl bg-black/90 backdrop-blur-3xl border border-[#87cf3e]/30 shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-x-auto scrollbar-none"
         >
-        {/* Ubuntu 9-Dots "Show Applications" Launcher */}
-        <button
-          onClick={() => setIsAppMenuOpen(!isAppMenuOpen)}
-          onMouseEnter={() => setHoveredIdx(-1)}
-          className="relative group flex flex-col items-center justify-end focus:outline-none transition-all duration-150 ease-out"
-          title="Show Applications (Super)"
-        >
-          <div
-            className={`w-[48px] h-[48px] rounded-2xl bg-[#1e2720]/90 border border-[#87cf3e]/30 flex items-center justify-center transition-all duration-150 ease-out ${
-              hoveredIdx === -1 ? 'scale-125 -translate-y-2 bg-[#87cf3e]/25 border-[#87cf3e]' : isAppMenuOpen ? 'border-[#87cf3e] bg-[#87cf3e]/20' : 'scale-100'
-            }`}
+          {/* Ubuntu 9-Dots "Show Applications" Launcher */}
+          <button
+            onClick={() => setIsAppMenuOpen(!isAppMenuOpen)}
+            onMouseEnter={() => setHoveredIdx(-1)}
+            className="relative group flex flex-col items-center justify-end focus:outline-none transition-all duration-150 ease-out shrink-0"
+            title="Show Applications (Super)"
           >
-            <div className="grid grid-cols-3 gap-1 p-2.5">
-              {[...Array(9)].map((_, i) => (
-                <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#87cf3e]" />
-              ))}
-            </div>
-          </div>
-          <div className="h-1.5 mt-1">
-            {isAppMenuOpen && (
-              <span className="w-1.5 h-1.5 rounded-full bg-[#87cf3e] shadow-[0_0_8px_rgba(135,207,62,0.95)] inline-block" />
-            )}
-          </div>
-
-          <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#18201b]/95 text-[11px] text-white font-medium border border-[#87cf3e]/30 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md">
-            Show Applications
-          </span>
-        </button>
-
-        {/* Vertical divider */}
-        <div className="h-10 w-[1px] bg-[#87cf3e]/20 mx-1 mb-1"></div>
-
-        {/* Dock Applications */}
-        {dockApps.map((app, idx) => {
-          const isRunning = isAppRunning(app.id);
-          const runningWindow = windows.find((w) => w.appId === app.id);
-          const isActive =
-            runningWindow && runningWindow.id === activeWindowId && !runningWindow.isMinimized;
-
-          return (
-            <button
-              key={app.id}
-              onClick={() => handleAppClick(app.id)}
-              onMouseEnter={() => setHoveredIdx(idx)}
-              className="relative group flex flex-col items-center justify-end focus:outline-none transition-all duration-150 ease-out"
+            <div
+              className={`w-[44px] h-[44px] rounded-2xl bg-[#141b16] border border-[#87cf3e]/30 flex items-center justify-center transition-all duration-150 ease-out ${
+                hoveredIdx === -1 ? 'scale-115 -translate-y-1.5 bg-[#87cf3e]/25 border-[#87cf3e] z-20 relative' : isAppMenuOpen ? 'border-[#87cf3e] bg-[#87cf3e]/20' : 'scale-100'
+              }`}
             >
-              {/* Animated macOS Squircle Icon */}
-              <div className={`transition-all duration-150 ease-out ${getScaleClass(idx)}`}>
-                <MacIcon id={app.id} size={50} />
+              <div className="grid grid-cols-3 gap-1 p-2">
+                {[...Array(9)].map((_, i) => (
+                  <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#87cf3e]" />
+                ))}
               </div>
+            </div>
+            <div className="h-1.5 mt-0.5">
+              {isAppMenuOpen && (
+                <span className="w-1.5 h-1.5 rounded-full bg-[#87cf3e] shadow-[0_0_8px_rgba(135,207,62,0.95)] inline-block" />
+              )}
+            </div>
 
-              {/* Running Status Dot */}
-              <div className="h-1.5 flex items-center justify-center mt-1">
-                {isRunning && (
-                  <span
-                    className={`rounded-full transition-all ${
-                      isActive
-                        ? 'w-1.5 h-1.5 bg-[#87cf3e] shadow-[0_0_8px_rgba(135,207,62,0.95)]'
-                        : 'w-1 h-1 bg-[#87cf3e]/60'
-                    }`}
-                  />
-                )}
-              </div>
+            <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#101712]/95 text-[11px] text-white font-medium border border-[#87cf3e]/40 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md z-50">
+              Show Applications
+            </span>
+          </button>
 
-              {/* macOS Tooltip */}
-              <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#18201b]/95 text-[11px] text-white font-medium border border-[#87cf3e]/30 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md">
-                {app.title}
-              </span>
-            </button>
-          );
-        })}
+          {/* Vertical divider */}
+          <div className="h-8 w-[1px] bg-[#87cf3e]/20 mx-0.5 mb-2 shrink-0" />
 
-        {/* Vertical divider */}
-        <div className="h-10 w-[1px] bg-[#87cf3e]/20 mx-1 mb-1"></div>
+          {/* Dock Applications */}
+          {dockApps.map((app, idx) => {
+            const isRunning = isAppRunning(app.id);
+            const runningWindow = windows.find((w) => w.appId === app.id);
+            const isActive =
+              runningWindow && runningWindow.id === activeWindowId && !runningWindow.isMinimized;
 
-        {/* Trash */}
-        <button
-          onClick={() => alert('Trash is empty')}
-          onMouseEnter={() => setHoveredIdx(99)}
-          className="relative group flex flex-col items-center justify-end focus:outline-none transition-all duration-150 ease-out"
-        >
-          <div
-            className={`transition-all duration-150 ease-out ${
-              hoveredIdx === 99 ? 'scale-125 -translate-y-2' : 'scale-100'
-            }`}
+            return (
+              <button
+                key={app.id}
+                onClick={() => handleAppClick(app.id)}
+                onMouseEnter={() => setHoveredIdx(idx)}
+                className="relative group flex flex-col items-center justify-end focus:outline-none transition-all duration-150 ease-out shrink-0"
+              >
+                {/* Vector Icon */}
+                <div className={`transition-all duration-150 ease-out ${getScaleClass(idx)}`}>
+                  <MacIcon id={app.id} size={44} />
+                </div>
+
+                {/* Running Status Dot */}
+                <div className="h-1.5 flex items-center justify-center mt-0.5">
+                  {isRunning && (
+                    <span
+                      className={`rounded-full transition-all ${
+                        isActive
+                          ? 'w-1.5 h-1.5 bg-[#87cf3e] shadow-[0_0_8px_rgba(135,207,62,0.95)]'
+                          : 'w-1 h-1 bg-[#87cf3e]/60'
+                      }`}
+                    />
+                  )}
+                </div>
+
+                {/* Tooltip */}
+                <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#101712]/95 text-[11px] text-white font-medium border border-[#87cf3e]/40 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md z-50">
+                  {app.title}
+                </span>
+              </button>
+            );
+          })}
+
+          {/* Vertical divider */}
+          <div className="h-8 w-[1px] bg-[#87cf3e]/20 mx-0.5 mb-2 shrink-0" />
+
+          {/* Trash */}
+          <button
+            onClick={() => alert('Trash is empty')}
+            onMouseEnter={() => setHoveredIdx(99)}
+            className="relative group flex flex-col items-center justify-end focus:outline-none transition-all duration-150 ease-out shrink-0"
           >
-            <MacIcon id="trash" size={48} />
-          </div>
-          <div className="h-1.5 mt-1" />
+            <div
+              className={`transition-all duration-150 ease-out ${
+                hoveredIdx === 99 ? 'scale-115 -translate-y-1.5 relative z-20' : 'scale-100 relative z-0'
+              }`}
+            >
+              <MacIcon id="trash" size={44} />
+            </div>
+            <div className="h-1.5 mt-0.5" />
 
-          <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#18201b]/95 text-[11px] text-white font-medium border border-[#87cf3e]/30 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md">
-            Trash
-          </span>
-        </button>
+            <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#101712]/95 text-[11px] text-white font-medium border border-[#87cf3e]/40 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md z-50">
+              Trash
+            </span>
+          </button>
+        </div>
       </div>
-    </div>
-  </>
-);
+    </>
+  );
 };

@@ -177,14 +177,14 @@ export const InstallerApp: React.FC = () => {
       {/* Windows Setup Header Bar */}
       <div className="h-12 bg-slate-900 border-b border-white/10 px-5 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md ring-1 ring-white/20">
-            <AxisLogo size={14} variant="white" />
+          <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-[#1b2b20] to-[#87cf3e] flex items-center justify-center text-black shadow-md ring-1 ring-[#87cf3e]/30">
+            <AxisLogo size={14} variant="black" />
           </div>
-          <span className="text-sm font-semibold tracking-tight text-slate-200">
+          <span className="text-sm font-semibold tracking-tight text-white">
             AxisOS Setup
           </span>
           <span className="text-xs text-slate-500 font-normal">|</span>
-          <span className="text-xs text-cyan-400 font-medium">
+          <span className="text-xs text-[#87cf3e] font-medium">
             {INSTALL_STEPS[currentStep]}
           </span>
         </div>
@@ -199,9 +199,9 @@ export const InstallerApp: React.FC = () => {
                 <div
                   className={`w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
                     isCurrent
-                      ? 'bg-blue-600 text-white ring-2 ring-blue-400/40'
+                      ? 'bg-[#87cf3e] text-black font-bold ring-2 ring-[#87cf3e]/40'
                       : isPast
-                      ? 'bg-emerald-500/20 text-emerald-400'
+                      ? 'bg-emerald-500/20 text-[#87cf3e]'
                       : 'bg-slate-800 text-slate-500'
                   }`}
                 >
@@ -210,9 +210,9 @@ export const InstallerApp: React.FC = () => {
                 <span
                   className={`${
                     isCurrent
-                      ? 'text-slate-100 font-semibold'
+                      ? 'text-white font-semibold'
                       : isPast
-                      ? 'text-emerald-400/80'
+                      ? 'text-[#87cf3e]/90'
                       : 'text-slate-500'
                   }`}
                 >
@@ -236,7 +236,7 @@ export const InstallerApp: React.FC = () => {
           <div className="w-full max-w-xl flex flex-col gap-6 animate-in fade-in duration-200">
             <div className="text-left border-b border-white/10 pb-4">
               <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-                <Globe className="w-6 h-6 text-cyan-400" />
+                <Globe className="w-6 h-6 text-[#87cf3e]" />
                 <span>Select preferences</span>
               </h1>
               <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
@@ -248,13 +248,13 @@ export const InstallerApp: React.FC = () => {
               {/* Language to install */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-blue-400" />
+                  <Globe className="w-3.5 h-3.5 text-[#87cf3e]" />
                   <span>Language to install:</span>
                 </label>
                 <select
                   value={installerData.language}
                   onChange={(e) => handleLanguageChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#87cf3e] shadow-inner"
                 >
                   {LANGUAGE_OPTIONS.map((opt) => (
                     <option key={opt.label} value={opt.label}>
@@ -267,13 +267,13 @@ export const InstallerApp: React.FC = () => {
               {/* Time and currency format (Location) */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-400" />
+                  <MapPin className="w-3.5 h-3.5 text-[#87cf3e]" />
                   <span>Time and currency format (Location):</span>
                 </label>
                 <select
                   value={installerData.location || LOCATION_OPTIONS[0].label}
                   onChange={(e) => handleLocationChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#87cf3e] shadow-inner"
                 >
                   {LOCATION_OPTIONS.map((opt) => (
                     <option key={opt.label} value={opt.label}>
@@ -286,13 +286,13 @@ export const InstallerApp: React.FC = () => {
               {/* Keyboard or input method */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Keyboard className="w-3.5 h-3.5 text-purple-400" />
+                  <Keyboard className="w-3.5 h-3.5 text-[#87cf3e]" />
                   <span>Keyboard or input method:</span>
                 </label>
                 <select
                   value={installerData.keyboardLayout}
                   onChange={(e) => handleKeyboardChange(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner"
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#87cf3e] shadow-inner"
                 >
                   {KEYBOARD_OPTIONS.map((opt) => (
                     <option key={opt.label} value={opt.label}>
@@ -322,7 +322,7 @@ export const InstallerApp: React.FC = () => {
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-                  <HardDrive className="w-6 h-6 text-blue-400" />
+                  <HardDrive className="w-6 h-6 text-[#87cf3e]" />
                   <span>Where do you want to install AxisOS?</span>
                 </h1>
                 <p className="text-xs text-slate-400 mt-1">
@@ -355,7 +355,7 @@ export const InstallerApp: React.FC = () => {
                   {availableDisks.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="py-8 text-center text-slate-400">
-                        <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-cyan-400" />
+                        <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2 text-[#87cf3e]" />
                         Scanning connected disks...
                       </td>
                     </tr>
@@ -377,7 +377,7 @@ export const InstallerApp: React.FC = () => {
                             isLive
                               ? 'opacity-50 bg-slate-950 cursor-not-allowed'
                               : isSelected
-                              ? 'bg-blue-600/20 text-white font-medium ring-1 ring-inset ring-blue-500'
+                              ? 'bg-[#87cf3e]/20 text-white font-medium ring-1 ring-inset ring-[#87cf3e]'
                               : 'hover:bg-white/5 text-slate-300'
                           }`}
                         >
@@ -389,7 +389,7 @@ export const InstallerApp: React.FC = () => {
                               checked={isSelected}
                               disabled={isLive}
                               onChange={() => !isLive && updateInstallerData({ targetDisk: disk.id })}
-                              className="accent-blue-500 cursor-pointer"
+                              className="accent-[#87cf3e] cursor-pointer"
                             />
                           </td>
 
@@ -459,7 +459,7 @@ export const InstallerApp: React.FC = () => {
             <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/10 flex flex-col gap-2.5">
               <div className="text-xs font-semibold text-slate-300 flex items-center justify-between">
                 <span>Automatic Partition Layout Preview:</span>
-                <span className="text-[11px] text-cyan-400 font-mono">Btrfs Subvolumes + UEFI ESP</span>
+                <span className="text-[11px] text-[#87cf3e] font-mono">Btrfs Subvolumes + UEFI ESP</span>
               </div>
               <div className="grid grid-cols-12 gap-1.5 text-center text-[10px] font-mono font-medium">
                 <div className="col-span-2 p-2 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex flex-col justify-center">
@@ -470,7 +470,7 @@ export const InstallerApp: React.FC = () => {
                   <span className="font-bold">Swap (4.0 GB)</span>
                   <span className="text-[9px] opacity-80">Linux Swap</span>
                 </div>
-                <div className="col-span-8 p-2 rounded-lg bg-blue-500/20 text-blue-300 border border-blue-500/30 flex flex-col justify-center">
+                <div className="col-span-8 p-2 rounded-lg bg-[#87cf3e]/20 text-[#87cf3e] border border-[#87cf3e]/30 flex flex-col justify-center">
                   <span className="font-bold">AxisOS Root (Remaining Space)</span>
                   <span className="text-[9px] opacity-80">Btrfs @root, @home (zstd)</span>
                 </div>
@@ -486,7 +486,7 @@ export const InstallerApp: React.FC = () => {
           <div className="w-full max-w-lg flex flex-col gap-5 animate-in fade-in duration-200">
             <div className="border-b border-white/10 pb-4">
               <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2.5">
-                <User className="w-6 h-6 text-cyan-400" />
+                <User className="w-6 h-6 text-[#87cf3e]" />
                 <span>Who's going to use this PC?</span>
               </h1>
               <p className="text-xs text-slate-400 mt-1">
@@ -503,7 +503,7 @@ export const InstallerApp: React.FC = () => {
                   value={installerData.userFullName}
                   onChange={(e) => updateInstallerData({ userFullName: e.target.value })}
                   placeholder="e.g. Jacky Phuti"
-                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#87cf3e]"
                 />
               </div>
 
@@ -516,7 +516,7 @@ export const InstallerApp: React.FC = () => {
                     value={installerData.username}
                     onChange={(e) => updateInstallerData({ username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') })}
                     placeholder="axis"
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#87cf3e] font-mono"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
@@ -526,7 +526,7 @@ export const InstallerApp: React.FC = () => {
                     value={installerData.computerName}
                     onChange={(e) => updateInstallerData({ computerName: e.target.value })}
                     placeholder="axis-pc"
-                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                    className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#87cf3e] font-mono"
                   />
                 </div>
               </div>
@@ -541,7 +541,7 @@ export const InstallerApp: React.FC = () => {
                       value={installerData.password}
                       onChange={(e) => updateInstallerData({ password: e.target.value })}
                       placeholder="Enter password"
-                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-9"
+                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-white/15 rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#87cf3e] pr-9"
                     />
                     <button
                       type="button"
@@ -560,7 +560,7 @@ export const InstallerApp: React.FC = () => {
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Repeat password"
-                    className={`w-full px-3.5 py-2.5 bg-slate-900 border rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    className={`w-full px-3.5 py-2.5 bg-slate-900 border rounded-xl text-xs text-slate-100 focus:outline-none focus:ring-2 focus:ring-[#87cf3e] ${
                       confirmPassword && !passwordsMatch ? 'border-rose-500' : 'border-white/15'
                     }`}
                   />
@@ -577,7 +577,7 @@ export const InstallerApp: React.FC = () => {
                   type="checkbox"
                   checked={installerData.autoLogin}
                   onChange={(e) => updateInstallerData({ autoLogin: e.target.checked })}
-                  className="accent-blue-500 w-4 h-4 rounded cursor-pointer"
+                  className="accent-[#87cf3e] w-4 h-4 rounded cursor-pointer"
                 />
                 <span className="text-xs text-slate-200">
                   Sign in automatically without asking for a password on startup
@@ -620,7 +620,7 @@ export const InstallerApp: React.FC = () => {
                       {isDone ? (
                         <Check className="w-4 h-4 text-emerald-400" />
                       ) : isCurrent ? (
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#87cf3e]" />
                       ) : (
                         <div className="w-1.5 h-1.5 rounded-full bg-slate-700" />
                       )}
@@ -645,7 +645,7 @@ export const InstallerApp: React.FC = () => {
             <div className="flex flex-col gap-2">
               <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-white/10">
                 <div
-                  className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-600 rounded-full transition-all duration-300 shadow-lg shadow-blue-500/50"
+                  className="h-full bg-gradient-to-r from-emerald-600 via-[#87cf3e] to-[#a3e635] rounded-full transition-all duration-300 shadow-lg shadow-[#87cf3e]/30"
                   style={{ width: `${Math.max(installProgress, 4)}%` }}
                 />
               </div>
@@ -679,7 +679,7 @@ export const InstallerApp: React.FC = () => {
                 className="w-full px-4 py-2 bg-slate-900/60 hover:bg-slate-900 text-slate-400 hover:text-white flex items-center justify-between text-xs transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                  <Terminal className="w-3.5 h-3.5 text-[#87cf3e]" />
                   <span>Installation Log Output</span>
                 </div>
                 <span className="text-[10px] text-slate-500">
@@ -708,7 +708,7 @@ export const InstallerApp: React.FC = () => {
         {/* ============================================================ */}
         {currentStep === 4 && (
           <div className="w-full max-w-lg flex flex-col items-center text-center gap-6 animate-in zoom-in-95 duration-300">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center text-white shadow-2xl shadow-emerald-950/60 ring-4 ring-emerald-500/20">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-[#1b2b20] to-[#87cf3e] flex items-center justify-center text-black shadow-2xl shadow-[#87cf3e]/30 ring-4 ring-[#87cf3e]/20">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
@@ -737,15 +737,15 @@ export const InstallerApp: React.FC = () => {
 
             <div className="p-4 rounded-2xl bg-slate-900/60 border border-white/10 w-full text-left space-y-2 text-xs text-slate-300">
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-400" />
+                <Check className="w-4 h-4 text-[#87cf3e]" />
                 <span>Microsoft UEFI CA Signed Bootloader Installed</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-400" />
+                <Check className="w-4 h-4 text-[#87cf3e]" />
                 <span>Lenovo / HP Universal UEFI Fallback Configured</span>
               </div>
               <div className="flex items-center gap-2">
-                <Check className="w-4 h-4 text-emerald-400" />
+                <Check className="w-4 h-4 text-[#87cf3e]" />
                 <span>Btrfs zstd Transparent Compression Enabled</span>
               </div>
             </div>
@@ -754,7 +754,7 @@ export const InstallerApp: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-3 w-full">
               <button
                 onClick={() => handleFinish('restart')}
-                className="flex-1 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-900/40 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="flex-1 px-5 py-3 rounded-2xl bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs shadow-lg shadow-[#87cf3e]/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Restart Computer Now</span>
@@ -799,7 +799,7 @@ export const InstallerApp: React.FC = () => {
             {currentStep === 0 && (
               <button
                 onClick={goToNextStep}
-                className="px-6 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-blue-900/30"
+                className="px-6 py-2 rounded-xl bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-[#87cf3e]/30"
               >
                 <span>Next</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -810,10 +810,10 @@ export const InstallerApp: React.FC = () => {
               <button
                 disabled={!installerData.targetDisk || !selectedDisk || selectedDisk.isLiveMedium}
                 onClick={goToNextStep}
-                className={`px-6 py-2 rounded-xl font-semibold text-xs transition-colors flex items-center gap-1.5 ${
+                className={`px-6 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 ${
                   !installerData.targetDisk || !selectedDisk || selectedDisk.isLiveMedium
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-500 text-white cursor-pointer shadow-md shadow-blue-900/30'
+                    : 'bg-[#87cf3e] hover:bg-[#76bb33] text-black cursor-pointer shadow-md shadow-[#87cf3e]/30'
                 }`}
               >
                 <span>Next</span>
@@ -828,7 +828,7 @@ export const InstallerApp: React.FC = () => {
                 className={`px-6 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-1.5 ${
                   !passwordsMatch || !installerData.username
                     ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white cursor-pointer shadow-lg shadow-blue-900/40'
+                    : 'bg-[#87cf3e] hover:bg-[#76bb33] text-black cursor-pointer shadow-lg shadow-[#87cf3e]/30'
                 }`}
               >
                 <span>Install Now</span>
@@ -870,7 +870,7 @@ export const InstallerApp: React.FC = () => {
                   setConfirmModalOpen(false);
                   startInstallation();
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-colors cursor-pointer shadow-md shadow-blue-900/40"
+                className="flex-1 py-2.5 rounded-xl bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs transition-colors cursor-pointer shadow-md shadow-[#87cf3e]/30"
               >
                 Confirm & Install
               </button>

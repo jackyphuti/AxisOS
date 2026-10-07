@@ -219,9 +219,9 @@ export const CameraApp: React.FC = () => {
             <button
               key={f}
               onClick={() => setActiveFilter(f)}
-              className={`px-2.5 py-1 rounded-xl text-[11px] font-medium capitalize transition-all ${
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-semibold capitalize transition-all cursor-pointer ${
                 activeFilter === f
-                  ? 'bg-blue-600 text-white shadow-md'
+                  ? 'bg-[#87cf3e] text-black shadow-md'
                   : 'text-slate-300 hover:text-white hover:bg-white/10'
               }`}
             >
@@ -234,8 +234,8 @@ export const CameraApp: React.FC = () => {
         <div className="absolute top-4 right-4 z-20 flex items-center space-x-2 bg-black/50 backdrop-blur-md p-1 rounded-2xl border border-white/10 text-xs">
           <button
             onClick={() => setUseTimer(!useTimer)}
-            className={`p-1.5 rounded-xl transition-colors ${
-              useTimer ? 'bg-orange-500 text-white' : 'text-slate-300 hover:bg-white/10'
+            className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+              useTimer ? 'bg-[#87cf3e] text-black font-bold' : 'text-slate-300 hover:bg-white/10'
             }`}
             title="3-Second Timer"
           >
@@ -243,8 +243,8 @@ export const CameraApp: React.FC = () => {
           </button>
           <button
             onClick={() => setIsMirrored(!isMirrored)}
-            className={`p-1.5 rounded-xl transition-colors ${
-              isMirrored ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-white/10'
+            className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+              isMirrored ? 'bg-[#87cf3e] text-black font-bold' : 'text-slate-300 hover:bg-white/10'
             }`}
             title="Mirror Camera"
           >
@@ -256,20 +256,20 @@ export const CameraApp: React.FC = () => {
         <div className="absolute bottom-6 inset-x-0 flex items-center justify-center z-20">
           <button
             onClick={handleCaptureClick}
-            className="w-18 h-18 rounded-full border-4 border-white p-1 shadow-2xl active:scale-95 transition-transform"
+            className="w-18 h-18 rounded-full border-4 border-white p-1 shadow-2xl active:scale-95 transition-transform cursor-pointer"
           >
-            <div className="w-full h-full rounded-full bg-red-600 hover:bg-red-500 transition-colors shadow-inner flex items-center justify-center">
-              <Camera className="w-6 h-6 text-white" />
+            <div className="w-full h-full rounded-full bg-[#87cf3e] hover:bg-[#76bb33] transition-colors shadow-inner flex items-center justify-center text-black">
+              <Camera className="w-6 h-6 text-black" />
             </div>
           </button>
         </div>
       </div>
 
       {/* Captured Photos Bottom Strip */}
-      <div className="h-28 border-t border-black/5 dark:border-white/10 bg-white/80 dark:bg-slate-900/90 px-4 py-2 flex items-center space-x-3 overflow-x-auto">
+      <div className="h-28 border-t border-white/10 bg-[#0f1411] px-4 py-2 flex items-center space-x-3 overflow-x-auto">
         {photos.length === 0 ? (
-          <div className="text-xs text-slate-500 dark:text-slate-400 flex items-center space-x-2">
-            <ImageIcon className="w-4 h-4" />
+          <div className="text-xs text-slate-400 flex items-center space-x-2">
+            <ImageIcon className="w-4 h-4 text-[#87cf3e]" />
             <span>Captured snapshots will appear here</span>
           </div>
         ) : (
@@ -280,7 +280,7 @@ export const CameraApp: React.FC = () => {
                 key={p.id}
                 onClick={() => setSelectedPhoto(p)}
                 className={`relative w-24 h-20 rounded-xl overflow-hidden shrink-0 border-2 transition-all cursor-pointer group ${
-                  isSelected ? 'border-blue-500 scale-105 shadow-lg' : 'border-black/10 dark:border-white/20 opacity-80 hover:opacity-100'
+                  isSelected ? 'border-[#87cf3e] scale-105 shadow-lg' : 'border-white/20 opacity-80 hover:opacity-100'
                 }`}
               >
                 <img src={p.dataUrl} alt="Snapshot" className="w-full h-full object-cover" />

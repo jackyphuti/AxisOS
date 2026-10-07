@@ -149,17 +149,17 @@ export const Desktop: React.FC = () => {
       {/* Live Mode Welcome & Guided Installer Modal */}
       <LiveWelcomeModal />
 
-      {/* Desktop Drive & Shortcuts (Top Right in true macOS fashion!) */}
-      <div className="absolute top-10 right-4 flex flex-col items-center gap-5 z-10">
+      {/* Desktop Drive & Shortcuts (Top Right with safe margin) */}
+      <div className="absolute top-12 right-6 flex flex-col items-center gap-5 z-10">
         {/* Axis System HD / Root Drive */}
         <button
           onDoubleClick={() => openApp('file-manager')}
-          className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/15 active:bg-blue-600/30 group cursor-pointer w-22 transition-all text-center"
+          className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-white/10 active:bg-[#87cf3e]/20 group cursor-pointer w-22 transition-all text-center"
         >
-          <div className="w-13 h-13 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center text-slate-100 shadow-xl group-hover:scale-105 transition-transform">
-            <HardDrive className="w-7 h-7 text-cyan-300 drop-shadow" />
+          <div className="w-13 h-13 rounded-2xl bg-[#141b16]/80 backdrop-blur-md border border-[#87cf3e]/30 flex items-center justify-center text-slate-100 shadow-xl group-hover:scale-105 transition-transform">
+            <HardDrive className="w-7 h-7 text-[#87cf3e] drop-shadow" />
           </div>
-          <span className="text-[11px] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-tight">
+          <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] leading-tight">
             Axis System HD
           </span>
         </button>
@@ -169,12 +169,12 @@ export const Desktop: React.FC = () => {
           <button
             onClick={() => openApp('installer')}
             onDoubleClick={() => openApp('installer')}
-            className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/15 active:bg-blue-600/30 group cursor-pointer w-22 transition-all text-center"
+            className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-white/10 active:bg-[#87cf3e]/20 group cursor-pointer w-22 transition-all text-center"
           >
             <div className="transition-transform group-hover:scale-105 drop-shadow-xl">
               <MacIcon id="installer" size={50} />
             </div>
-            <span className="text-[11px] font-medium text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] leading-tight">
+            <span className="text-[11px] font-semibold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)] leading-tight">
               Install AxisOS
             </span>
           </button>
@@ -184,7 +184,7 @@ export const Desktop: React.FC = () => {
       {/* Desktop Context Menu (Right Click) */}
       {contextMenu && (
         <div
-          className="fixed z-50 w-52 bg-slate-900/90 backdrop-blur-3xl border border-white/15 rounded-xl p-1.5 shadow-2xl shadow-black text-xs text-slate-200 flex flex-col gap-0.5 animate-in fade-in duration-100"
+          className="fixed z-50 w-52 bg-[#121814]/95 backdrop-blur-3xl border border-[#87cf3e]/30 rounded-xl p-1.5 shadow-2xl shadow-black text-xs text-slate-200 flex flex-col gap-0.5 animate-in fade-in duration-100"
           style={{ top: contextMenu.y, left: contextMenu.x }}
         >
           <button
@@ -192,9 +192,9 @@ export const Desktop: React.FC = () => {
               openApp('file-manager');
               closeContextMenu();
             }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black transition-colors text-left font-medium"
           >
-            <Folder className="w-3.5 h-3.5 text-sky-400" />
+            <Folder className="w-3.5 h-3.5 text-[#87cf3e]" />
             <span>New Folder</span>
           </button>
           <button
@@ -202,20 +202,20 @@ export const Desktop: React.FC = () => {
               openApp('terminal');
               closeContextMenu();
             }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black transition-colors text-left font-medium"
           >
-            <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />
+            <TerminalIcon className="w-3.5 h-3.5 text-[#87cf3e]" />
             <span>Open Terminal Here</span>
           </button>
-          <div className="my-1 border-t border-white/10"></div>
+          <div className="my-1 border-t border-[#87cf3e]/20"></div>
           <button
             onClick={() => {
               openApp('settings', { tab: 'displays' });
               closeContextMenu();
             }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black transition-colors text-left font-medium"
           >
-            <Monitor className="w-3.5 h-3.5 text-cyan-400" />
+            <Monitor className="w-3.5 h-3.5 text-[#87cf3e]" />
             <span>Display Settings...</span>
           </button>
           <button
@@ -223,9 +223,9 @@ export const Desktop: React.FC = () => {
               openApp('settings', { tab: 'wallpaper' });
               closeContextMenu();
             }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black transition-colors text-left font-medium"
           >
-            <Palette className="w-3.5 h-3.5 text-blue-400" />
+            <Palette className="w-3.5 h-3.5 text-[#87cf3e]" />
             <span>Change Wallpaper...</span>
           </button>
           <button
@@ -233,7 +233,7 @@ export const Desktop: React.FC = () => {
               openApp('settings', { tab: 'general' });
               closeContextMenu();
             }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black transition-colors text-left font-medium"
           >
             <Settings className="w-3.5 h-3.5 text-slate-300" />
             <span>System Settings...</span>
@@ -243,7 +243,7 @@ export const Desktop: React.FC = () => {
               openApp('about');
               closeContextMenu();
             }}
-            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white transition-colors text-left"
+            className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black transition-colors text-left font-medium"
           >
             <Info className="w-3.5 h-3.5 text-slate-400" />
             <span>About This AxisPC</span>

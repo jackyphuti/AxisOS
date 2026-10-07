@@ -38,35 +38,35 @@ export const AboutApp: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center p-6 text-center h-full bg-[#F5F5F7] dark:bg-slate-950 text-slate-900 dark:text-slate-100 select-none overflow-y-auto">
+    <div className="flex flex-col items-center justify-center p-6 text-center h-full bg-[#0a0e0b] text-white select-none overflow-y-auto">
       {/* OS Logo Badge */}
-      <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-xl shadow-blue-500/20 mb-3">
-        <AxisLogo size={36} variant="white" />
+      <div className="w-16 h-16 rounded-2xl bg-[#87cf3e] flex items-center justify-center shadow-xl shadow-[#87cf3e]/20 mb-3 text-black">
+        <AxisLogo size={36} variant="black" />
       </div>
 
-      <h1 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">{systemInfo.osName}</h1>
-      <div className="text-xs text-blue-600 dark:text-cyan-400 font-mono mt-0.5">{systemInfo.osVersion}</div>
+      <h1 className="text-xl font-black tracking-tight text-white">{systemInfo.osName}</h1>
+      <div className="text-xs text-[#87cf3e] font-mono mt-0.5">{systemInfo.osVersion}</div>
 
-      <div className="mt-5 w-full max-w-sm bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-white/10 rounded-2xl p-4 text-xs flex flex-col gap-2.5 text-left shadow-xs">
+      <div className="mt-5 w-full max-w-sm bg-[#0f1411] border border-[#87cf3e]/20 rounded-2xl p-4 text-xs flex flex-col gap-2.5 text-left shadow-xs">
         <div className="flex justify-between items-center">
-          <span className="text-slate-500 dark:text-slate-400">Linux Kernel</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">{systemInfo.kernelVersion}</span>
+          <span className="text-slate-400">Linux Kernel</span>
+          <span className="font-semibold text-white font-mono">{systemInfo.kernelVersion}</span>
         </div>
-        <div className="flex justify-between items-center border-t border-slate-100 dark:border-white/5 pt-2">
-          <span className="text-slate-500 dark:text-slate-400">Architecture</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-200 font-mono">{systemInfo.architecture}</span>
+        <div className="flex justify-between items-center border-t border-white/5 pt-2">
+          <span className="text-slate-400">Architecture</span>
+          <span className="font-semibold text-white font-mono">{systemInfo.architecture}</span>
         </div>
-        <div className="flex justify-between items-center border-t border-slate-100 dark:border-white/5 pt-2">
-          <span className="text-slate-500 dark:text-slate-400">Display Compositor</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-200">Cage (Wayland DRM/KMS)</span>
+        <div className="flex justify-between items-center border-t border-white/5 pt-2">
+          <span className="text-slate-400">Display Compositor</span>
+          <span className="font-semibold text-white">Cage (Wayland DRM/KMS)</span>
         </div>
-        <div className="flex justify-between items-center border-t border-slate-100 dark:border-white/5 pt-2">
-          <span className="text-slate-500 dark:text-slate-400">Base Userspace</span>
-          <span className="font-semibold text-slate-800 dark:text-slate-200">Debian Stable (Btrfs Root)</span>
+        <div className="flex justify-between items-center border-t border-white/5 pt-2">
+          <span className="text-slate-400">Base Userspace</span>
+          <span className="font-semibold text-white">Debian Stable (Btrfs Root)</span>
         </div>
-        <div className="flex justify-between items-center border-t border-slate-100 dark:border-white/5 pt-2">
-          <span className="text-slate-500 dark:text-slate-400">Kernel Auto-Updates</span>
-          <span className="font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+        <div className="flex justify-between items-center border-t border-white/5 pt-2">
+          <span className="text-slate-400">Kernel Auto-Updates</span>
+          <span className="font-semibold text-[#87cf3e] flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Active (unattended)</span>
           </span>
@@ -74,13 +74,13 @@ export const AboutApp: React.FC = () => {
       </div>
 
       {/* Auto-update info pill */}
-      <div className="mt-3 max-w-sm p-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-800 dark:text-emerald-300 text-[11px] text-left leading-relaxed">
+      <div className="mt-3 max-w-sm p-2.5 rounded-xl bg-[#87cf3e]/10 border border-[#87cf3e]/30 text-[#87cf3e] text-[11px] text-left leading-relaxed">
         <strong>Automatic Kernel Upgrades:</strong> Whenever a new Linux kernel release or security patch drops in the repository, AxisOS automatically pulls, installs, and updates the GRUB EFI bootloader in the background.
       </div>
 
       {updateStatus && (
-        <div className="mt-3 text-[11px] text-blue-600 dark:text-cyan-300 flex items-center gap-1 font-mono max-w-sm text-center">
-          <Check className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+        <div className="mt-3 text-[11px] text-[#87cf3e] flex items-center gap-1 font-mono max-w-sm text-center">
+          <Check className="w-3.5 h-3.5 text-[#87cf3e] shrink-0" />
           <span>{updateStatus}</span>
         </div>
       )}
@@ -89,9 +89,9 @@ export const AboutApp: React.FC = () => {
         <button
           onClick={handleCheckUpdates}
           disabled={checkingUpdates || isApplying}
-          className="px-4 py-2 rounded-xl bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-xs font-semibold text-slate-800 dark:text-slate-200 transition-colors flex items-center gap-2 shadow-xs"
+          className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#87cf3e]/40 text-xs font-semibold text-white transition-colors flex items-center gap-2 shadow-xs"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${checkingUpdates ? 'animate-spin text-blue-500 dark:text-cyan-400' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${checkingUpdates ? 'animate-spin text-[#87cf3e]' : ''}`} />
           <span>{checkingUpdates ? 'Checking Repositories...' : 'Check for Updates Now'}</span>
         </button>
 
@@ -99,7 +99,7 @@ export const AboutApp: React.FC = () => {
           <button
             onClick={handleApplyUpdates}
             disabled={isApplying}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold shadow-md shadow-emerald-500/20 transition-all flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl bg-[#87cf3e] hover:bg-[#9de44a] text-black text-xs font-bold shadow-md shadow-[#87cf3e]/20 transition-all flex items-center gap-1.5"
           >
             <ArrowDownCircle className={`w-3.5 h-3.5 ${isApplying ? 'animate-bounce' : ''}`} />
             <span>{isApplying ? 'Installing...' : 'Install Kernel Update'}</span>

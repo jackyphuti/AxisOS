@@ -36,18 +36,18 @@ export const SteamApp: React.FC = () => {
   }, []);
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#121920] text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full bg-[#0a0e0b] text-slate-100 select-none overflow-hidden font-sans">
       {/* Top Steam Control Bar */}
-      <div className="h-12 bg-[#172330] border-b border-[#87cf3e]/20 px-4 flex items-center justify-between shrink-0">
+      <div className="h-12 bg-[#0f1411] border-b border-[#87cf3e]/20 px-4 flex items-center justify-between shrink-0">
         <div className="flex items-center space-x-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-[#101822] to-[#20344a] border border-[#87cf3e]/30 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-[#141b16] border border-[#87cf3e]/30 flex items-center justify-center">
             <Gamepad2 className="w-4 h-4 text-[#87cf3e]" />
           </div>
           <div>
             <div className="text-xs font-bold text-white flex items-center gap-1.5">
               <span>Steam for AxisOS</span>
               <span className="px-1.5 py-0.2 rounded bg-[#87cf3e]/20 text-[#87cf3e] text-[9px] font-bold border border-[#87cf3e]/30">
-                PROT0N 9.0
+                PROTON 9.0
               </span>
             </div>
             <div className="text-[10px] text-slate-400">Valve Corporation • Linux Gaming Subsystem</div>
@@ -57,10 +57,10 @@ export const SteamApp: React.FC = () => {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => launchNativeSteam('-bigpicture')}
-            className="px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1 bg-white/5 hover:bg-white/10 text-slate-200 border border-white/10 hover:border-[#87cf3e]/40 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer"
             title="Launch Steam Big Picture Mode"
           >
-            <Tv className="w-3.5 h-3.5 text-[#00e5ff]" />
+            <Tv className="w-3.5 h-3.5 text-[#87cf3e]" />
             <span className="hidden sm:inline">Big Picture</span>
           </button>
           <button
@@ -75,13 +75,13 @@ export const SteamApp: React.FC = () => {
       </div>
 
       {/* Steam Subsystem Readiness Banner */}
-      <div className="bg-[#15202c] border-b border-[#87cf3e]/15 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+      <div className="bg-[#0f1411] border-b border-[#87cf3e]/15 px-4 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
         <div className="flex items-center gap-4 text-[11px] text-slate-300">
           <span className="flex items-center gap-1 text-[#87cf3e]">
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Feral GameMode Active</span>
           </span>
-          <span className="flex items-center gap-1 text-[#00e5ff]">
+          <span className="flex items-center gap-1 text-[#87cf3e]">
             <Zap className="w-3.5 h-3.5" />
             <span>Vulkan 1.3 Async Shaders</span>
           </span>
@@ -99,7 +99,7 @@ export const SteamApp: React.FC = () => {
       </div>
 
       {/* Main Steam Store Viewport */}
-      <div className="flex-1 w-full bg-[#171a21] relative overflow-hidden flex flex-col">
+      <div className="flex-1 w-full bg-[#0a0e0b] relative overflow-hidden flex flex-col">
         <iframe
           src="https://store.steampowered.com"
           title="Steam Store"

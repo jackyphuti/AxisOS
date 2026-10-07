@@ -119,7 +119,7 @@ export const PhotosApp: React.FC = () => {
   const categories = ['All', 'Wallpapers', 'Nature', 'Abstract', 'User'];
 
   return (
-    <div className="flex h-full w-full bg-[#F5F5F7] dark:bg-[#1E1E1E] text-slate-900 dark:text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-[#0a0e0b] text-white select-none overflow-hidden font-sans">
       <input
         type="file"
         id="photos-import-input"
@@ -129,25 +129,25 @@ export const PhotosApp: React.FC = () => {
       />
 
       {/* Left Sidebar */}
-      <div className="w-56 bg-white/70 dark:bg-slate-900/80 backdrop-blur-md border-r border-black/5 dark:border-white/10 p-3.5 flex flex-col justify-between">
+      <div className="w-56 bg-[#0f1411] border-r border-[#87cf3e]/20 p-3.5 flex flex-col justify-between">
         <div>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-400 via-rose-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
+              <div className="w-7 h-7 rounded-xl bg-[#87cf3e] flex items-center justify-center text-black shadow-md">
                 <ImageIcon className="w-4 h-4" />
               </div>
-              <span className="font-bold text-xs text-slate-800 dark:text-white">Photos</span>
+              <span className="font-bold text-xs text-white">Photos</span>
             </div>
             <label
               htmlFor="photos-import-input"
-              className="p-1.5 rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300 transition-colors text-xs cursor-pointer flex items-center gap-1"
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-[#87cf3e]/20 text-slate-300 hover:text-[#87cf3e] transition-colors text-xs cursor-pointer flex items-center gap-1"
               title="Import image"
             >
               <FolderOpen className="w-3.5 h-3.5" />
             </label>
           </div>
 
-          <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2 px-1">
+          <div className="text-[11px] font-semibold text-[#87cf3e]/80 uppercase tracking-wider mb-2 px-1">
             Albums
           </div>
 
@@ -158,8 +158,8 @@ export const PhotosApp: React.FC = () => {
                 onClick={() => setActiveCategory(cat)}
                 className={`px-3 py-1.5 rounded-xl text-left text-xs transition-colors flex items-center justify-between ${
                   activeCategory === cat
-                    ? 'bg-[#007AFF] text-white font-medium shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
+                    ? 'bg-[#87cf3e] text-black font-semibold shadow-xs'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <span>{cat}</span>
@@ -172,8 +172,8 @@ export const PhotosApp: React.FC = () => {
         </div>
 
         {/* Thumbnail Filmstrip */}
-        <div className="border-t border-black/5 dark:border-white/10 pt-3">
-          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mb-2">Gallery Stream</div>
+        <div className="border-t border-[#87cf3e]/20 pt-3">
+          <div className="text-[10px] text-slate-400 font-mono mb-2">Gallery Stream</div>
           <div className="grid grid-cols-3 gap-1.5 max-h-36 overflow-y-auto">
             {filteredPhotos.map((p) => (
               <button
@@ -184,7 +184,7 @@ export const PhotosApp: React.FC = () => {
                   setRotation(0);
                 }}
                 className={`h-12 rounded-lg overflow-hidden border transition-all ${
-                  p.id === activePhotoId ? 'border-sky-500 ring-2 ring-sky-500/40' : 'border-black/10 dark:border-white/10 hover:border-black/30 dark:hover:border-white/30'
+                  p.id === activePhotoId ? 'border-[#87cf3e] ring-2 ring-[#87cf3e]/40' : 'border-white/10 hover:border-white/30'
                 }`}
                 style={{ background: p.gradient }}
               />
@@ -194,48 +194,48 @@ export const PhotosApp: React.FC = () => {
       </div>
 
       {/* Main Image Inspector */}
-      <div className="flex-1 flex flex-col bg-[#F5F5F7] dark:bg-slate-950/80 justify-between">
+      <div className="flex-1 flex flex-col bg-[#0a0e0b] justify-between">
         {/* Top Control Toolbar */}
-        <div className="h-10 px-4 flex items-center justify-between border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-slate-900/40 text-xs text-slate-800 dark:text-slate-200">
+        <div className="h-10 px-4 flex items-center justify-between border-b border-[#87cf3e]/20 bg-[#0f1411] text-xs text-white">
           <div>
-            <span className="font-semibold text-slate-800 dark:text-white">{activePhoto.title}</span>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 ml-2 font-mono">{activePhoto.date}</span>
+            <span className="font-semibold text-white">{activePhoto.title}</span>
+            <span className="text-[11px] text-slate-400 ml-2 font-mono">{activePhoto.date}</span>
           </div>
 
           <div className="flex items-center space-x-1.5">
             <button
               onClick={() => setZoomLevel((z) => Math.max(0.5, z - 0.25))}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-[#87cf3e] hover:bg-white/10 transition-colors"
               title="Zoom Out"
             >
               <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 w-10 text-center">
+            <span className="text-[11px] font-mono text-slate-400 w-10 text-center">
               {Math.round(zoomLevel * 100)}%
             </span>
             <button
               onClick={() => setZoomLevel((z) => Math.min(3, z + 0.25))}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-[#87cf3e] hover:bg-white/10 transition-colors"
               title="Zoom In"
             >
               <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={() => setRotation((r) => (r + 90) % 360)}
-              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-[#87cf3e] hover:bg-white/10 transition-colors"
               title="Rotate 90°"
             >
               <RotateCw className="w-3.5 h-3.5" />
             </button>
 
-            <div className="h-4 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
+            <div className="h-4 w-px bg-white/10 mx-1"></div>
 
             <button
               onClick={handleSetWallpaper}
               className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 wallpaperSetSuccess
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/15 text-slate-700 dark:text-slate-200 border border-black/5 dark:border-white/10'
+                  ? 'bg-[#87cf3e] text-black font-semibold'
+                  : 'bg-white/5 hover:bg-white/10 text-white border border-white/10 hover:border-[#87cf3e]/40'
               }`}
             >
               {wallpaperSetSuccess ? <Check className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
@@ -247,7 +247,7 @@ export const PhotosApp: React.FC = () => {
         {/* Big Preview Area */}
         <div className="flex-1 flex items-center justify-center p-8 overflow-hidden relative">
           <div
-            className="w-full max-w-2xl h-96 rounded-2xl shadow-2xl shadow-black/40 transition-transform duration-300 border border-black/10 dark:border-white/15 flex items-center justify-center relative overflow-hidden"
+            className="w-full max-w-2xl h-96 rounded-2xl shadow-2xl shadow-black/40 transition-transform duration-300 border border-white/15 flex items-center justify-center relative overflow-hidden"
             style={{
               background: activePhoto.gradient,
               transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
@@ -266,7 +266,7 @@ export const PhotosApp: React.FC = () => {
         </div>
 
         {/* Bottom Footer Info */}
-        <div className="h-8 px-4 bg-white/80 dark:bg-slate-900/60 border-t border-black/5 dark:border-white/10 flex items-center justify-between text-[11px] font-mono text-slate-500">
+        <div className="h-8 px-4 bg-[#0f1411] border-t border-[#87cf3e]/20 flex items-center justify-between text-[11px] font-mono text-slate-400">
           <span>{activePhoto.category} Gallery</span>
           <span>AxisOS GPU Accelerated Canvas</span>
         </div>

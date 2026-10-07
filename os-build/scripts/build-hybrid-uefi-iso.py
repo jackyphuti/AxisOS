@@ -63,23 +63,36 @@ if os.path.exists(daemon_src):
     shutil.copyfile(daemon_src, dst)
     os.chmod(dst, 0o755)
 
+def copy_text_lf(src, dst, mode=None):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    with open(src, "rb") as f:
+        content = f.read().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+    with open(dst, "wb") as f:
+        f.write(content)
+    if mode is not None:
+        os.chmod(dst, mode)
+
+def write_text_lf(dst, text, mode=None):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    with open(dst, "w", newline="\n", encoding="utf-8") as f:
+        f.write(text.replace("\r\n", "\n").replace("\r", "\n"))
+    if mode is not None:
+        os.chmod(dst, mode)
+
 kiosk_src = os.path.join(workspace_dir, "os-build", "configs", "cage-session", "axisos-kiosk.sh")
 if os.path.exists(kiosk_src):
     dst = os.path.join(chroot_dir, "usr", "local", "bin", "axisos-kiosk.sh")
-    shutil.copyfile(kiosk_src, dst)
-    os.chmod(dst, 0o755)
+    copy_text_lf(kiosk_src, dst, 0o755)
 
 installer_src = os.path.join(workspace_dir, "os-build", "scripts", "axisos-install.sh")
 if os.path.exists(installer_src):
     dst = os.path.join(chroot_dir, "usr", "local", "bin", "axisos-installer.sh")
-    shutil.copyfile(installer_src, dst)
-    os.chmod(dst, 0o755)
+    copy_text_lf(installer_src, dst, 0o755)
 
 gpu_detect_src = os.path.join(workspace_dir, "os-build", "scripts", "gpu-autodetect.sh")
 if os.path.exists(gpu_detect_src):
     dst = os.path.join(chroot_dir, "usr", "local", "bin", "gpu-autodetect.sh")
-    shutil.copyfile(gpu_detect_src, dst)
-    os.chmod(dst, 0o755)
+    copy_text_lf(gpu_detect_src, dst, 0o755)
 
 gpu_svc_src = os.path.join(workspace_dir, "os-build", "configs", "systemd", "gpu-autodetect.service")
 if os.path.exists(gpu_svc_src):
@@ -148,21 +161,17 @@ if os.path.exists(apps_dir):
 
 # Deploy prime-run helper
 primerun_dst = os.path.join(chroot_dir, "usr", "local", "bin", "prime-run")
-with open(primerun_dst, "w") as f:
-    f.write("""#!/usr/bin/env bash
+write_text_lf(primerun_dst, """#!/usr/bin/env bash
 # AxisOS NVIDIA PRIME Render Offload Runner
 export __NV_PRIME_RENDER_OFFLOAD=1
 export __GLX_VENDOR_LIBRARY_NAME=nvidia
 export __VK_LAYER_NV_optimus=NVIDIA_only
 exec "$@"
-""")
-os.chmod(primerun_dst, 0o755)
+""", 0o755)
 
 # Deploy Steam pre-installed launcher & menu entry
 steam_desktop_dst = os.path.join(chroot_dir, "usr", "share", "applications", "steam.desktop")
-os.makedirs(os.path.dirname(steam_desktop_dst), exist_ok=True)
-with open(steam_desktop_dst, "w") as f:
-    f.write("""[Desktop Entry]
+write_text_lf(steam_desktop_dst, """[Desktop Entry]
 Name=Steam
 Comment=Application for managing and playing games on Steam
 Exec=/usr/local/bin/steam %U
@@ -175,9 +184,7 @@ Actions=Store;Community;Library;Servers;Screenshots;News;Settings;BigPicture;Fri
 """)
 
 steam_wrapper_dst = os.path.join(chroot_dir, "usr", "local", "bin", "steam")
-os.makedirs(os.path.dirname(steam_wrapper_dst), exist_ok=True)
-with open(steam_wrapper_dst, "w") as f:
-    f.write("""#!/usr/bin/env bash
+write_text_lf(steam_wrapper_dst, """#!/usr/bin/env bash
 # AxisOS Steam Unified Launcher with Proton & GameMode
 if [ -x "/usr/games/steam" ]; then
     exec /usr/games/steam "$@"
@@ -194,14 +201,11 @@ else
         exec /usr/games/steam "$@"
     fi
 fi
-""")
-os.chmod(steam_wrapper_dst, 0o755)
+""", 0o755)
 
 # Deploy Android & HarmonyOS universal udev rules
 udev_rules_dst = os.path.join(chroot_dir, "etc", "udev", "rules.d", "51-android.rules")
-os.makedirs(os.path.dirname(udev_rules_dst), exist_ok=True)
-with open(udev_rules_dst, "w") as f:
-    f.write("""# Universal Android & HarmonyOS USB rules
+write_text_lf(udev_rules_dst, """# Universal Android & HarmonyOS USB rules
 SUBSYSTEM=="usb", ATTR{idVendor}=="[0-9a-fA-F]*", MODE="0666", GROUP="plugdev"
 SUBSYSTEM=="usb", ATTR{idVendor}=="18d1", MODE="0666", GROUP="plugdev"
 SUBSYSTEM=="usb", ATTR{idVendor}=="04e8", MODE="0666", GROUP="plugdev"
@@ -211,9 +215,7 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="2717", MODE="0666", GROUP="plugdev"
 
 # Deploy Gaming & High-Performance Sysctl configs (Proton/Steam max_map_count)
 gaming_sysctl_dst = os.path.join(chroot_dir, "etc", "sysctl.d", "99-axisos-gaming.conf")
-os.makedirs(os.path.dirname(gaming_sysctl_dst), exist_ok=True)
-with open(gaming_sysctl_dst, "w") as f:
-    f.write("""# AxisOS Gaming & Development Performance Tuning
+write_text_lf(gaming_sysctl_dst, """# AxisOS Gaming & Development Performance Tuning
 vm.max_map_count = 2147483642
 fs.file-max = 524288
 fs.inotify.max_user_watches = 524288
@@ -261,8 +263,7 @@ for c32 in ["ldlinux.c32", "libcom32.c32", "libutil.c32", "vesamenu.c32"]:
 if os.path.exists("/usr/lib/ISOLINUX/isolinux.bin"):
     shutil.copyfile("/usr/lib/ISOLINUX/isolinux.bin", f"{binary_dir}/isolinux/isolinux.bin")
 
-with open(f"{binary_dir}/isolinux/isolinux.cfg", "w") as f:
-    f.write("""UI vesamenu.c32
+write_text_lf(f"{binary_dir}/isolinux/isolinux.cfg", """UI vesamenu.c32
 PROMPT 0
 TIMEOUT 50
 DEFAULT live
@@ -323,8 +324,7 @@ if os.path.exists(mm_src):
     shutil.copyfile(mm_src, mmx64_path)
 
 # Early GRUB config in /EFI/BOOT/grub.cfg that finds USB root and chains to /boot/grub/grub.cfg
-with open(f"{binary_dir}/EFI/BOOT/grub.cfg", "w") as f:
-    f.write("""search --set=root --file /live/vmlinuz
+write_text_lf(f"{binary_dir}/EFI/BOOT/grub.cfg", """search --set=root --file /live/vmlinuz
 set prefix=($root)/boot/grub
 if [ -f ($root)/boot/grub/grub.cfg ]; then
     configfile ($root)/boot/grub/grub.cfg
@@ -332,8 +332,7 @@ fi
 """)
 
 # GRUB Config in /boot/grub/grub.cfg
-with open(f"{binary_dir}/boot/grub/grub.cfg", "w") as f:
-    f.write("""set default=0
+write_text_lf(f"{binary_dir}/boot/grub/grub.cfg", """set default=0
 set timeout=5
 
 insmod part_gpt
