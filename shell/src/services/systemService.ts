@@ -733,6 +733,38 @@ export const systemService = {
     }
   },
 
+  // ==================== DISPLAY & BRIGHTNESS CONTROL ====================
+  async getHardwareBrightness(): Promise<number> {
+    try {
+      const res = await fetch('/api/brightness');
+      if (res.ok) {
+        const data = await res.json();
+        return typeof data.brightness === 'number' ? data.brightness : 85;
+      }
+    } catch {}
+    return 85;
+  },
+
+  async setHardwareBrightness(level: number): Promise<boolean> {
+    try {
+      const res = await fetch('/api/brightness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brightness: level }),
+      });
+      if (res.ok) return true;
+    } catch {}
+
+    try {
+      await this.executeCommand(
+        `brightnessctl set ${level}% 2>/dev/null || xrandr --output $(xrandr | grep " connected" | head -1 | cut -d" " -f1) --brightness $(awk "BEGIN {print ${level}/100}") 2>/dev/null || true`
+      );
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
   // ==================== PACKAGE MANAGEMENT (APP STORE) ====================
   async getPackagesList(): Promise<PackageItem[]> {
     try {

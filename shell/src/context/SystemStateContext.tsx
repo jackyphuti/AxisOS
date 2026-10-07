@@ -119,6 +119,7 @@ interface SystemStateContextType {
   setIsMuted: (muted: boolean) => void;
   brightness: number;
   setBrightness: (br: number) => void;
+  toggleBrightness: () => void;
   isLocked: boolean;
   setIsLocked: (locked: boolean) => void;
   lockSession: () => void;
@@ -182,7 +183,32 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [wallpaper, setWallpaper] = useState<WallpaperOption>(WALLPAPERS[0]);
   const [volume, setVolume] = useState<number>(75);
   const [isMuted, setIsMuted] = useState<boolean>(false);
-  const [brightness, setBrightness] = useState<number>(85);
+  const [brightness, setBrightnessState] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('axisos_screen_brightness');
+      return saved ? Math.max(10, Math.min(100, Number(saved))) : 85;
+    } catch {
+      return 85;
+    }
+  });
+
+  const setBrightness = (val: number) => {
+    const clamped = Math.max(10, Math.min(100, Math.round(val)));
+    setBrightnessState(clamped);
+    try {
+      localStorage.setItem('axisos_screen_brightness', String(clamped));
+    } catch {}
+    systemService.setHardwareBrightness(clamped).catch(() => {});
+  };
+
+  const toggleBrightness = () => {
+    if (brightness > 55) {
+      setBrightness(30);
+    } else {
+      setBrightness(95);
+    }
+  };
+
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [wifiEnabled, setWifiEnabled] = useState<boolean>(true);
   const [wifiConnected, setWifiConnected] = useState<boolean>(false);
@@ -412,6 +438,7 @@ export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ c
         lockSession,
         brightness,
         setBrightness,
+        toggleBrightness,
         wifiEnabled,
         setWifiEnabled,
         wifiConnected,
