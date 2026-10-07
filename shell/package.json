@@ -20,7 +20,7 @@
   "author": "AxisOS Team",
   "license": "GPL-3.0",
   "dependencies": {
-    "framer-motion": "^13.4.4",
+    "framer-motion": "^14.0.0",
     "lucide-react": "^1.48.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
