@@ -1,0 +1,164 @@
+/* ==============================================================================
+ * AxisOS GTK-3.0 Theme (Axis-Mint-Dark)
+ * Charcoal Black (#18201b / #141b16) with Mint Green (#87cf3e) Accents
+ * ============================================================================== */
+
+@define-color theme_base_color #141b16;
+@define-color theme_bg_color #18201b;
+@define-color theme_fg_color #dbe4de;
+@define-color theme_selected_bg_color #87cf3e;
+@define-color theme_selected_fg_color #0d140f;
+
+@define-color headerbar_bg #141b16;
+@define-color headerbar_fg #ffffff;
+
+@define-color borders rgba(135, 207, 62, 0.2);
+@define-color content_view_bg #141b16;
+
+/* Global Window & Typography */
+window, dialog {
+    background-color: @theme_bg_color;
+    color: @theme_fg_color;
+}
+
+/* Headerbars & Titlebars */
+headerbar {
+    background-color: @headerbar_bg;
+    color: @headerbar_fg;
+    border-bottom: 1px solid rgba(135, 207, 62, 0.25);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+    min-height: 42px;
+    padding: 0 6px;
+}
+
+headerbar:backdrop {
+    background-color: #121814;
+    color: #8b9990;
+    border-color: rgba(255, 255, 255, 0.05);
+}
+
+headerbar .title {
+    font-weight: bold;
+    color: #ffffff;
+}
+
+headerbar .subtitle {
+    font-size: smaller;
+    color: #87cf3e;
+}
+
+/* Window Titlebar Buttons (macOS / Mint style) */
+headerbar button.titlebutton {
+    padding: 4px;
+    border-radius: 9999px;
+    min-width: 16px;
+    min-height: 16px;
+    border: none;
+    background: transparent;
+    transition: all 120ms ease;
+}
+
+headerbar button.titlebutton.close:hover {
+    background-color: #ff5f56;
+    color: #ffffff;
+}
+
+headerbar button.titlebutton.minimize:hover {
+    background-color: #ffbd2e;
+    color: #ffffff;
+}
+
+headerbar button.titlebutton.maximize:hover {
+    background-color: #27c93f;
+    color: #ffffff;
+}
+
+/* Buttons */
+button {
+    background-color: #212c24;
+    color: #e0e8e3;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 6px 14px;
+    transition: all 120ms ease;
+}
+
+button:hover {
+    background-color: #2a372e;
+    border-color: rgba(135, 207, 62, 0.35);
+    color: #ffffff;
+}
+
+button:active, button:checked {
+    background-color: #87cf3e;
+    color: #0d140f;
+    border-color: #87cf3e;
+    font-weight: 600;
+}
+
+button.suggested-action {
+    background-color: #87cf3e;
+    color: #0d140f;
+    border: 1px solid #87cf3e;
+    font-weight: bold;
+}
+
+button.suggested-action:hover {
+    background-color: #9ce055;
+}
+
+button.destructive-action {
+    background-color: #e0443e;
+    color: #ffffff;
+}
+
+/* Entries and Inputs */
+entry {
+    background-color: #121814;
+    color: #ffffff;
+    border: 1px solid rgba(135, 207, 62, 0.25);
+    border-radius: 8px;
+    padding: 6px 10px;
+}
+
+entry:focus {
+    border-color: #87cf3e;
+    box-shadow: 0 0 0 2px rgba(135, 207, 62, 0.25);
+}
+
+/* TreeView, ListView, and Nemo File Browser */
+treeview, list {
+    background-color: @theme_base_color;
+    color: @theme_fg_color;
+}
+
+treeview:selected, list row:selected {
+    background-color: rgba(135, 207, 62, 0.2);
+    color: #ffffff;
+    border-left: 3px solid #87cf3e;
+}
+
+/* Scrollbars */
+scrollbar {
+    background-color: transparent;
+}
+
+scrollbar slider {
+    min-width: 6px;
+    min-height: 6px;
+    border-radius: 6px;
+    background-color: rgba(135, 207, 62, 0.25);
+}
+
+scrollbar slider:hover {
+    background-color: #87cf3e;
+}
+
+/* Tooltips */
+tooltip {
+    background-color: #141b16;
+    color: #e0e8e3;
+    border: 1px solid rgba(135, 207, 62, 0.3);
+    border-radius: 6px;
+    padding: 4px 8px;
+}

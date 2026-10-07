@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=AxisOS Cinnamon (Wayland - Experimental)
+Comment=AxisOS Flagship Desktop Environment with Experimental Wayland Compositor
+Exec=cinnamon-session --wayland
+TryExec=cinnamon-session
+Icon=cinnamon
+Type=Application
+DesktopNames=X-Cinnamon;GNOME;
+Keywords=cinnamon;muffin;wayland;experimental;axisos;
+X-Ubuntu-Gettext-Domain=cinnamon

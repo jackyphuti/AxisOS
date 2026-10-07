@@ -26,6 +26,7 @@ export const QuickSettings: React.FC = () => {
     isMuted,
     brightness,
     setBrightness,
+    toggleBrightness,
     toggleWifi,
     toggleBluetooth,
     changeVolume,
@@ -120,11 +121,26 @@ export const QuickSettings: React.FC = () => {
         </div>
       </div>
 
-      {/* Display Slider */}
+      {/* Display Brightness Slider & Toggle */}
       <div className="p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex flex-col gap-2">
-        <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">Display</span>
+        <div className="flex justify-between items-center text-xs">
+          <span className="font-semibold text-slate-800 dark:text-slate-200">Display Brightness</span>
+          <button
+            onClick={toggleBrightness}
+            className="text-[10px] text-slate-500 dark:text-slate-400 hover:text-[#87cf3e] transition-colors cursor-pointer"
+            title="Toggle Bright / Dim"
+          >
+            {brightness > 55 ? 'High (95%)' : 'Dimmed (30%)'}
+          </button>
+        </div>
         <div className="flex items-center gap-2.5">
-          <Sun className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <button
+            onClick={toggleBrightness}
+            className="p-1 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-[#87cf3e] transition-colors cursor-pointer"
+            title="Click to toggle display brightness level"
+          >
+            <Sun className={`w-4 h-4 ${brightness > 55 ? 'text-[#87cf3e]' : 'text-slate-400'}`} />
+          </button>
           <input
             type="range"
             min="10"

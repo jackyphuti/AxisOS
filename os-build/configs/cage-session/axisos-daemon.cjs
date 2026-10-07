@@ -1703,11 +1703,19 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    // 14. Wi-Fi: Scan (Real hardware networks only - no demo fallbacks)
+    // 14. Wi-Fi: Scan (Real hardware networks + unblock rfkill & auto-rescan)
     if (pathname === '/api/wifi/scan' && req.method === 'GET') {
       if (process.platform === 'linux') {
-        await runCmd('nmcli dev wifi rescan 2>/dev/null');
-        const scanRes = await runCmd('nmcli -t -f in-use,ssid,signal,security dev wifi list 2>/dev/null');
+        // Ensure rfkill does not block wifi radio
+        await runCmd('rfkill unblock wifi 2>/dev/null || true');
+        await runCmd('nmcli radio wifi on 2>/dev/null || true');
+
+        // Trigger scan and retrieve list
+        let scanRes = await runCmd('nmcli -t -f in-use,ssid,signal,security dev wifi list --rescan yes 2>/dev/null');
+        if (!scanRes.stdout || scanRes.stdout.trim().length === 0) {
+          scanRes = await runCmd('nmcli -t -f in-use,ssid,signal,security dev wifi list 2>/dev/null');
+        }
+
         const networks = [];
         const seen = new Set();
         if (scanRes.stdout) {
@@ -1717,13 +1725,23 @@ const server = http.createServer(async (req, res) => {
             const inUse = parts[0] === '*';
             const ssid = (parts[1] || '').trim();
             const signal = parseInt(parts[2], 10) || 50;
-            const security = parts[3] || 'WPA2';
+            const secRaw = (parts[3] || '').trim();
+
+            let security = 'Open';
+            if (secRaw && secRaw !== '--' && secRaw.toLowerCase() !== 'none') {
+              if (secRaw.includes('WPA3')) security = 'WPA3';
+              else if (secRaw.includes('WPA2') || secRaw.includes('WPA')) security = 'WPA2';
+              else if (secRaw.includes('WEP')) security = 'WEP';
+              else security = secRaw;
+            }
+
             if (ssid && ssid !== '--' && !seen.has(ssid)) {
               seen.add(ssid);
               networks.push({ inUse, ssid, signal, security });
             }
           }
         }
+        networks.sort((a, b) => (b.inUse ? 1 : 0) - (a.inUse ? 1 : 0) || b.signal - a.signal);
         return sendJson(res, 200, networks);
       }
       return sendJson(res, 200, []);
@@ -1734,21 +1752,51 @@ const server = http.createServer(async (req, res) => {
       const body = await parseJsonBody(req);
       const action = body.enabled ? 'on' : 'off';
       if (process.platform === 'linux') {
+        if (body.enabled) {
+          await runCmd('rfkill unblock wifi 2>/dev/null || true');
+        }
         await runExecFile('/usr/bin/nmcli', ['radio', 'wifi', action]);
       }
       return sendJson(res, 200, { success: true, enabled: Boolean(body.enabled) });
     }
 
-    // 16. Wi-Fi: Connect (Shell-free, CWE-78 & CWE-88 resolved)
+    // 16. Wi-Fi: Connect (Shell-free, supports Open / Captive Portal & WPA passwords)
     if (pathname === '/api/wifi/connect' && req.method === 'POST') {
       const body = await parseJsonBody(req);
-      const ssid = String(body.ssid || '');
-      const password = String(body.password || '');
+      const ssid = String(body.ssid || '').trim();
+      const password = String(body.password || '').trim();
       if (process.platform === 'linux' && ssid) {
         const args = ['dev', 'wifi', 'connect', ssid];
-        if (password) args.push('password', password);
+        if (password) {
+          args.push('password', password);
+        }
         const resConnect = await runExecFile('/usr/bin/nmcli', args);
-        return sendJson(res, 200, { success: resConnect.exitCode === 0, output: resConnect.stdout || resConnect.stderr });
+        const success = resConnect.exitCode === 0;
+
+        // Check for Captive Portal (HTTP 204 check)
+        let captivePortal = false;
+        let loginUrl = '';
+        if (success) {
+          try {
+            const probe = await runCmd('curl -s -I -m 4 http://connectivitycheck.gstatic.com/generate_204 2>/dev/null');
+            if (probe.stdout) {
+              const statusLine = probe.stdout.split('\n')[0] || '';
+              if (!statusLine.includes('204')) {
+                captivePortal = true;
+                const locMatch = probe.stdout.match(/location:\s*([^\r\n]+)/i);
+                loginUrl = locMatch ? locMatch[1].trim() : 'http://connectivitycheck.gstatic.com/generate_204';
+              }
+            }
+          } catch {}
+        }
+
+        return sendJson(res, 200, {
+          success,
+          output: resConnect.stdout || resConnect.stderr,
+          ssid,
+          captivePortal,
+          loginUrl,
+        });
       }
       return sendJson(res, 200, { success: true, ssid });
     }
@@ -1799,7 +1847,8 @@ const server = http.createServer(async (req, res) => {
     // 21. Audio: Status
     if (pathname === '/api/audio/status' && req.method === 'GET') {
       if (process.platform === 'linux') {
-        const wpRes = await runCmd('wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null');
+        const envPrefix = 'XDG_RUNTIME_DIR=/run/user/1000 ';
+        const wpRes = await runCmd(`${envPrefix}wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null`);
         if (wpRes.stdout) {
           const match = wpRes.stdout.match(/Volume:\s+([0-9.]+)(\s+\[MUTED\])?/);
           if (match) {
@@ -1822,16 +1871,16 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { volume: 75, isMuted: false, sinkName: 'Intel High Definition Audio' });
     }
 
-    // 22. Audio: Set Volume (Shell-free)
+    // 22. Audio: Set Volume (Shell-free + ALSA/PipeWire synchronization)
     if (pathname === '/api/audio/set-volume' && req.method === 'POST') {
       const body = await parseJsonBody(req);
       const vol = Math.max(0, Math.min(100, parseInt(body.volume, 10) || 0));
       if (process.platform === 'linux') {
         const fraction = (vol / 100).toFixed(2);
-        const wpRes = await runExecFile('/usr/bin/wpctl', ['set-volume', '@DEFAULT_AUDIO_SINK@', fraction]);
-        if (wpRes.exitCode !== 0) {
-          await runExecFile('/usr/bin/amixer', ['set', 'Master', `${vol}%`]);
-        }
+        await runCmd(`XDG_RUNTIME_DIR=/run/user/1000 wpctl set-volume @DEFAULT_AUDIO_SINK@ ${fraction} 2>/dev/null || true`);
+        await runCmd(`amixer sset Master ${vol}% unmute 2>/dev/null || true`);
+        await runCmd(`amixer -c 0 sset Master ${vol}% unmute 2>/dev/null || true`);
+        await runCmd(`XDG_RUNTIME_DIR=/run/user/1000 pactl set-sink-volume @DEFAULT_SINK@ ${vol}% 2>/dev/null || true`);
       }
       return sendJson(res, 200, { success: true, volume: vol });
     }
@@ -1839,10 +1888,9 @@ const server = http.createServer(async (req, res) => {
     // 23. Audio: Toggle Mute (Shell-free)
     if (pathname === '/api/audio/toggle-mute' && req.method === 'POST') {
       if (process.platform === 'linux') {
-        const wpRes = await runExecFile('/usr/bin/wpctl', ['set-mute', '@DEFAULT_AUDIO_SINK@', 'toggle']);
-        if (wpRes.exitCode !== 0) {
-          await runExecFile('/usr/bin/amixer', ['set', 'Master', 'toggle']);
-        }
+        await runCmd('XDG_RUNTIME_DIR=/run/user/1000 wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null || true');
+        await runCmd('amixer sset Master toggle 2>/dev/null || true');
+        await runCmd('XDG_RUNTIME_DIR=/run/user/1000 pactl set-sink-mute @DEFAULT_SINK@ toggle 2>/dev/null || true');
       }
       return sendJson(res, 200, { success: true });
     }

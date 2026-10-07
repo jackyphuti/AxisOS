@@ -1,0 +1,91 @@
+/* ==============================================================================
+ * AxisOS GTK-3.0 Theme (Axis-Mint-Light)
+ * Clean Light Surfaces with Linux Mint Green (#87cf3e) Accents
+ * ============================================================================== */
+
+@define-color theme_base_color #ffffff;
+@define-color theme_bg_color #f5f7f5;
+@define-color theme_fg_color #222a24;
+@define-color theme_selected_bg_color #87cf3e;
+@define-color theme_selected_fg_color #0d140f;
+
+@define-color headerbar_bg #e9ede9;
+@define-color headerbar_fg #18201b;
+
+@define-color borders rgba(0, 0, 0, 0.12);
+@define-color content_view_bg #ffffff;
+
+window, dialog {
+    background-color: @theme_bg_color;
+    color: @theme_fg_color;
+}
+
+menubar {
+    background-color: #e9ede9;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+menubar > menuitem {
+    padding: 4px 10px;
+    color: #222a24;
+}
+
+menubar > menuitem:hover {
+    background-color: rgba(135, 207, 62, 0.25);
+}
+
+toolbar {
+    background-color: #f0f3f0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 4px 8px;
+}
+
+statusbar {
+    background-color: #e9ede9;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding: 2px 8px;
+    font-size: 9pt;
+}
+
+button {
+    background-color: #ffffff;
+    color: #222a24;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 6px;
+    padding: 5px 12px;
+}
+
+button:hover {
+    background-color: #f0f7ec;
+    border-color: #87cf3e;
+}
+
+button:active, button:checked {
+    background-color: #87cf3e;
+    color: #0d140f;
+    font-weight: 600;
+}
+
+entry {
+    background-color: #ffffff;
+    color: #18201b;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+entry:focus {
+    border-color: #87cf3e;
+    box-shadow: 0 0 0 2px rgba(135, 207, 62, 0.3);
+}
+
+treeview, list {
+    background-color: @content_view_bg;
+    color: @theme_fg_color;
+}
+
+treeview:selected, list row:selected {
+    background-color: rgba(135, 207, 62, 0.25);
+    color: #18201b;
+    font-weight: 600;
+}

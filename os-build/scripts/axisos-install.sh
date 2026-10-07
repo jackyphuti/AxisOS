@@ -344,16 +344,29 @@ rm -rf /mnt/etc/systemd/system/getty@tty1.service.d 2>/dev/null || true
 rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos.service 2>/dev/null || true
 
 mkdir -p /mnt/etc/lightdm/lightdm.conf.d
+cat << 'EOF' > /mnt/etc/lightdm/lightdm.conf.d/00-axisos-cinnamon.conf
+[Seat:*]
+greeter-session=slick-greeter
+greeter-hide-users=false
+user-session=cinnamon
+allow-guest=false
+session-wrapper=/etc/X11/Xsession
+xserver-command=X -core -noreset -background none
+EOF
+
 if [[ "$AUTOLOGIN" == "true" ]]; then
     cat << EOF > /mnt/etc/lightdm/lightdm.conf.d/01_autologin.conf
 [Seat:*]
 autologin-user=${USERNAME}
 autologin-user-timeout=0
-user-session=axisos
+user-session=cinnamon
 EOF
 else
     rm -f /mnt/etc/lightdm/lightdm.conf.d/01_autologin.conf 2>/dev/null || true
 fi
+
+# Compile dconf system databases
+chroot /mnt dconf update 2>/dev/null || true
 
 # Clean user profile to ensure no live-session kiosk loop
 mkdir -p "/mnt/home/${USERNAME}"

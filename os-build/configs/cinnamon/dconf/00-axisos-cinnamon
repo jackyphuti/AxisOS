@@ -1,0 +1,69 @@
+# AxisOS Cinnamon Desktop Default Dconf Settings
+# Mint Charcoal Theme (#18201b, #87cf3e) + Muffin Effects + Native Applets
+
+[org/cinnamon]
+theme-name='Axis-Mint-Dark'
+panels-enabled=['1:0:bottom']
+panels-height=['1:40']
+panel-zone-icon-sizes='[{"panelId": 1, "left": 0, "center": 0, "right": 24}]'
+enabled-applets=['panel1:left:0:menu@cinnamon.org:0', 'panel1:left:1:show-desktop@cinnamon.org:1', 'panel1:left:2:grouped-window-list@cinnamon.org:2', 'panel1:right:0:systray@cinnamon.org:3', 'panel1:right:1:sound@cinnamon.org:4', 'panel1:right:2:network@cinnamon.org:5', 'panel1:right:3:power@cinnamon.org:6', 'panel1:right:4:calendar@cinnamon.org:7']
+favorite-apps=['nemo.desktop', 'axis-software-manager.desktop', 'axis-update-manager.desktop', 'axis-task-manager.desktop', 'code.desktop', 'steam.desktop', 'cinnamon-settings.desktop', 'gnome-terminal.desktop']
+workspace-expo-corner='top-left:true'
+alttab-switcher-style='timeline'
+
+[org/cinnamon/desktop/interface]
+gtk-theme='Axis-Mint-Dark'
+icon-theme='Mint-Y-Dark'
+cursor-theme='DMZ-Black'
+font-name='Inter 10'
+monospace-font-name='Fira Code 10'
+clock-use-24h=false
+clock-show-seconds=false
+
+[org/cinnamon/desktop/wm/preferences]
+theme='Axis-Mint-Dark'
+button-layout='close,minimize,maximize:'
+titlebar-font='Inter Bold 10'
+num-workspaces=4
+action-double-click-titlebar='toggle-maximize'
+action-middle-click-titlebar='lower'
+action-right-click-titlebar='menu'
+
+[org/cinnamon/muffin]
+desktop-effects=true
+desktop-effects-workspace=true
+desktop-effects-close=true
+desktop-effects-map=true
+desktop-effects-minimize=true
+desktop-effects-unminimize=true
+effects-speed=2
+tile-maximize=true
+edge-tiling=true
+attach-modal-dialogs=true
+
+[org/nemo/preferences]
+show-desktop-icons=true
+show-hidden-files=false
+default-folder-viewer='icon-view'
+thumbnail-limit=68719476736
+quick-renames-with-pause=true
+
+[org/nemo/desktop]
+computer-icon-visible=true
+home-icon-visible=true
+network-icon-visible=false
+trash-icon-visible=true
+volumes-visible=true
+
+[org/cinnamon/sounds]
+login-enabled=true
+logout-enabled=true
+switch-enabled=false
+close-enabled=false
+map-enabled=false
+minimize-enabled=false
+maximize-enabled=false
+unmaximize-enabled=false
+tile-enabled=false
+plug-enabled=true
+unplug-enabled=true

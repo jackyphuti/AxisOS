@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Update Manager
+Comment=Keep your operating system secure, up-to-date, and snapshot-protected
+Exec=/usr/local/bin/axis-update-manager
+Icon=software-update-available
+Terminal=false
+Type=Application
+Categories=System;Settings;PackageManager;
+Keywords=update;upgrade;security;apt;flatpak;timeshift;axis;
+X-Cinnamon-Settings-Category=admin

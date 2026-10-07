@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<metacity_theme>
+<info>
+  <name>Axis-Mint-Dark</name>
+  <author>AxisOS Systems Architecture</author>
+  <copyright>2026 AxisOS</copyright>
+  <description>Charcoal Black and Mint Green Window Borders for Muffin</description>
+</info>
+
+<!-- Frame Geometry -->
+<frame_geometry name="normal" rounded_top_left="true" rounded_top_right="true">
+  <distance name="left_width" value="1"/>
+  <distance name="right_width" value="1"/>
+  <distance name="bottom_height" value="1"/>
+  <distance name="left_titlebar_edge" value="8"/>
+  <distance name="right_titlebar_edge" value="8"/>
+  <distance name="title_vertical_pad" value="8"/>
+  <border name="title_border" left="4" right="4" top="4" bottom="4"/>
+  <border name="button_border" left="2" right="2" top="2" bottom="2"/>
+</frame_geometry>
+
+<frame_geometry name="maximized" parent="normal" rounded_top_left="false" rounded_top_right="false">
+  <distance name="left_width" value="0"/>
+  <distance name="right_width" value="0"/>
+  <distance name="bottom_height" value="0"/>
+</frame_geometry>
+
+<!-- Draw Operations -->
+<draw_ops name="title_focused">
+  <rectangle color="#141b16" filled="true" x="0" y="0" width="width" height="height"/>
+  <line color="#87cf3e" x1="0" y1="height-1" x2="width" y2="height-1" width="1"/>
+</draw_ops>
+
+<draw_ops name="title_unfocused">
+  <rectangle color="#111613" filled="true" x="0" y="0" width="width" height="height"/>
+  <line color="#202a22" x1="0" y1="height-1" x2="width" y2="height-1" width="1"/>
+</draw_ops>
+
+<!-- Close Button (Red/Coral) -->
+<draw_ops name="button_close_normal">
+  <circle color="#ff5f56" filled="true" x="2" y="2" radius="5"/>
+</draw_ops>
+<draw_ops name="button_close_hover">
+  <circle color="#ff7b73" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#ffffff" filled="false" x="2" y="2" radius="5" width="1"/>
+</draw_ops>
+
+<!-- Minimize Button (Yellow/Amber) -->
+<draw_ops name="button_minimize_normal">
+  <circle color="#ffbd2e" filled="true" x="2" y="2" radius="5"/>
+</draw_ops>
+<draw_ops name="button_minimize_hover">
+  <circle color="#ffd269" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#ffffff" filled="false" x="2" y="2" radius="5" width="1"/>
+</draw_ops>
+
+<!-- Maximize Button (Mint/Green) -->
+<draw_ops name="button_maximize_normal">
+  <circle color="#27c93f" filled="true" x="2" y="2" radius="5"/>
+</draw_ops>
+<draw_ops name="button_maximize_hover">
+  <circle color="#4de363" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#ffffff" filled="false" x="2" y="2" radius="5" width="1"/>
+</draw_ops>
+
+<frame_style name="normal_focused" geometry="normal">
+  <piece position="entire_background" draw_ops="title_focused"/>
+  <piece position="title" draw_ops="title_focused"/>
+  <button function="close" state="normal" draw_ops="button_close_normal"/>
+  <button function="close" state="prelight" draw_ops="button_close_hover"/>
+  <button function="minimize" state="normal" draw_ops="button_minimize_normal"/>
+  <button function="minimize" state="prelight" draw_ops="button_minimize_hover"/>
+  <button function="maximize" state="normal" draw_ops="button_maximize_normal"/>
+  <button function="maximize" state="prelight" draw_ops="button_maximize_hover"/>
+</frame_style>
+
+<frame_style name="normal_unfocused" geometry="normal">
+  <piece position="entire_background" draw_ops="title_unfocused"/>
+  <piece position="title" draw_ops="title_unfocused"/>
+  <button function="close" state="normal" draw_ops="button_close_normal"/>
+  <button function="minimize" state="normal" draw_ops="button_minimize_normal"/>
+  <button function="maximize" state="normal" draw_ops="button_maximize_normal"/>
+</frame_style>
+
+<frame_style_set name="normal">
+  <frame focus="yes" state="normal" style="normal_focused"/>
+  <frame focus="no" state="normal" style="normal_unfocused"/>
+  <frame focus="yes" state="maximized" style="normal_focused"/>
+  <frame focus="no" state="maximized" style="normal_unfocused"/>
+</frame_style_set>
+
+<window type="normal" style_set="normal"/>
+<window type="dialog" style_set="normal"/>
+<window type="modal_dialog" style_set="normal"/>
+</metacity_theme>

@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Task Manager
+Comment=Monitor CPU, Memory, Disk, Network, and running system processes
+Exec=/usr/local/bin/axis-task-manager
+Icon=utilities-system-monitor
+Terminal=false
+Type=Application
+Categories=System;Monitor;
+Keywords=task;manager;process;kill;cpu;ram;system;monitor;performance;
+X-Cinnamon-Settings-Category=admin

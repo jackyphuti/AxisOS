@@ -1,0 +1,79 @@
+/* ==============================================================================
+ * AxisOS GTK-4.0 & Libadwaita Theme (Axis-Mint-Dark)
+ * Charcoal Black (#18201b / #141b16) with Mint Green (#87cf3e) Accents
+ * ============================================================================== */
+
+@define-color accent_color #87cf3e;
+@define-color accent_bg_color #87cf3e;
+@define-color accent_fg_color #0d140f;
+
+@define-color destructive_color #e0443e;
+@define-color destructive_bg_color #e0443e;
+@define-color destructive_fg_color #ffffff;
+
+@define-color window_bg_color #18201b;
+@define-color window_fg_color #dbe4de;
+
+@define-color view_bg_color #141b16;
+@define-color view_fg_color #dbe4de;
+
+@define-color headerbar_bg_color #141b16;
+@define-color headerbar_fg_color #ffffff;
+@define-color headerbar_border_color rgba(135, 207, 62, 0.25);
+
+@define-color card_bg_color #202a23;
+@define-color card_fg_color #dbe4de;
+@define-color card_border_color rgba(135, 207, 62, 0.15);
+
+@define-color popover_bg_color #18201b;
+@define-color popover_fg_color #dbe4de;
+
+window {
+    background-color: @window_bg_color;
+    color: @window_fg_color;
+}
+
+headerbar {
+    background-color: @headerbar_bg_color;
+    color: @headerbar_fg_color;
+    border-bottom: 1px solid @headerbar_border_color;
+    min-height: 44px;
+}
+
+button {
+    background-color: #212c24;
+    color: #e0e8e3;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 120ms ease;
+}
+
+button:hover {
+    background-color: #2a372e;
+    border-color: rgba(135, 207, 62, 0.35);
+}
+
+button.suggested-action {
+    background-color: @accent_bg_color;
+    color: @accent_fg_color;
+    font-weight: bold;
+}
+
+entry {
+    background-color: #121814;
+    color: #ffffff;
+    border: 1px solid rgba(135, 207, 62, 0.25);
+    border-radius: 8px;
+}
+
+entry:focus-within {
+    border-color: @accent_color;
+    outline: 2px solid rgba(135, 207, 62, 0.3);
+}
+
+/* Cards & Lists */
+.card, row {
+    background-color: @card_bg_color;
+    border: 1px solid @card_border_color;
+    border-radius: 10px;
+}

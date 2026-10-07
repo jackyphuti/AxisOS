@@ -10,229 +10,115 @@ import {
   Repeat,
   Music,
   Heart,
-  Compass,
-  Radio,
   Disc,
   User,
   ListMusic,
   FolderOpen,
-  Sliders,
-  Sparkles,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { useWindowManager } from '../../context/WindowManagerContext';
 
-interface Track {
+export interface AudioTrack {
   id: string;
   title: string;
   artist: string;
   album: string;
-  duration: number; // in seconds
-  squircleBg: string;
-  iconColor: string;
-  isCustom?: boolean;
-  audioBlobUrl?: string;
-  bpm?: number;
+  duration: number; // seconds
+  audioBlobUrl: string;
 }
-
-const DEFAULT_PLAYLIST: Track[] = [
-  {
-    id: 'track-1',
-    title: 'Golden hour',
-    artist: 'Nova Lane',
-    album: 'Morning mix',
-    duration: 204,
-    squircleBg: 'bg-[#FFF1D6]',
-    iconColor: 'text-[#BA7517]',
-    bpm: 90,
-  },
-  {
-    id: 'track-2',
-    title: 'Midnight drive',
-    artist: 'Nova Lane',
-    album: 'Deep focus',
-    duration: 222,
-    squircleBg: 'bg-[#EBE9FD]',
-    iconColor: 'text-[#6366F1]',
-    bpm: 110,
-  },
-  {
-    id: 'track-3',
-    title: 'Horizon Sunrise',
-    artist: 'Axis Sound Lab',
-    album: 'Wayland Vibes Vol. 1',
-    duration: 180,
-    squircleBg: 'bg-[#FDE8D7]',
-    iconColor: 'text-[#EA580C]',
-    bpm: 85,
-  },
-  {
-    id: 'track-4',
-    title: 'Favorites Beat',
-    artist: 'Neon Driver',
-    album: 'Favorites',
-    duration: 210,
-    squircleBg: 'bg-[#FCE7F0]',
-    iconColor: 'text-[#E11D48]',
-    bpm: 105,
-  },
-  {
-    id: 'track-5',
-    title: 'Deep Space Orbit',
-    artist: 'Stellar Drifter',
-    album: 'Chill',
-    duration: 240,
-    squircleBg: 'bg-[#E2F6E7]',
-    iconColor: 'text-[#16A34A]',
-    bpm: 70,
-  },
-];
 
 export const MusicApp: React.FC = () => {
   const { closeWindow, minimizeWindow, toggleMaximizeWindow, windows } = useWindowManager();
   const currentWindow = windows.find((w) => w.appId === 'music');
 
-  const [activeNav, setActiveNav] = useState<'listen-now' | 'browse' | 'radio' | 'albums' | 'artists' | 'playlists'>('listen-now');
-  const [playlist, setPlaylist] = useState<Track[]>(DEFAULT_PLAYLIST);
+  const [activeNav, setActiveNav] = useState<'library' | 'albums' | 'artists' | 'playlists'>('library');
+  const [playlist, setPlaylist] = useState<AudioTrack[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(0.8);
+  const [volume, setVolume] = useState(0.85);
   const [isMuted, setIsMuted] = useState(false);
   const [isShuffle, setIsShuffle] = useState(false);
   const [isRepeat, setIsRepeat] = useState(false);
-  const [likedTracks, setLikedTracks] = useState<Record<string, boolean>>({ 'track-1': true });
-  const [isHoveringControls, setIsHoveringControls] = useState(false);
+  const [likedTracks, setLikedTracks] = useState<Record<string, boolean>>({});
 
-  const currentTrack = playlist[currentTrackIndex] || playlist[0];
-
-  // Web Audio Context and Synthesis Engine
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const synthTimerRef = useRef<any>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const audioElementRef = useRef<HTMLAudioElement | null>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Initialize Audio Context on demand
+  const currentTrack = playlist[currentTrackIndex] || null;
+
+  // Audio Context & Analyser Initialization
   const ensureAudioContext = () => {
     if (!audioCtxRef.current) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      const ctx = new AudioCtx();
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 64;
-      const gainNode = ctx.createGain();
-      gainNode.gain.setValueAtTime(isMuted ? 0 : volume, ctx.currentTime);
-
-      gainNode.connect(analyser);
-      analyser.connect(ctx.destination);
-
-      audioCtxRef.current = ctx;
-      analyserRef.current = analyser;
-      gainNodeRef.current = gainNode;
+      if (AudioCtx) {
+        audioCtxRef.current = new AudioCtx();
+        analyserRef.current = audioCtxRef.current.createAnalyser();
+        analyserRef.current.fftSize = 64;
+      }
     }
-
-    if (audioCtxRef.current.state === 'suspended') {
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
       audioCtxRef.current.resume();
     }
   };
 
-  const playSynthNote = (freq: number, duration: number, type: OscillatorType = 'sine') => {
-    if (!audioCtxRef.current || !gainNodeRef.current) return;
-    const ctx = audioCtxRef.current;
-    const osc = ctx.createOscillator();
-    const noteGain = ctx.createGain();
-
-    osc.type = type;
-    osc.frequency.setValueAtTime(freq, ctx.currentTime);
-
-    noteGain.gain.setValueAtTime(0.001, ctx.currentTime);
-    noteGain.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + 0.05);
-    noteGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-
-    osc.connect(noteGain);
-    noteGain.connect(gainNodeRef.current);
-
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  };
-
-  // Generative chord progression based on track
+  // Synchronize HTML5 Audio element
   useEffect(() => {
-    if (!isPlaying) {
-      if (synthTimerRef.current) clearInterval(synthTimerRef.current);
-      if (audioElementRef.current) audioElementRef.current.pause();
-      return;
-    }
-
-    ensureAudioContext();
-
-    if (currentTrack.isCustom && currentTrack.audioBlobUrl) {
-      if (!audioElementRef.current) {
-        audioElementRef.current = new Audio(currentTrack.audioBlobUrl);
-      } else {
-        if (audioElementRef.current.src !== currentTrack.audioBlobUrl) {
-          audioElementRef.current.src = currentTrack.audioBlobUrl;
+    if (!audioElementRef.current) {
+      const audio = new Audio();
+      audio.preload = 'auto';
+      audio.onended = () => {
+        handleNext();
+      };
+      audio.ontimeupdate = () => {
+        setCurrentTime(Math.floor(audio.currentTime));
+      };
+      audio.onloadedmetadata = () => {
+        if (playlist[currentTrackIndex] && !playlist[currentTrackIndex].duration) {
+          const dur = Math.floor(audio.duration) || 0;
+          setPlaylist((prev) =>
+            prev.map((t, idx) => (idx === currentTrackIndex ? { ...t, duration: dur } : t))
+          );
         }
-      }
-      audioElementRef.current.volume = isMuted ? 0 : volume;
-      audioElementRef.current.currentTime = currentTime;
-      audioElementRef.current.play().catch(() => {});
-      return;
+      };
+      audioElementRef.current = audio;
     }
+  }, [playlist, currentTrackIndex]);
 
-    const chordSets: Record<string, number[][]> = {
-      'track-1': [[261.63, 329.63, 392.0], [293.66, 349.23, 440.0], [329.63, 392.0, 493.88], [220.0, 261.63, 329.63]],
-      'track-2': [[220.0, 261.63, 329.63], [174.61, 220.0, 261.63], [196.0, 246.94, 293.66], [164.81, 196.0, 246.94]],
-      'track-3': [[261.63, 329.63, 392.0], [349.23, 440.0, 523.25], [392.0, 493.88, 587.33], [220.0, 261.63, 329.63]],
-      'track-4': [[293.66, 369.99, 440.0], [329.63, 415.3, 493.88], [261.63, 329.63, 392.0], [220.0, 277.18, 329.63]],
-      'track-5': [[130.81, 196.0, 261.63], [146.83, 220.0, 293.66], [164.81, 246.94, 329.63], [110.0, 164.81, 220.0]],
-    };
-
-    const chords = chordSets[currentTrack.id] || chordSets['track-1'];
-    let step = 0;
-
-    synthTimerRef.current = setInterval(() => {
-      const chordIndex = Math.floor(step / 4) % chords.length;
-      const noteIndex = step % chords[chordIndex].length;
-      const freq = chords[chordIndex][noteIndex];
-
-      if (step % 4 === 0) {
-        playSynthNote(freq / 2, 0.7, 'triangle');
-      }
-      playSynthNote(freq, 0.35, 'sine');
-      if (step % 2 === 0) {
-        playSynthNote(120, 0.04, 'sawtooth');
-      }
-
-      step += 1;
-    }, 450);
-
-    return () => {
-      if (synthTimerRef.current) clearInterval(synthTimerRef.current);
-    };
-  }, [isPlaying, currentTrackIndex, currentTrack.id]);
-
-  // Track progress timer
+  // Handle Playback Change
   useEffect(() => {
-    let timer: any = null;
-    if (isPlaying) {
-      timer = setInterval(() => {
-        setCurrentTime((prev) => {
-          if (prev >= currentTrack.duration) {
-            handleNext();
-            return 0;
-          }
-          return prev + 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [isPlaying, currentTrack.duration]);
+    const audio = audioElementRef.current;
+    if (!audio) return;
 
-  // Frequency Spectrum Canvas Visualizer
+    if (currentTrack && currentTrack.audioBlobUrl) {
+      if (audio.src !== currentTrack.audioBlobUrl) {
+        audio.src = currentTrack.audioBlobUrl;
+        audio.currentTime = 0;
+      }
+      if (isPlaying) {
+        ensureAudioContext();
+        audio.play().catch(() => {});
+      } else {
+        audio.pause();
+      }
+    } else {
+      audio.pause();
+      setIsPlaying(false);
+    }
+  }, [currentTrack, isPlaying]);
+
+  // Volume & Mute handling
+  useEffect(() => {
+    if (audioElementRef.current) {
+      audioElementRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
+
+  // Spectrum Canvas Visualizer
   useEffect(() => {
     let animId: number;
     const canvas = canvasRef.current;
@@ -244,22 +130,18 @@ export const MusicApp: React.FC = () => {
       animId = requestAnimationFrame(render);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const barCount = 18;
+      const barCount = 16;
       const barWidth = canvas.width / barCount - 2;
 
-      let freqData = new Uint8Array(barCount);
-      if (analyserRef.current && isPlaying) {
-        analyserRef.current.getByteFrequencyData(freqData);
-      }
-
       for (let i = 0; i < barCount; i++) {
-        let val = freqData[i] || 0;
-        if (!isPlaying) val = 4;
-        const barHeight = Math.max(3, (val / 255) * canvas.height * 0.85);
+        let barHeight = 4;
+        if (isPlaying) {
+          barHeight = Math.max(4, Math.sin(Date.now() / 200 + i) * 12 + 14);
+        }
         const x = i * (barWidth + 2);
         const y = canvas.height - barHeight;
 
-        ctx.fillStyle = '#BA7517';
+        ctx.fillStyle = '#87cf3e';
         ctx.beginPath();
         ctx.roundRect(x, y, barWidth, barHeight, [2, 2, 0, 0]);
         ctx.fill();
@@ -270,73 +152,72 @@ export const MusicApp: React.FC = () => {
     return () => cancelAnimationFrame(animId);
   }, [isPlaying]);
 
-  // Volume handler
-  useEffect(() => {
-    if (gainNodeRef.current && audioCtxRef.current) {
-      gainNodeRef.current.gain.setValueAtTime(isMuted ? 0 : volume, audioCtxRef.current.currentTime);
-    }
-    if (audioElementRef.current) {
-      audioElementRef.current.volume = isMuted ? 0 : volume;
-    }
-  }, [volume, isMuted]);
-
   const togglePlay = () => {
+    if (playlist.length === 0) return;
     ensureAudioContext();
     setIsPlaying(!isPlaying);
   };
 
-  const playTrack = (index: number) => {
-    setCurrentTrackIndex(index);
-    setCurrentTime(0);
-    ensureAudioContext();
-    setIsPlaying(true);
-  };
-
   const handleNext = () => {
-    setCurrentTime(0);
+    if (playlist.length === 0) return;
     if (isShuffle) {
       const nextIdx = Math.floor(Math.random() * playlist.length);
       setCurrentTrackIndex(nextIdx);
     } else {
       setCurrentTrackIndex((prev) => (prev + 1) % playlist.length);
     }
+    setCurrentTime(0);
+    setIsPlaying(true);
   };
 
   const handlePrev = () => {
-    if (currentTime > 3) {
-      setCurrentTime(0);
-      return;
-    }
-    setCurrentTime(0);
+    if (playlist.length === 0) return;
     setCurrentTrackIndex((prev) => (prev - 1 + playlist.length) % playlist.length);
-  };
-
-  const toggleLike = (id: string) => {
-    setLikedTracks((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const handleImportAudio = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-    const file = files[0];
-    const blobUrl = URL.createObjectURL(file);
-
-    const newTrack: Track = {
-      id: `custom-${Date.now()}`,
-      title: file.name.replace(/\.[^/.]+$/, ''),
-      artist: 'Local Audio',
-      album: 'Imported',
-      duration: 210,
-      squircleBg: 'bg-[#FFF1D6]',
-      iconColor: 'text-[#BA7517]',
-      isCustom: true,
-      audioBlobUrl: blobUrl,
-    };
-
-    setPlaylist((prev) => [newTrack, ...prev]);
-    setCurrentTrackIndex(0);
     setCurrentTime(0);
     setIsPlaying(true);
+  };
+
+  const handleSeek = (newTime: number) => {
+    setCurrentTime(newTime);
+    if (audioElementRef.current) {
+      audioElementRef.current.currentTime = newTime;
+    }
+  };
+
+  const handleImportFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newTracks: AudioTrack[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const url = URL.createObjectURL(file);
+      const cleanName = file.name.replace(/\.[^/.]+$/, '');
+      newTracks.push({
+        id: `track-${Date.now()}-${i}`,
+        title: cleanName,
+        artist: 'Local Audio',
+        album: 'My Music',
+        duration: 180,
+        audioBlobUrl: url,
+      });
+    }
+
+    setPlaylist((prev) => [...prev, ...newTracks]);
+    if (!isPlaying && playlist.length === 0) {
+      setCurrentTrackIndex(0);
+      setIsPlaying(true);
+    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const removeTrack = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPlaylist((prev) => prev.filter((t) => t.id !== id));
+    if (currentTrack?.id === id) {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    }
   };
 
   const formatTime = (secs: number) => {
@@ -345,426 +226,316 @@ export const MusicApp: React.FC = () => {
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const madeForYouCards = [
-    {
-      id: 'morning-mix',
-      title: 'Morning mix',
-      subtitle: 'Updated today',
-      bg: 'bg-[#FDE8D7]',
-      textColor: 'text-[#EA580C]',
-      trackIndex: 0,
-    },
-    {
-      id: 'deep-focus',
-      title: 'Deep focus',
-      subtitle: 'Instrumental',
-      bg: 'bg-[#E1EEFD]',
-      textColor: 'text-[#007AFF]',
-      trackIndex: 1,
-    },
-    {
-      id: 'favorites',
-      title: 'Favorites',
-      subtitle: '128 songs',
-      bg: 'bg-[#FCE7F0]',
-      textColor: 'text-[#E11D48]',
-      trackIndex: 3,
-    },
-    {
-      id: 'chill',
-      title: 'Chill',
-      subtitle: 'Easy listening',
-      bg: 'bg-[#E2F6E7]',
-      textColor: 'text-[#16A34A]',
-      trackIndex: 4,
-    },
-  ];
-
   return (
-    <div className="flex flex-col h-full w-full bg-[#FFFFFF] text-[#1C1C1E] select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full bg-[#18201b] text-slate-100 select-none overflow-hidden font-sans">
+      {/* Hidden File Picker */}
       <input
-        type="file"
         ref={fileInputRef}
-        onChange={handleImportAudio}
-        accept="audio/*"
+        type="file"
+        accept="audio/*,.mp3,.wav,.ogg,.flac,.m4a"
+        multiple
         className="hidden"
+        onChange={handleImportFiles}
       />
 
+      {/* Main Body with Sidebar & Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* ======================================================== */}
-        {/* SIDEBAR: Traffic Lights + Apple/Mac style Library Nav     */}
-        {/* ======================================================== */}
-        <div
-          data-window-drag
-          className="w-52 bg-[#F7F7F9] border-r border-[#EAEAEB] p-3.5 flex flex-col justify-between shrink-0"
-        >
+        {/* Linux Mint Dark Charcoal Sidebar */}
+        <div className="w-56 bg-[#141b16] border-r border-[#87cf3e]/15 flex flex-col justify-between p-3.5 shrink-0">
           <div>
-            {/* Top: Window Traffic Lights */}
+            {/* macOS Window Traffic Lights */}
             <div
-              className="flex items-center space-x-2 mb-5 px-1 pt-0.5"
-              onMouseEnter={() => setIsHoveringControls(true)}
-              onMouseLeave={() => setIsHoveringControls(false)}
+              data-window-drag
+              className="flex items-center space-x-2 pb-5 pt-1 pl-1 cursor-default select-none"
             >
               <button
                 onClick={() => currentWindow && closeWindow(currentWindow.id)}
-                className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] flex items-center justify-center cursor-pointer transition-transform active:scale-90"
+                className="w-3 h-3 rounded-full bg-[#ff5f56] border border-[#e0443e] cursor-pointer"
                 title="Close"
-              >
-                <span
-                  className={`text-[8px] font-black text-rose-950 leading-none ${
-                    isHoveringControls ? 'opacity-100' : 'opacity-0'
-                  }`}
-                >
-                  ×
-                </span>
-              </button>
+              />
               <button
                 onClick={() => currentWindow && minimizeWindow(currentWindow.id)}
-                className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] flex items-center justify-center cursor-pointer transition-transform active:scale-90"
+                className="w-3 h-3 rounded-full bg-[#ffbd2e] border border-[#dea123] cursor-pointer"
                 title="Minimize"
-              >
-                <span
-                  className={`text-[9px] font-black text-amber-950 leading-none -translate-y-0.5 ${
-                    isHoveringControls ? 'opacity-100' : 'opacity-0'
-                  }`}
-                >
-                  –
-                </span>
-              </button>
+              />
               <button
                 onClick={() => currentWindow && toggleMaximizeWindow(currentWindow.id)}
-                className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] flex items-center justify-center cursor-pointer transition-transform active:scale-90"
-                title="Zoom"
-              >
-                <span
-                  className={`text-[7px] font-black text-emerald-950 leading-none ${
-                    isHoveringControls ? 'opacity-100' : 'opacity-0'
-                  }`}
-                >
-                  +
-                </span>
-              </button>
+                className="w-3 h-3 rounded-full bg-[#27c93f] border border-[#1aab29] cursor-pointer"
+                title="Maximize"
+              />
             </div>
 
-            {/* Top Navigation */}
+            {/* Sidebar Navigation */}
+            <div className="text-[11px] font-bold text-[#87cf3e] uppercase tracking-wider px-2 mb-2">
+              Music Library
+            </div>
             <div className="flex flex-col gap-1">
               <button
-                onClick={() => setActiveNav('listen-now')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
-                  activeNav === 'listen-now'
-                    ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
-                    : 'text-[#5C5C60] hover:bg-black/5 font-medium'
+                onClick={() => setActiveNav('library')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-colors ${
+                  activeNav === 'library'
+                    ? 'bg-[#87cf3e] text-black font-bold shadow-sm'
+                    : 'text-slate-300 hover:bg-[#87cf3e]/10'
                 }`}
               >
-                <Play className="w-4 h-4 fill-current" strokeWidth={1.5} />
-                <span>Listen now</span>
+                <Music className="w-4 h-4" />
+                <span>All Tracks</span>
+                {playlist.length > 0 && (
+                  <span className="ml-auto text-[10px] font-mono opacity-80">{playlist.length}</span>
+                )}
               </button>
 
               <button
-                onClick={() => setActiveNav('browse')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
-                  activeNav === 'browse'
-                    ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
-                    : 'text-[#5C5C60] hover:bg-black/5 font-medium'
+                onClick={() => setActiveNav('albums')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-colors ${
+                  activeNav === 'albums'
+                    ? 'bg-[#87cf3e] text-black font-bold shadow-sm'
+                    : 'text-slate-300 hover:bg-[#87cf3e]/10'
                 }`}
               >
-                <Compass className="w-4 h-4" strokeWidth={1.8} />
-                <span>Browse</span>
+                <Disc className="w-4 h-4" />
+                <span>Albums</span>
               </button>
 
               <button
-                onClick={() => setActiveNav('radio')}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
-                  activeNav === 'radio'
-                    ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
-                    : 'text-[#5C5C60] hover:bg-black/5 font-medium'
+                onClick={() => setActiveNav('artists')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-colors ${
+                  activeNav === 'artists'
+                    ? 'bg-[#87cf3e] text-black font-bold shadow-sm'
+                    : 'text-slate-300 hover:bg-[#87cf3e]/10'
                 }`}
               >
-                <Radio className="w-4 h-4" strokeWidth={1.8} />
-                <span>Radio</span>
+                <User className="w-4 h-4" />
+                <span>Artists</span>
               </button>
-            </div>
 
-            {/* Library Section */}
-            <div className="mt-6">
-              <div className="text-xs font-semibold text-[#8E8E93] uppercase tracking-wider px-3 mb-2">
-                Library
-              </div>
-              <div className="flex flex-col gap-1">
-                <button
-                  onClick={() => setActiveNav('albums')}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
-                    activeNav === 'albums'
-                      ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
-                      : 'text-[#5C5C60] hover:bg-black/5 font-medium'
-                  }`}
-                >
-                  <Disc className="w-4 h-4" strokeWidth={1.8} />
-                  <span>Albums</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveNav('artists')}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
-                    activeNav === 'artists'
-                      ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
-                      : 'text-[#5C5C60] hover:bg-black/5 font-medium'
-                  }`}
-                >
-                  <User className="w-4 h-4" strokeWidth={1.8} />
-                  <span>Artists</span>
-                </button>
-
-                <button
-                  onClick={() => setActiveNav('playlists')}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${
-                    activeNav === 'playlists'
-                      ? 'bg-[#FFF1D6] text-[#8A580C] font-semibold'
-                      : 'text-[#5C5C60] hover:bg-black/5 font-medium'
-                  }`}
-                >
-                  <ListMusic className="w-4 h-4" strokeWidth={1.8} />
-                  <span>Playlists</span>
-                </button>
-              </div>
+              <button
+                onClick={() => setActiveNav('playlists')}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-colors ${
+                  activeNav === 'playlists'
+                    ? 'bg-[#87cf3e] text-black font-bold shadow-sm'
+                    : 'text-slate-300 hover:bg-[#87cf3e]/10'
+                }`}
+              >
+                <ListMusic className="w-4 h-4" />
+                <span>Playlists</span>
+              </button>
             </div>
           </div>
 
-          {/* Bottom: Import Local Audio button */}
-          <div className="border-t border-[#EAEAEB] pt-3">
+          {/* Import Music Files Button */}
+          <div className="pt-3 border-t border-[#87cf3e]/15">
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs text-[#5C5C60] hover:text-[#1C1C1E] hover:bg-black/5 transition-colors"
-              title="Import audio file (.mp3, .wav, .ogg)"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-[#87cf3e]/15 hover:bg-[#87cf3e]/25 text-[#87cf3e] border border-[#87cf3e]/30 text-xs font-semibold transition-colors"
             >
-              <FolderOpen className="w-4 h-4 text-[#8E8E93]" strokeWidth={1.8} />
-              <span>Import Audio</span>
+              <Plus className="w-4 h-4" />
+              <span>Import Audio Files</span>
             </button>
           </div>
         </div>
 
-        {/* ======================================================== */}
-        {/* MAIN DISPLAY CANVAS (Pure White #FFFFFF)                  */}
-        {/* ======================================================== */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-[#FFFFFF]">
-          {/* Draggable Title Header strip */}
-          <div data-window-drag className="h-8 shrink-0 bg-transparent" />
-
-          {/* Scrollable Content */}
-          <div className="flex-1 overflow-y-auto px-8 pb-8 flex flex-col gap-7">
-            {/* Page Header */}
-            <div>
-              <h1 className="text-3xl font-bold text-[#1C1C1E] tracking-tight">
-                {activeNav === 'listen-now' ? 'Listen now' : activeNav.replace('-', ' ')}
-              </h1>
+        {/* Main Content Pane */}
+        <div className="flex-1 flex flex-col bg-[#18201b] overflow-hidden">
+          {/* Header strip */}
+          <div data-window-drag className="h-8 shrink-0 flex items-center px-6 justify-between border-b border-[#87cf3e]/10">
+            <span className="text-xs font-medium text-slate-400">Axis Music Player</span>
+            <div className="flex items-center gap-2 text-xs text-slate-400">
+              <FolderOpen className="w-3.5 h-3.5" />
+              <span>Local Storage: /home/axis/Music</span>
             </div>
+          </div>
 
-            {/* Section: Made for you */}
-            <div className="flex flex-col gap-3">
-              <h2 className="text-base font-bold text-[#1C1C1E]">Made for you</h2>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {madeForYouCards.map((card) => (
+          {/* Track List or Clean Empty State */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {playlist.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-center max-w-md mx-auto gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-[#87cf3e]/15 border border-[#87cf3e]/30 flex items-center justify-center text-[#87cf3e] shadow-lg">
+                  <Music className="w-8 h-8" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-100">Your Music Library is Ready</h2>
+                  <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                    No dummy or sample tracks are loaded. Import your own real music files (.mp3, .wav, .flac, .ogg) from storage or flash drives to begin playback.
+                  </p>
+                </div>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-5 py-2.5 rounded-xl bg-[#87cf3e] text-black text-xs font-bold hover:bg-[#76bb33] transition-colors shadow-md flex items-center gap-2"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  <span>Choose Music Files</span>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-xl font-bold text-slate-100">All Tracks</h1>
+                    <p className="text-xs text-slate-400">{playlist.length} items loaded</p>
+                  </div>
                   <button
-                    key={card.id}
-                    onClick={() => playTrack(card.trackIndex)}
-                    className="flex flex-col text-left group transition-transform active:scale-98 cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-3 py-1.5 rounded-lg bg-[#87cf3e]/15 hover:bg-[#87cf3e]/25 text-[#87cf3e] border border-[#87cf3e]/30 text-xs font-medium transition-colors flex items-center gap-1.5"
                   >
-                    {/* Square Pastel Album Artwork */}
-                    <div
-                      className={`w-full aspect-square rounded-2xl ${card.bg} ${card.textColor} p-4 flex flex-col justify-between shadow-2xs group-hover:shadow-xs group-hover:scale-[1.02] transition-all relative overflow-hidden`}
-                    >
-                      <div className="w-7 h-7 rounded-full bg-white/40 flex items-center justify-center">
-                        <Music className="w-3.5 h-3.5" strokeWidth={2} />
-                      </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute right-3 bottom-3 w-9 h-9 rounded-full bg-white text-[#1C1C1E] flex items-center justify-center shadow-md">
-                        <Play className="w-4 h-4 fill-current ml-0.5" />
-                      </div>
-                    </div>
-
-                    {/* Metadata */}
-                    <div className="mt-2.5">
-                      <h3 className="text-sm font-semibold text-[#1C1C1E] group-hover:text-[#BA7517] transition-colors leading-snug">
-                        {card.title}
-                      </h3>
-                      <p className="text-xs text-[#8E8E93] mt-0.5">{card.subtitle}</p>
-                    </div>
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Add More</span>
                   </button>
-                ))}
-              </div>
-            </div>
+                </div>
 
-            {/* Section: Recently played */}
-            <div className="flex flex-col gap-3">
-              <h2 className="text-base font-bold text-[#1C1C1E]">Recently played</h2>
-
-              <div className="flex flex-col divide-y divide-[#EFEFF1]">
-                {playlist.map((track, idx) => {
-                  const isCurrent = idx === currentTrackIndex;
-                  return (
-                    <div
-                      key={track.id}
-                      onClick={() => playTrack(idx)}
-                      className={`flex items-center justify-between py-3 px-2 rounded-xl transition-all cursor-pointer ${
-                        isCurrent ? 'bg-[#FFF9EE]' : 'hover:bg-[#F7F7F9]'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3.5">
-                        <div
-                          className={`w-11 h-11 rounded-xl ${track.squircleBg} ${track.iconColor} flex items-center justify-center shrink-0 shadow-2xs`}
-                        >
-                          <Music className="w-5 h-5" strokeWidth={1.8} />
+                <div className="flex flex-col divide-y divide-[#87cf3e]/10 bg-[#141b16] rounded-2xl border border-[#87cf3e]/15 overflow-hidden">
+                  {playlist.map((track, idx) => {
+                    const isCurrent = idx === currentTrackIndex;
+                    return (
+                      <div
+                        key={track.id}
+                        onClick={() => {
+                          setCurrentTrackIndex(idx);
+                          setIsPlaying(true);
+                        }}
+                        className={`px-4 py-3 flex items-center justify-between cursor-pointer transition-colors ${
+                          isCurrent ? 'bg-[#87cf3e]/15' : 'hover:bg-[#87cf3e]/5'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3 truncate">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (isCurrent) togglePlay();
+                              else {
+                                setCurrentTrackIndex(idx);
+                                setIsPlaying(true);
+                              }
+                            }}
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
+                              isCurrent ? 'bg-[#87cf3e] text-black font-bold' : 'bg-white/5 text-slate-300 hover:text-white'
+                            }`}
+                          >
+                            {isCurrent && isPlaying ? (
+                              <Pause className="w-4 h-4" />
+                            ) : (
+                              <Play className="w-4 h-4 ml-0.5" />
+                            )}
+                          </button>
+                          <div className="overflow-hidden">
+                            <div className={`text-xs font-semibold truncate ${isCurrent ? 'text-[#87cf3e]' : 'text-slate-100'}`}>
+                              {track.title}
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate">{track.artist}</div>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className={`text-sm font-semibold ${isCurrent ? 'text-[#BA7517]' : 'text-[#1C1C1E]'}`}>
-                            {track.title}
-                          </h4>
-                          <p className="text-xs text-[#8E8E93]">{track.artist}</p>
+
+                        <div className="flex items-center space-x-4 shrink-0">
+                          <span className="text-xs font-mono text-slate-400">
+                            {formatTime(track.duration)}
+                          </span>
+                          <button
+                            onClick={(e) => removeTrack(track.id, e)}
+                            className="p-1 rounded text-slate-500 hover:text-rose-400 transition-colors"
+                            title="Remove track"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-4">
-                        <span className="text-xs text-[#8E8E93] font-mono">
-                          {formatTime(track.duration)}
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleLike(track.id);
-                          }}
-                          className={`p-1.5 rounded-full hover:bg-black/5 transition-colors ${
-                            likedTracks[track.id] ? 'text-rose-500' : 'text-[#8E8E93]'
-                          }`}
-                        >
-                          <Heart
-                            className={`w-4 h-4 ${likedTracks[track.id] ? 'fill-rose-500' : ''}`}
-                            strokeWidth={1.8}
-                          />
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* BOTTOM PLAYER BAR (Pixel-Perfect Mockup 3)               */}
-      {/* ======================================================== */}
-      <div className="h-20 bg-white border-t border-[#EAEAEB] px-6 flex items-center justify-between shrink-0 shadow-2xs">
-        {/* Left: Amber Squircle Art + Title + Artist */}
-        <div className="flex items-center gap-3.5 w-60">
-          <div className="w-12 h-12 rounded-xl bg-[#FFF1D6] text-[#BA7517] flex items-center justify-center shrink-0 shadow-2xs">
-            <Music className="w-5 h-5" strokeWidth={1.8} />
-          </div>
-          <div className="truncate">
-            <div className="text-xs font-semibold text-[#1C1C1E] truncate">
-              {currentTrack.title}
-            </div>
-            <div className="text-[11px] text-[#8E8E93] truncate">{currentTrack.artist}</div>
-          </div>
-          <button
-            onClick={() => toggleLike(currentTrack.id)}
-            className={`p-1.5 rounded-full hover:bg-black/5 transition-colors ml-1 shrink-0 ${
-              likedTracks[currentTrack.id] ? 'text-rose-500' : 'text-[#8E8E93]'
-            }`}
-          >
-            <Heart
-              className={`w-4 h-4 ${likedTracks[currentTrack.id] ? 'fill-rose-500' : ''}`}
-              strokeWidth={1.8}
-            />
-          </button>
+      {/* Linux Mint Bottom Now-Playing & Playback Bar */}
+      <div className="h-20 bg-[#141b16] border-t border-[#87cf3e]/20 px-6 flex items-center justify-between shrink-0">
+        {/* Left: Track Information */}
+        <div className="w-1/4 flex items-center space-x-3 overflow-hidden">
+          {currentTrack ? (
+            <>
+              <div className="w-11 h-11 rounded-xl bg-[#87cf3e]/20 border border-[#87cf3e]/30 flex items-center justify-center text-[#87cf3e] shrink-0">
+                <Music className="w-5 h-5" />
+              </div>
+              <div className="overflow-hidden">
+                <div className="text-xs font-semibold text-slate-100 truncate">{currentTrack.title}</div>
+                <div className="text-[11px] text-slate-400 truncate">{currentTrack.artist}</div>
+              </div>
+            </>
+          ) : (
+            <div className="text-xs text-slate-500 italic">No track selected</div>
+          )}
         </div>
 
-        {/* Center: Controls + Amber Scrubber Bar */}
-        <div className="flex flex-col items-center gap-1.5 max-w-md w-full px-4">
-          {/* Action buttons */}
+        {/* Center: Controls & Timeline */}
+        <div className="flex-1 max-w-lg flex flex-col items-center gap-1.5">
           <div className="flex items-center space-x-5">
             <button
               onClick={() => setIsShuffle(!isShuffle)}
-              className={`p-1 transition-colors ${
-                isShuffle ? 'text-[#BA7517]' : 'text-[#8E8E93] hover:text-[#1C1C1E]'
-              }`}
+              className={`p-1 transition-colors ${isShuffle ? 'text-[#87cf3e]' : 'text-slate-500 hover:text-slate-300'}`}
               title="Shuffle"
             >
-              <Shuffle className="w-3.5 h-3.5" strokeWidth={1.8} />
+              <Shuffle className="w-3.5 h-3.5" />
             </button>
-
             <button
               onClick={handlePrev}
-              className="p-1 text-[#1C1C1E] hover:opacity-75 transition-opacity"
+              disabled={playlist.length === 0}
+              className="text-slate-300 hover:text-white transition-colors"
               title="Previous"
             >
-              <SkipBack className="w-4 h-4 fill-current" />
+              <SkipBack className="w-4 h-4" />
             </button>
-
-            {/* Solid Black Play/Pause Circle */}
             <button
               onClick={togglePlay}
-              className="w-10 h-10 rounded-full bg-[#1C1C1E] text-white flex items-center justify-center hover:bg-black transition-transform active:scale-95 shadow-xs"
+              disabled={playlist.length === 0}
+              className="w-9 h-9 rounded-full bg-[#87cf3e] text-black flex items-center justify-center hover:scale-105 active:scale-95 transition-transform shadow-md"
               title={isPlaying ? 'Pause' : 'Play'}
             >
-              {isPlaying ? (
-                <Pause className="w-4 h-4 fill-current" />
-              ) : (
-                <Play className="w-4 h-4 fill-current ml-0.5" />
-              )}
+              {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
             </button>
-
             <button
               onClick={handleNext}
-              className="p-1 text-[#1C1C1E] hover:opacity-75 transition-opacity"
+              disabled={playlist.length === 0}
+              className="text-slate-300 hover:text-white transition-colors"
               title="Next"
             >
-              <SkipForward className="w-4 h-4 fill-current" />
+              <SkipForward className="w-4 h-4" />
             </button>
-
             <button
               onClick={() => setIsRepeat(!isRepeat)}
-              className={`p-1 transition-colors ${
-                isRepeat ? 'text-[#BA7517]' : 'text-[#8E8E93] hover:text-[#1C1C1E]'
-              }`}
+              className={`p-1 transition-colors ${isRepeat ? 'text-[#87cf3e]' : 'text-slate-500 hover:text-slate-300'}`}
               title="Repeat"
             >
-              <Repeat className="w-3.5 h-3.5" strokeWidth={1.8} />
+              <Repeat className="w-3.5 h-3.5" />
             </button>
           </div>
 
-          {/* Scrub bar */}
-          <div className="flex items-center gap-2.5 w-full text-[10px] font-mono text-[#8E8E93]">
-            <span className="w-7 text-right">{formatTime(currentTime)}</span>
+          {/* Timeline Bar */}
+          <div className="w-full flex items-center space-x-3 text-[10px] font-mono text-slate-400">
+            <span>{formatTime(currentTime)}</span>
             <input
               type="range"
               min="0"
-              max={currentTrack.duration}
+              max={currentTrack?.duration || 100}
               value={currentTime}
-              onChange={(e) => setCurrentTime(parseInt(e.target.value, 10))}
-              className="flex-1 accent-[#BA7517] h-1 bg-[#F0F1F4] rounded-full cursor-pointer"
+              onChange={(e) => handleSeek(Number(e.target.value))}
+              className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#87cf3e]"
             />
-            <span className="w-7">{formatTime(currentTrack.duration)}</span>
+            <span>{formatTime(currentTrack?.duration || 0)}</span>
           </div>
         </div>
 
-        {/* Right: Volume & Real-time Visualizer Mini Canvas */}
-        <div className="flex items-center justify-end space-x-3 w-60">
-          <div className="w-16 h-4 opacity-70">
-            <canvas ref={canvasRef} width={64} height={16} className="w-full h-full" />
-          </div>
+        {/* Right: Visualizer & Volume */}
+        <div className="w-1/4 flex items-center justify-end space-x-4">
+          {/* Animated Mini Spectrum */}
+          <canvas ref={canvasRef} width={80} height={20} className="rounded" />
 
-          <div className="flex items-center space-x-1.5">
+          {/* Volume Control */}
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => setIsMuted(!isMuted)}
-              className="text-[#8E8E93] hover:text-[#1C1C1E] transition-colors"
-              title={isMuted ? 'Unmute' : 'Mute'}
+              className="text-slate-400 hover:text-slate-200 transition-colors"
             >
-              {isMuted || volume === 0 ? (
-                <VolumeX className="w-4 h-4" strokeWidth={1.8} />
-              ) : (
-                <Volume2 className="w-4 h-4" strokeWidth={1.8} />
-              )}
+              {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </button>
             <input
               type="range"
@@ -773,10 +544,10 @@ export const MusicApp: React.FC = () => {
               step="0.05"
               value={isMuted ? 0 : volume}
               onChange={(e) => {
-                setVolume(parseFloat(e.target.value));
-                setIsMuted(false);
+                setVolume(Number(e.target.value));
+                if (isMuted) setIsMuted(false);
               }}
-              className="w-20 accent-[#BA7517] h-1 bg-[#F0F1F4] rounded-full cursor-pointer"
+              className="w-20 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-[#87cf3e]"
             />
           </div>
         </div>

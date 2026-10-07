@@ -11,7 +11,6 @@ import { PowerModal } from './PowerModal';
 import { LiveWelcomeModal } from './LiveWelcomeModal';
 import { MacIcon } from './MacIcon';
 import { AppMenu } from './AppMenu';
-import { DynamicIsland } from './DynamicIsland';
 import { LockScreen } from './LockScreen';
 import { BootSplashScreen } from './BootSplashScreen';
 
@@ -35,7 +34,7 @@ import { CameraApp } from '../apps/Camera/CameraApp';
 import { AppId } from '../types/os';
 
 export const Desktop: React.FC = () => {
-  const { wallpaper, isQuickSettingsOpen, isLiveEnvironment } = useSystemState();
+  const { wallpaper, isQuickSettingsOpen, isLiveEnvironment, brightness, nightLight } = useSystemState();
   const { windows, openApp } = useWindowManager();
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
@@ -102,14 +101,32 @@ export const Desktop: React.FC = () => {
       className="relative h-screen w-screen overflow-hidden select-none bg-cover bg-center transition-all duration-700"
       style={{ background: wallpaper.gradient }}
     >
+      {/* Screen Brightness Overlay (Physical Display Dimmer) */}
+      <div
+        id="screen-brightness-overlay"
+        className="pointer-events-none fixed inset-0 z-[9999] transition-opacity duration-150"
+        style={{
+          backgroundColor: '#000000',
+          opacity: Math.max(0, Math.min(0.85, ((100 - brightness) / 100) * 0.82)),
+        }}
+      />
+
+      {/* Screen Night Light (Warm Color Temperature Overlay) */}
+      <div
+        id="screen-nightlight-overlay"
+        className="pointer-events-none fixed inset-0 z-[9998] transition-opacity duration-300"
+        style={{
+          backgroundColor: '#ff9800',
+          opacity: nightLight ? 0.2 : 0,
+          mixBlendMode: 'multiply',
+        }}
+      />
+
       {/* Boot Splash Screen */}
       <BootSplashScreen />
 
       {/* iOS Lock Screen */}
       <LockScreen />
-
-      {/* Dynamic Island Floating Notification Pill */}
-      <DynamicIsland />
 
       {/* macOS / Debian App Launcher Menu (Triggered by Windows Key or Menu Bar) */}
       <AppMenu />

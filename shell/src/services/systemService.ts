@@ -647,7 +647,7 @@ export const systemService = {
     }
   },
 
-  async connectWifi(ssid: string, password?: string): Promise<{ success: boolean; output?: string }> {
+  async connectWifi(ssid: string, password?: string): Promise<{ success: boolean; output?: string; captivePortal?: boolean; loginUrl?: string }> {
     try {
       const res = await fetch('/api/wifi/connect', {
         method: 'POST',
@@ -728,6 +728,38 @@ export const systemService = {
     try {
       const res = await fetch('/api/audio/toggle-mute', { method: 'POST' });
       return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
+  // ==================== DISPLAY & BRIGHTNESS CONTROL ====================
+  async getHardwareBrightness(): Promise<number> {
+    try {
+      const res = await fetch('/api/brightness');
+      if (res.ok) {
+        const data = await res.json();
+        return typeof data.brightness === 'number' ? data.brightness : 85;
+      }
+    } catch {}
+    return 85;
+  },
+
+  async setHardwareBrightness(level: number): Promise<boolean> {
+    try {
+      const res = await fetch('/api/brightness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brightness: level }),
+      });
+      if (res.ok) return true;
+    } catch {}
+
+    try {
+      await this.executeCommand(
+        `brightnessctl set ${level}% 2>/dev/null || xrandr --output $(xrandr | grep " connected" | head -1 | cut -d" " -f1) --brightness $(awk "BEGIN {print ${level}/100}") 2>/dev/null || true`
+      );
+      return true;
     } catch {
       return false;
     }

@@ -10,26 +10,26 @@ interface DockItem {
 }
 
 const DOCK_APPS: DockItem[] = [
-  { id: 'file-manager', title: 'Finder' },
-  { id: 'browser', title: 'Axis Browser' },
-  { id: 'music', title: 'Music' },
-  { id: 'photos', title: 'Photos' },
-  { id: 'notes', title: 'Notes' },
-  { id: 'camera', title: 'Photo Booth' },
+  { id: 'file-manager', title: 'Axis Files' },
+  { id: 'browser', title: 'Axis Web' },
+  { id: 'terminal', title: 'Axis Console' },
+  { id: 'system-monitor', title: 'Axis Diagnostics' },
   { id: 'software', title: 'Axis Store' },
-  { id: 'clock', title: 'Clock' },
-  { id: 'weather', title: 'Weather' },
-  { id: 'terminal', title: 'Terminal' },
-  { id: 'system-monitor', title: 'Activity Monitor' },
-  { id: 'calculator', title: 'Calculator' },
-  { id: 'settings', title: 'System Settings' },
-  { id: 'installer', title: 'Install AxisOS' },
+  { id: 'music', title: 'Axis Audio' },
+  { id: 'photos', title: 'Axis Gallery' },
+  { id: 'notes', title: 'Axis Memo' },
+  { id: 'camera', title: 'Axis Lens' },
+  { id: 'clock', title: 'Axis Chrono' },
+  { id: 'weather', title: 'Axis Climate' },
+  { id: 'calculator', title: 'Axis Calc' },
+  { id: 'settings', title: 'Control Center' },
+  { id: 'installer', title: 'Axis Setup' },
 ];
 
 export const DockOrTaskbar: React.FC = () => {
   const { openApp, isAppRunning, activeWindowId, windows, minimizeWindow, focusWindow } =
     useWindowManager();
-  const { isLiveEnvironment } = useSystemState();
+  const { isLiveEnvironment, isAppMenuOpen, setIsAppMenuOpen } = useSystemState();
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [isDockRevealed, setIsDockRevealed] = useState(false);
 
@@ -84,8 +84,40 @@ export const DockOrTaskbar: React.FC = () => {
         }`}
       >
         <div
-          className="flex items-end space-x-2.5 px-3.5 py-2.5 rounded-2xl bg-white/40 dark:bg-[#18201b]/75 backdrop-blur-3xl border border-black/10 dark:border-[#87cf3e]/25 shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
+          className="flex items-end space-x-2.5 px-3.5 py-2.5 rounded-2xl bg-white/40 dark:bg-[#18201b]/85 backdrop-blur-3xl border border-black/10 dark:border-[#87cf3e]/25 shadow-[0_20px_50px_rgba(0,0,0,0.25)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
         >
+        {/* Ubuntu 9-Dots "Show Applications" Launcher */}
+        <button
+          onClick={() => setIsAppMenuOpen(!isAppMenuOpen)}
+          onMouseEnter={() => setHoveredIdx(-1)}
+          className="relative group flex flex-col items-center justify-end focus:outline-none transition-all duration-150 ease-out"
+          title="Show Applications (Super)"
+        >
+          <div
+            className={`w-[48px] h-[48px] rounded-2xl bg-[#1e2720]/90 border border-[#87cf3e]/30 flex items-center justify-center transition-all duration-150 ease-out ${
+              hoveredIdx === -1 ? 'scale-125 -translate-y-2 bg-[#87cf3e]/25 border-[#87cf3e]' : isAppMenuOpen ? 'border-[#87cf3e] bg-[#87cf3e]/20' : 'scale-100'
+            }`}
+          >
+            <div className="grid grid-cols-3 gap-1 p-2.5">
+              {[...Array(9)].map((_, i) => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full bg-[#87cf3e]" />
+              ))}
+            </div>
+          </div>
+          <div className="h-1.5 mt-1">
+            {isAppMenuOpen && (
+              <span className="w-1.5 h-1.5 rounded-full bg-[#87cf3e] shadow-[0_0_8px_rgba(135,207,62,0.95)] inline-block" />
+            )}
+          </div>
+
+          <span className="absolute -top-10 px-2.5 py-1 rounded-md bg-[#18201b]/95 text-[11px] text-white font-medium border border-[#87cf3e]/30 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap backdrop-blur-md">
+            Show Applications
+          </span>
+        </button>
+
+        {/* Vertical divider */}
+        <div className="h-10 w-[1px] bg-[#87cf3e]/20 mx-1 mb-1"></div>
+
         {/* Dock Applications */}
         {dockApps.map((app, idx) => {
           const isRunning = isAppRunning(app.id);
