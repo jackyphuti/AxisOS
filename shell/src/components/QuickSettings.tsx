@@ -92,7 +92,7 @@ export const QuickSettings: React.FC = () => {
             onClick={() => {}}
             className="p-2.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center space-x-2.5 text-left hover:bg-black/10 dark:hover:bg-white/10 transition-colors h-1/2"
           >
-            <div className="w-7 h-7 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-md">
+            <div className="w-7 h-7 rounded-full bg-[#87cf3e]/20 text-[#87cf3e] border border-[#87cf3e]/30 flex items-center justify-center shadow-md">
               <Moon className="w-3.5 h-3.5" />
             </div>
             <div>
@@ -108,7 +108,7 @@ export const QuickSettings: React.FC = () => {
           >
             <div
               className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
-                theme === 'dark' ? 'bg-[#87cf3e] text-black font-bold shadow-md' : 'bg-amber-500 text-white'
+                theme === 'dark' ? 'bg-[#87cf3e] text-black font-bold shadow-md' : 'bg-[#18231c] text-white border border-[#87cf3e]/30'
               }`}
             >
               {theme === 'dark' ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5" />}
@@ -187,8 +187,8 @@ export const QuickSettings: React.FC = () => {
       {/* Media Player Card ("Now Playing") */}
       <div className="p-2.5 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 flex items-center justify-between">
         <div className="flex items-center space-x-2.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-amber-500 flex items-center justify-center text-white shadow-md">
-            <Play className="w-4 h-4 fill-white" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#1b2b20] to-[#87cf3e] flex items-center justify-center text-black shadow-md">
+            <Play className="w-4 h-4 fill-black text-black" />
           </div>
           <div>
             <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">Horizon Symphony</div>

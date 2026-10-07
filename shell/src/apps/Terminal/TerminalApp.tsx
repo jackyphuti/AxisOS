@@ -536,21 +536,21 @@ export const TerminalApp: React.FC<{ params?: Record<string, any> }> = ({ params
       }}
     >
       {/* TTY Status Bar / Geometry Header */}
-      <div className="flex items-center justify-between px-3 py-1.5 bg-[#0f141c] border-b border-slate-800/80 text-[11px] text-slate-400 select-none select-none shrink-0 shadow-sm">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-[#0f141c] border-b border-slate-800/80 text-[11px] text-slate-400 select-none shrink-0 shadow-sm">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse inline-block shadow-sm shadow-emerald-500/50" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#87cf3e] animate-pulse inline-block shadow-sm shadow-[#87cf3e]/50" />
           <span className="font-semibold text-slate-200">
             {engine.state.env['USER']}@{engine.state.env['HOSTNAME']}
           </span>
           <span className="text-slate-600">:</span>
-          <span className="text-cyan-400 font-medium">{currentCwd}</span>
+          <span className="text-[#87cf3e] font-medium">{currentCwd}</span>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Foreground execution indicator */}
           {isExecuting && (
-            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 text-[10px]">
-              <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-ping inline-block" />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-[#87cf3e]/10 text-[#87cf3e] border border-[#87cf3e]/20 text-[10px]">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#87cf3e] animate-ping inline-block" />
               <span>exec: {activeRunningCmd.slice(0, 20)}</span>
             </div>
           )}
@@ -558,7 +558,7 @@ export const TerminalApp: React.FC<{ params?: Record<string, any> }> = ({ params
           {/* Return code indicator */}
           <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px]">
             <span className="text-slate-500">$?</span>
-            <span className={lastExitCode === 0 ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+            <span className={lastExitCode === 0 ? 'text-[#87cf3e] font-bold' : 'text-rose-400 font-bold'}>
               {lastExitCode}
             </span>
           </div>
@@ -581,14 +581,14 @@ export const TerminalApp: React.FC<{ params?: Record<string, any> }> = ({ params
             const hasFailed = line.promptInfo.exitCode !== undefined && line.promptInfo.exitCode !== 0;
             return (
               <div key={line.id} className="leading-relaxed flex items-baseline gap-2 pt-1">
-                <span className="text-emerald-400 font-bold select-none shrink-0">
+                <span className="text-[#87cf3e] font-bold select-none shrink-0">
                   {line.promptInfo.user}@{line.promptInfo.host}
                 </span>
                 <span
                   className={
                     hasFailed
                       ? 'text-rose-400 font-bold bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-500/30 select-none shrink-0'
-                      : 'text-cyan-400 font-semibold select-none shrink-0'
+                      : 'text-[#87cf3e] font-semibold select-none shrink-0'
                   }
                 >
                   {line.promptInfo.cwd}
@@ -627,7 +627,7 @@ export const TerminalApp: React.FC<{ params?: Record<string, any> }> = ({ params
 
         {/* Tab Autocomplete Suggestions Box */}
         {suggestions.length > 0 && (
-          <div className="my-2 p-2 rounded bg-slate-900/90 border border-slate-800 text-[11px] grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 text-cyan-300">
+          <div className="my-2 p-2 rounded bg-slate-900/90 border border-slate-800 text-[11px] grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 text-[#87cf3e]">
             {suggestions.map((s, idx) => (
               <span
                 key={idx}
@@ -648,13 +648,13 @@ export const TerminalApp: React.FC<{ params?: Record<string, any> }> = ({ params
 
         {/* Active Command Prompt Line */}
         <div className="flex items-center gap-2 pt-1 text-xs">
-          <span className="text-emerald-400 font-bold select-none shrink-0">
+          <span className="text-[#87cf3e] font-bold select-none shrink-0">
             {engine.state.env['USER'] || 'axis'}@{engine.state.env['HOSTNAME'] || 'axis-pc'}
           </span>
           <span
             className={
               lastExitCode === 0
-                ? 'text-cyan-400 font-semibold select-none shrink-0 transition-colors'
+                ? 'text-[#87cf3e] font-semibold select-none shrink-0 transition-colors'
                 : 'text-rose-400 font-bold bg-rose-500/15 px-1.5 py-0.5 rounded border border-rose-500/30 select-none shrink-0 shadow-sm shadow-rose-500/10'
             }
           >
@@ -684,7 +684,7 @@ export const TerminalApp: React.FC<{ params?: Record<string, any> }> = ({ params
               spellCheck={false}
               autoComplete="off"
               autoCapitalize="off"
-              className="w-full bg-transparent border-none outline-none text-white font-mono text-xs p-0 m-0 caret-emerald-400"
+              className="w-full bg-transparent border-none outline-none text-white font-mono text-xs p-0 m-0 caret-[#87cf3e]"
             />
           </div>
         </div>

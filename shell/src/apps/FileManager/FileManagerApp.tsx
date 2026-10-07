@@ -495,70 +495,70 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
         <button
           onClick={() => navigateTo(userHome)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath === userHome ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            !isTrashView && currentPath === userHome ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Home className="w-4 h-4 text-blue-500 dark:text-blue-400" />
+          <Home className={`w-4 h-4 ${!isTrashView && currentPath === userHome ? 'text-black' : 'text-[#87cf3e]'}`} />
           <span>Home</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Desktop`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.endsWith('Desktop') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            !isTrashView && currentPath.endsWith('Desktop') ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Folder className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
+          <Folder className={`w-4 h-4 ${!isTrashView && currentPath.endsWith('Desktop') ? 'text-black' : 'text-[#87cf3e]'}`} />
           <span>Desktop</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Documents`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Documents') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            !isTrashView && currentPath.includes('Documents') ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Folder className="w-4 h-4 text-sky-500 dark:text-sky-400" />
+          <Folder className={`w-4 h-4 ${!isTrashView && currentPath.includes('Documents') ? 'text-black' : 'text-[#87cf3e]'}`} />
           <span>Documents</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Downloads`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Downloads') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            !isTrashView && currentPath.includes('Downloads') ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Download className="w-4 h-4 text-indigo-500 dark:text-indigo-400" />
+          <Download className={`w-4 h-4 ${!isTrashView && currentPath.includes('Downloads') ? 'text-black' : 'text-[#87cf3e]'}`} />
           <span>Downloads</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Pictures`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Pictures') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            !isTrashView && currentPath.includes('Pictures') ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <ImageIcon className="w-4 h-4 text-purple-500 dark:text-purple-400" />
+          <ImageIcon className={`w-4 h-4 ${!isTrashView && currentPath.includes('Pictures') ? 'text-black' : 'text-[#87cf3e]'}`} />
           <span>Pictures</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Music`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Music') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            !isTrashView && currentPath.includes('Music') ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Music className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+          <Music className={`w-4 h-4 ${!isTrashView && currentPath.includes('Music') ? 'text-black' : 'text-[#87cf3e]'}`} />
           <span>Music</span>
         </button>
 
         <button
           onClick={() => navigateTo(`${userHome}/Videos`)}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath.includes('Videos') ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            !isTrashView && currentPath.includes('Videos') ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <Film className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+          <Film className={`w-4 h-4 ${!isTrashView && currentPath.includes('Videos') ? 'text-black' : 'text-[#87cf3e]'}`} />
           <span>Videos</span>
         </button>
 
@@ -568,10 +568,10 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
         <button
           onClick={() => navigateTo('/')}
           className={`flex items-center space-x-2.5 px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            !isTrashView && currentPath === '/' ? 'bg-blue-600 text-white font-medium shadow-md shadow-blue-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            !isTrashView && currentPath === '/' ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
-          <HardDrive className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+          <HardDrive className={`w-4 h-4 ${!isTrashView && currentPath === '/' ? 'text-black' : 'text-[#87cf3e]'}`} />
           <span>AxisOS Root (/)</span>
         </button>
 
@@ -585,7 +585,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
               onClick={() => handleMountDisk(d)}
               className="flex items-center space-x-2 truncate flex-1 text-left"
             >
-              <Usb className="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0" />
+              <Usb className="w-4 h-4 text-[#87cf3e] shrink-0" />
               <span className="truncate">{d.model || d.name}</span>
             </button>
             <button
@@ -607,15 +607,15 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
             loadTrash();
           }}
           className={`flex items-center justify-between px-2.5 py-1.5 rounded-lg transition-colors text-left ${
-            isTrashView ? 'bg-rose-600 text-white font-medium shadow-md shadow-rose-600/30' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
+            isTrashView ? 'bg-[#87cf3e] text-black font-bold shadow-md shadow-[#87cf3e]/20' : 'text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5'
           }`}
         >
           <div className="flex items-center space-x-2.5">
-            <Trash2 className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+            <Trash2 className={`w-4 h-4 ${isTrashView ? 'text-black' : 'text-slate-400'}`} />
             <span>Trash</span>
           </div>
           {trashItems.length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full bg-rose-500/30 text-rose-700 dark:text-rose-200 text-[10px] font-bold">
+            <span className="px-1.5 py-0.2 rounded-full bg-black/20 text-black text-[10px] font-bold">
               {trashItems.length}
             </span>
           )}
@@ -670,13 +670,13 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   onChange={(e) => setPathInput(e.target.value)}
                   onBlur={() => setIsEditingPath(false)}
                   autoFocus
-                  className="w-full bg-white dark:bg-[#182232] border border-blue-500 rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-white outline-none font-mono shadow-inner"
+                  className="w-full bg-white dark:bg-[#182232] border border-[#87cf3e] rounded-lg px-2.5 py-1 text-xs text-slate-900 dark:text-white outline-none font-mono shadow-inner focus:ring-1 focus:ring-[#87cf3e]"
                 />
               </form>
             ) : (
               <div
                 onClick={() => setIsEditingPath(true)}
-                className="flex items-center bg-black/5 dark:bg-[#151c28] border border-black/5 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-300 cursor-text overflow-x-auto scrollbar-none"
+                className="flex items-center bg-black/5 dark:bg-[#151c28] border border-black/5 dark:border-slate-800 hover:border-[#87cf3e]/50 rounded-lg px-2 py-1 text-xs text-slate-800 dark:text-slate-300 cursor-text overflow-x-auto scrollbar-none"
               >
                 {isTrashView ? (
                   <span className="font-semibold text-rose-500 dark:text-rose-400">Trash Bin</span>
@@ -688,7 +688,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                           e.stopPropagation();
                           navigateTo(seg.path);
                         }}
-                        className="hover:text-blue-600 dark:hover:text-blue-400 font-medium px-1 py-0.5 rounded transition-colors whitespace-nowrap"
+                        className="hover:text-[#87cf3e] font-medium px-1 py-0.5 rounded transition-colors whitespace-nowrap"
                       >
                         {seg.name}
                       </button>
@@ -708,7 +708,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
             {activeOps.length > 0 && (
               <button
                 onClick={() => setShowOpsQueue(!showOpsQueue)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-300 border border-sky-500/40 text-[11px] animate-pulse"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#87cf3e]/20 text-[#87cf3e] border border-[#87cf3e]/40 text-[11px] animate-pulse"
               >
                 <RefreshCw className="w-3 h-3 animate-spin" />
                 <span>{activeOps[0].speedMb} MB/s</span>
@@ -731,7 +731,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   className="p-1.5 rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 flex items-center gap-1 text-[11px]"
                   title="New Folder"
                 >
-                  <FolderPlus className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                  <FolderPlus className="w-3.5 h-3.5 text-[#87cf3e]" />
                   <span className="hidden sm:inline">New Folder</span>
                 </button>
                 <button
@@ -739,7 +739,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   className="p-1.5 rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 flex items-center gap-1 text-[11px]"
                   title="New Document"
                 >
-                  <FilePlus className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                  <FilePlus className="w-3.5 h-3.5 text-[#87cf3e]" />
                   <span className="hidden sm:inline">New File</span>
                 </button>
               </>
@@ -750,21 +750,21 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
               className="p-1.5 rounded-lg bg-black/5 hover:bg-black/10 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300"
               title="Refresh"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-cyan-500' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin text-[#87cf3e]' : ''}`} />
             </button>
 
             {/* View Mode Toggle */}
             <div className="flex items-center p-0.5 rounded-lg bg-black/5 dark:bg-slate-900 border border-black/10 dark:border-slate-800">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                className={`p-1 rounded ${viewMode === 'grid' ? 'bg-[#87cf3e] text-black font-bold shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                 title="Grid View"
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1 rounded ${viewMode === 'list' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
+                className={`p-1 rounded ${viewMode === 'list' ? 'bg-[#87cf3e] text-black font-bold shadow-xs' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                 title="Details List View"
               >
                 <List className="w-3.5 h-3.5" />
@@ -779,7 +779,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                 placeholder="Filter..."
                 value={filterQuery}
                 onChange={(e) => setFilterQuery(e.target.value)}
-                className="pl-6 pr-2 py-1 bg-black/5 dark:bg-slate-900 border border-black/10 dark:border-slate-800 rounded-lg text-[11px] text-slate-800 dark:text-slate-200 outline-none w-24 focus:w-36 transition-all"
+                className="pl-6 pr-2 py-1 bg-black/5 dark:bg-slate-900 border border-black/10 dark:border-slate-800 rounded-lg text-[11px] text-slate-800 dark:text-slate-200 outline-none w-24 focus:w-36 focus:border-[#87cf3e] transition-all"
               />
             </div>
           </div>
@@ -801,10 +801,10 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                     <span className="truncate max-w-[180px] font-medium text-slate-300">
                       {op.type.toUpperCase()}: {op.source.split('/').pop()}
                     </span>
-                    <span className="text-cyan-400 font-mono">{op.speedMb} MB/s</span>
+                    <span className="text-[#87cf3e] font-mono">{op.speedMb} MB/s</span>
                   </div>
                   <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                    <div className="bg-blue-500 h-full transition-all duration-300" style={{ width: `${op.progress}%` }} />
+                    <div className="bg-[#87cf3e] h-full transition-all duration-300" style={{ width: `${op.progress}%` }} />
                   </div>
                   <div className="flex justify-between text-[10px] text-slate-500">
                     <span>ETA ~{op.etaSec}s</span>
@@ -827,7 +827,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
             <div className="flex gap-2">
               <button
                 onClick={() => navigateTo(userHome)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-lg shadow-blue-600/30"
+                className="px-4 py-2 rounded-xl bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs shadow-lg shadow-[#87cf3e]/20"
               >
                 Return to Home
               </button>
@@ -835,7 +835,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                 onClick={() => openApp('terminal', { cwd: currentPath, cmd: 'sudo su' })}
                 className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-slate-200 font-medium text-xs flex items-center gap-1.5"
               >
-                <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+                <Terminal className="w-3.5 h-3.5 text-[#87cf3e]" />
                 <span>Open in Terminal (sudo)</span>
               </button>
             </div>
@@ -908,16 +908,16 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                     }}
                     className={`flex flex-col items-center p-3 rounded-2xl cursor-pointer text-center group transition-all border ${
                       dragOverFolder === item.fullPath
-                        ? 'bg-blue-600/40 border-blue-400 scale-105'
+                        ? 'bg-[#87cf3e]/40 border-[#87cf3e] scale-105'
                         : selectedFile?.name === item.name
-                        ? 'bg-blue-100/80 dark:bg-blue-600/30 border-blue-500 text-blue-950 dark:text-white shadow-xs'
+                        ? 'bg-[#87cf3e]/20 border-[#87cf3e] text-white shadow-xs'
                         : 'border-transparent hover:bg-black/5 dark:hover:bg-white/5 text-slate-800 dark:text-slate-300'
                     }`}
                   >
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-1 group-hover:scale-105 transition-transform">
                       {renderItemIcon(item)}
                     </div>
-                    <span className="text-xs font-medium truncate max-w-full group-hover:text-blue-600 dark:group-hover:text-white px-1">
+                    <span className="text-xs font-medium truncate max-w-full group-hover:text-[#87cf3e] dark:group-hover:text-[#87cf3e] px-1">
                       {item.name}
                     </span>
                     <span className="text-[10px] text-slate-500 font-mono mt-0.5">{item.size}</span>
@@ -958,7 +958,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                         setContextMenu({ x: e.clientX, y: e.clientY, targetItem: item });
                       }}
                       className={`border-b border-slate-200/60 dark:border-slate-800/40 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${
-                        selectedFile?.name === item.name ? 'bg-blue-100/70 dark:bg-blue-600/30 text-blue-950 dark:text-white' : 'text-slate-800 dark:text-slate-300'
+                        selectedFile?.name === item.name ? 'bg-[#87cf3e]/20 text-[#87cf3e] font-semibold' : 'text-slate-800 dark:text-slate-300'
                       }`}
                     >
                       <td className="py-1.5 px-4 flex items-center space-x-2">
@@ -1012,7 +1012,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   handleItemOpen(contextMenu.targetItem!);
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
                 <Play className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Open</span>
@@ -1022,9 +1022,9 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   openApp('text-editor', { filePath: contextMenu.targetItem!.fullPath });
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
-                <Edit3 className="w-3.5 h-3.5 text-sky-400" />
+                <Edit3 className="w-3.5 h-3.5 text-[#87cf3e]" />
                 <span>Edit in Text Editor</span>
               </button>
               {contextMenu.targetItem.type === 'folder' && (
@@ -1033,9 +1033,9 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                     openApp('terminal', { cwd: contextMenu.targetItem!.fullPath });
                     setContextMenu(null);
                   }}
-                  className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                  className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
                 >
-                  <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                  <Terminal className="w-3.5 h-3.5 text-[#87cf3e]" />
                   <span>Open in Terminal</span>
                 </button>
               )}
@@ -1045,7 +1045,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   handleCopy(contextMenu.targetItem!, 'copy');
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
                 <Copy className="w-3.5 h-3.5 text-slate-400" />
                 <span>Copy</span>
@@ -1055,7 +1055,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   handleCopy(contextMenu.targetItem!, 'cut');
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
                 <Scissors className="w-3.5 h-3.5 text-slate-400" />
                 <span>Cut</span>
@@ -1087,9 +1087,9 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   handleOpenProperties(contextMenu.targetItem!);
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
-                <Info className="w-3.5 h-3.5 text-cyan-400" />
+                <Info className="w-3.5 h-3.5 text-[#87cf3e]" />
                 <span>Properties...</span>
               </button>
             </>
@@ -1101,9 +1101,9 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   handleCreateFolder();
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
-                <FolderPlus className="w-3.5 h-3.5 text-cyan-400" />
+                <FolderPlus className="w-3.5 h-3.5 text-[#87cf3e]" />
                 <span>New Folder</span>
               </button>
               <button
@@ -1111,9 +1111,9 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   handleCreateFile();
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
-                <FilePlus className="w-3.5 h-3.5 text-emerald-400" />
+                <FilePlus className="w-3.5 h-3.5 text-[#87cf3e]" />
                 <span>New File</span>
               </button>
               {clipboard && (
@@ -1122,9 +1122,9 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                     handlePaste();
                     setContextMenu(null);
                   }}
-                  className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                  className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
                 >
-                  <Copy className="w-3.5 h-3.5 text-amber-400" />
+                  <Copy className="w-3.5 h-3.5 text-[#87cf3e]" />
                   <span>Paste Item</span>
                 </button>
               )}
@@ -1134,9 +1134,9 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   openApp('terminal', { cwd: currentPath });
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
-                <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                <Terminal className="w-3.5 h-3.5 text-[#87cf3e]" />
                 <span>Open in Terminal</span>
               </button>
               <button
@@ -1144,7 +1144,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   loadDirectory(currentPath);
                   setContextMenu(null);
                 }}
-                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-blue-600 hover:text-white text-left"
+                className="flex items-center space-x-2 px-2.5 py-1.5 rounded-lg hover:bg-[#87cf3e] hover:text-black text-left"
               >
                 <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
                 <span>Reload Directory</span>
@@ -1176,7 +1176,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
               <button
                 onClick={() => setPropertiesTab('general')}
                 className={`flex-1 py-2 text-center border-b-2 transition-colors ${
-                  propertiesTab === 'general' ? 'border-blue-500 text-blue-400 font-semibold' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  propertiesTab === 'general' ? 'border-[#87cf3e] text-[#87cf3e] font-semibold' : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
                 General
@@ -1184,7 +1184,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
               <button
                 onClick={() => setPropertiesTab('permissions')}
                 className={`flex-1 py-2 text-center border-b-2 transition-colors ${
-                  propertiesTab === 'permissions' ? 'border-blue-500 text-blue-400 font-semibold' : 'border-transparent text-slate-400 hover:text-slate-200'
+                  propertiesTab === 'permissions' ? 'border-[#87cf3e] text-[#87cf3e] font-semibold' : 'border-transparent text-slate-400 hover:text-slate-200'
                 }`}
               >
                 Permissions (chmod)
@@ -1212,7 +1212,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                     </div>
                     <div className="flex justify-between py-1 border-b border-slate-800/50">
                       <span className="text-slate-400">Total Size:</span>
-                      <span className="text-cyan-400 font-mono font-medium">
+                      <span className="text-[#87cf3e] font-mono font-medium">
                         {folderSizeData ? `${folderSizeData.humanSize} (${folderSizeData.itemCount} items)` : propertiesItem.size}
                       </span>
                     </div>
@@ -1232,8 +1232,8 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                   <div className="space-y-1">
                     <span className="text-slate-400 text-[11px]">Owner / Group</span>
                     <div className="p-2 rounded-lg bg-slate-950/60 border border-slate-800 font-mono text-[11px] flex justify-between">
-                      <span>Owner: <strong className="text-emerald-400">{propertiesItem.owner || 'axis'}</strong></span>
-                      <span>Group: <strong className="text-sky-400">{propertiesItem.group || 'axis'}</strong></span>
+                      <span>Owner: <strong className="text-[#87cf3e]">{propertiesItem.owner || 'axis'}</strong></span>
+                      <span>Group: <strong className="text-[#87cf3e]">{propertiesItem.group || 'axis'}</strong></span>
                     </div>
                   </div>
 
@@ -1243,7 +1243,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
                       type="text"
                       value={editPermissions}
                       onChange={(e) => setEditPermissions(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 font-mono text-xs text-white outline-none focus:border-blue-500"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 font-mono text-xs text-white outline-none focus:border-[#87cf3e]"
                     />
                   </div>
 
@@ -1270,7 +1270,7 @@ export const FileManagerApp: React.FC<{ params?: Record<string, any> }> = ({ par
               {propertiesTab === 'permissions' && (
                 <button
                   onClick={handleSavePermissions}
-                  className="px-4 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs shadow-md shadow-blue-600/30"
+                  className="px-4 py-1.5 rounded-xl bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs shadow-md shadow-[#87cf3e]/20"
                 >
                   Apply chmod
                 </button>

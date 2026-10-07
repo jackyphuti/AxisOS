@@ -158,7 +158,7 @@ export const AppMenu: React.FC = () => {
       {/* CENTER: Ubuntu Expansive Application Grid                 */}
       {/* ======================================================== */}
       <div
-        className="flex-1 w-full max-w-5xl mx-auto my-6 overflow-y-auto px-4 py-2 flex items-center justify-center"
+        className="flex-1 w-full max-w-5xl mx-auto my-6 overflow-y-auto px-4 py-2 flex items-start justify-center scrollbar-none"
         onClick={(e) => e.stopPropagation()}
       >
         {appList.length === 0 ? (
@@ -168,25 +168,25 @@ export const AppMenu: React.FC = () => {
             <div className="text-xs text-slate-500">Try searching for a different name or description</div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6 sm:gap-8 w-full">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6 sm:gap-8 w-full py-2">
             {appList.map((app) => (
               <button
                 key={app.id}
                 onClick={() => handleLaunchApp(app.id)}
-                className="group flex flex-col items-center justify-center p-3.5 rounded-2xl hover:bg-white/10 hover:shadow-xl hover:shadow-black/30 transition-all duration-150 cursor-pointer text-center relative focus:outline-none focus:ring-2 focus:ring-[#87cf3e]/40"
+                className="group flex flex-col items-center justify-center p-3 rounded-2xl hover:bg-[#87cf3e]/10 border border-transparent hover:border-[#87cf3e]/30 hover:shadow-xl hover:shadow-black/40 transition-all duration-150 cursor-pointer text-center relative focus:outline-none focus:ring-2 focus:ring-[#87cf3e]/40 min-w-0"
               >
-                {/* App Vector Icon with Ubuntu hover bounce */}
+                {/* App Vector Icon with bounce */}
                 <div className="transform group-hover:scale-110 group-active:scale-95 transition-transform duration-150 drop-shadow-md">
-                  <MacIcon id={app.id} size={54} />
+                  <MacIcon id={app.id} size={50} />
                 </div>
 
                 {/* App Label */}
-                <span className="text-xs font-medium text-slate-200 group-hover:text-white mt-2.5 truncate max-w-[100px] leading-tight">
+                <span className="text-xs font-semibold text-white mt-2.5 truncate max-w-[100px] leading-tight block">
                   {app.title}
                 </span>
 
-                {/* Description Pill on Hover */}
-                <span className="text-[10px] text-slate-400 group-hover:text-slate-300 truncate max-w-[110px] mt-0.5 opacity-80">
+                {/* Category description */}
+                <span className="text-[10px] text-slate-400 group-hover:text-[#87cf3e] truncate max-w-[100px] mt-0.5 opacity-90 block">
                   {app.category}
                 </span>
               </button>
@@ -199,7 +199,7 @@ export const AppMenu: React.FC = () => {
       {/* BOTTOM: Ubuntu System Bar & Quick Power Controls          */}
       {/* ======================================================== */}
       <div
-        className="w-full max-w-5xl mx-auto flex items-center justify-between pt-4 border-t border-white/10 text-xs"
+        className="w-full max-w-5xl mx-auto flex items-center justify-between pt-4 border-t border-[#87cf3e]/20 text-xs"
         onClick={(e) => e.stopPropagation()}
       >
         {/* User Identity Chip */}
@@ -208,7 +208,7 @@ export const AppMenu: React.FC = () => {
             AX
           </div>
           <div>
-            <div className="font-semibold text-slate-200">Axis User</div>
+            <div className="font-semibold text-white">Axis User</div>
             <div className="text-[10px] text-slate-400 font-mono">axis-pc • Debian 12 / Linux 6.12</div>
           </div>
         </div>
@@ -224,40 +224,40 @@ export const AppMenu: React.FC = () => {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => handleLaunchApp('terminal')}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5 transition-colors"
+            className="p-2 rounded-xl bg-[#141b16] hover:bg-[#87cf3e] hover:text-black text-slate-200 border border-[#87cf3e]/30 flex items-center gap-1.5 transition-colors cursor-pointer group"
             title="Launch Terminal"
           >
-            <TerminalIcon className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden md:inline">Terminal</span>
+            <TerminalIcon className="w-3.5 h-3.5 text-[#87cf3e] group-hover:text-black transition-colors" />
+            <span className="hidden md:inline font-medium">Terminal</span>
           </button>
           <button
             onClick={() => handleLaunchApp('settings')}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5 transition-colors"
+            className="p-2 rounded-xl bg-[#141b16] hover:bg-[#87cf3e] hover:text-black text-slate-200 border border-[#87cf3e]/30 flex items-center gap-1.5 transition-colors cursor-pointer group"
             title="System Settings"
           >
-            <SettingsIcon className="w-3.5 h-3.5 text-slate-300" />
-            <span className="hidden md:inline">Settings</span>
+            <SettingsIcon className="w-3.5 h-3.5 text-slate-300 group-hover:text-black transition-colors" />
+            <span className="hidden md:inline font-medium">Settings</span>
           </button>
           <button
             onClick={() => {
               setIsAppMenuOpen(false);
               lockSession();
             }}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 flex items-center gap-1.5 transition-colors"
+            className="p-2 rounded-xl bg-[#141b16] hover:bg-[#87cf3e] hover:text-black text-slate-200 border border-[#87cf3e]/30 flex items-center gap-1.5 transition-colors cursor-pointer group"
             title="Lock Session"
           >
-            <Lock className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden md:inline">Lock</span>
+            <Lock className="w-3.5 h-3.5 text-[#87cf3e] group-hover:text-black transition-colors" />
+            <span className="hidden md:inline font-medium">Lock</span>
           </button>
           <button
             onClick={() => {
               setIsAppMenuOpen(false);
               setPowerModalOpen(true);
             }}
-            className="p-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/25 flex items-center gap-1.5 font-semibold transition-colors"
+            className="p-2 rounded-xl bg-[#141b16] hover:bg-rose-500 hover:text-white text-rose-300 border border-rose-500/30 flex items-center gap-1.5 font-semibold transition-colors cursor-pointer"
             title="Power Off / Restart"
           >
-            <Power className="w-3.5 h-3.5 text-rose-400" />
+            <Power className="w-3.5 h-3.5 text-rose-400 group-hover:text-white transition-colors" />
             <span>Power</span>
           </button>
         </div>

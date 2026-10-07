@@ -4,7 +4,7 @@ interface AxisLogoProps {
   className?: string;
   size?: number;
   glow?: boolean;
-  variant?: 'primary' | 'monochrome' | 'white';
+  variant?: 'primary' | 'monochrome' | 'white' | 'black';
 }
 
 export const AxisLogo: React.FC<AxisLogoProps> = ({
@@ -22,7 +22,7 @@ export const AxisLogo: React.FC<AxisLogoProps> = ({
     >
       {glow && (
         <div
-          className="absolute inset-0 rounded-full blur-md opacity-50 bg-[#007AFF]"
+          className="absolute inset-0 rounded-full blur-md opacity-50 bg-[#87cf3e]"
           style={{ transform: 'scale(1.2)' }}
         />
       )}
@@ -36,9 +36,9 @@ export const AxisLogo: React.FC<AxisLogoProps> = ({
       >
         <defs>
           <linearGradient id={primaryGradientId} x1="6" y1="42" x2="42" y2="6" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#007AFF" />
-            <stop offset="60%" stopColor="#5856D6" />
-            <stop offset="100%" stopColor="#BA7517" />
+            <stop offset="0%" stopColor="#87cf3e" />
+            <stop offset="60%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="#059669" />
           </linearGradient>
         </defs>
 
@@ -75,7 +75,23 @@ export const AxisLogo: React.FC<AxisLogoProps> = ({
               fill="#FFFFFF"
               fillOpacity="0.85"
             />
-            <circle cx="24" cy="23" r="3" fill="#1C1C1E" />
+            <circle cx="24" cy="23" r="3" fill="#0a0e0b" />
+          </>
+        ) : variant === 'black' ? (
+          <>
+            <path
+              d="M24 5L41 37H7L24 5Z"
+              stroke="#0a0e0b"
+              strokeWidth="4"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+            <path
+              d="M24 16L32 32H16L24 16Z"
+              fill="#0a0e0b"
+              fillOpacity="0.85"
+            />
+            <circle cx="24" cy="23" r="3" fill="#87cf3e" />
           </>
         ) : (
           <>

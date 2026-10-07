@@ -372,11 +372,11 @@ export const SystemMonitorApp: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <span>RAM:</span>
-              <span className="text-cyan-400 font-bold">{((memUsedGb / memTotalGb) * 100).toFixed(0)}%</span>
+              <span className="text-[#87cf3e] font-bold">{((memUsedGb / memTotalGb) * 100).toFixed(0)}%</span>
             </div>
             <div className="flex justify-between">
               <span>DISK:</span>
-              <span className="text-emerald-400 font-bold">{diskPercent}%</span>
+              <span className="text-[#87cf3e] font-bold">{diskPercent}%</span>
             </div>
           </div>
         </div>
@@ -426,13 +426,13 @@ export const SystemMonitorApp: React.FC = () => {
                       // Heatmap color logic
                       const cpuBg =
                         proc.cpu > 15
-                          ? 'bg-amber-500/25 text-amber-300 font-bold'
+                          ? 'bg-[#87cf3e]/30 text-white font-bold'
                           : proc.cpu > 5
                           ? 'bg-[#87cf3e]/20 text-[#87cf3e]'
                           : 'text-slate-200';
                       const memBg =
                         proc.memBytes > 300
-                          ? 'bg-cyan-500/25 text-cyan-300 font-bold'
+                          ? 'bg-[#87cf3e]/25 text-[#87cf3e] font-bold'
                           : 'text-slate-200';
 
                       return (
@@ -504,13 +504,13 @@ export const SystemMonitorApp: React.FC = () => {
                   onClick={() => setPerfDevice('memory')}
                   className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
                     perfDevice === 'memory'
-                      ? 'border-cyan-400 bg-cyan-500/15 shadow-sm'
+                      ? 'border-[#87cf3e] bg-[#87cf3e]/15 shadow-sm'
                       : 'border-white/5 hover:bg-white/5'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-slate-200">Memory</span>
-                    <span className="text-cyan-400 font-mono font-bold">
+                    <span className="text-[#87cf3e] font-mono font-bold">
                       {memUsedGb}/{memTotalGb} GB
                     </span>
                   </div>
@@ -518,7 +518,7 @@ export const SystemMonitorApp: React.FC = () => {
                     {((memUsedGb / memTotalGb) * 100).toFixed(0)}% (DDR5 5600 MT/s)
                   </div>
                   <div className="h-9 mt-1.5">
-                    {renderSvgGraph(memHistory, '#22d3ee', 36)}
+                    {renderSvgGraph(memHistory, '#87cf3e', 36)}
                   </div>
                 </div>
 
@@ -527,17 +527,17 @@ export const SystemMonitorApp: React.FC = () => {
                   onClick={() => setPerfDevice('disk')}
                   className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
                     perfDevice === 'disk'
-                      ? 'border-emerald-400 bg-emerald-500/15 shadow-sm'
+                      ? 'border-[#87cf3e] bg-[#87cf3e]/15 shadow-sm'
                       : 'border-white/5 hover:bg-white/5'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-slate-200">Disk 0 (NVMe)</span>
-                    <span className="text-emerald-400 font-mono font-bold">{diskPercent}%</span>
+                    <span className="text-[#87cf3e] font-mono font-bold">{diskPercent}%</span>
                   </div>
                   <div className="text-[10px] text-slate-400 font-mono mt-0.5">Btrfs Subvolumes</div>
                   <div className="h-9 mt-1.5">
-                    {renderSvgGraph(diskHistory, '#10b981', 36)}
+                    {renderSvgGraph(diskHistory, '#87cf3e', 36)}
                   </div>
                 </div>
 
@@ -546,17 +546,17 @@ export const SystemMonitorApp: React.FC = () => {
                   onClick={() => setPerfDevice('network')}
                   className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
                     perfDevice === 'network'
-                      ? 'border-amber-400 bg-amber-500/15 shadow-sm'
+                      ? 'border-[#87cf3e] bg-[#87cf3e]/15 shadow-sm'
                       : 'border-white/5 hover:bg-white/5'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-slate-200">Wi-Fi</span>
-                    <span className="text-amber-400 font-mono font-bold">{netSpeedKb} Kbps</span>
+                    <span className="text-[#87cf3e] font-mono font-bold">{netSpeedKb} Kbps</span>
                   </div>
                   <div className="text-[10px] text-slate-400 font-mono mt-0.5">Intel AX201 / Wi-Fi 6</div>
                   <div className="h-9 mt-1.5">
-                    {renderSvgGraph(netHistory, '#f59e0b', 36, 400)}
+                    {renderSvgGraph(netHistory, '#87cf3e', 36, 400)}
                   </div>
                 </div>
 
@@ -565,17 +565,17 @@ export const SystemMonitorApp: React.FC = () => {
                   onClick={() => setPerfDevice('gpu')}
                   className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
                     perfDevice === 'gpu'
-                      ? 'border-purple-400 bg-purple-500/15 shadow-sm'
+                      ? 'border-[#87cf3e] bg-[#87cf3e]/15 shadow-sm'
                       : 'border-white/5 hover:bg-white/5'
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs font-semibold">
                     <span className="text-slate-200">GPU (Vulkan)</span>
-                    <span className="text-purple-400 font-mono font-bold">{gpuPercent}%</span>
+                    <span className="text-[#87cf3e] font-mono font-bold">{gpuPercent}%</span>
                   </div>
                   <div className="text-[10px] text-slate-400 font-mono mt-0.5">Mesa 24+ / PRIME</div>
                   <div className="h-9 mt-1.5">
-                    {renderSvgGraph(gpuHistory, '#c084fc', 36)}
+                    {renderSvgGraph(gpuHistory, '#87cf3e', 36)}
                   </div>
                 </div>
               </div>
@@ -611,10 +611,10 @@ export const SystemMonitorApp: React.FC = () => {
                 {/* Big Live Telemetry Graph */}
                 <div className="h-56 p-4 rounded-2xl bg-[#141b16] border border-[#87cf3e]/20 relative overflow-hidden shadow-inner">
                   {perfDevice === 'cpu' && renderSvgGraph(cpuHistory, '#87cf3e', 200)}
-                  {perfDevice === 'memory' && renderSvgGraph(memHistory, '#22d3ee', 200)}
-                  {perfDevice === 'disk' && renderSvgGraph(diskHistory, '#10b981', 200)}
-                  {perfDevice === 'network' && renderSvgGraph(netHistory, '#f59e0b', 200, 400)}
-                  {perfDevice === 'gpu' && renderSvgGraph(gpuHistory, '#c084fc', 200)}
+                  {perfDevice === 'memory' && renderSvgGraph(memHistory, '#87cf3e', 200)}
+                  {perfDevice === 'disk' && renderSvgGraph(diskHistory, '#87cf3e', 200)}
+                  {perfDevice === 'network' && renderSvgGraph(netHistory, '#87cf3e', 200, 400)}
+                  {perfDevice === 'gpu' && renderSvgGraph(gpuHistory, '#87cf3e', 200)}
                 </div>
 
                 {/* Detailed System Specifications Grid */}

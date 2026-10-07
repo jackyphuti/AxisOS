@@ -201,7 +201,7 @@ export const TopBar: React.FC = () => {
                     setActiveMenuDropdown(null);
                     if (activeWindowId) closeWindow(activeWindowId);
                   }}
-                  className="w-full px-2.5 py-1 text-left rounded-md hover:bg-blue-600 hover:text-white transition-colors flex items-center justify-between"
+                  className="w-full px-2.5 py-1 text-left rounded-md hover:bg-[#87cf3e] hover:text-black transition-colors flex items-center justify-between"
                 >
                   <span>Close Window</span>
                   <span className="text-[10px] opacity-70">⌘W</span>
@@ -218,9 +218,9 @@ export const TopBar: React.FC = () => {
         {isLiveEnvironment && (
           <button
             onClick={() => openApp('installer')}
-            className="flex items-center space-x-1.5 px-2 py-0.5 rounded-full bg-blue-600/80 hover:bg-blue-600 text-white text-[11px] font-semibold transition-transform hover:scale-102 shadow-sm"
+            className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-[#87cf3e] hover:bg-[#76bb33] text-black text-[11px] font-bold transition-transform hover:scale-102 shadow-sm"
           >
-            <Sparkles className="w-2.5 h-2.5 text-blue-200" />
+            <Sparkles className="w-2.5 h-2.5 text-black" />
             <span>Install AxisOS</span>
           </button>
         )}

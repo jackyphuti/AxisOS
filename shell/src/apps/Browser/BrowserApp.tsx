@@ -47,48 +47,48 @@ const FAVORITES: FavoriteItem[] = [
     id: 'google',
     label: 'Google',
     icon: Search,
-    bg: 'bg-[#E1F0FF]',
-    color: 'text-[#007AFF]',
+    bg: 'bg-[#121814]',
+    color: 'text-[#87cf3e]',
     url: 'https://www.google.com/webhp?igu=1',
   },
   {
     id: 'docs',
-    label: 'Docs',
+    label: 'Debian / Docs',
     icon: FileText,
-    bg: 'bg-[#FFF2D6]',
-    color: 'text-[#D97706]',
-    url: 'https://wayland.freedesktop.org/docs/html/',
+    bg: 'bg-[#121814]',
+    color: 'text-[#87cf3e]',
+    url: 'https://www.debian.org/doc/',
   },
   {
-    id: 'mail',
-    label: 'Gmail',
-    icon: Mail,
-    bg: 'bg-[#FCE7F0]',
-    color: 'text-[#EA4335]',
-    url: 'https://mail.google.com',
+    id: 'packages',
+    label: 'Packages',
+    icon: Code2,
+    bg: 'bg-[#121814]',
+    color: 'text-[#87cf3e]',
+    url: 'https://packages.debian.org/',
   },
   {
     id: 'code',
     label: 'GitHub',
     icon: Code2,
-    bg: 'bg-[#EBE9FD]',
-    color: 'text-[#6366F1]',
+    bg: 'bg-[#121814]',
+    color: 'text-[#87cf3e]',
     url: 'https://github.com',
   },
   {
     id: 'video',
     label: 'YouTube',
     icon: Play,
-    bg: 'bg-[#FEE2E2]',
-    color: 'text-[#DC2626]',
+    bg: 'bg-[#121814]',
+    color: 'text-[#87cf3e]',
     url: 'https://youtube.com',
   },
   {
     id: 'maps',
     label: 'Maps',
     icon: MapPin,
-    bg: 'bg-[#E2F7E7]',
-    color: 'text-[#16A34A]',
+    bg: 'bg-[#121814]',
+    color: 'text-[#87cf3e]',
     url: 'https://maps.google.com',
   },
 ];
@@ -310,15 +310,15 @@ export const BrowserApp: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#FFFFFF] text-[#1C1C1E] select-none overflow-hidden font-sans">
+    <div className="flex flex-col h-full w-full bg-[#0a0e0b] text-slate-100 select-none overflow-hidden font-sans">
       {/* ======================================================== */}
-      {/* TOP TAB STRIP: Traffic Lights + Native Chrome Tabs        */}
+      {/* TOP TAB STRIP: Window Controls + Tabs                     */}
       {/* ======================================================== */}
       <div
         data-window-drag
-        className="h-10 px-3 pt-1.5 flex items-center bg-[#F7F7F9] border-b border-[#EAEAEB] shrink-0 overflow-x-auto"
+        className="h-10 px-3 pt-1.5 flex items-center bg-[#0f1411] border-b border-white/10 shrink-0 overflow-x-auto"
       >
-        {/* Left: Window Traffic Lights */}
+        {/* Left: Window Controls */}
         <div
           className="flex items-center space-x-2 mr-3 shrink-0"
           onMouseEnter={() => setIsHoveringControls(true)}
@@ -326,11 +326,11 @@ export const BrowserApp: React.FC = () => {
         >
           <button
             onClick={() => currentWindow && closeWindow(currentWindow.id)}
-            className="w-3 h-3 rounded-full bg-[#FF5F56] border border-[#E0443E] flex items-center justify-center cursor-pointer transition-transform active:scale-90"
+            className="w-3 h-3 rounded-full bg-rose-500/80 border border-rose-600 flex items-center justify-center cursor-pointer transition-transform active:scale-90"
             title="Close"
           >
             <span
-              className={`text-[8px] font-black text-rose-950 leading-none ${
+              className={`text-[8px] font-black text-black leading-none ${
                 isHoveringControls ? 'opacity-100' : 'opacity-0'
               }`}
             >
@@ -339,11 +339,11 @@ export const BrowserApp: React.FC = () => {
           </button>
           <button
             onClick={() => currentWindow && minimizeWindow(currentWindow.id)}
-            className="w-3 h-3 rounded-full bg-[#FFBD2E] border border-[#DEA123] flex items-center justify-center cursor-pointer transition-transform active:scale-90"
+            className="w-3 h-3 rounded-full bg-amber-500/80 border border-amber-600 flex items-center justify-center cursor-pointer transition-transform active:scale-90"
             title="Minimize"
           >
             <span
-              className={`text-[9px] font-black text-amber-950 leading-none -translate-y-0.5 ${
+              className={`text-[9px] font-black text-black leading-none -translate-y-0.5 ${
                 isHoveringControls ? 'opacity-100' : 'opacity-0'
               }`}
             >
@@ -352,11 +352,11 @@ export const BrowserApp: React.FC = () => {
           </button>
           <button
             onClick={() => currentWindow && toggleMaximizeWindow(currentWindow.id)}
-            className="w-3 h-3 rounded-full bg-[#27C93F] border border-[#1AAB29] flex items-center justify-center cursor-pointer transition-transform active:scale-90"
+            className="w-3 h-3 rounded-full bg-[#87cf3e] border border-emerald-600 flex items-center justify-center cursor-pointer transition-transform active:scale-90"
             title="Zoom"
           >
             <span
-              className={`text-[7px] font-black text-emerald-950 leading-none ${
+              className={`text-[7px] font-black text-black leading-none ${
                 isHoveringControls ? 'opacity-100' : 'opacity-0'
               }`}
             >
@@ -375,17 +375,17 @@ export const BrowserApp: React.FC = () => {
                 onClick={() => setActiveTabId(tab.id)}
                 className={`group flex items-center space-x-2 px-3.5 py-1.5 rounded-t-xl text-xs max-w-[200px] min-w-[120px] cursor-pointer transition-all border-t border-x ${
                   isActive
-                    ? 'bg-white border-[#EAEAEB] text-[#1C1C1E] font-medium shadow-2xs'
-                    : 'bg-transparent border-transparent text-[#5C5C60] hover:bg-black/5 hover:text-[#1C1C1E]'
+                    ? 'bg-[#18221b] border-white/10 text-white font-semibold border-t-2 !border-t-[#87cf3e] shadow-sm'
+                    : 'bg-transparent border-transparent text-slate-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <div className="w-4 h-4 rounded-full bg-[#E1F0FF] text-[#007AFF] flex items-center justify-center text-[9px] shrink-0 font-bold">
+                <div className="w-4 h-4 rounded-full bg-[#87cf3e]/20 text-[#87cf3e] flex items-center justify-center text-[9px] shrink-0 font-bold">
                   <Globe className="w-2.5 h-2.5" strokeWidth={2} />
                 </div>
                 <span className="truncate flex-1 text-xs">{tab.title}</span>
                 <button
                   onClick={(e) => handleCloseTab(tab.id, e)}
-                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-black/10 text-[#8E8E93] hover:text-[#1C1C1E] transition-opacity"
+                  className="opacity-0 group-hover:opacity-100 p-0.5 rounded-full hover:bg-white/10 text-slate-400 hover:text-white transition-opacity"
                 >
                   <X className="w-3 h-3" strokeWidth={2} />
                 </button>
@@ -395,7 +395,7 @@ export const BrowserApp: React.FC = () => {
 
           <button
             onClick={handleCreateTab}
-            className="p-1 rounded-lg text-[#8E8E93] hover:text-[#1C1C1E] hover:bg-black/5 transition-colors shrink-0"
+            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-colors shrink-0"
             title="New Tab"
           >
             <Plus className="w-3.5 h-3.5" strokeWidth={2} />
@@ -406,13 +406,13 @@ export const BrowserApp: React.FC = () => {
       {/* ======================================================== */}
       {/* NAVIGATION & ADDRESS BAR                                 */}
       {/* ======================================================== */}
-      <div className="h-11 px-3 flex items-center gap-2 bg-white border-b border-[#EAEAEB] shrink-0">
+      <div className="h-11 px-3 flex items-center gap-2 bg-[#121814] border-b border-white/10 shrink-0">
         <div className="flex items-center space-x-0.5">
           <button
             onClick={handleBack}
             disabled={activeTab.historyIdx === 0}
             className={`p-1.5 rounded-lg transition-colors ${
-              activeTab.historyIdx === 0 ? 'text-[#D1D1D6]' : 'text-[#5C5C60] hover:bg-black/5'
+              activeTab.historyIdx === 0 ? 'text-slate-600' : 'text-slate-300 hover:bg-white/5'
             }`}
             title="Back"
           >
@@ -422,7 +422,7 @@ export const BrowserApp: React.FC = () => {
             onClick={handleForward}
             disabled={activeTab.historyIdx >= activeTab.history.length - 1}
             className={`p-1.5 rounded-lg transition-colors ${
-              activeTab.historyIdx >= activeTab.history.length - 1 ? 'text-[#D1D1D6]' : 'text-[#5C5C60] hover:bg-black/5'
+              activeTab.historyIdx >= activeTab.history.length - 1 ? 'text-slate-600' : 'text-slate-300 hover:bg-white/5'
             }`}
             title="Forward"
           >
@@ -430,10 +430,10 @@ export const BrowserApp: React.FC = () => {
           </button>
           <button
             onClick={handleReload}
-            className="p-1.5 rounded-lg text-[#5C5C60] hover:bg-black/5 transition-colors"
+            className="p-1.5 rounded-lg text-slate-300 hover:bg-white/5 transition-colors"
             title="Reload"
           >
-            <RotateCw className={`w-3.5 h-3.5 ${activeTab.isLoading ? 'animate-spin text-[#007AFF]' : ''}`} strokeWidth={1.8} />
+            <RotateCw className={`w-3.5 h-3.5 ${activeTab.isLoading ? 'animate-spin text-[#87cf3e]' : ''}`} strokeWidth={1.8} />
           </button>
         </div>
 
@@ -445,34 +445,27 @@ export const BrowserApp: React.FC = () => {
           }}
           className="flex-1 max-w-xl mx-auto relative flex items-center"
         >
-          <div className="w-full flex items-center px-3.5 py-1.5 bg-[#F0F1F4] rounded-full border border-transparent focus-within:border-black/10 focus-within:bg-white transition-all text-xs shadow-2xs">
-            {activeTab.url.includes('google.com') ? (
-              <div className="flex items-center gap-0.5 mr-2 shrink-0">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#4285F4]"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#EA4335]"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FBBC05]"></span>
-                <span className="w-1.5 h-1.5 rounded-full bg-[#34A853]"></span>
-              </div>
-            ) : activeTab.url.startsWith('https://') ? (
-              <Lock className="w-3.5 h-3.5 text-[#34C759] mr-2 shrink-0" strokeWidth={2} />
+          <div className="w-full flex items-center px-3.5 py-1.5 bg-[#18221b] rounded-full border border-white/10 focus-within:border-[#87cf3e] transition-all text-xs shadow-inner">
+            {activeTab.url.startsWith('https://') ? (
+              <Lock className="w-3.5 h-3.5 text-[#87cf3e] mr-2 shrink-0" strokeWidth={2} />
             ) : (
-              <Search className="w-3.5 h-3.5 text-[#8E8E93] mr-2 shrink-0" strokeWidth={2} />
+              <Search className="w-3.5 h-3.5 text-slate-400 mr-2 shrink-0" strokeWidth={2} />
             )}
             <input
               type="text"
               value={activeTab.inputUrl}
               onChange={(e) => updateActiveTab({ inputUrl: e.target.value })}
-              className="w-full bg-transparent outline-none text-[#1C1C1E] text-xs font-sans placeholder-[#8E8E93]"
-              placeholder="Search with Google or enter website address..."
+              className="w-full bg-transparent outline-none text-white text-xs font-sans placeholder-slate-500"
+              placeholder="Search or enter website address..."
             />
             {activeTab.url !== 'about:home' && (
               <button
                 type="button"
                 onClick={toggleBookmark}
-                className="p-0.5 rounded text-[#8E8E93] hover:text-[#BA7517] transition-colors"
+                className="p-0.5 rounded text-slate-400 hover:text-[#87cf3e] transition-colors"
                 title="Bookmark page"
               >
-                <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-[#BA7517] text-[#BA7517]' : ''}`} strokeWidth={1.8} />
+                <Star className={`w-3.5 h-3.5 ${isBookmarked ? 'fill-[#87cf3e] text-[#87cf3e]' : ''}`} strokeWidth={1.8} />
               </button>
             )}
           </div>
@@ -483,7 +476,7 @@ export const BrowserApp: React.FC = () => {
           <button
             onClick={handleOpenNativeChromium}
             disabled={isNativeLaunching}
-            className="px-3 py-1 rounded-full bg-[#F0F2F5] hover:bg-[#E5E9F0] text-[#007AFF] font-semibold text-xs flex items-center gap-1.5 transition-colors active:scale-95"
+            className="px-3 py-1 rounded-full bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs flex items-center gap-1.5 transition-colors active:scale-95 shadow-md shadow-[#87cf3e]/20"
             title="Launch full native Chromium browser window on desktop"
           >
             <Cpu className="w-3.5 h-3.5" strokeWidth={2} />
@@ -495,7 +488,7 @@ export const BrowserApp: React.FC = () => {
               href={activeTab.url}
               target="_blank"
               rel="noreferrer"
-              className="p-1.5 rounded-lg text-[#5C5C60] hover:text-[#1C1C1E] hover:bg-black/5 transition-colors"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
               title="Open externally in host browser"
             >
               <ExternalLink className="w-4 h-4" strokeWidth={1.8} />
@@ -510,11 +503,11 @@ export const BrowserApp: React.FC = () => {
                 setTimeout(() => setCopiedNotification(false), 1500);
               }
             }}
-            className="p-1.5 rounded-lg text-[#5C5C60] hover:text-[#1C1C1E] hover:bg-black/5 transition-colors relative"
+            className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/5 transition-colors relative"
             title="Share / Copy Link"
           >
             {copiedNotification ? (
-              <Check className="w-4 h-4 text-[#34C759]" strokeWidth={2} />
+              <Check className="w-4 h-4 text-[#87cf3e]" strokeWidth={2} />
             ) : (
               <Share2 className="w-4 h-4" strokeWidth={1.8} />
             )}
@@ -525,37 +518,28 @@ export const BrowserApp: React.FC = () => {
       {/* ======================================================== */}
       {/* MAIN VIEW AREA                                           */}
       {/* ======================================================== */}
-      <div className="flex-1 relative overflow-hidden bg-white flex flex-col">
+      <div className="flex-1 relative overflow-hidden bg-[#0a0e0b] flex flex-col">
         {activeTab.isLoading && (
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#007AFF] animate-pulse z-20" />
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-[#87cf3e] animate-pulse z-20" />
         )}
 
-        {/* If Home Screen (about:home), show Google-Powered Search Home */}
+        {/* If Home Screen (about:home), show Search Home */}
         {activeTab.url === 'about:home' ? (
           <div className="flex-1 flex flex-col items-center justify-center p-8 overflow-y-auto">
-            {/* Centered pastel blue squircle icon */}
-            <div className="w-16 h-16 rounded-2xl bg-[#E1F0FF] text-[#007AFF] flex items-center justify-center shadow-2xs mb-3">
+            {/* Centered Green Squircle Icon */}
+            <div className="w-16 h-16 rounded-2xl bg-[#18221b] text-[#87cf3e] border border-[#87cf3e]/30 flex items-center justify-center shadow-lg shadow-[#87cf3e]/10 mb-3">
               <Globe className="w-8 h-8" strokeWidth={1.75} />
             </div>
 
-            {/* Title & Google Search Indicator */}
-            <h1 className="text-2xl font-bold text-[#1C1C1E] tracking-tight mb-1">
+            {/* Title */}
+            <h1 className="text-2xl font-bold text-white tracking-tight mb-1">
               Axis Browser
             </h1>
-            <div className="flex items-center gap-1.5 mb-5 text-xs text-[#8E8E93]">
-              <span>Powered by</span>
-              <span className="font-semibold flex items-center gap-0.5 text-[#1C1C1E]">
-                <span className="text-[#4285F4]">G</span>
-                <span className="text-[#EA4335]">o</span>
-                <span className="text-[#FBBC05]">o</span>
-                <span className="text-[#4285F4]">g</span>
-                <span className="text-[#34A853]">l</span>
-                <span className="text-[#EA4335]">e</span>
-              </span>
-              <span>Search</span>
+            <div className="flex items-center gap-1.5 mb-5 text-xs text-slate-400">
+              <span>Fast, private, and lightweight web explorer</span>
             </div>
 
-            {/* Centered Google Search Pill */}
+            {/* Centered Search Pill */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -563,26 +547,21 @@ export const BrowserApp: React.FC = () => {
               }}
               className="w-full max-w-lg relative"
             >
-              <div className="w-full h-11 px-4 rounded-full bg-[#F0F1F4] border border-transparent focus-within:border-black/10 focus-within:bg-white flex items-center gap-2.5 text-xs text-[#1C1C1E] shadow-2xs transition-all">
-                <div className="flex items-center gap-0.5 mr-1 shrink-0">
-                  <span className="w-2 h-2 rounded-full bg-[#4285F4]"></span>
-                  <span className="w-2 h-2 rounded-full bg-[#EA4335]"></span>
-                  <span className="w-2 h-2 rounded-full bg-[#FBBC05]"></span>
-                  <span className="w-2 h-2 rounded-full bg-[#34A853]"></span>
-                </div>
+              <div className="w-full h-11 px-4 rounded-full bg-[#18221b] border border-white/15 focus-within:border-[#87cf3e] flex items-center gap-2.5 text-xs text-white shadow-inner transition-all">
+                <Search className="w-4 h-4 text-[#87cf3e] shrink-0" strokeWidth={2} />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search Google or enter website address..."
-                  className="w-full bg-transparent outline-none text-xs placeholder-[#8E8E93]"
+                  placeholder="Search the web or enter website address..."
+                  className="w-full bg-transparent outline-none text-xs text-white placeholder-slate-500"
                   autoFocus
                 />
                 {searchQuery && (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="p-1 rounded-full hover:bg-black/5 text-[#8E8E93] hover:text-[#1C1C1E]"
+                    className="p-1 rounded-full hover:bg-white/10 text-slate-400 hover:text-white"
                   >
                     <X className="w-3.5 h-3.5" strokeWidth={2} />
                   </button>
@@ -593,16 +572,16 @@ export const BrowserApp: React.FC = () => {
               <div className="flex items-center justify-center gap-3 mt-4">
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl bg-[#F0F1F4] hover:bg-[#E5E7EB] text-xs font-medium text-[#1C1C1E] transition-colors cursor-pointer active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold text-xs transition-colors cursor-pointer shadow-md shadow-[#87cf3e]/20 active:scale-95"
                 >
-                  Google Search
+                  Search
                 </button>
                 <button
                   type="button"
                   onClick={() => navigateTo(searchQuery, 'all', true)}
-                  className="px-4 py-2 rounded-xl bg-[#F0F1F4] hover:bg-[#E5E7EB] text-xs font-medium text-[#1C1C1E] transition-colors cursor-pointer active:scale-95"
+                  className="px-5 py-2 rounded-xl bg-[#18221b] hover:bg-[#233026] text-xs font-medium text-slate-200 border border-white/10 transition-colors cursor-pointer active:scale-95"
                 >
-                  I'm Feeling Lucky
+                  Quick Open
                 </button>
               </div>
 
@@ -619,7 +598,7 @@ export const BrowserApp: React.FC = () => {
                     key={item.label}
                     type="button"
                     onClick={() => navigateTo(searchQuery || 'Google', item.cat)}
-                    className="px-2.5 py-1 rounded-full text-[11px] font-medium text-[#5C5C60] hover:text-[#1C1C1E] hover:bg-black/5 transition-colors cursor-pointer"
+                    className="px-2.5 py-1 rounded-full text-[11px] font-medium text-slate-400 hover:text-[#87cf3e] hover:bg-white/5 transition-colors cursor-pointer"
                   >
                     {item.label}
                   </button>
@@ -629,11 +608,11 @@ export const BrowserApp: React.FC = () => {
 
             {/* Favorites Section */}
             <div className="mt-8 flex flex-col items-center">
-              <div className="text-xs font-semibold text-[#8E8E93] uppercase tracking-wider mb-4">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
                 Favorites & Shortcuts
               </div>
 
-              {/* 6 Pastel Squircle Tiles */}
+              {/* Squircle Tiles */}
               <div className="flex items-center gap-5 flex-wrap justify-center max-w-xl">
                 {FAVORITES.map((fav) => {
                   const Icon = fav.icon;
@@ -644,11 +623,11 @@ export const BrowserApp: React.FC = () => {
                       className="flex flex-col items-center gap-2 group transition-transform active:scale-95 cursor-pointer"
                     >
                       <div
-                        className={`w-14 h-14 rounded-2xl ${fav.bg} ${fav.color} flex items-center justify-center shadow-2xs group-hover:shadow-xs group-hover:scale-105 transition-all`}
+                        className="w-14 h-14 rounded-2xl bg-[#18221b] text-[#87cf3e] border border-[#87cf3e]/20 group-hover:border-[#87cf3e] group-hover:bg-[#202e24] flex items-center justify-center shadow-md group-hover:scale-105 transition-all"
                       >
                         <Icon className="w-6 h-6" strokeWidth={1.8} />
                       </div>
-                      <span className="text-xs font-medium text-[#5C5C60] group-hover:text-[#1C1C1E] transition-colors">
+                      <span className="text-xs font-medium text-slate-300 group-hover:text-white transition-colors">
                         {fav.label}
                       </span>
                     </button>

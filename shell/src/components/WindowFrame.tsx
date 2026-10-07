@@ -196,9 +196,9 @@ export const WindowFrame: React.FC<WindowFrameProps> = ({ window: win, children 
             </button>
           </div>
 
-          {/* Center: Window Title */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-tight truncate max-w-[55%]">
+          {/* Center: Window Title with safe margin */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none px-20">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-tight truncate max-w-full">
               {win.title}
             </span>
           </div>

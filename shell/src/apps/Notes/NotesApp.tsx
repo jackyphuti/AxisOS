@@ -127,15 +127,15 @@ export const NotesApp: React.FC = () => {
   const categories = ['All', 'Personal', 'Work', 'Ideas'];
 
   return (
-    <div className="flex h-full w-full bg-[#F5F5F7] dark:bg-[#1E1E1E] text-slate-900 dark:text-slate-100 select-none overflow-hidden font-sans">
+    <div className="flex h-full w-full bg-[#0a0e0b] text-slate-100 select-none overflow-hidden font-sans">
       {/* 1. Folders Column */}
-      <div className="w-48 bg-white/70 dark:bg-slate-900/70 backdrop-blur-md border-r border-black/5 dark:border-white/10 p-3 flex flex-col justify-between">
+      <div className="w-48 bg-[#121814] border-r border-white/10 p-3 flex flex-col justify-between">
         <div>
           <div className="flex items-center space-x-2 px-2 py-1 mb-3">
-            <div className="w-6 h-6 rounded-lg bg-amber-500/20 text-amber-500 flex items-center justify-center font-bold text-xs">
+            <div className="w-6 h-6 rounded-lg bg-[#87cf3e]/20 text-[#87cf3e] flex items-center justify-center font-bold text-xs">
               <FileText className="w-3.5 h-3.5" />
             </div>
-            <span className="font-bold text-xs text-slate-800 dark:text-white">Axis Notes</span>
+            <span className="font-bold text-xs text-white">Axis Notes</span>
           </div>
 
           <div className="flex flex-col gap-0.5">
@@ -145,12 +145,12 @@ export const NotesApp: React.FC = () => {
                 onClick={() => setActiveCategory(cat)}
                 className={`w-full px-2.5 py-1.5 rounded-lg text-left text-xs transition-colors flex items-center justify-between ${
                   activeCategory === cat
-                    ? 'bg-amber-500/15 text-amber-600 dark:text-amber-300 font-semibold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/5'
+                    ? 'bg-[#87cf3e] text-black font-bold shadow-xs'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <Folder className="w-3.5 h-3.5 text-amber-500/80" />
+                  <Folder className={`w-3.5 h-3.5 ${activeCategory === cat ? 'text-black' : 'text-[#87cf3e]'}`} />
                   <span>{cat}</span>
                 </div>
                 <span className="text-[10px] opacity-70">
@@ -161,15 +161,15 @@ export const NotesApp: React.FC = () => {
           </div>
         </div>
 
-        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-mono px-2">
+        <div className="text-[10px] text-slate-500 font-mono px-2">
           {notes.length} total notes
         </div>
       </div>
 
       {/* 2. Notes List Column */}
-      <div className="w-64 bg-[#FBFBFD] dark:bg-slate-900/50 border-r border-black/5 dark:border-white/10 flex flex-col">
+      <div className="w-64 bg-[#141b16] border-r border-white/10 flex flex-col">
         {/* Top search & new note button */}
-        <div className="p-2.5 border-b border-black/5 dark:border-white/10 flex items-center gap-2">
+        <div className="p-2.5 border-b border-white/10 flex items-center gap-2">
           <div className="relative flex-1">
             <Search className="w-3 h-3 absolute left-2.5 top-2 text-slate-400" />
             <input
@@ -177,12 +177,12 @@ export const NotesApp: React.FC = () => {
               placeholder="Search notes"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-7 pr-2 py-1 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-lg text-[11px] text-slate-800 dark:text-slate-200 outline-none focus:border-amber-500 placeholder-slate-400"
+              className="w-full pl-7 pr-2 py-1 bg-black/30 border border-white/10 rounded-lg text-[11px] text-white outline-none focus:border-[#87cf3e] placeholder-slate-500"
             />
           </div>
           <button
             onClick={handleCreateNote}
-            className="p-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-600 dark:text-amber-300 transition-colors"
+            className="p-1.5 rounded-lg bg-[#87cf3e] hover:bg-[#76bb33] text-black font-bold transition-colors cursor-pointer shadow-xs"
             title="Create note"
           >
             <Plus className="w-4 h-4" />
@@ -199,8 +199,8 @@ export const NotesApp: React.FC = () => {
                 onClick={() => setActiveNoteId(note.id)}
                 className={`p-2.5 rounded-xl cursor-pointer transition-all border text-left flex flex-col gap-1 group relative ${
                   isSelected
-                    ? 'bg-amber-500/15 border-amber-500/30 text-slate-900 dark:text-white shadow-xs'
-                    : 'bg-white dark:bg-white/5 border-black/5 dark:border-transparent text-slate-700 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/10'
+                    ? 'bg-[#87cf3e]/20 border-[#87cf3e]/40 text-white shadow-xs'
+                    : 'bg-[#18221b] border-white/5 text-slate-300 hover:bg-white/5'
                 }`}
               >
                 <div className="flex items-center justify-between">
@@ -210,12 +210,12 @@ export const NotesApp: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     <button
                       onClick={(e) => togglePin(note.id, e)}
-                      className={`p-0.5 rounded text-slate-400 hover:text-amber-500 ${
-                        note.isPinned ? 'text-amber-500' : 'opacity-0 group-hover:opacity-100'
+                      className={`p-0.5 rounded text-slate-400 hover:text-[#87cf3e] ${
+                        note.isPinned ? 'text-[#87cf3e]' : 'opacity-0 group-hover:opacity-100'
                       }`}
                       title={note.isPinned ? 'Unpin' : 'Pin'}
                     >
-                      <Pin className={`w-3 h-3 ${note.isPinned ? 'fill-amber-500' : ''}`} />
+                      <Pin className={`w-3 h-3 ${note.isPinned ? 'fill-[#87cf3e]' : ''}`} />
                     </button>
                     <button
                       onClick={(e) => handleDeleteNote(note.id, e)}
@@ -229,7 +229,7 @@ export const NotesApp: React.FC = () => {
 
                 <div className="flex items-center space-x-2 text-[10px] text-slate-400 font-mono">
                   <span>{note.updatedAt}</span>
-                  <span className="truncate max-w-[100px] text-amber-600/80 dark:text-amber-400/80">
+                  <span className="truncate max-w-[100px] text-[#87cf3e]">
                     {note.body.slice(0, 30) || 'No content'}
                   </span>
                 </div>
@@ -240,19 +240,19 @@ export const NotesApp: React.FC = () => {
       </div>
 
       {/* 3. Note Content Editor */}
-      <div className="flex-1 flex flex-col bg-white dark:bg-[#1E1E1E]">
+      <div className="flex-1 flex flex-col bg-[#0a0e0b]">
         {activeNote ? (
           <>
             {/* Header / Date */}
-            <div className="h-10 px-6 flex items-center justify-between border-b border-black/5 dark:border-white/10 text-xs text-slate-500 dark:text-slate-400 bg-black/[0.02] dark:bg-slate-900/30">
+            <div className="h-10 px-6 flex items-center justify-between border-b border-white/10 text-xs text-slate-400 bg-[#121814]">
               <span className="font-mono text-[11px]">{activeNote.updatedAt}</span>
               <div className="flex items-center space-x-2">
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-white/5 text-[10px] text-amber-600 dark:text-amber-400 border border-amber-500/20 dark:border-white/10">
+                <span className="px-2 py-0.5 rounded-full bg-[#87cf3e]/10 text-[10px] text-[#87cf3e] border border-[#87cf3e]/20">
                   {activeNote.category}
                 </span>
                 <button
                   onClick={() => handleDeleteNote(activeNote.id)}
-                  className="p-1 rounded text-slate-400 hover:text-rose-500"
+                  className="p-1 rounded text-slate-400 hover:text-rose-500 cursor-pointer"
                   title="Delete note"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

@@ -186,33 +186,22 @@ export const WeatherApp: React.FC = () => {
   const getConditionIcon = (condition: string) => {
     switch (condition) {
       case 'Sunny':
-        return <Sun className="w-14 h-14 text-amber-400 drop-shadow-lg" />;
+        return <Sun className="w-14 h-14 text-[#87cf3e] drop-shadow-lg" />;
       case 'Partly Cloudy':
-        return <Cloud className="w-14 h-14 text-sky-300 drop-shadow-lg" />;
+        return <Cloud className="w-14 h-14 text-white/90 drop-shadow-lg" />;
       case 'Cloudy':
-        return <Cloud className="w-14 h-14 text-slate-300 drop-shadow-lg" />;
+        return <Cloud className="w-14 h-14 text-white/70 drop-shadow-lg" />;
       case 'Rain':
-        return <CloudRain className="w-14 h-14 text-blue-400 drop-shadow-lg" />;
+        return <CloudRain className="w-14 h-14 text-[#87cf3e] drop-shadow-lg" />;
       case 'Thunderstorm':
-        return <CloudLightning className="w-14 h-14 text-purple-400 drop-shadow-lg" />;
+        return <CloudLightning className="w-14 h-14 text-[#87cf3e] drop-shadow-lg" />;
       default:
-        return <Sun className="w-14 h-14 text-amber-400" />;
+        return <Sun className="w-14 h-14 text-[#87cf3e]" />;
     }
   };
 
   const getBackgroundTheme = () => {
-    switch (selectedCity.condition) {
-      case 'Sunny':
-        return 'from-sky-500 via-blue-600 to-indigo-800';
-      case 'Partly Cloudy':
-        return 'from-blue-600 via-slate-700 to-slate-900';
-      case 'Rain':
-        return 'from-slate-700 via-slate-800 to-slate-950';
-      case 'Thunderstorm':
-        return 'from-slate-900 via-indigo-950 to-purple-950';
-      default:
-        return 'from-sky-600 via-blue-700 to-slate-900';
-    }
+    return 'from-[#142318] via-[#0d1611] to-[#0a0e0b]';
   };
 
   const filteredCities = PRESET_CITIES.filter((c) =>
@@ -327,7 +316,7 @@ export const WeatherApp: React.FC = () => {
                 <div className="flex items-center space-x-2 w-28 justify-end font-mono">
                   <span className="text-white/60">{toDisplayTemp(day.minC)}</span>
                   <div className="w-14 h-1.5 rounded-full bg-white/20 overflow-hidden relative">
-                    <div className="absolute inset-y-0 bg-amber-400 rounded-full w-2/3 left-1/6" />
+                    <div className="absolute inset-y-0 bg-[#87cf3e] rounded-full w-2/3 left-1/6" />
                   </div>
                   <span className="font-semibold">{toDisplayTemp(day.maxC)}</span>
                 </div>

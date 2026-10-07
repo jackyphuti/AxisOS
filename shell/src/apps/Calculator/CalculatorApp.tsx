@@ -95,10 +95,10 @@ export const CalculatorApp: React.FC = () => {
   });
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#F5F5F7] dark:bg-slate-950 p-3 select-none justify-between">
+    <div className="flex flex-col h-full w-full bg-[#0a0e0b] p-3 select-none justify-between font-sans">
       {/* Number Display */}
       <div className="h-20 flex items-end justify-end px-3 py-2 text-right">
-        <span className="text-4xl font-light font-mono text-slate-900 dark:text-white tracking-tight truncate max-w-full">
+        <span className="text-4xl font-light font-mono text-white tracking-tight truncate max-w-full">
           {display}
         </span>
       </div>
@@ -108,26 +108,26 @@ export const CalculatorApp: React.FC = () => {
         {/* Row 1 */}
         <button
           onClick={clear}
-          className="h-12 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-700/80 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center font-semibold shadow-xs"
+          className="h-12 rounded-xl bg-[#121814] hover:bg-[#1a231c] text-slate-200 border border-white/10 transition-colors flex items-center justify-center font-semibold shadow-xs"
         >
           {display !== '0' ? 'C' : 'AC'}
         </button>
         <button
           onClick={toggleSign}
-          className="h-12 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-700/80 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#121814] hover:bg-[#1a231c] text-slate-200 border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           ±
         </button>
         <button
           onClick={inputPercent}
-          className="h-12 rounded-xl bg-slate-200/80 hover:bg-slate-300 dark:bg-slate-700/80 dark:hover:bg-slate-600 text-slate-800 dark:text-slate-200 transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#121814] hover:bg-[#1a231c] text-slate-200 border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           %
         </button>
         <button
           onClick={() => performOperation('÷')}
-          className={`h-12 rounded-xl text-white text-lg transition-colors flex items-center justify-center font-bold shadow-xs ${
-            operation === '÷' ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-[#007AFF] hover:bg-blue-600'
+          className={`h-12 rounded-xl text-black text-lg transition-colors flex items-center justify-center font-bold shadow-xs ${
+            operation === '÷' ? 'bg-[#87cf3e] ring-2 ring-white' : 'bg-[#87cf3e] hover:bg-[#76bb33]'
           }`}
         >
           ÷
@@ -136,26 +136,26 @@ export const CalculatorApp: React.FC = () => {
         {/* Row 2 */}
         <button
           onClick={() => inputDigit('7')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           7
         </button>
         <button
           onClick={() => inputDigit('8')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           8
         </button>
         <button
           onClick={() => inputDigit('9')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           9
         </button>
         <button
           onClick={() => performOperation('×')}
-          className={`h-12 rounded-xl text-white text-lg transition-colors flex items-center justify-center font-bold shadow-xs ${
-            operation === '×' ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-[#007AFF] hover:bg-blue-600'
+          className={`h-12 rounded-xl text-black text-lg transition-colors flex items-center justify-center font-bold shadow-xs ${
+            operation === '×' ? 'bg-[#87cf3e] ring-2 ring-white' : 'bg-[#87cf3e] hover:bg-[#76bb33]'
           }`}
         >
           ×
@@ -164,26 +164,26 @@ export const CalculatorApp: React.FC = () => {
         {/* Row 3 */}
         <button
           onClick={() => inputDigit('4')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           4
         </button>
         <button
           onClick={() => inputDigit('5')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           5
         </button>
         <button
           onClick={() => inputDigit('6')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           6
         </button>
         <button
           onClick={() => performOperation('-')}
-          className={`h-12 rounded-xl text-white text-lg transition-colors flex items-center justify-center font-bold shadow-xs ${
-            operation === '-' ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-[#007AFF] hover:bg-blue-600'
+          className={`h-12 rounded-xl text-black text-lg transition-colors flex items-center justify-center font-bold shadow-xs ${
+            operation === '-' ? 'bg-[#87cf3e] ring-2 ring-white' : 'bg-[#87cf3e] hover:bg-[#76bb33]'
           }`}
         >
           –
@@ -192,26 +192,26 @@ export const CalculatorApp: React.FC = () => {
         {/* Row 4 */}
         <button
           onClick={() => inputDigit('1')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           1
         </button>
         <button
           onClick={() => inputDigit('2')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           2
         </button>
         <button
           onClick={() => inputDigit('3')}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center shadow-xs"
         >
           3
         </button>
         <button
           onClick={() => performOperation('+')}
-          className={`h-12 rounded-xl text-white text-lg transition-colors flex items-center justify-center font-bold shadow-xs ${
-            operation === '+' ? 'bg-blue-600 ring-2 ring-blue-400' : 'bg-[#007AFF] hover:bg-blue-600'
+          className={`h-12 rounded-xl text-black text-lg transition-colors flex items-center justify-center font-bold shadow-xs ${
+            operation === '+' ? 'bg-[#87cf3e] ring-2 ring-white' : 'bg-[#87cf3e] hover:bg-[#76bb33]'
           }`}
         >
           +
@@ -220,19 +220,19 @@ export const CalculatorApp: React.FC = () => {
         {/* Row 5 */}
         <button
           onClick={() => inputDigit('0')}
-          className="col-span-2 h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-start pl-6 shadow-xs"
+          className="col-span-2 h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-start pl-6 shadow-xs"
         >
           0
         </button>
         <button
           onClick={inputDecimal}
-          className="h-12 rounded-xl bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-700 text-slate-900 dark:text-white border border-slate-200/60 dark:border-transparent transition-colors flex items-center justify-center font-bold shadow-xs"
+          className="h-12 rounded-xl bg-[#18221b] hover:bg-[#202e24] text-white border border-white/10 transition-colors flex items-center justify-center font-bold shadow-xs"
         >
           .
         </button>
         <button
           onClick={() => performOperation('=')}
-          className="h-12 rounded-xl bg-[#007AFF] hover:bg-blue-600 text-white text-lg transition-colors flex items-center justify-center font-bold shadow-xs"
+          className="h-12 rounded-xl bg-[#87cf3e] hover:bg-[#76bb33] text-black text-lg transition-colors flex items-center justify-center font-bold shadow-xs"
         >
           =
         </button>

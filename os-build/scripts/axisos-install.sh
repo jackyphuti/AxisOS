@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 # ==============================================================================
 # AxisOS Linux - Real System Installation Engine
 # Performs full disk partitioning (GPT/ESP), Btrfs formatting with subvolumes,
