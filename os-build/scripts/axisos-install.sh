@@ -412,7 +412,8 @@ chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}"
 # Permanent marker indicating system is fully installed to hard disk
 cat << EOF > /mnt/etc/axisos-installed
 INSTALLED=true
-VERSION="1.0"
+VERSION="2.0"
+CODENAME="Nobara Gaming Edition"
 CODENAME="Horizon"
 EDITION="Sonoma"
 INSTALL_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"

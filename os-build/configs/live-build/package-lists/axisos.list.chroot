@@ -155,3 +155,30 @@ flatpak
 xdg-desktop-portal
 xdg-desktop-portal-wlr
 
+# ==============================================================================
+# Nobara Linux Native Desktop & Multimedia Codec Stack
+# ==============================================================================
+libwlroots-dev
+libwayland-dev
+wayland-protocols
+libxkbcommon-dev
+waybar
+wofi
+fuzzel
+swaybg
+mako-notifier
+foot
+ffmpeg
+gstreamer1.0-plugins-good
+gstreamer1.0-plugins-bad
+gstreamer1.0-plugins-ugly
+gstreamer1.0-libav
+libva2
+va-driver-all
+mesa-vdpau-drivers
+brightnessctl
+python3-gi
+gir1.2-gtk-3.0
+libnotify-bin
+
+

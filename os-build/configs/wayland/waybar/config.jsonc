@@ -1,0 +1,119 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 36,
+    "spacing": 6,
+    "modules-left": [
+        "custom/menu",
+        "custom/welcome",
+        "custom/steam",
+        "custom/terminal",
+        "custom/browser",
+        "wlr/taskbar"
+    ],
+    "modules-center": [
+        "clock"
+    ],
+    "modules-right": [
+        "custom/gamemode",
+        "cpu",
+        "memory",
+        "pulseaudio",
+        "backlight",
+        "network",
+        "battery",
+        "custom/power"
+    ],
+    "custom/menu": {
+        "format": "󰣇  Nobara",
+        "tooltip": false,
+        "on-click": "wofi --show drun --prompt 'Search Applications...'"
+    },
+    "custom/welcome": {
+        "format": "󰌆 Drivers & Codecs",
+        "tooltip": "Open Nobara Driver & Codec Manager",
+        "on-click": "nobara-welcome"
+    },
+    "custom/steam": {
+        "format": "󰓓 Steam",
+        "tooltip": "Launch Steam Gaming Platform",
+        "on-click": "steam"
+    },
+    "custom/terminal": {
+        "format": " Terminal",
+        "tooltip": "Launch Foot Terminal",
+        "on-click": "foot"
+    },
+    "custom/browser": {
+        "format": "󰈹 Web",
+        "tooltip": "Launch Web Browser",
+        "on-click": "chromium --ozone-platform=wayland"
+    },
+    "wlr/taskbar": {
+        "format": "{icon} {title}",
+        "icon-size": 16,
+        "tooltip-format": "{title}",
+        "on-click": "activate",
+        "on-click-middle": "close",
+        "max-length": 25
+    },
+    "clock": {
+        "format": "{:%a %b %d  %H:%M}",
+        "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>"
+    },
+    "custom/gamemode": {
+        "format": "󰊴 GameMode",
+        "tooltip": "GameMode Gaming Optimizer Active",
+        "interval": 5,
+        "exec": "gamemoded -s 2>/dev/null | grep -q 'active' && echo '󰊴 ACTIVE' || echo '󰊴 GameMode'",
+        "on-click": "gamemoded -t"
+    },
+    "cpu": {
+        "format": " {usage}%",
+        "tooltip": "CPU Utilization",
+        "interval": 2
+    },
+    "memory": {
+        "format": " {percentage}%",
+        "tooltip": "Memory Utilization",
+        "interval": 3
+    },
+    "pulseaudio": {
+        "format": "{icon} {volume}%",
+        "format-muted": "󰝟 Muted",
+        "format-icons": {
+            "default": ["", "", ""]
+        },
+        "on-click": "amixer -q sset Master toggle",
+        "on-scroll-up": "amixer -q sset Master 2%+",
+        "on-scroll-down": "amixer -q sset Master 2%-"
+    },
+    "backlight": {
+        "format": "{icon} {percent}%",
+        "format-icons": ["", "", "", "", "", "", "", "", ""],
+        "on-scroll-up": "brightnessctl -q set +5%",
+        "on-scroll-down": "brightnessctl -q set 5%-"
+    },
+    "network": {
+        "format-wifi": " {essid}",
+        "format-ethernet": "󰈀 {ipaddr}",
+        "format-linked": "󰈀 (No IP)",
+        "format-disconnected": "󰖪 Offline",
+        "tooltip-format": "{ifname}: {ipaddr}/{cidr}"
+    },
+    "battery": {
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{icon} {capacity}%",
+        "format-charging": "󰂄 {capacity}%",
+        "format-plugged": " {capacity}%",
+        "format-icons": ["", "", "", "", ""]
+    },
+    "custom/power": {
+        "format": "⏻",
+        "tooltip": "Power / Session Menu",
+        "on-click": "wofi --show dmenu --prompt 'Power' <<< $'Logout\nReboot\nShutdown' | (grep -q 'Shutdown' && systemctl poweroff || (grep -q 'Reboot' && systemctl reboot || pkill -u $USER))"
+    }
+}

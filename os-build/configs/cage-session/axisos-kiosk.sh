@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# AxisOS Production Kiosk Launcher
-# Compatible with both Real Hardware (Intel/AMD/Nvidia) and Virtual Machines (QEMU/KVM)
+# AxisOS Nobara Edition - Native Wayland Desktop Session Launcher
+# Runs custom wlroots compositor (axis-compositor) with native Waybar, Swaybg,
+# Mako notifications, and Nobara Driver & Codec Manager.
 # ==============================================================================
 
 # Setup XDG runtime directory with required 0700 permissions
@@ -12,15 +13,17 @@ chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 
 # Display and compositor environment
 export XDG_SESSION_TYPE=wayland
-export XDG_CURRENT_DESKTOP=AxisOS
+export XDG_CURRENT_DESKTOP=Nobara-Axis
 unset WAYLAND_DISPLAY
 unset DISPLAY
 export OZONE_PLATFORM=wayland
 export MOZ_ENABLE_WAYLAND=1
 export GDK_BACKEND=wayland
 export QT_QPA_PLATFORM=wayland
-export WLR_LIBINPUT_NO_DEVICES=1
+export SDL_VIDEODRIVER=wayland
+export CLUTTER_BACKEND=wayland
 export WLR_RENDERER_ALLOW_SOFTWARE=1
+export WLR_NO_HARDWARE_CURSORS=1
 
 # Initialize and unmute physical audio devices (PipeWire / ALSA)
 alsactl init 2>/dev/null || true
@@ -37,60 +40,39 @@ if command -v pipewire >/dev/null 2>&1; then
     pgrep -x wireplumber >/dev/null || wireplumber &
 fi
 
-# Create user directories
-mkdir -p /home/axis/.config/chromium 2>/dev/null || true
-mkdir -p /home/axis/.cache 2>/dev/null || true
+# Ensure user directories exist
+mkdir -p "$HOME/.config" "$HOME/.cache" "$HOME/Desktop" "$HOME/Downloads" 2>/dev/null || true
 
-# Start system daemon if not already responding
-if ! curl -s -f http://127.0.0.1:3000/api/system-info >/dev/null 2>&1; then
-    /usr/bin/node /usr/local/bin/axisos-daemon.cjs >> /home/axis/.daemon.log 2>&1 &
+# Copy default Waybar and Wofi configs to user home if not present
+if [ ! -d "$HOME/.config/waybar" ]; then
+    mkdir -p "$HOME/.config/waybar"
+    cp -r /etc/xdg/waybar/* "$HOME/.config/waybar/" 2>/dev/null || true
+fi
+if [ ! -d "$HOME/.config/wofi" ]; then
+    mkdir -p "$HOME/.config/wofi"
+    cp -r /etc/xdg/wofi/* "$HOME/.config/wofi/" 2>/dev/null || true
+fi
+if [ ! -d "$HOME/.config/mako" ]; then
+    mkdir -p "$HOME/.config/mako"
+    cp -r /etc/xdg/mako/* "$HOME/.config/mako/" 2>/dev/null || true
 fi
 
-# Wait for local daemon to be healthy
-URL="http://127.0.0.1:3000"
-for i in {1..60}; do
-    if curl -s -f http://127.0.0.1:3000/api/system-info >/dev/null 2>&1; then
-        break
-    fi
-    sleep 0.2
-done
+# Background wallpaper path
+WALLPAPER="/usr/share/backgrounds/nobara-gaming.png"
+if [ ! -f "$WALLPAPER" ]; then
+    WALLPAPER="/usr/share/backgrounds/axis-wallpaper.png"
+fi
 
-CHROME_BIN=$(command -v chromium || command -v chromium-browser || true)
+# Define Nobara desktop startup suite
+STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & nobara-welcome &"
 
-if [ -n "$CHROME_BIN" ]; then
-    # Launch Cage with Chromium in kiosk mode
-    cage -s -d -- "$CHROME_BIN" \
-        --kiosk \
-        --ozone-platform=wayland \
-        --enable-features=UseOzonePlatform,WaylandWindowDecorations,Vulkan,AudioServiceOutOfProcess \
-        --autoplay-policy=no-user-gesture-required \
-        --audio-output-channels=2 \
-        --no-sandbox \
-        --disable-dev-shm-usage \
-        --disable-gpu-sandbox \
-        --ignore-gpu-blocklist \
-        --enable-gpu-rasterization \
-        --enable-zero-copy \
-        --allow-file-access-from-files \
-        --disable-features=Translate,OptimizationHints,MediaRouter \
-        --noerrdialogs \
-        --disable-infobars \
-        --disable-session-crashed-bubble \
-        --no-first-run \
-        --no-default-browser-check \
-        --check-for-update-interval=31536000 \
-        --password-store=basic \
-        --user-data-dir=/home/axis/.config/chromium \
-        --window-position=0,0 \
-        --window-size=1280,800 \
-        --start-maximized \
-        --app="$URL" >> /home/axis/.kiosk.log 2>&1
+echo "[AxisOS] Launching Native Nobara wlroots Wayland Compositor..." > "$HOME/.axis-session.log"
+
+if [ -x "/usr/local/bin/axis-compositor" ]; then
+    exec /usr/local/bin/axis-compositor -s "$STARTUP_CMD" >> "$HOME/.axis-session.log" 2>&1
+elif [ -x "/usr/bin/axis-compositor" ]; then
+    exec /usr/bin/axis-compositor -s "$STARTUP_CMD" >> "$HOME/.axis-session.log" 2>&1
 else
-    echo "Error: Chromium not found in PATH." >&2
-    cage -s -- xterm >> /home/axis/.kiosk.log 2>&1
+    echo "Warning: axis-compositor not found, falling back to cage with terminal" >> "$HOME/.axis-session.log"
+    exec cage -s -- foot >> "$HOME/.axis-session.log" 2>&1
 fi
-
-EXIT_CODE=$?
-echo "[AxisOS] Session exited with code $EXIT_CODE at $(date)" >> /home/axis/.kiosk.log
-sleep 3
-
