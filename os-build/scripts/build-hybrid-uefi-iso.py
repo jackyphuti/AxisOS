@@ -275,11 +275,97 @@ SUBSYSTEM=="usb", ATTR{idVendor}=="2717", MODE="0666", GROUP="plugdev"
 gaming_sysctl_dst = os.path.join(chroot_dir, "etc", "sysctl.d", "99-axisos-gaming.conf")
 write_text_lf(gaming_sysctl_dst, """# AxisOS Gaming & Development Performance Tuning
 vm.max_map_count = 2147483642
-fs.file-max = 524288
+fs.file-max = 2097152
 fs.inotify.max_user_watches = 524288
 fs.inotify.max_user_instances = 8192
 vm.swappiness = 10
 """)
+
+# Deploy Out-of-Box Experience (OOBE) First-Boot Setup Wizard
+oobe_py = os.path.join(workspace_dir, "os-build", "apps", "axis-oobe", "axis-oobe.py")
+oobe_desktop = os.path.join(workspace_dir, "os-build", "apps", "axis-oobe", "axis-oobe.desktop")
+if os.path.exists(oobe_py):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "axis-oobe")
+    copy_text_lf(oobe_py, dst, 0o755)
+    print("    Deployed AxisOS OOBE Wizard -> /usr/local/bin/axis-oobe")
+if os.path.exists(oobe_desktop):
+    dst = os.path.join(chroot_dir, "usr", "share", "applications", "axis-oobe.desktop")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copyfile(oobe_desktop, dst)
+
+# Deploy Automated NVIDIA Driver Installer & Service
+nvidia_script = os.path.join(workspace_dir, "os-build", "scripts", "nvidia-auto-install.sh")
+nvidia_service = os.path.join(workspace_dir, "os-build", "configs", "systemd", "nvidia-first-boot.service")
+if os.path.exists(nvidia_script):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "nvidia-auto-install.sh")
+    copy_text_lf(nvidia_script, dst, 0o755)
+    print("    Deployed NVIDIA Auto-Install Script -> /usr/local/bin/nvidia-auto-install.sh")
+if os.path.exists(nvidia_service):
+    dst = os.path.join(chroot_dir, "etc", "systemd", "system", "nvidia-first-boot.service")
+    copy_text_lf(nvidia_service, dst, 0o644)
+    wants_dir = os.path.join(chroot_dir, "etc", "systemd", "system", "multi-user.target.wants")
+    os.makedirs(wants_dir, exist_ok=True)
+    symlink_dst = os.path.join(wants_dir, "nvidia-first-boot.service")
+    if not os.path.exists(symlink_dst):
+        try:
+            os.symlink("/etc/systemd/system/nvidia-first-boot.service", symlink_dst)
+        except Exception:
+            shutil.copyfile(dst, symlink_dst)
+    print("    Enabled NVIDIA First-Boot Service -> multi-user.target.wants")
+
+# Deploy zRAM memory compression generator config
+zram_cfg = os.path.join(workspace_dir, "os-build", "configs", "systemd", "zram-generator.conf")
+if os.path.exists(zram_cfg):
+    dst = os.path.join(chroot_dir, "etc", "systemd", "zram-generator.conf")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    copy_text_lf(zram_cfg, dst, 0o644)
+    print("    Deployed zRAM generator config -> /etc/systemd/zram-generator.conf")
+
+# Deploy Gamepad and SSD I/O scheduler udev rules
+udev_configs = os.path.join(workspace_dir, "os-build", "configs", "udev")
+if os.path.exists(udev_configs):
+    dst_udev = os.path.join(chroot_dir, "etc", "udev", "rules.d")
+    os.makedirs(dst_udev, exist_ok=True)
+    for rule in os.listdir(udev_configs):
+        if rule.endswith(".rules"):
+            copy_text_lf(os.path.join(udev_configs, rule), os.path.join(dst_udev, rule), 0o644)
+    print("    Deployed Gamepad & I/O scheduler udev rules")
+
+# Deploy Bluetooth AutoEnable config
+bt_cfg = os.path.join(workspace_dir, "os-build", "configs", "bluetooth", "main.conf")
+if os.path.exists(bt_cfg):
+    dst = os.path.join(chroot_dir, "etc", "bluetooth", "main.conf")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    copy_text_lf(bt_cfg, dst, 0o644)
+    print("    Deployed Bluetooth AutoEnable config -> /etc/bluetooth/main.conf")
+
+# Deploy XanMod Kernel Apt Repository & Keyring
+xanmod_key = os.path.join(workspace_dir, "os-build", "configs", "apt", "keyrings", "xanmod-archive-keyring.gpg")
+xanmod_list = os.path.join(workspace_dir, "os-build", "configs", "apt", "sources.list.d", "xanmod-release.list")
+if os.path.exists(xanmod_key):
+    dst_key = os.path.join(chroot_dir, "etc", "apt", "keyrings", "xanmod-archive-keyring.gpg")
+    os.makedirs(os.path.dirname(dst_key), exist_ok=True)
+    shutil.copyfile(xanmod_key, dst_key)
+if os.path.exists(xanmod_list):
+    dst_list = os.path.join(chroot_dir, "etc", "apt", "sources.list.d", "xanmod-release.list")
+    os.makedirs(os.path.dirname(dst_list), exist_ok=True)
+    copy_text_lf(xanmod_list, dst_list, 0o644)
+    print("    Deployed XanMod Kernel Apt Repository")
+
+# Deploy Session Launcher
+kiosk_sh = os.path.join(workspace_dir, "os-build", "configs", "cage-session", "axisos-kiosk.sh")
+if os.path.exists(kiosk_sh):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "axisos-kiosk.sh")
+    copy_text_lf(kiosk_sh, dst, 0o755)
+    print("    Deployed Session Launcher -> /usr/local/bin/axisos-kiosk.sh")
+
+# Deploy Installer Scripts
+installer_sh = os.path.join(workspace_dir, "os-build", "scripts", "axisos-install.sh")
+if os.path.exists(installer_sh):
+    copy_text_lf(installer_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axisos-install.sh"), 0o755)
+    copy_text_lf(installer_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axisos-installer.sh"), 0o755)
+    print("    Deployed Installer Scripts with OOBE flag")
+
 
 # Step 1: Generate filesystem.squashfs
 print("--> 1. Building filesystem.squashfs with parallel XZ compression")

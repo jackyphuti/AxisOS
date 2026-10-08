@@ -29,6 +29,8 @@
 
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
+#include <wlr/backend/libinput.h>
+#include <libinput.h>
 #include <wlr/render/allocator.h>
 #include <wlr/render/wlr_renderer.h>
 #include <wlr/types/wlr_cursor.h>
@@ -859,7 +861,17 @@ static void server_new_keyboard(struct axis_server *server, struct wlr_input_dev
 	keyboard->device = device;
 
 	struct xkb_context *context = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
-	struct xkb_keymap *keymap = xkb_keymap_new_from_names(context, NULL, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	struct xkb_rule_names rules = {
+		.rules = "",
+		.model = "",
+		.layout = "us",
+		.variant = "",
+		.options = ""
+	};
+	struct xkb_keymap *keymap = xkb_keymap_new_from_names(context, &rules, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	if (!keymap) {
+		keymap = xkb_keymap_new_from_names(context, NULL, XKB_KEYMAP_COMPILE_NO_FLAGS);
+	}
 	wlr_keyboard_set_keymap(device->keyboard, keymap);
 	xkb_keymap_unref(keymap);
 	xkb_context_unref(context);
@@ -876,6 +888,25 @@ static void server_new_keyboard(struct axis_server *server, struct wlr_input_dev
 
 static void server_new_pointer(struct axis_server *server, struct wlr_input_device *device) {
 	wlr_cursor_attach_input_device(server->cursor, device);
+
+	if (wlr_input_device_is_libinput(device)) {
+		struct libinput_device *libinput_dev = wlr_libinput_get_device_handle(device);
+		if (libinput_dev) {
+			/* Pointer acceleration profile */
+			if (libinput_device_config_accel_is_available(libinput_dev)) {
+				libinput_device_config_accel_set_profile(libinput_dev, LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE);
+				libinput_device_config_accel_set_speed(libinput_dev, 0.0);
+			}
+			/* Touchpad natural scrolling */
+			if (libinput_device_config_scroll_has_natural_scroll(libinput_dev)) {
+				libinput_device_config_scroll_set_natural_scroll_enabled(libinput_dev, 1);
+			}
+			/* Touchpad tap-to-click */
+			if (libinput_device_config_tap_get_finger_count(libinput_dev) > 0) {
+				libinput_device_config_tap_set_enabled(libinput_dev, LIBINPUT_CONFIG_TAP_ENABLED);
+			}
+		}
+	}
 }
 
 static void server_new_input(struct wl_listener *listener, void *data) {
@@ -886,6 +917,8 @@ static void server_new_input(struct wl_listener *listener, void *data) {
 		server_new_keyboard(server, device);
 		break;
 	case WLR_INPUT_DEVICE_POINTER:
+	case WLR_INPUT_DEVICE_TOUCH:
+	case WLR_INPUT_DEVICE_TABLET_TOOL:
 		server_new_pointer(server, device);
 		break;
 	default:

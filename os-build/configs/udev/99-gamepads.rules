@@ -1,0 +1,23 @@
+# Gamepads and joysticks access for gaming (Steam, Proton, emulators)
+KERNEL=="js[0-9]*", MODE="0666"
+KERNEL=="event*", ENV{ID_INPUT_JOYSTICK}=="1", MODE="0666"
+
+# Sony DualShock 3, 4 and DualSense (USB & Bluetooth)
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="054c", MODE="0666", GROUP="plugdev"
+
+# Microsoft Xbox 360, One, Series X/S Controllers (USB & Wireless Dongle)
+KERNEL=="hidraw*", ATTRS{idVendor}=="045e", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", MODE="0666", GROUP="plugdev"
+
+# Valve Steam Controller and Steam Deck
+KERNEL=="hidraw*", ATTRS{idVendor}=="28de", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="28de", MODE="0666", GROUP="plugdev"
+
+# Nintendo Switch Pro Controller and Joy-Cons
+KERNEL=="hidraw*", ATTRS{idVendor}=="057e", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="057e", MODE="0666", GROUP="plugdev"
+
+# Generic Bluetooth Gamepads
+SUBSYSTEM=="input", ATTRS{name}=="*Controller*", MODE="0666"
+SUBSYSTEM=="input", ATTRS{name}=="*Gamepad*", MODE="0666"

@@ -63,8 +63,15 @@ if [ ! -f "$WALLPAPER" ]; then
     WALLPAPER="/usr/share/backgrounds/axis-wallpaper.png"
 fi
 
-# Define Nobara desktop startup suite
-STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & nobara-welcome &"
+# Check if Out-of-Box Experience (OOBE) setup is pending
+FIRST_BOOT_FLAG="/var/lib/axisos/first-boot-pending"
+if [ -f "$FIRST_BOOT_FLAG" ] && command -v axis-oobe >/dev/null 2>&1; then
+    echo "[AxisOS] First-boot pending: launching Out-of-Box Experience (OOBE)..." >> "$HOME/.axis-session.log"
+    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & axis-oobe"
+else
+    # Define standard Nobara desktop startup suite
+    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & nobara-welcome &"
+fi
 
 echo "[AxisOS] Launching Native Nobara wlroots Wayland Compositor..." > "$HOME/.axis-session.log"
 

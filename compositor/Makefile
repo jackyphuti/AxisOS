@@ -1,8 +1,8 @@
 CC ?= gcc
 CFLAGS ?= -std=c11 -Wall -Wextra -Wno-unused-parameter -O2
 CFLAGS += -DWLR_USE_UNSTABLE=1
-CFLAGS += -I. $(shell pkg-config --cflags wlroots wayland-server xkbcommon)
-LIBS += $(shell pkg-config --libs wlroots wayland-server xkbcommon)
+CFLAGS += -I. $(shell pkg-config --cflags wlroots wayland-server xkbcommon libinput)
+LIBS += $(shell pkg-config --libs wlroots wayland-server xkbcommon libinput)
 
 TARGET = axis-compositor
 OBJS = main.o xdg-shell-protocol.o wlr-layer-shell-unstable-v1-protocol.o
