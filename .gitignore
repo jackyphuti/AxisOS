@@ -21,6 +21,8 @@ chroot/
 *.mod*
 *.order
 *.symvers
+compositor/axis-compositor
+axis-compositor
 
 # Logs
 npm-debug.log*

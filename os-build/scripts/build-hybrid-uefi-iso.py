@@ -159,6 +159,64 @@ if os.path.exists(apps_dir):
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.copyfile(app_desktop, dst)
 
+# Deploy Nobara Welcome & Hardware Driver / Codec Manager
+nobara_welcome_py = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome.py")
+nobara_welcome_desktop = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome.desktop")
+if os.path.exists(nobara_welcome_py):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "nobara-welcome")
+    copy_text_lf(nobara_welcome_py, dst, 0o755)
+    print("    Deployed Nobara Welcome & Hardware Driver / Codec Manager -> /usr/local/bin/nobara-welcome")
+if os.path.exists(nobara_welcome_desktop):
+    dst = os.path.join(chroot_dir, "usr", "share", "applications", "nobara-welcome.desktop")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copyfile(nobara_welcome_desktop, dst)
+
+# Deploy Native wlroots Wayland Compositor (axis-compositor)
+comp_src = os.path.join(workspace_dir, "compositor", "axis-compositor")
+if not os.path.exists(comp_src):
+    # Check if built in chroot
+    chroot_comp = os.path.join(chroot_dir, "usr", "local", "bin", "axis-compositor")
+    if os.path.exists(chroot_comp):
+        comp_src = chroot_comp
+if os.path.exists(comp_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "axis-compositor")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if comp_src != dst:
+        shutil.copyfile(comp_src, dst)
+    os.chmod(dst, 0o755)
+    print("    Deployed Native wlroots Wayland Compositor -> /usr/local/bin/axis-compositor")
+
+# Deploy Wayland Desktop Configs (Waybar, Wofi, Mako, Foot, Backgrounds)
+wayland_configs = os.path.join(workspace_dir, "os-build", "configs", "wayland")
+if os.path.exists(wayland_configs):
+    print("    Syncing Nobara Wayland configurations (Waybar, Wofi, Mako, Foot)...")
+    for cfg in ["waybar", "wofi", "mako", "foot"]:
+        src_dir = os.path.join(wayland_configs, cfg)
+        if os.path.exists(src_dir):
+            dst_dir = os.path.join(chroot_dir, "etc", "xdg", cfg)
+            os.makedirs(dst_dir, exist_ok=True)
+            for item in os.listdir(src_dir):
+                s_file = os.path.join(src_dir, item)
+                d_file = os.path.join(dst_dir, item)
+                if os.path.isfile(s_file):
+                    copy_text_lf(s_file, d_file)
+    bg_src = os.path.join(wayland_configs, "backgrounds", "nobara-gaming.png")
+    if os.path.exists(bg_src):
+        dst_bg_dir = os.path.join(chroot_dir, "usr", "share", "backgrounds")
+        os.makedirs(dst_bg_dir, exist_ok=True)
+        shutil.copyfile(bg_src, os.path.join(dst_bg_dir, "nobara-gaming.png"))
+        shutil.copyfile(bg_src, os.path.join(dst_bg_dir, "axis-wallpaper.png"))
+
+# Deploy Nobara-Axis Wayland Session
+nobara_sess_dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "nobara-axis.desktop")
+write_text_lf(nobara_sess_dst, """[Desktop Entry]
+Name=AxisOS Nobara Edition
+Comment=Native wlroots Wayland Compositor Session
+Exec=/usr/local/bin/axisos-kiosk.sh
+Type=Application
+DesktopNames=Nobara-Axis
+""")
+
 # Deploy prime-run helper
 primerun_dst = os.path.join(chroot_dir, "usr", "local", "bin", "prime-run")
 write_text_lf(primerun_dst, """#!/usr/bin/env bash
@@ -268,26 +326,26 @@ PROMPT 0
 TIMEOUT 50
 DEFAULT live
 
-MENU TITLE AxisOS Linux 2.0 (Horizon Edition)
+MENU TITLE AxisOS Linux 2.0 (Nobara Gaming Edition)
 MENU COLOR border       30;44   #40ffffff #a0000000 std
-MENU COLOR title        1;36;44 #9033b5e5 #a0000000 std
+MENU COLOR title        1;36;44 #90e53935 #a0000000 std
 MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
 MENU COLOR unsel        37;44   #50ffffff #a0000000 std
 MENU COLOR help         37;40   #c0ffffff #a0000000 std
 
 LABEL live
-  MENU LABEL ^1. Try AxisOS 2.0 (Live Desktop)
+  MENU LABEL ^1. Try AxisOS 2.0 Nobara (Live Gaming Desktop)
   MENU DEFAULT
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
 
 LABEL install
-  MENU LABEL ^2. Install AxisOS 2.0 (Direct Setup Wizard)
+  MENU LABEL ^2. Install AxisOS 2.0 Nobara (Direct Setup Wizard)
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 axisos.autoinstall=1 amdgpu.freesync_video=1
 
 LABEL failsafe
-  MENU LABEL ^3. AxisOS 2.0 (Safe Graphics Mode)
+  MENU LABEL ^3. AxisOS 2.0 Nobara (Safe Graphics Mode)
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC nomodeset quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3
 """)
@@ -341,17 +399,17 @@ insmod fat
 insmod iso9660
 insmod all_video
 
-menuentry "Try AxisOS 2.0 (Live Desktop)" --class axisos --class gnu-linux --class gnu {
+menuentry "Try AxisOS 2.0 Nobara (Live Gaming Desktop)" --class axisos --class gnu-linux --class gnu {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }
 
-menuentry "Install AxisOS 2.0 (Direct Setup Wizard)" --class axisos {
+menuentry "Install AxisOS 2.0 Nobara (Direct Setup Wizard)" --class axisos {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 axisos.autoinstall=1 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }
 
-menuentry "AxisOS 2.0 (Safe Graphics Mode - nomodeset)" --class axisos {
+menuentry "AxisOS 2.0 Nobara (Safe Graphics Mode - nomodeset)" --class axisos {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC nomodeset quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3
     initrd /live/initrd.img
 }

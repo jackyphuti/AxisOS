@@ -1,0 +1,132 @@
+* {
+    border: none;
+    border-radius: 0;
+    font-family: "Inter", "Cantarell", "DejaVu Sans", "Segoe UI", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    min-height: 0;
+}
+
+window#waybar {
+    background-color: rgba(18, 22, 26, 0.94);
+    border-bottom: 2px solid #e53935;
+    color: #f1f5f9;
+    transition-property: background-color;
+    transition-duration: .3s;
+}
+
+#custom-menu {
+    background: linear-gradient(135deg, #e53935, #b71c1c);
+    color: #ffffff;
+    font-weight: 700;
+    padding: 0 14px;
+    margin: 4px 4px 4px 6px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(229, 57, 53, 0.3);
+}
+
+#custom-menu:hover {
+    background: linear-gradient(135deg, #ef5350, #c62828);
+}
+
+#custom-welcome,
+#custom-steam,
+#custom-terminal,
+#custom-browser {
+    background: #1e2630;
+    color: #e2e8f0;
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#custom-welcome:hover,
+#custom-steam:hover,
+#custom-terminal:hover,
+#custom-browser:hover {
+    background: #283340;
+    color: #ffffff;
+    border-color: #e53935;
+}
+
+#taskbar button {
+    padding: 0 8px;
+    margin: 4px 2px;
+    border-radius: 6px;
+    background: #1a2129;
+    color: #cbd5e1;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#taskbar button.active {
+    background: #252e38;
+    color: #ffffff;
+    border-bottom: 2px solid #e53935;
+}
+
+#clock {
+    font-weight: 700;
+    color: #f8fafc;
+    background: #1a2129;
+    padding: 0 16px;
+    margin: 4px 0;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#custom-gamemode {
+    background: #1e2630;
+    color: #4ade80;
+    padding: 0 10px;
+    margin: 4px 2px;
+    border-radius: 6px;
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    font-weight: 600;
+}
+
+#cpu,
+#memory,
+#pulseaudio,
+#backlight,
+#network,
+#battery {
+    background: #1a2129;
+    color: #e2e8f0;
+    padding: 0 9px;
+    margin: 4px 2px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+#pulseaudio.muted {
+    color: #f87171;
+}
+
+#battery.warning:not(.charging) {
+    background: #d97706;
+    color: #ffffff;
+}
+
+#battery.critical:not(.charging) {
+    background: #dc2626;
+    color: #ffffff;
+    animation-name: blink;
+    animation-duration: 0.8s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    animation-direction: alternate;
+}
+
+#custom-power {
+    background: #e53935;
+    color: #ffffff;
+    font-weight: 700;
+    padding: 0 12px;
+    margin: 4px 6px 4px 4px;
+    border-radius: 6px;
+}
+
+#custom-power:hover {
+    background: #f44336;
+}
