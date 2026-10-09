@@ -217,6 +217,39 @@ Type=Application
 DesktopNames=Nobara-Axis
 """)
 
+# Deploy Qt 6 LiquidNodes Wayland Compositor (LiquidNodesOS)
+liquid_src = os.path.join(chroot_dir, "usr", "local", "bin", "LiquidNodesOS")
+if os.path.exists(liquid_src):
+    print("    Detected Qt6 LiquidNodes Compositor -> /usr/local/bin/LiquidNodesOS")
+    qml_src = os.path.join(workspace_dir, "compositor-qt", "Main.qml")
+    if os.path.exists(qml_src):
+        dst_qml = os.path.join(chroot_dir, "usr", "share", "axis-compositor-qt", "Main.qml")
+        os.makedirs(os.path.dirname(dst_qml), exist_ok=True)
+        copy_text_lf(qml_src, dst_qml)
+    liquid_sess_dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "liquidnodes.desktop")
+    write_text_lf(liquid_sess_dst, """[Desktop Entry]
+Name=AxisOS LiquidNodes (Qt 6 QML)
+Comment=Glassmorphic LiquidNodes Wayland Desktop Environment
+Exec=/usr/local/bin/LiquidNodesOS
+Type=Application
+DesktopNames=LiquidNodes;AxisOS
+""")
+
+# Deploy Emoji Block Pin & Vector Symbol Fontconfig
+block_emojis_src = os.path.join(workspace_dir, "os-build", "configs", "apt", "preferences.d", "block-emojis")
+if os.path.exists(block_emojis_src):
+    dst_pref = os.path.join(chroot_dir, "etc", "apt", "preferences.d", "block-emojis")
+    os.makedirs(os.path.dirname(dst_pref), exist_ok=True)
+    copy_text_lf(block_emojis_src, dst_pref, 0o644)
+    print("    Deployed APT preferences block-emojis")
+
+font_local_src = os.path.join(workspace_dir, "os-build", "configs", "fonts", "local.conf")
+if os.path.exists(font_local_src):
+    dst_font = os.path.join(chroot_dir, "etc", "fonts", "local.conf")
+    os.makedirs(os.path.dirname(dst_font), exist_ok=True)
+    copy_text_lf(font_local_src, dst_font, 0o644)
+    print("    Deployed Fontconfig symbol fonts (FontAwesome / Papirus)")
+
 # Deploy prime-run helper
 primerun_dst = os.path.join(chroot_dir, "usr", "local", "bin", "prime-run")
 write_text_lf(primerun_dst, """#!/usr/bin/env bash
