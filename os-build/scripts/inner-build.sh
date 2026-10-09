@@ -144,7 +144,7 @@ ln -sf /etc/systemd/system/axisos-daemon.service config/includes.chroot/etc/syst
 
 # 5. Sudoers & Polkit rules for live session
 mkdir -p config/includes.chroot/etc/sudoers.d
-echo "axis ALL=(ALL) NOPASSWD: ALL" > config/includes.chroot/etc/sudoers.d/axis
+echo "axis ALL=(ALL:ALL) ALL" > config/includes.chroot/etc/sudoers.d/axis
 chmod 0440 config/includes.chroot/etc/sudoers.d/axis
 
 mkdir -p config/includes.chroot/etc/polkit-1/rules.d

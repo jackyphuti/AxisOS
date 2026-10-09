@@ -5,6 +5,7 @@
     "spacing": 6,
     "modules-left": [
         "custom/menu",
+        "custom/settings",
         "custom/welcome",
         "custom/steam",
         "custom/terminal",
@@ -25,9 +26,14 @@
         "custom/power"
     ],
     "custom/menu": {
-        "format": "󰣇  Nobara",
+        "format": "󰣇  AxisOS",
         "tooltip": false,
         "on-click": "wofi --show drun --prompt 'Search Applications...'"
+    },
+    "custom/settings": {
+        "format": " Settings",
+        "tooltip": "Open System Settings & Appearance",
+        "on-click": "axis-settings"
     },
     "custom/welcome": {
         "format": "󰌆 Drivers & Codecs",

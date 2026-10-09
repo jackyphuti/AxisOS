@@ -63,11 +63,11 @@ export const ACCENT_COLOR_MAP: Record<AccentColor, { primary: string; bg: string
     ring: 'focus:ring-[#87cf3e]',
   },
   blue: {
-    primary: 'bg-blue-500 hover:bg-blue-600',
-    bg: 'bg-blue-500/20',
-    border: 'border-blue-500/40',
-    text: 'text-blue-400',
-    ring: 'focus:ring-blue-500',
+    primary: 'bg-[#2563eb] hover:bg-[#1d4ed8] text-white',
+    bg: 'bg-[#2563eb]/20',
+    border: 'border-[#2563eb]/50',
+    text: 'text-[#60a5fa]',
+    ring: 'focus:ring-[#2563eb]',
   },
   cyan: {
     primary: 'bg-cyan-500 hover:bg-cyan-600',
@@ -179,7 +179,7 @@ const SystemStateContext = createContext<SystemStateContextType | null>(null);
 
 export const SystemStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setTheme] = useState<SystemTheme>('dark');
-  const [accentColor, setAccentColor] = useState<AccentColor>('mint');
+  const [accentColor, setAccentColor] = useState<AccentColor>('blue');
   const [wallpaper, setWallpaper] = useState<WallpaperOption>(WALLPAPERS[0]);
   const [volume, setVolume] = useState<number>(75);
   const [isMuted, setIsMuted] = useState<boolean>(false);

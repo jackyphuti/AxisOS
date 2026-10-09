@@ -1,0 +1,12 @@
+[Unit]
+Description=AxisOS Automatic Timezone and Clock Synchronizer
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/axis-autotimezone.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

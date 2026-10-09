@@ -1,0 +1,6 @@
+# Fast I/O scheduler tuning for SSD / NVMe gaming drives
+# Set NVMe drives to kyber (low-latency request queuing)
+ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{queue/scheduler}="kyber"
+
+# Set SATA / USB SSDs to bfq
+ACTION=="add|change", KERNEL=="sd[a-z]|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="bfq"

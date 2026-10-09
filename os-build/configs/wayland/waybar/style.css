@@ -8,32 +8,33 @@
 }
 
 window#waybar {
-    background-color: rgba(18, 22, 26, 0.94);
-    border-bottom: 2px solid #e53935;
-    color: #f1f5f9;
+    background-color: rgba(10, 12, 16, 0.95);
+    border-bottom: 2px solid #2563eb;
+    color: #f8fafc;
     transition-property: background-color;
     transition-duration: .3s;
 }
 
 #custom-menu {
-    background: linear-gradient(135deg, #e53935, #b71c1c);
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: #ffffff;
     font-weight: 700;
     padding: 0 14px;
     margin: 4px 4px 4px 6px;
     border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(229, 57, 53, 0.3);
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.35);
 }
 
 #custom-menu:hover {
-    background: linear-gradient(135deg, #ef5350, #c62828);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
+#custom-settings,
 #custom-welcome,
 #custom-steam,
 #custom-terminal,
 #custom-browser {
-    background: #1e2630;
+    background: #161e2e;
     color: #e2e8f0;
     padding: 0 10px;
     margin: 4px 2px;
@@ -41,13 +42,14 @@ window#waybar {
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+#custom-settings:hover,
 #custom-welcome:hover,
 #custom-steam:hover,
 #custom-terminal:hover,
 #custom-browser:hover {
-    background: #283340;
+    background: #1e293b;
     color: #ffffff;
-    border-color: #e53935;
+    border-color: #2563eb;
 }
 
 #taskbar button {
@@ -60,15 +62,15 @@ window#waybar {
 }
 
 #taskbar button.active {
-    background: #252e38;
+    background: #1e293b;
     color: #ffffff;
-    border-bottom: 2px solid #e53935;
+    border-bottom: 2px solid #2563eb;
 }
 
 #clock {
     font-weight: 700;
     color: #f8fafc;
-    background: #1a2129;
+    background: #161e2e;
     padding: 0 16px;
     margin: 4px 0;
     border-radius: 6px;
@@ -76,12 +78,12 @@ window#waybar {
 }
 
 #custom-gamemode {
-    background: #1e2630;
-    color: #4ade80;
+    background: #161e2e;
+    color: #3b82f6;
     padding: 0 10px;
     margin: 4px 2px;
     border-radius: 6px;
-    border: 1px solid rgba(74, 222, 128, 0.3);
+    border: 1px solid rgba(59, 130, 246, 0.3);
     font-weight: 600;
 }
 
@@ -91,7 +93,7 @@ window#waybar {
 #backlight,
 #network,
 #battery {
-    background: #1a2129;
+    background: #161e2e;
     color: #e2e8f0;
     padding: 0 9px;
     margin: 4px 2px;
@@ -119,7 +121,7 @@ window#waybar {
 }
 
 #custom-power {
-    background: #e53935;
+    background: #2563eb;
     color: #ffffff;
     font-weight: 700;
     padding: 0 12px;
@@ -128,5 +130,5 @@ window#waybar {
 }
 
 #custom-power:hover {
-    background: #f44336;
+    background: #1d4ed8;
 }

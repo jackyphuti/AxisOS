@@ -1,0 +1,14 @@
+[Unit]
+Description=AxisOS Nobara Automated NVIDIA Driver Installation
+After=network-online.target
+Wants=network-online.target
+ConditionPathExists=!/var/lib/nvidia-first-boot.flag
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/nvidia-auto-install.sh
+RemainAfterExit=yes
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

@@ -364,10 +364,10 @@ fi
 echo "${USERNAME}:${PASSWORD}" | chroot /mnt chpasswd
 echo "root:${PASSWORD}" | chroot /mnt chpasswd
 
-# Passwordless sudo for administrative user
-mkdir -p /mnt/etc/sudoers.d
-echo "$USERNAME ALL=(ALL) NOPASSWD: ALL" > "/mnt/etc/sudoers.d/$USERNAME"
-chmod 0440 "/mnt/etc/sudoers.d/$USERNAME"
+# Standard Debian security: User and root passwords are identical.
+# Terminal and administrative tasks strictly prompt for the password.
+rm -f "/mnt/etc/sudoers.d/$USERNAME"
+rm -f /mnt/etc/sudoers.d/axis 2>/dev/null || true
 
 # Configure display manager (LightDM) for installed system
 chroot /mnt groupadd -r autologin 2>/dev/null || true
@@ -413,9 +413,8 @@ chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}"
 cat << EOF > /mnt/etc/axisos-installed
 INSTALLED=true
 VERSION="2.0"
-CODENAME="Nobara Gaming Edition"
-CODENAME="Horizon"
-EDITION="Sonoma"
+CODENAME="Debian Edition"
+EDITION="Gaming & Workstation"
 INSTALL_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 TARGET_DISK="${TARGET_DISK}"
 TARGET_PART="${ROOT_PART}"
@@ -612,6 +611,11 @@ EOF
 
 # Generate grub.cfg
 chroot /mnt update-grub 2>/dev/null || chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
+
+# Set Out-of-Box Experience (OOBE) first boot flag for initial setup
+mkdir -p /mnt/var/lib/axisos
+touch /mnt/var/lib/axisos/first-boot-pending
+log "Configured /var/lib/axisos/first-boot-pending for first-boot OOBE wizard"
 
 report 96 "Cleaning up mounts..."
 sync

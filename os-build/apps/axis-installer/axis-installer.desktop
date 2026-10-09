@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Install AxisOS 2.0
+Comment=Friendly and secure installation wizard for AxisOS Linux
+Exec=/usr/local/bin/axis-installer
+Icon=system-software-install
+Terminal=false
+Type=Application
+Categories=System;Settings;
+Keywords=Install;Setup;Drive;Partition;

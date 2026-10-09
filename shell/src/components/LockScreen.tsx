@@ -117,7 +117,7 @@ export const LockScreen: React.FC = () => {
 
       {/* CENTER: Clock, Avatar, Password / Sign In */}
       <div className="relative z-10 flex flex-col items-center justify-center text-center -translate-y-4">
-        {/* Large iOS-Style Lock Clock */}
+        {/* Large Linux Lock Clock */}
         <div className="text-7xl sm:text-8xl font-light tracking-tight text-white/95 mb-2 font-sans drop-shadow-lg">
           {currentTime || '12:00'}
         </div>
