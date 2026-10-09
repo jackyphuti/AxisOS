@@ -9,24 +9,24 @@
 
 window#waybar {
     background-color: rgba(18, 22, 26, 0.94);
-    border-bottom: 2px solid #e53935;
+    border-bottom: 2px solid #10b981;
     color: #f1f5f9;
     transition-property: background-color;
     transition-duration: .3s;
 }
 
 #custom-menu {
-    background: linear-gradient(135deg, #e53935, #b71c1c);
+    background: linear-gradient(135deg, #10b981, #059669);
     color: #ffffff;
     font-weight: 700;
     padding: 0 14px;
     margin: 4px 4px 4px 6px;
     border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(229, 57, 53, 0.3);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
 }
 
 #custom-menu:hover {
-    background: linear-gradient(135deg, #ef5350, #c62828);
+    background: linear-gradient(135deg, #34d399, #10b981);
 }
 
 #custom-welcome,
@@ -47,7 +47,7 @@ window#waybar {
 #custom-browser:hover {
     background: #283340;
     color: #ffffff;
-    border-color: #e53935;
+    border-color: #10b981;
 }
 
 #taskbar button {
@@ -62,7 +62,7 @@ window#waybar {
 #taskbar button.active {
     background: #252e38;
     color: #ffffff;
-    border-bottom: 2px solid #e53935;
+    border-bottom: 2px solid #10b981;
 }
 
 #clock {
@@ -119,7 +119,7 @@ window#waybar {
 }
 
 #custom-power {
-    background: #e53935;
+    background: #10b981;
     color: #ffffff;
     font-weight: 700;
     padding: 0 12px;
@@ -128,5 +128,5 @@ window#waybar {
 }
 
 #custom-power:hover {
-    background: #f44336;
+    background: #059669;
 }

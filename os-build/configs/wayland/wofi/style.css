@@ -1,6 +1,6 @@
 window {
     margin: 0px;
-    border: 2px solid #e53935;
+    border: 2px solid #10b981;
     background-color: #12161a;
     border-radius: 10px;
     font-family: "Inter", "Cantarell", sans-serif;
@@ -17,7 +17,7 @@ window {
 }
 
 #input:focus {
-    border-color: #e53935;
+    border-color: #10b981;
     outline: none;
 }
 
@@ -46,7 +46,7 @@ window {
 }
 
 #entry:selected {
-    background-color: #e53935;
+    background-color: #10b981;
     color: #ffffff;
 }
 

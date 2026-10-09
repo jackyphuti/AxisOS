@@ -21,7 +21,7 @@ window {
 
 headerbar {
     background: #181f26;
-    border-bottom: 2px solid #e53935;
+    border-bottom: 2px solid #10b981;
     color: #ffffff;
 }
 
@@ -44,8 +44,8 @@ notebook tab {
 
 notebook tab:checked {
     color: #ffffff;
-    border-bottom: 2px solid #e53935;
-    background: rgba(229, 57, 53, 0.1);
+    border-bottom: 2px solid #10b981;
+    background: rgba(16, 185, 129, 0.1);
 }
 
 .hero-card {
@@ -65,7 +65,7 @@ notebook tab:checked {
 }
 
 .action-btn-primary {
-    background: linear-gradient(135deg, #e53935, #c62828);
+    background: linear-gradient(135deg, #10b981, #059669);
     color: #ffffff;
     font-weight: bold;
     border-radius: 6px;
@@ -74,7 +74,7 @@ notebook tab:checked {
 }
 
 .action-btn-primary:hover {
-    background: linear-gradient(135deg, #ef5350, #d32f2f);
+    background: linear-gradient(135deg, #34d399, #10b981);
 }
 
 .action-btn-secondary {
@@ -88,7 +88,7 @@ notebook tab:checked {
 .action-btn-secondary:hover {
     background: #333e4c;
     color: #ffffff;
-    border-color: #e53935;
+    border-color: #10b981;
 }
 
 .badge-ok {

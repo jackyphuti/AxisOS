@@ -2,7 +2,7 @@
 font=Inter 11
 background-color=#12161af0
 text-color=#ffffff
-border-color=#e53935
+border-color=#10b981
 border-size=2
 border-radius=8
 padding=12
@@ -15,7 +15,7 @@ max-icon-size=48
 border-color=#3b82f6
 
 [urgency=normal]
-border-color=#e53935
+border-color=#10b981
 
 [urgency=critical]
 border-color=#ef4444

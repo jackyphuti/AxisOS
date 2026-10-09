@@ -447,7 +447,7 @@ DEFAULT live
 
 MENU TITLE AxisOS Linux 2.0 (Nobara Gaming Edition)
 MENU COLOR border       30;44   #40ffffff #a0000000 std
-MENU COLOR title        1;36;44 #90e53935 #a0000000 std
+MENU COLOR title        1;36;44 #9010b981 #a0000000 std
 MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
 MENU COLOR unsel        37;44   #50ffffff #a0000000 std
 MENU COLOR help         37;40   #c0ffffff #a0000000 std
