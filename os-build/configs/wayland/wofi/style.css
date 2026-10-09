@@ -1,7 +1,7 @@
 window {
     margin: 0px;
-    border: 2px solid #10b981;
-    background-color: #12161a;
+    border: 2px solid #2563eb;
+    background-color: #0a0c10;
     border-radius: 10px;
     font-family: "Inter", "Cantarell", sans-serif;
     font-size: 14px;
@@ -12,12 +12,12 @@ window {
     padding: 8px 12px;
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: #1a2129;
+    background-color: #161e2e;
     color: #f8fafc;
 }
 
 #input:focus {
-    border-color: #10b981;
+    border-color: #2563eb;
     outline: none;
 }
 
@@ -46,7 +46,7 @@ window {
 }
 
 #entry:selected {
-    background-color: #10b981;
+    background-color: #2563eb;
     color: #ffffff;
 }
 

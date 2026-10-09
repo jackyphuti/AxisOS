@@ -58,7 +58,7 @@ export const BootSplashScreen: React.FC<BootSplashScreenProps> = ({
         Debian Bookworm &bull; Wayland
       </p>
 
-      {/* Sleek Minimal iOS/macOS Progress Bar */}
+      {/* Sleek Debian Linux Wayland Progress Bar */}
       <div className="w-52 h-1 bg-white/10 rounded-full overflow-hidden relative">
         <div
           className="h-full bg-gradient-to-r from-[#007AFF] via-[#5856D6] to-[#BA7517] rounded-full transition-all duration-75 ease-out shadow-[0_0_8px_rgba(0,122,255,0.8)]"

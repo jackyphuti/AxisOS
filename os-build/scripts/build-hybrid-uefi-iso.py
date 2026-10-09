@@ -142,22 +142,27 @@ if os.path.exists(cinnamon_dir):
                     shutil.rmtree(dst)
                 shutil.copytree(t_src, dst)
 
-# Deploy Native GTK Apps (Software Manager, Update Manager, Task Manager)
+# Deploy Native GTK Apps (Software Manager, Update Manager, Task Manager, Settings, Installer)
 apps_dir = os.path.join(workspace_dir, "os-build", "apps")
 if os.path.exists(apps_dir):
-    print("    Syncing native GTK apps (Software, Updates, Task Manager)...")
-    for app_name in ["axis-software-manager", "axis-update-manager", "axis-task-manager"]:
+    print("    Syncing native GTK apps (Software, Updates, Task Manager, Settings, Installer)...")
+    for app_name in ["axis-software-manager", "axis-update-manager", "axis-task-manager", "axis-settings", "axis-installer"]:
         app_bin = os.path.join(apps_dir, app_name, app_name)
+        if not os.path.exists(app_bin):
+            app_bin = os.path.join(apps_dir, app_name, f"{app_name}.py")
         app_desktop = os.path.join(apps_dir, app_name, f"{app_name}.desktop")
         if os.path.exists(app_bin):
             dst = os.path.join(chroot_dir, "usr", "local", "bin", app_name)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copyfile(app_bin, dst)
-            os.chmod(dst, 0o755)
+            copy_text_lf(app_bin, dst, 0o755)
         if os.path.exists(app_desktop):
             dst = os.path.join(chroot_dir, "usr", "share", "applications", f"{app_name}.desktop")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copyfile(app_desktop, dst)
+            copy_text_lf(app_desktop, dst, 0o644)
+            if app_name == "axis-installer":
+                for desk_dir in [os.path.join(chroot_dir, "home", "axis", "Desktop"), os.path.join(chroot_dir, "etc", "skel", "Desktop")]:
+                    os.makedirs(desk_dir, exist_ok=True)
+                    copy_text_lf(app_desktop, os.path.join(desk_dir, "axis-installer.desktop"), 0o755)
 
 # Deploy Nobara Welcome & Hardware Driver / Codec Manager
 nobara_welcome_py = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome.py")
@@ -399,6 +404,33 @@ if os.path.exists(installer_sh):
     copy_text_lf(installer_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axisos-installer.sh"), 0o755)
     print("    Deployed Installer Scripts with OOBE flag")
 
+# Deploy Captive Portal & Auto-Timezone services
+captive_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-captive-portal.sh")
+if os.path.exists(captive_sh):
+    copy_text_lf(captive_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axis-captive-portal.sh"), 0o755)
+    dispatcher_dst = os.path.join(chroot_dir, "etc", "NetworkManager", "dispatcher.d", "99-captive-portal.sh")
+    dispatcher_src = os.path.join(workspace_dir, "os-build", "configs", "networkmanager", "dispatcher.d", "99-captive-portal.sh")
+    if os.path.exists(dispatcher_src):
+        copy_text_lf(dispatcher_src, dispatcher_dst, 0o755)
+    print("    Deployed Wi-Fi Captive Portal Redirect Handler")
+
+tz_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-autotimezone.sh")
+if os.path.exists(tz_sh):
+    copy_text_lf(tz_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axis-autotimezone.sh"), 0o755)
+    tz_svc = os.path.join(workspace_dir, "os-build", "configs", "systemd", "axis-autotimezone.service")
+    if os.path.exists(tz_svc):
+        dst_svc = os.path.join(chroot_dir, "etc", "systemd", "system", "axis-autotimezone.service")
+        copy_text_lf(tz_svc, dst_svc, 0o644)
+        multi_user = os.path.join(chroot_dir, "etc", "systemd", "system", "multi-user.target.wants")
+        os.makedirs(multi_user, exist_ok=True)
+        symlink_svc = os.path.join(multi_user, "axis-autotimezone.service")
+        if not os.path.exists(symlink_svc):
+            try:
+                os.symlink("/etc/systemd/system/axis-autotimezone.service", symlink_svc)
+            except Exception:
+                shutil.copyfile(dst_svc, symlink_svc)
+    print("    Deployed Automatic Geolocation & Timezone Service")
+
 
 # Step 1: Generate filesystem.squashfs
 print("--> 1. Building filesystem.squashfs with parallel XZ compression")
@@ -447,7 +479,7 @@ DEFAULT live
 
 MENU TITLE AxisOS Linux 2.0 (Nobara Gaming Edition)
 MENU COLOR border       30;44   #40ffffff #a0000000 std
-MENU COLOR title        1;36;44 #9010b981 #a0000000 std
+MENU COLOR title        1;36;44 #902563eb #a0000000 std
 MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
 MENU COLOR unsel        37;44   #50ffffff #a0000000 std
 MENU COLOR help         37;40   #c0ffffff #a0000000 std

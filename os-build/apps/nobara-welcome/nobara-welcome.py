@@ -20,8 +20,8 @@ window {
 }
 
 headerbar {
-    background: #181f26;
-    border-bottom: 2px solid #10b981;
+    background: #111827;
+    border-bottom: 2px solid #2563eb;
     color: #ffffff;
 }
 
@@ -44,12 +44,12 @@ notebook tab {
 
 notebook tab:checked {
     color: #ffffff;
-    border-bottom: 2px solid #10b981;
-    background: rgba(16, 185, 129, 0.1);
+    border-bottom: 2px solid #2563eb;
+    background: rgba(37, 99, 235, 0.15);
 }
 
 .hero-card {
-    background: linear-gradient(135deg, #1e2630, #141a21);
+    background: linear-gradient(135deg, #1e293b, #0f172a);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     padding: 18px;
@@ -57,7 +57,7 @@ notebook tab:checked {
 }
 
 .status-card {
-    background: #182028;
+    background: #111827;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
     padding: 14px;
@@ -65,7 +65,7 @@ notebook tab:checked {
 }
 
 .action-btn-primary {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
     color: #ffffff;
     font-weight: bold;
     border-radius: 6px;
@@ -74,11 +74,11 @@ notebook tab:checked {
 }
 
 .action-btn-primary:hover {
-    background: linear-gradient(135deg, #34d399, #10b981);
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
 .action-btn-secondary {
-    background: #252e38;
+    background: #1f2937;
     color: #e2e8f0;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
@@ -86,9 +86,9 @@ notebook tab:checked {
 }
 
 .action-btn-secondary:hover {
-    background: #333e4c;
+    background: #374151;
     color: #ffffff;
-    border-color: #10b981;
+    border-color: #2563eb;
 }
 
 .badge-ok {

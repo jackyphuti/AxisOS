@@ -1,8 +1,8 @@
-# Nobara Linux Notification Styling
+# AxisOS Linux Notification Styling
 font=Inter 11
-background-color=#12161af0
+background-color=#0a0c10f0
 text-color=#ffffff
-border-color=#10b981
+border-color=#2563eb
 border-size=2
 border-radius=8
 padding=12
@@ -12,10 +12,10 @@ icons=1
 max-icon-size=48
 
 [urgency=low]
-border-color=#3b82f6
+border-color=#60a5fa
 
 [urgency=normal]
-border-color=#10b981
+border-color=#2563eb
 
 [urgency=critical]
 border-color=#ef4444

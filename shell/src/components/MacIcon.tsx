@@ -487,5 +487,7 @@ export const MacIcon: React.FC<IconProps> = ({ id, size = 54, className = '' }) 
   }
 };
 
-// Aliased export for modern architecture
+// Aliased exports for modern Debian architecture
 export const AxisIcon = MacIcon;
+export const AppIcon = MacIcon;
+export const DebianIcon = MacIcon;

@@ -128,19 +128,19 @@ export const Desktop: React.FC = () => {
       {/* Boot Splash Screen */}
       <BootSplashScreen />
 
-      {/* iOS Lock Screen */}
+      {/* Debian Linux Lock Screen */}
       <LockScreen />
 
-      {/* macOS / Debian App Launcher Menu (Triggered by Windows Key or Menu Bar) */}
+      {/* Debian Application Launcher Menu (Triggered by Super Key or Top Bar) */}
       <AppMenu />
 
-      {/* macOS Menu Bar */}
+      {/* Top Status Bar */}
       <TopBar />
 
-      {/* Control Center Dropdown */}
+      {/* Settings & Quick Controls Dropdown */}
       {isQuickSettingsOpen && <QuickSettings />}
 
-      {/* macOS Spotlight Search Modal */}
+      {/* System Search Modal */}
       <SpotlightSearch />
 
       {/* Power Off / Restart Modal */}

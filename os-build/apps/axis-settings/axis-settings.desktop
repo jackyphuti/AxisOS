@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Settings
+Comment=Configure appearance, taskbar presets, updates, network, and security
+Exec=/usr/local/bin/axis-settings
+Icon=preferences-system
+Terminal=false
+Type=Application
+Categories=Settings;HardwareSettings;DesktopSettings;
+Keywords=Appearance;Theme;Display;Taskbar;Update;WiFi;Password;Time;
