@@ -1,0 +1,24 @@
+/*
+ * AxisOS Light Theme Stylesheet
+ * Imports axis-tokens.css, maps the light tokens to active aliases,
+ * and includes axis-components.css.
+ */
+
+@import url("axis-tokens.css");
+
+@define-color axis_base @axis_light_base;
+@define-color axis_surface @axis_light_surface;
+@define-color axis_surface_raised @axis_light_surface_raised;
+@define-color axis_accent @axis_light_accent;
+@define-color axis_accent_2 @axis_light_accent_2;
+@define-color axis_text @axis_light_text;
+@define-color axis_text_muted @axis_light_text_muted;
+@define-color axis_outline @axis_light_outline;
+@define-color axis_tile_fill @axis_light_tile_fill;
+@define-color axis_dock_highlight @axis_light_dock_highlight;
+@define-color axis_launcher_overlay @axis_light_launcher_overlay;
+@define-color axis_shadow @axis_light_shadow;
+@define-color axis_accent_btn_text @axis_light_btn_text;
+
+@import url("axis-components.css");
+

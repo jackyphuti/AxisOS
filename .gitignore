@@ -12,6 +12,7 @@ dist-ssr/
 *.qcow2
 os-build/work/
 .build/
+_build/
 cache/
 chroot/
 

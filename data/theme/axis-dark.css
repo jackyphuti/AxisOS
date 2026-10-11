@@ -1,0 +1,24 @@
+/*
+ * AxisOS Dark Theme Stylesheet
+ * Imports axis-tokens.css, maps the dark tokens to active aliases,
+ * and includes axis-components.css.
+ */
+
+@import url("axis-tokens.css");
+
+@define-color axis_base @axis_dark_base;
+@define-color axis_surface @axis_dark_surface;
+@define-color axis_surface_raised @axis_dark_surface_raised;
+@define-color axis_accent @axis_dark_accent;
+@define-color axis_accent_2 @axis_dark_accent_2;
+@define-color axis_text @axis_dark_text;
+@define-color axis_text_muted @axis_dark_text_muted;
+@define-color axis_outline @axis_dark_outline;
+@define-color axis_tile_fill @axis_dark_tile_fill;
+@define-color axis_dock_highlight @axis_dark_dock_highlight;
+@define-color axis_launcher_overlay @axis_dark_launcher_overlay;
+@define-color axis_shadow @axis_dark_shadow;
+@define-color axis_accent_btn_text @axis_dark_btn_text;
+
+@import url("axis-components.css");
+

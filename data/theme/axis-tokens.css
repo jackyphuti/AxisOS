@@ -1,0 +1,55 @@
+/*
+ * AxisOS Design Tokens - HarmonyOS Inspired Architecture
+ * Single source of truth for color, spacing, radius, and elevation tokens.
+ * Supports both Dark and Light color schemes.
+ */
+
+/* -------------------------------------------------------------------------
+ * Dark Scheme Tokens
+ * Base: #0E1411 (Deep obsidian-green)
+ * Surface: #18211D (Subtle card & sidebar green-tinted surface)
+ * Surface Raised: #223029 (Elevated card & popup surface)
+ * Accent: #8BC34A (Vibrant Lime)
+ * Accent 2: #2EC4B6 (Teal secondary accent for folders & media)
+ * Text: #E6EDE8 (High-contrast crisp off-white)
+ * Text Muted: #8A9A92 (Muted labels & captions)
+ * Outline: alpha(#8BC34A, 0.18) (Subtle neon border)
+ * ------------------------------------------------------------------------- */
+@define-color axis_dark_base #0E1411;
+@define-color axis_dark_surface #18211D;
+@define-color axis_dark_surface_raised #223029;
+@define-color axis_dark_accent #8BC34A;
+@define-color axis_dark_accent_2 #2EC4B6;
+@define-color axis_dark_text #E6EDE8;
+@define-color axis_dark_text_muted #8A9A92;
+@define-color axis_dark_outline alpha(#8BC34A, 0.18);
+@define-color axis_dark_tile_fill alpha(#8BC34A, 0.12);
+@define-color axis_dark_dock_highlight alpha(#ffffff, 0.06);
+@define-color axis_dark_launcher_overlay alpha(#18211D, 0.72);
+@define-color axis_dark_shadow alpha(#000000, 0.40);
+@define-color axis_dark_btn_text #0E1411;
+
+/* -------------------------------------------------------------------------
+ * Light Scheme Tokens
+ * Base: #F4F7F3 (Clean soft sage-tinted white canvas)
+ * Surface: #FFFFFF (Pure crisp card & panel surface)
+ * Surface Raised: #EAF1E8 (Elevated cards & input troughs)
+ * Accent: #4E8A1E (Deep forest lime for readable light-mode contrast)
+ * Accent 2: #148F86 (Deep teal secondary accent)
+ * Text: #15201A (Deep charcoal-green body text)
+ * Text Muted: #5C6B63 (Medium contrast secondary text)
+ * Outline: alpha(#4E8A1E, 0.22) (Delicate crisp outline)
+ * ------------------------------------------------------------------------- */
+@define-color axis_light_base #F4F7F3;
+@define-color axis_light_surface #FFFFFF;
+@define-color axis_light_surface_raised #EAF1E8;
+@define-color axis_light_accent #4E8A1E;
+@define-color axis_light_accent_2 #148F86;
+@define-color axis_light_text #15201A;
+@define-color axis_light_text_muted #5C6B63;
+@define-color axis_light_outline alpha(#4E8A1E, 0.22);
+@define-color axis_light_tile_fill alpha(#4E8A1E, 0.08);
+@define-color axis_light_dock_highlight alpha(#ffffff, 0.60);
+@define-color axis_light_launcher_overlay alpha(#FFFFFF, 0.80);
+@define-color axis_light_shadow alpha(#000000, 0.12);
+@define-color axis_light_btn_text #FFFFFF;

@@ -1,0 +1,366 @@
+/*
+ * AxisOS Component Stylesheet - HarmonyOS Inspired Architecture
+ * Strict Rule: Contains ZERO raw hex values. All colors reference tokens.
+ */
+
+/* -------------------------------------------------------------------------
+ * Typography
+ * ------------------------------------------------------------------------- */
+* {
+  font-family: Cantarell, "Noto Sans", sans-serif;
+}
+
+.title-1 {
+  font-size: 26px;
+  font-weight: 600;
+  color: @axis_text;
+}
+
+.title-2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: @axis_text;
+}
+
+.title-3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: @axis_text;
+}
+
+.title-4, .heading {
+  font-size: 14px;
+  font-weight: 600;
+  color: @axis_text;
+}
+
+.body, label {
+  font-weight: 400;
+  color: @axis_text;
+}
+
+.caption, .dim-label, label.dim-label {
+  font-size: 12px;
+  font-weight: 400;
+  color: @axis_text_muted;
+}
+
+/* -------------------------------------------------------------------------
+ * Windows & Surfaces
+ * 16px corner radius, 1px outline token, soft shadow, flat headerbars
+ * ------------------------------------------------------------------------- */
+window,
+window.background,
+.adw-window {
+  background-color: @axis_base;
+  color: @axis_text;
+  border-radius: 16px;
+  border: 1px solid @axis_outline;
+  box-shadow: 0 12px 24px @axis_shadow;
+}
+
+headerbar {
+  background: transparent;
+  background-color: transparent;
+  border: none;
+  box-shadow: none;
+  color: @axis_text;
+  min-height: 44px;
+  padding: 0 8px;
+}
+
+headerbar .title {
+  font-weight: 600;
+  color: @axis_text;
+}
+
+/* -------------------------------------------------------------------------
+ * Buttons
+ * Pill-shaped for primary actions (accent fill, contrast text)
+ * 12px radius for secondary
+ * Hover/pressed use 10% and 18% accent overlay
+ * ------------------------------------------------------------------------- */
+button.suggested-action,
+button.accent-button,
+.accent-button {
+  background-color: @axis_accent;
+  color: @axis_accent_btn_text;
+  font-weight: 700;
+  border-radius: 9999px;
+  border: none;
+  padding: 10px 24px;
+  transition: all 200ms ease;
+}
+
+button.suggested-action:hover,
+button.accent-button:hover,
+.accent-button:hover {
+  background-color: mix(@axis_accent, white, 0.10);
+  box-shadow: 0 4px 14px alpha(@axis_accent, 0.35);
+}
+
+button.suggested-action:active,
+button.accent-button:active,
+.accent-button:active {
+  background-color: mix(@axis_accent, black, 0.18);
+  box-shadow: 0 2px 6px alpha(@axis_accent, 0.20);
+}
+
+button,
+button.secondary-button {
+  border-radius: 12px;
+  background-color: @axis_surface;
+  color: @axis_text;
+  border: 1px solid @axis_outline;
+  padding: 8px 16px;
+  transition: all 200ms ease;
+}
+
+button:hover {
+  background-color: mix(@axis_surface, @axis_accent, 0.10);
+  border-color: @axis_accent;
+}
+
+button:active {
+  background-color: mix(@axis_surface, @axis_accent, 0.18);
+}
+
+/* -------------------------------------------------------------------------
+ * Sidebar
+ * Surface color, 12px row radius, selected row uses accent at 16% opacity
+ * with accent text
+ * ------------------------------------------------------------------------- */
+.sidebar,
+navigation-sidebar,
+.navigation-sidebar {
+  background-color: @axis_surface;
+  color: @axis_text;
+  border-right: 1px solid @axis_outline;
+}
+
+.sidebar row,
+navigation-sidebar row {
+  border-radius: 12px;
+  margin: 3px 8px;
+  padding: 8px 14px;
+  color: @axis_text_muted;
+  transition: all 160ms ease;
+}
+
+.sidebar row:hover,
+navigation-sidebar row:hover {
+  background-color: alpha(@axis_accent, 0.08);
+  color: @axis_text;
+}
+
+.sidebar row:selected,
+navigation-sidebar row:selected {
+  background-color: alpha(@axis_accent, 0.16);
+  color: @axis_accent;
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------------
+ * Cards and Lists
+ * Surface-raised fill, 18px radius, no hard borders
+ * ------------------------------------------------------------------------- */
+.card,
+preferencesgroup > box,
+list.boxed-list,
+.boxed-list {
+  background-color: @axis_surface_raised;
+  color: @axis_text;
+  border-radius: 18px;
+  border: none;
+  box-shadow: none;
+}
+
+list.boxed-list > row,
+.boxed-list > row {
+  border-radius: 14px;
+  color: @axis_text;
+  background-color: transparent;
+  border-bottom: 1px solid @axis_outline;
+}
+
+list.boxed-list > row:last-child,
+.boxed-list > row:last-child {
+  border-bottom: none;
+}
+
+/* -------------------------------------------------------------------------
+ * Switches, Sliders, and Progress Bars
+ * Accent fill, rounded trough
+ * ------------------------------------------------------------------------- */
+switch {
+  border-radius: 9999px;
+  background-color: @axis_surface;
+  border: 1px solid @axis_outline;
+}
+
+switch:checked {
+  background-color: @axis_accent;
+  border-color: @axis_accent;
+}
+
+switch slider {
+  border-radius: 9999px;
+  background-color: @axis_surface_raised;
+  min-width: 20px;
+  min-height: 20px;
+}
+
+scale trough {
+  background-color: @axis_surface_raised;
+  border-radius: 9999px;
+  min-height: 8px;
+  border: none;
+}
+
+scale highlight {
+  background-color: @axis_accent;
+  border-radius: 9999px;
+}
+
+scale slider {
+  border-radius: 9999px;
+  background-color: @axis_accent;
+  min-width: 18px;
+  min-height: 18px;
+}
+
+progressbar trough {
+  background-color: @axis_surface_raised;
+  border-radius: 9999px;
+  min-height: 8px;
+  border: none;
+}
+
+progressbar progress {
+  background-color: @axis_accent;
+  border-radius: 9999px;
+  min-height: 8px;
+}
+
+/* -------------------------------------------------------------------------
+ * App Tiles & Glass Dock (HarmonyOS Style)
+ * 22px tile radius, uniform 56px dock tiles with 4px gap, 20px glass radius
+ * Top-edge highlight
+ * ------------------------------------------------------------------------- */
+.app-tile {
+  border-radius: 22px;
+  background-color: @axis_tile_fill;
+  border: 1px solid @axis_outline;
+  padding: 12px;
+  transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-tile:hover {
+  background-color: alpha(@axis_accent, 0.22);
+  border-color: @axis_accent;
+}
+
+.app-tile:active {
+  background-color: alpha(@axis_accent, 0.32);
+}
+
+.dock-container {
+  background-color: alpha(@axis_surface, 0.85);
+  border-radius: 24px;
+  padding: 8px 12px;
+  border: 1px solid @axis_outline;
+  border-top: 1px solid @axis_dock_highlight;
+  box-shadow: 0 16px 32px @axis_shadow;
+}
+
+.dock-tile {
+  min-width: 56px;
+  min-height: 56px;
+  border-radius: 20px;
+  background-color: @axis_tile_fill;
+  border: 1px solid @axis_outline;
+  border-top: 1px solid @axis_dock_highlight;
+  margin: 0 2px;
+  padding: 0;
+  transition: all 180ms ease;
+}
+
+.dock-tile:hover {
+  background-color: alpha(@axis_accent, 0.25);
+  border-color: @axis_accent;
+}
+
+/* -------------------------------------------------------------------------
+ * Full-screen Frosted Launcher & Folders
+ * ------------------------------------------------------------------------- */
+.launcher-window {
+  background-color: transparent;
+}
+
+.launcher-overlay {
+  background-color: @axis_launcher_overlay;
+}
+
+.launcher-search entry {
+  background-color: @axis_surface_raised;
+  color: @axis_text;
+  border-radius: 16px;
+  border: 1px solid @axis_outline;
+  padding: 10px 18px;
+  font-size: 15px;
+}
+
+.launcher-search entry:focus-within {
+  border-color: @axis_accent;
+  box-shadow: 0 0 0 2px alpha(@axis_accent, 0.25);
+}
+
+.folder-tile {
+  border-radius: 22px;
+  background-color: alpha(@axis_accent_2, 0.12);
+  border: 1px solid alpha(@axis_accent_2, 0.25);
+  padding: 8px;
+}
+
+.folder-preview-grid {
+  border-radius: 14px;
+  background-color: alpha(@axis_surface_raised, 0.65);
+  padding: 4px;
+}
+
+.folder-popover contents {
+  background-color: @axis_surface_raised;
+  border-radius: 20px;
+  border: 1px solid @axis_outline;
+  box-shadow: 0 12px 28px @axis_shadow;
+  padding: 16px;
+}
+
+/* -------------------------------------------------------------------------
+ * Step Dots (Installer Indicator)
+ * ------------------------------------------------------------------------- */
+.step-dot {
+  min-width: 8px;
+  min-height: 8px;
+  border-radius: 9999px;
+  background-color: alpha(@axis_text_muted, 0.35);
+  transition: all 220ms ease;
+}
+
+.step-dot.active {
+  background-color: @axis_accent;
+  min-width: 24px;
+}
+
+/* -------------------------------------------------------------------------
+ * Secondary Accent & Teal Highlights
+ * ------------------------------------------------------------------------- */
+.badge-teal,
+.accent-2-badge {
+  background-color: alpha(@axis_accent_2, 0.18);
+  color: @axis_accent_2;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+}

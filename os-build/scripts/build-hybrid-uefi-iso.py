@@ -165,6 +165,39 @@ if os.path.exists(compile_script):
     except Exception as e:
         print(f"    [INFO] Native compilation note: {e}")
 
+# Configure Debian Terminal Environment & Alternatives
+term_cfg_script = os.path.join(workspace_dir, "os-build", "scripts", "configure-terminal-env.py")
+if os.path.exists(term_cfg_script):
+    print("    Configuring Debian terminal environment, PATH, and alternatives...")
+    try:
+        subprocess.run(["python3", term_cfg_script], check=True)
+    except Exception as e:
+        print(f"    [INFO] Terminal configuration note: {e}")
+
+# Deploy HarmonyOS Desktop Theme, Icons, and Apps
+harmony_theme_src = os.path.join(workspace_dir, "data", "theme")
+if os.path.exists(harmony_theme_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "share", "axis", "theme")
+    os.makedirs(dst, exist_ok=True)
+    for f in os.listdir(harmony_theme_src):
+        shutil.copyfile(os.path.join(harmony_theme_src, f), os.path.join(dst, f))
+
+harmony_icons_src = os.path.join(workspace_dir, "data", "icons", "AxisHarmony")
+if os.path.exists(harmony_icons_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "share", "icons", "AxisHarmony")
+    if os.path.exists(dst):
+        shutil.rmtree(dst)
+    shutil.copytree(harmony_icons_src, dst)
+
+harmony_apps_src = os.path.join(workspace_dir, "src")
+if os.path.exists(harmony_apps_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "share", "axis")
+    os.makedirs(dst, exist_ok=True)
+    for f in os.listdir(harmony_apps_src):
+        if f.endswith(".py"):
+            shutil.copyfile(os.path.join(harmony_apps_src, f), os.path.join(dst, f))
+            os.chmod(os.path.join(dst, f), 0o755)
+
 # Deploy Native GTK Apps (Software Manager, Update Manager, Task Manager, Settings, Installer, Terminal, USB Daemon)
 apps_dir = os.path.join(workspace_dir, "os-build", "apps")
 if os.path.exists(apps_dir):

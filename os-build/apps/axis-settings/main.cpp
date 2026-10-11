@@ -1176,17 +1176,42 @@ private:
         GtkWidget* card = create_card("System Specifications & Hardware",
             "AxisOS 2.0 (Nobara & Debian Native Edition)");
 
-        std::string cpu = exec_cmd("grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 || echo 'x86_64 Processor'");
-        std::string mem = exec_cmd("free -h | awk '/^Mem:/ {print $2 \" Total / \" $3 \" Used\"}' || echo 'Unknown'");
-        std::string kernel = exec_cmd("uname -r");
-        std::string os_ver = "AxisOS 2.0 Native (C/C++ Architecture)";
+        std::string model = exec_cmd("cat /sys/class/dmi/id/product_name 2>/dev/null || cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null || hostname");
+        if (model.empty() || model == "None") model = "Personal Computer";
+        if (!model.empty() && model.back() == '\n') model.pop_back();
 
-        std::string text = "🖥️  Operating System: " + os_ver + "\n"
-                         + "🐧 Linux Kernel: " + kernel
-                         + "⚡ Processor: " + cpu
+        std::string vendor = exec_cmd("cat /sys/class/dmi/id/sys_vendor 2>/dev/null || echo ''");
+        if (!vendor.empty() && vendor.back() == '\n') vendor.pop_back();
+        std::string device_str = (!vendor.empty() && model.find(vendor) == std::string::npos) ? (vendor + " " + model) : model;
+
+        std::string cpu = exec_cmd("grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | sed -e 's/^[ \t]*//' || uname -m");
+        if (!cpu.empty() && cpu.back() == '\n') cpu.pop_back();
+        std::string cores = exec_cmd("nproc 2>/dev/null || echo '1'");
+        if (!cores.empty() && cores.back() == '\n') cores.pop_back();
+
+        std::string mem = exec_cmd("free -h 2>/dev/null | awk '/^Mem:/ {print $2 \" Total (\" $7 \" Available)\"}' || echo '8.0 GB'");
+        if (!mem.empty() && mem.back() == '\n') mem.pop_back();
+
+        std::string gpu = exec_cmd("lspci 2>/dev/null | grep -E 'VGA|3D' | cut -d: -f3 | sed -e 's/^[ \t]*//' | head -n1");
+        if (gpu.empty()) gpu = "Intel / AMD / NVIDIA Hardware Accelerated Graphics";
+        if (!gpu.empty() && gpu.back() == '\n') gpu.pop_back();
+
+        std::string disk = exec_cmd("df -h / 2>/dev/null | awk 'NR==2 {print $2 \" Total (\" $4 \" Free)\"}' || echo '512 GB SSD'");
+        if (!disk.empty() && disk.back() == '\n') disk.pop_back();
+
+        std::string kernel = exec_cmd("uname -r");
+        if (!kernel.empty() && kernel.back() == '\n') kernel.pop_back();
+        std::string arch = exec_cmd("uname -m");
+        if (!arch.empty() && arch.back() == '\n') arch.pop_back();
+
+        std::string text = "🖥️  Device Model: " + device_str + "\n"
+                         + "⚡ Processor: " + cpu + " (" + cores + " Threads)\n"
                          + "🧠 Memory (RAM): " + mem + "\n"
-                         + "🪟 Desktop Environment: Wayland Compositor (wlroots + Waybar)\n"
-                         + "🎮 Gaming Platform: Valve Steam & Vulkan Acceleration Built-in";
+                         + "🎮 Graphics (GPU): " + gpu + "\n"
+                         + "💾 Disk Storage: " + disk + "\n"
+                         + "🐧 Linux Kernel: " + kernel + " (" + arch + ")\n"
+                         + "✨ Operating System: AxisOS 2.0 (Harmony Edition)\n"
+                         + "🪟 Desktop Session: Wayland Native Compositor";
 
         GtkWidget* lbl = gtk_label_new(text.c_str());
         gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
