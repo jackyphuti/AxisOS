@@ -1,0 +1,16 @@
+#%PAM-1.0
+# AxisOS LiquidNodes Greeter PAM Configuration
+# Dynamic biometrics (facial recognition via Howdy, fingerprint via fprintd)
+# with automatic fallback to standard password authentication.
+
+auth      requisite pam_nologin.so
+
+# Optional biometric authentication
+-auth     [success=done default=ignore] pam_howdy.so
+-auth     [success=done default=ignore] pam_fprintd.so
+
+# Standard authentication stack
+@include  common-auth
+@include  common-account
+@include  common-session
+@include  common-password
