@@ -73,9 +73,10 @@ else
     STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & nobara-welcome &"
 fi
 
-echo "[AxisOS] Launching Native Nobara wlroots Wayland Compositor..." > "$HOME/.axis-session.log"
-
-if [ -x "/usr/local/bin/axis-compositor" ]; then
+if [ -x "/usr/local/bin/LiquidNodesOS" ]; then
+    echo "[AxisOS] Launching Native Qt 6 LiquidNodes Wayland Compositor..." >> "$HOME/.axis-session.log"
+    exec /usr/local/bin/LiquidNodesOS >> "$HOME/.axis-session.log" 2>&1
+elif [ -x "/usr/local/bin/axis-compositor" ]; then
     exec /usr/local/bin/axis-compositor -s "$STARTUP_CMD" >> "$HOME/.axis-session.log" 2>&1
 elif [ -x "/usr/bin/axis-compositor" ]; then
     exec /usr/bin/axis-compositor -s "$STARTUP_CMD" >> "$HOME/.axis-session.log" 2>&1
