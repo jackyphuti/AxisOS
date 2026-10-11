@@ -154,12 +154,12 @@ class ThemeManager:
     def calculate_wallpaper_accent(self, is_dark):
         """
         Calculates wallpaper-derived accent color.
-        Ensures contrast against the base color (#0E1411 in dark, #F4F7F3 in light).
-        Falls back to theme accent (#8BC34A in dark, #4E8A1E in light).
+        Ensures contrast against the base color (#0A0B0D in dark, #F4F5F7 in light).
+        Falls back to theme accent (#FFFFFF in dark, #0F172A in light).
         """
         wall_path = get_saved_wallpaper()
-        base_lum = relative_luminance(14, 20, 17) if is_dark else relative_luminance(244, 247, 243)
-        fallback_accent = "#8BC34A" if is_dark else "#4E8A1E"
+        base_lum = relative_luminance(10, 11, 13) if is_dark else relative_luminance(244, 245, 247)
+        fallback_accent = "#FFFFFF" if is_dark else "#0F172A"
 
         if not wall_path or not os.path.exists(wall_path):
             return fallback_accent

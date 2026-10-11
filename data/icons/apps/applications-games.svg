@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="game_bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#282C36"/>
+      <stop offset="100%" stop-color="#111317"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#game_bg)" stroke="#4B5563" stroke-width="1.5"/>
+  <path d="M16 19h32a10 10 0 0 1 9.8 12.1l-2.6 13.8a6 6 0 0 1-5.8 4.9h-.4a6 6 0 0 1-5.3-3.2L44 40.5a5 5 0 0 0-4.3-2.5h-15.4a5 5 0 0 0-4.3 2.5l-3.7 6.1A6 6 0 0 1 11.3 50h-.5a6 6 0 0 1-5.8-4.9L2.4 31.1A10 10 0 0 1 16 19z" fill="#1F2937" stroke="#9CA3AF" stroke-width="2.5" stroke-linejoin="round"/>
+  <path d="M18 26v8m-4-4h8" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="44" cy="27" r="2.2" fill="#FFFFFF"/>
+  <circle cx="40" cy="31" r="2.2" fill="#9CA3AF"/>
+  <circle cx="48" cy="31" r="2.2" fill="#9CA3AF"/>
+  <circle cx="44" cy="35" r="2.2" fill="#FFFFFF"/>
+</svg>

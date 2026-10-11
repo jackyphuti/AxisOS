@@ -59,23 +59,23 @@ def test_wcag_contrast_ratios():
     print("\n--- 2. Testing WCAG 2.1 Contrast Ratios for Design Tokens ---")
     tokens = {
         "dark": {
-            "base": (14, 20, 17),          # #0E1411
-            "surface": (24, 33, 29),       # #18211D
-            "surface_raised": (34, 48, 41),# #223029
-            "accent": (139, 195, 74),      # #8BC34A
-            "accent_2": (46, 196, 182),    # #2EC4B6
-            "text": (230, 237, 232),       # #E6EDE8
-            "text_muted": (138, 154, 146), # #8A9A92
-            "btn_text": (14, 20, 17),      # #0E1411
+            "base": (10, 11, 13),          # #0A0B0D
+            "surface": (20, 22, 26),       # #14161A
+            "surface_raised": (32, 35, 41),# #202329
+            "accent": (255, 255, 255),     # #FFFFFF
+            "accent_2": (148, 163, 184),   # #94A3B8
+            "text": (248, 250, 252),       # #F8FAFC
+            "text_muted": (148, 163, 184), # #94A3B8
+            "btn_text": (10, 11, 13),      # #0A0B0D
         },
         "light": {
-            "base": (244, 247, 243),       # #F4F7F3
+            "base": (244, 245, 247),       # #F4F5F7
             "surface": (255, 255, 255),    # #FFFFFF
-            "surface_raised": (234, 241, 232), # #EAF1E8
-            "accent": (78, 138, 30),       # #4E8A1E
-            "accent_2": (20, 143, 134),    # #148F86
-            "text": (21, 32, 26),          # #15201A
-            "text_muted": (92, 107, 99),   # #5C6B63
+            "surface_raised": (226, 229, 235), # #E2E5EB
+            "accent": (15, 23, 42),        # #0F172A
+            "accent_2": (100, 116, 139),   # #64748B
+            "text": (15, 23, 42),          # #0F172A
+            "text_muted": (100, 116, 139), # #64748B
             "btn_text": (255, 255, 255),   # #FFFFFF
         }
     }

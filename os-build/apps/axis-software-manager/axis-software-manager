@@ -315,22 +315,22 @@ class SoftwareApp(Gtk.Window):
 
     def apply_custom_styling(self):
         css = b"""
-        /* Linux Mint X-Apps / Mint-Y Dark Palette */
-        window { background-color: #18201b; color: #dbe4de; font-family: Inter, Cantarell, sans-serif; }
-        menubar { background-color: #141b16; border-bottom: 1px solid rgba(135, 207, 62, 0.2); }
-        menubar > menuitem { padding: 4px 10px; color: #c8d5cc; }
-        menubar > menuitem:hover { background-color: rgba(135, 207, 62, 0.2); color: #ffffff; }
-        toolbar { background-color: #1a231d; border-bottom: 1px solid rgba(135, 207, 62, 0.25); padding: 4px 8px; }
-        statusbar { background-color: #141b16; border-top: 1px solid rgba(135, 207, 62, 0.2); padding: 2px 8px; font-size: 9pt; }
+        /* AxisOS Monochrome Slate Architecture (Black, Grey, White) */
+        window { background-color: #0A0B0D; color: #F8FAFC; font-family: Inter, Cantarell, sans-serif; }
+        menubar { background-color: #14161A; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+        menubar > menuitem { padding: 4px 10px; color: #94A3B8; }
+        menubar > menuitem:hover { background-color: rgba(255, 255, 255, 0.12); color: #ffffff; }
+        toolbar { background-color: #14161A; border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding: 4px 8px; }
+        statusbar { background-color: #14161A; border-top: 1px solid rgba(255, 255, 255, 0.12); padding: 2px 8px; font-size: 9pt; }
         .cat-title { font-size: 10pt; font-weight: 500; }
-        list row:selected { background-color: rgba(135, 207, 62, 0.25); border-left: 3px solid #87cf3e; }
-        .app-card { background-color: #1d2720; border: 1px solid rgba(135, 207, 62, 0.18); border-radius: 8px; padding: 12px; }
-        .app-card:hover { border-color: #87cf3e; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
+        list row:selected { background-color: rgba(255, 255, 255, 0.15); border-left: 3px solid #FFFFFF; }
+        .app-card { background-color: #14161A; border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 8px; padding: 12px; }
+        .app-card:hover { border-color: rgba(255, 255, 255, 0.35); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); }
         .app-title { font-weight: bold; font-size: 11pt; color: #ffffff; }
-        .app-tagline { font-size: 9pt; color: #9ab0a2; }
-        .source-badge { font-size: 8pt; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: #243329; color: #87cf3e; }
-        button.action-install { background-color: #87cf3e; color: #0d140f; font-weight: bold; border-radius: 6px; border: 1px solid #87cf3e; }
-        button.action-install:hover { background-color: #9ce055; }
+        .app-tagline { font-size: 9pt; color: #94A3B8; }
+        .source-badge { font-size: 8pt; font-weight: bold; padding: 2px 6px; border-radius: 4px; background-color: #202329; color: #FFFFFF; border: 1px solid rgba(255, 255, 255, 0.14); }
+        button.action-install { background-color: #FFFFFF; color: #0A0B0D; font-weight: bold; border-radius: 6px; border: 1px solid #FFFFFF; }
+        button.action-install:hover { background-color: #E2E8F0; }
         button.action-remove { background-color: #4a2020; color: #ff9999; font-weight: bold; border-radius: 6px; border: 1px solid #ff5555; }
         """
         provider = Gtk.CssProvider()

@@ -33,50 +33,50 @@ struct ProcessInfo {
 
 static const char* CSS_TM = R"(
 window {
-    background-color: #0c1527;
-    color: #f8fafc;
+    background-color: #0A0B0D;
+    color: #F8FAFC;
 }
 headerbar {
-    background: #0f1c35;
-    border-bottom: 2px solid #0078d7;
-    color: #ffffff;
+    background: #14161A;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
 }
 treeview {
-    background-color: #0d172a;
-    color: #f1f5f9;
+    background-color: #0A0B0D;
+    color: #F8FAFC;
 }
 treeview:selected {
-    background-color: #0078d7;
-    color: #ffffff;
+    background-color: #FFFFFF;
+    color: #0A0B0D;
 }
 treeview header button {
-    background-color: #13223f;
+    background-color: #14161A;
     color: #94a3b8;
     font-weight: 700;
     border: none;
     padding: 6px;
 }
 .perf-card {
-    background-color: #13223f;
+    background-color: #14161A;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 16px;
     margin: 8px;
 }
 .btn-primary {
-    background: #0078d7;
-    color: #ffffff;
+    background: #FFFFFF;
+    color: #0A0B0D;
     font-weight: 600;
     border-radius: 4px;
-    border: 1px solid #1084d8;
+    border: 1px solid #FFFFFF;
     padding: 6px 14px;
 }
 .btn-danger {
-    background: #dc2626;
+    background: #EF4444;
     color: #ffffff;
     font-weight: 600;
     border-radius: 4px;
-    border: 1px solid #b91c1c;
+    border: 1px solid #DC2626;
     padding: 6px 14px;
 }
 )";

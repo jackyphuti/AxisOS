@@ -16,35 +16,35 @@
 
 static const char* CSS_DATA = R"(
 window {
-    background-color: #0E1411;
+    background-color: #0A0B0D;
     border-radius: 16px;
-    border: 1px solid rgba(139, 195, 74, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 headerbar {
-    background: #18211D;
-    background-color: #18211D;
-    border-bottom: 1px solid rgba(139, 195, 74, 0.18);
-    color: #E6EDE8;
+    background: #14161A;
+    background-color: #14161A;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: #F8FAFC;
     min-height: 42px;
     padding: 0 8px;
 }
 headerbar .title {
     font-weight: 600;
     font-size: 14px;
-    color: #E6EDE8;
+    color: #F8FAFC;
 }
 headerbar .subtitle {
     font-size: 11px;
-    color: #8A9A92;
+    color: #94A3B8;
 }
 notebook header {
-    background-color: #18211D;
-    border-bottom: 1px solid rgba(139, 195, 74, 0.12);
+    background-color: #14161A;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     padding: 0 4px;
 }
 notebook tab {
-    background-color: #18211D;
-    color: #8A9A92;
+    background-color: #14161A;
+    color: #94A3B8;
     padding: 6px 16px;
     font-weight: 500;
     font-size: 12px;
@@ -53,9 +53,9 @@ notebook tab {
     transition: all 180ms ease;
 }
 notebook tab:checked {
-    background-color: #223029;
-    color: #E6EDE8;
-    border-bottom: 2px solid #8BC34A;
+    background-color: #202329;
+    color: #F8FAFC;
+    border-bottom: 2px solid #FFFFFF;
 }
 button.tab-close {
     padding: 0;
@@ -64,21 +64,21 @@ button.tab-close {
     min-height: 16px;
     border: none;
     background: transparent;
-    color: #8A9A92;
+    color: #94A3B8;
 }
 button.tab-close:hover {
-    color: #E05D5D;
+    color: #EF4444;
 }
 button.header-btn {
     border-radius: 9999px;
-    background-color: #223029;
-    color: #E6EDE8;
-    border: 1px solid rgba(139, 195, 74, 0.18);
+    background-color: #202329;
+    color: #F8FAFC;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     padding: 4px 10px;
 }
 button.header-btn:hover {
-    background-color: rgba(139, 195, 74, 0.22);
-    border-color: #8BC34A;
+    background-color: rgba(255, 255, 255, 0.16);
+    border-color: #FFFFFF;
 }
 )";
 
@@ -137,29 +137,29 @@ public:
     void add_terminal_tab(const std::vector<std::string>& exec_cmd = {}) {
         GtkWidget* term = vte_terminal_new();
 
-        // HarmonyOS Dark Palette
-        GdkRGBA bg_color = { 0.055, 0.078, 0.067, 0.98 }; // #0E1411 (Obsidian Base)
-        GdkRGBA fg_color = { 0.902, 0.929, 0.910, 1.0 };  // #E6EDE8 (High contrast text)
-        GdkRGBA cursor_color = { 0.545, 0.765, 0.290, 1.0 }; // #8BC34A (Harmony Lime Accent)
+        // Monochrome Obsidian Palette (Black, Grey, White)
+        GdkRGBA bg_color = { 0.039, 0.043, 0.051, 0.98 }; // #0A0B0D (Pitch Obsidian Base)
+        GdkRGBA fg_color = { 0.973, 0.980, 0.988, 1.0 };  // #F8FAFC (High contrast crisp white)
+        GdkRGBA cursor_color = { 1.0, 1.0, 1.0, 1.0 };    // #FFFFFF (Crisp White Cursor)
 
         // Full ANSI 16 palette
         GdkRGBA palette[16] = {
-            { 0.055, 0.078, 0.067, 1.0 }, // 0 Black (Obsidian)
-            { 0.878, 0.365, 0.365, 1.0 }, // 1 Red
-            { 0.545, 0.765, 0.290, 1.0 }, // 2 Green (Lime)
+            { 0.039, 0.043, 0.051, 1.0 }, // 0 Black (Obsidian)
+            { 0.937, 0.267, 0.267, 1.0 }, // 1 Red
+            { 0.400, 0.800, 0.500, 1.0 }, // 2 Green
             { 0.965, 0.757, 0.467, 1.0 }, // 3 Yellow
-            { 0.180, 0.769, 0.714, 1.0 }, // 4 Blue/Teal (Harmony Teal)
+            { 0.580, 0.639, 0.722, 1.0 }, // 4 Slate Grey (#94A3B8)
             { 0.769, 0.655, 0.906, 1.0 }, // 5 Magenta
-            { 0.337, 0.714, 0.761, 1.0 }, // 6 Cyan
-            { 0.902, 0.929, 0.910, 1.0 }, // 7 White
-            { 0.133, 0.188, 0.161, 1.0 }, // 8 Bright Black (Surface Raised)
-            { 0.922, 0.435, 0.573, 1.0 }, // 9 Bright Red
-            { 0.627, 0.831, 0.408, 1.0 }, // 10 Bright Green
-            { 0.976, 0.886, 0.686, 1.0 }, // 11 Bright Yellow
-            { 0.220, 0.882, 0.816, 1.0 }, // 12 Bright Teal
+            { 0.450, 0.750, 0.850, 1.0 }, // 6 Cyan
+            { 0.973, 0.980, 0.988, 1.0 }, // 7 White (#F8FAFC)
+            { 0.247, 0.282, 0.345, 1.0 }, // 8 Bright Black (Slate Charcoal)
+            { 0.976, 0.443, 0.443, 1.0 }, // 9 Bright Red
+            { 0.529, 0.886, 0.612, 1.0 }, // 10 Bright Green
+            { 0.988, 0.843, 0.569, 1.0 }, // 11 Bright Yellow
+            { 0.720, 0.765, 0.824, 1.0 }, // 12 Bright Slate (#B8C3D2)
             { 0.867, 0.714, 0.949, 1.0 }, // 13 Bright Magenta
-            { 0.537, 0.867, 1.000, 1.0 }, // 14 Bright Cyan
-            { 1.000, 1.000, 1.000, 1.0 }  // 15 Bright White
+            { 0.600, 0.850, 0.950, 1.0 }, // 14 Bright Cyan
+            { 1.000, 1.000, 1.000, 1.0 }  // 15 Bright White (#FFFFFF)
         };
 
         vte_terminal_set_colors(VTE_TERMINAL(term), &fg_color, &bg_color, palette, 16);

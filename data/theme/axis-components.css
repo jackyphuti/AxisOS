@@ -1,5 +1,5 @@
 /*
- * AxisOS Component Stylesheet - HarmonyOS Inspired Architecture
+ * AxisOS Component Stylesheet - Monochrome HarmonyOS Architecture (Black, Grey, White)
  * Strict Rule: Contains ZERO raw hex values. All colors reference tokens.
  */
 
@@ -78,7 +78,7 @@ headerbar .title {
  * Buttons
  * Pill-shaped for primary actions (accent fill, contrast text)
  * 12px radius for secondary
- * Hover/pressed use 10% and 18% accent overlay
+ * Hover/pressed use subtle base mixes and ambient shadows
  * ------------------------------------------------------------------------- */
 button.suggested-action,
 button.accent-button,
@@ -95,15 +95,15 @@ button.accent-button,
 button.suggested-action:hover,
 button.accent-button:hover,
 .accent-button:hover {
-  background-color: mix(@axis_accent, white, 0.10);
-  box-shadow: 0 4px 14px alpha(@axis_accent, 0.35);
+  background-color: mix(@axis_accent, @axis_base, 0.12);
+  box-shadow: 0 4px 14px alpha(@axis_accent, 0.25);
 }
 
 button.suggested-action:active,
 button.accent-button:active,
 .accent-button:active {
-  background-color: mix(@axis_accent, black, 0.18);
-  box-shadow: 0 2px 6px alpha(@axis_accent, 0.20);
+  background-color: mix(@axis_accent, @axis_base, 0.24);
+  box-shadow: 0 2px 6px alpha(@axis_accent, 0.15);
 }
 
 button,
@@ -117,17 +117,17 @@ button.secondary-button {
 }
 
 button:hover {
-  background-color: mix(@axis_surface, @axis_accent, 0.10);
-  border-color: @axis_accent;
+  background-color: @axis_surface_raised;
+  border-color: alpha(@axis_text, 0.28);
 }
 
 button:active {
-  background-color: mix(@axis_surface, @axis_accent, 0.18);
+  background-color: mix(@axis_surface_raised, @axis_base, 0.20);
 }
 
 /* -------------------------------------------------------------------------
  * Sidebar
- * Surface color, 12px row radius, selected row uses accent at 16% opacity
+ * Surface color, 12px row radius, selected row uses accent overlay
  * with accent text
  * ------------------------------------------------------------------------- */
 .sidebar,
@@ -210,6 +210,10 @@ switch slider {
   min-height: 20px;
 }
 
+switch:checked slider {
+  background-color: @axis_accent_btn_text;
+}
+
 scale trough {
   background-color: @axis_surface_raised;
   border-radius: 9999px;
@@ -256,12 +260,12 @@ progressbar progress {
 }
 
 .app-tile:hover {
-  background-color: alpha(@axis_accent, 0.22);
-  border-color: @axis_accent;
+  background-color: alpha(@axis_accent, 0.12);
+  border-color: alpha(@axis_accent, 0.35);
 }
 
 .app-tile:active {
-  background-color: alpha(@axis_accent, 0.32);
+  background-color: alpha(@axis_accent, 0.20);
 }
 
 .dock-container {
@@ -270,7 +274,7 @@ progressbar progress {
   padding: 8px 12px;
   border: 1px solid @axis_outline;
   border-top: 1px solid @axis_dock_highlight;
-  box-shadow: 0 16px 32px @axis_shadow;
+  box-shadow: 0 16px 36px @axis_shadow;
 }
 
 .dock-tile {
@@ -286,8 +290,8 @@ progressbar progress {
 }
 
 .dock-tile:hover {
-  background-color: alpha(@axis_accent, 0.25);
-  border-color: @axis_accent;
+  background-color: alpha(@axis_accent, 0.15);
+  border-color: alpha(@axis_accent, 0.40);
 }
 
 /* -------------------------------------------------------------------------
@@ -317,8 +321,8 @@ progressbar progress {
 
 .folder-tile {
   border-radius: 22px;
-  background-color: alpha(@axis_accent_2, 0.12);
-  border: 1px solid alpha(@axis_accent_2, 0.25);
+  background-color: alpha(@axis_accent_2, 0.10);
+  border: 1px solid alpha(@axis_accent_2, 0.20);
   padding: 8px;
 }
 
@@ -353,12 +357,13 @@ progressbar progress {
 }
 
 /* -------------------------------------------------------------------------
- * Secondary Accent & Teal Highlights
+ * Secondary Titanium Slate Accents & Badges
  * ------------------------------------------------------------------------- */
 .badge-teal,
 .accent-2-badge {
-  background-color: alpha(@axis_accent_2, 0.18);
-  color: @axis_accent_2;
+  background-color: alpha(@axis_accent_2, 0.14);
+  color: @axis_text;
+  border: 1px solid alpha(@axis_accent_2, 0.25);
   border-radius: 8px;
   padding: 4px 10px;
   font-size: 11px;

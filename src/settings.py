@@ -62,22 +62,22 @@ class SettingsWindow(Adw.PreferencesWindow):
 
         # Accent Color Info Row
         group_accent = Adw.PreferencesGroup(
-            title="Harmony Accent Palette",
-            description="Active color tokens and dynamic contrast."
+            title="Monochrome Harmony Palette",
+            description="Active color tokens and verified WCAG contrast."
         )
         page_appear.add(group_accent)
 
-        row_lime = Adw.ActionRow(
+        row_primary = Adw.ActionRow(
             title="Primary Accent",
-            subtitle="Vibrant Lime (#8BC34A in Dark / #4E8A1E in Light)"
+            subtitle="Crisp White (#FFFFFF in Dark / Deep Jet #0F172A in Light)"
         )
-        group_accent.add(row_lime)
+        group_accent.add(row_primary)
 
-        row_teal = Adw.ActionRow(
+        row_secondary = Adw.ActionRow(
             title="Secondary Accent",
-            subtitle="Teal (#2EC4B6 in Dark / #148F86 in Light)"
+            subtitle="Titanium Slate (#94A3B8 in Dark / Balanced Slate #64748B in Light)"
         )
-        group_accent.add(row_teal)
+        group_accent.add(row_secondary)
 
         # Dock & Launcher Tuning
         group_dock = Adw.PreferencesGroup(

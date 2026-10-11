@@ -30,12 +30,12 @@ static std::string exec_cmd(const std::string& cmd) {
 
 static const char* CSS_NOBARA = R"(
 window {
-    background-color: #0c1527;
+    background-color: #0A0B0D;
     color: #f8fafc;
 }
 headerbar {
-    background: #0f1c35;
-    border-bottom: 2px solid #0078d7;
+    background: #14161A;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     color: #ffffff;
 }
 notebook tab {
@@ -47,36 +47,36 @@ notebook tab {
 }
 notebook tab:checked {
     color: #ffffff;
-    border-bottom: 2px solid #0078d7;
-    background: rgba(0, 120, 215, 0.15);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.12);
 }
 .hero-card {
-    background: #101c34;
+    background: #14161A;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     padding: 20px;
     margin: 8px 12px;
 }
 .card {
-    background: #13223f;
+    background: #14161A;
     border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 8px;
     padding: 14px 18px;
     margin: 6px 12px;
 }
 .btn-primary {
-    background: #0078d7;
-    color: #ffffff;
-    font-weight: 600;
-    border-radius: 4px;
-    border: 1px solid #1084d8;
+    background: #FFFFFF;
+    color: #0A0B0D;
+    font-weight: 700;
+    border-radius: 6px;
+    border: 1px solid #FFFFFF;
     padding: 8px 18px;
 }
 .btn-primary:hover {
-    background: #1a88e1;
+    background: #E2E8F0;
 }
 .btn-secondary {
-    background: #1e293b;
+    background: #202329;
     color: #e2e8f0;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 4px;
@@ -84,7 +84,7 @@ notebook tab:checked {
     font-weight: 600;
 }
 .btn-secondary:hover {
-    background: #334155;
+    background: rgba(255, 255, 255, 0.14);
     color: #ffffff;
 }
 .badge-ok {

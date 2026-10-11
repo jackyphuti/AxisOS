@@ -50,127 +50,127 @@ static const char* CSS_THEME = R"(
     font-family: "Inter", "Segoe UI", "Cantarell", sans-serif;
 }
 window {
-    background-color: #0c1527;
-    color: #f8fafc;
+    background-color: #0A0B0D;
+    color: #F8FAFC;
 }
 headerbar {
-    background: #0f1c35;
-    border-bottom: 2px solid #0078d7;
-    color: #ffffff;
+    background: #14161A;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
 }
 headerbar .title {
     font-weight: 800;
     font-size: 14px;
-    color: #ffffff;
+    color: #FFFFFF;
 }
 headerbar .subtitle {
     font-size: 11px;
-    color: #94a3b8;
+    color: #94A3B8;
 }
 .sidebar {
-    background-color: #091122;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: #0A0B0D;
+    border-right: 1px solid rgba(255, 255, 255, 0.10);
 }
 .sidebar list row {
     padding: 12px 16px;
-    color: #94a3b8;
+    color: #94A3B8;
     font-weight: 600;
     font-size: 13px;
     border-left: 3px solid transparent;
 }
 .sidebar list row:selected {
-    background-color: #1e293b;
-    color: #ffffff;
-    border-left: 3px solid #0078d7;
+    background-color: #202329;
+    color: #FFFFFF;
+    border-left: 3px solid #FFFFFF;
 }
 .content-pane {
     padding: 24px 32px;
 }
 .card {
-    background-color: #13223f;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
+    background-color: #14161A;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 12px;
     padding: 18px 22px;
     margin-bottom: 16px;
 }
 .card-title {
     font-size: 14px;
     font-weight: 700;
-    color: #ffffff;
+    color: #FFFFFF;
     margin-bottom: 4px;
 }
 .card-subtitle {
     font-size: 12px;
-    color: #94a3b8;
+    color: #94A3B8;
     margin-bottom: 12px;
 }
 .btn-primary {
-    background: #0078d7;
-    color: #ffffff;
-    font-weight: 600;
-    border-radius: 4px;
-    border: 1px solid #1084d8;
+    background: #FFFFFF;
+    color: #0A0B0D;
+    font-weight: 700;
+    border-radius: 8px;
+    border: none;
     padding: 8px 18px;
 }
 .btn-primary:hover {
-    background: #1a88e1;
+    background: #E2E8F0;
 }
 .btn-secondary {
-    background: #1e293b;
-    color: #e2e8f0;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
+    background: #202329;
+    color: #F8FAFC;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 8px;
     padding: 8px 16px;
     font-weight: 600;
 }
 .btn-secondary:hover {
-    background: #334155;
-    color: #ffffff;
+    background: #2D313A;
+    color: #FFFFFF;
 }
 .badge-blue {
-    background: rgba(0, 120, 215, 0.25);
-    color: #60a5fa;
-    border: 1px solid rgba(0, 120, 215, 0.5);
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    border-radius: 6px;
     padding: 4px 10px;
     font-size: 11px;
     font-weight: 700;
 }
 .badge-green {
-    background: rgba(34, 197, 94, 0.2);
-    color: #4ade80;
-    border: 1px solid rgba(34, 197, 94, 0.4);
-    border-radius: 4px;
+    background: rgba(148, 163, 184, 0.15);
+    color: #94A3B8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    border-radius: 6px;
     padding: 4px 10px;
     font-size: 11px;
     font-weight: 700;
 }
 progressbar progress {
-    background: #0078d7;
+    background: #FFFFFF;
     border-radius: 3px;
 }
 progressbar trough {
-    background: #1e293b;
+    background: #202329;
     border-radius: 3px;
     min-height: 8px;
 }
 entry {
-    background-color: #0b1528;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background-color: #202329;
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 4px;
     padding: 8px 12px;
 }
 entry:focus {
-    border-color: #0078d7;
+    border-color: #FFFFFF;
 }
 scale trough {
-    background-color: #1e293b;
+    background-color: #202329;
     border-radius: 3px;
     min-height: 6px;
 }
 scale highlight {
-    background-color: #0078d7;
+    background-color: #FFFFFF;
     border-radius: 3px;
 }
 )";
@@ -903,7 +903,7 @@ private:
 
         // Theme and Icons Card
         GtkWidget* card_theme = create_card("Theme Colors & System Icons",
-            "Consistent real color system: Obsidian Black (#0c1527), Clean White (#ffffff), and Real Blue (#0078d7).");
+            "Consistent monochrome palette: Obsidian Black (#0A0B0D), Titanium Slate (#94A3B8), and Crisp White (#FFFFFF).");
 
         GtkWidget* grid = gtk_grid_new();
         gtk_grid_set_row_spacing(GTK_GRID(grid), 12);
@@ -912,9 +912,9 @@ private:
         GtkWidget* lbl_icon = gtk_label_new("System Icon Set:");
         gtk_label_set_xalign(GTK_LABEL(lbl_icon), 0.0);
         combo_icon_theme = gtk_combo_box_text_new();
-        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_icon_theme), "Papirus-Dark (Default High-Contrast)");
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_icon_theme), "AxisHarmony (Default HarmonyOS Squircle)");
+        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_icon_theme), "Papirus-Dark (High-Contrast)");
         gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_icon_theme), "Papirus");
-        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_icon_theme), "Breeze");
         gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo_icon_theme), "Adwaita");
         gtk_combo_box_set_active(GTK_COMBO_BOX(combo_icon_theme), 0);
 

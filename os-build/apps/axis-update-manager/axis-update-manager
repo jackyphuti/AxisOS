@@ -143,18 +143,18 @@ class UpdateManagerApp(Gtk.Window):
 
     def apply_custom_styling(self):
         css = b"""
-        window { background-color: #18201b; color: #dbe4de; font-family: Inter, Cantarell, sans-serif; }
-        menubar { background-color: #141b16; border-bottom: 1px solid rgba(135, 207, 62, 0.2); }
-        menubar > menuitem { padding: 4px 10px; color: #c8d5cc; }
-        menubar > menuitem:hover { background-color: rgba(135, 207, 62, 0.2); color: #ffffff; }
-        toolbar { background-color: #1a231d; border-bottom: 1px solid rgba(135, 207, 62, 0.25); padding: 4px 8px; }
-        statusbar { background-color: #141b16; border-top: 1px solid rgba(135, 207, 62, 0.2); padding: 2px 8px; font-size: 9pt; }
-        treeview { background-color: #161e18; color: #dbe4de; }
-        treeview:selected { background-color: rgba(135, 207, 62, 0.25); color: #ffffff; }
-        notebook header { background-color: #141b16; }
-        notebook tab { background-color: #18201b; color: #a4b5aa; padding: 4px 12px; font-weight: bold; }
-        notebook tab:checked { background-color: #202b23; color: #87cf3e; border-bottom: 2px solid #87cf3e; }
-        textview { background-color: #141b16; color: #dbe4de; }
+        window { background-color: #0A0B0D; color: #F8FAFC; font-family: Inter, Cantarell, sans-serif; }
+        menubar { background-color: #14161A; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+        menubar > menuitem { padding: 4px 10px; color: #94A3B8; }
+        menubar > menuitem:hover { background-color: rgba(255, 255, 255, 0.12); color: #ffffff; }
+        toolbar { background-color: #14161A; border-bottom: 1px solid rgba(255, 255, 255, 0.12); padding: 4px 8px; }
+        statusbar { background-color: #14161A; border-top: 1px solid rgba(255, 255, 255, 0.12); padding: 2px 8px; font-size: 9pt; }
+        treeview { background-color: #0A0B0D; color: #F8FAFC; }
+        treeview:selected { background-color: rgba(255, 255, 255, 0.15); color: #ffffff; }
+        notebook header { background-color: #14161A; }
+        notebook tab { background-color: #14161A; color: #94A3B8; padding: 4px 12px; font-weight: bold; }
+        notebook tab:checked { background-color: #202329; color: #FFFFFF; border-bottom: 2px solid #FFFFFF; }
+        textview { background-color: #0A0B0D; color: #F8FAFC; }
         """
         provider = Gtk.CssProvider()
         provider.load_from_data(css)

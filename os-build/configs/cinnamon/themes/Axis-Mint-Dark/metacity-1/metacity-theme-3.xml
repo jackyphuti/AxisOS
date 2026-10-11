@@ -4,7 +4,7 @@
   <name>Axis-Mint-Dark</name>
   <author>AxisOS Systems Architecture</author>
   <copyright>2026 AxisOS</copyright>
-  <description>Charcoal Black and Mint Green Window Borders for Muffin</description>
+  <description>Obsidian Black and Titanium Slate Window Borders for Muffin</description>
 </info>
 
 <!-- Frame Geometry -->
@@ -27,39 +27,39 @@
 
 <!-- Draw Operations -->
 <draw_ops name="title_focused">
-  <rectangle color="#141b16" filled="true" x="0" y="0" width="width" height="height"/>
-  <line color="#87cf3e" x1="0" y1="height-1" x2="width" y2="height-1" width="1"/>
+  <rectangle color="#14161A" filled="true" x="0" y="0" width="width" height="height"/>
+  <line color="#FFFFFF" x1="0" y1="height-1" x2="width" y2="height-1" width="1"/>
 </draw_ops>
 
 <draw_ops name="title_unfocused">
-  <rectangle color="#111613" filled="true" x="0" y="0" width="width" height="height"/>
-  <line color="#202a22" x1="0" y1="height-1" x2="width" y2="height-1" width="1"/>
+  <rectangle color="#0A0B0D" filled="true" x="0" y="0" width="width" height="height"/>
+  <line color="#202329" x1="0" y1="height-1" x2="width" y2="height-1" width="1"/>
 </draw_ops>
 
 <!-- Close Button (Red/Coral) -->
 <draw_ops name="button_close_normal">
-  <circle color="#ff5f56" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#ef4444" filled="true" x="2" y="2" radius="5"/>
 </draw_ops>
 <draw_ops name="button_close_hover">
-  <circle color="#ff7b73" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#f87171" filled="true" x="2" y="2" radius="5"/>
   <circle color="#ffffff" filled="false" x="2" y="2" radius="5" width="1"/>
 </draw_ops>
 
 <!-- Minimize Button (Yellow/Amber) -->
 <draw_ops name="button_minimize_normal">
-  <circle color="#ffbd2e" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#f59e0b" filled="true" x="2" y="2" radius="5"/>
 </draw_ops>
 <draw_ops name="button_minimize_hover">
-  <circle color="#ffd269" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#fbbf24" filled="true" x="2" y="2" radius="5"/>
   <circle color="#ffffff" filled="false" x="2" y="2" radius="5" width="1"/>
 </draw_ops>
 
-<!-- Maximize Button (Mint/Green) -->
+<!-- Maximize Button (Green/Emerald) -->
 <draw_ops name="button_maximize_normal">
-  <circle color="#27c93f" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#22c55e" filled="true" x="2" y="2" radius="5"/>
 </draw_ops>
 <draw_ops name="button_maximize_hover">
-  <circle color="#4de363" filled="true" x="2" y="2" radius="5"/>
+  <circle color="#4ade80" filled="true" x="2" y="2" radius="5"/>
   <circle color="#ffffff" filled="false" x="2" y="2" radius="5" width="1"/>
 </draw_ops>
 
@@ -79,7 +79,7 @@
   <piece position="title" draw_ops="title_unfocused"/>
   <button function="close" state="normal" draw_ops="button_close_normal"/>
   <button function="minimize" state="normal" draw_ops="button_minimize_normal"/>
-  <button function="maximize" state="normal" draw_ops="button_maximize_normal"/>
+  <button function="maximize" state="normal" draw_ops="button_minimize_normal"/>
 </frame_style>
 
 <frame_style_set name="normal">

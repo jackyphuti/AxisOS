@@ -1,32 +1,32 @@
 /* ==============================================================================
  * AxisOS GTK-4.0 & Libadwaita Theme (Axis-Mint-Dark)
- * Charcoal Black (#18201b / #141b16) with Mint Green (#87cf3e) Accents
+ * Obsidian Black (#0A0B0D / #14161A) with Titanium Slate & Crisp White Accents
  * ============================================================================== */
 
-@define-color accent_color #87cf3e;
-@define-color accent_bg_color #87cf3e;
-@define-color accent_fg_color #0d140f;
+@define-color accent_color #FFFFFF;
+@define-color accent_bg_color #FFFFFF;
+@define-color accent_fg_color #0A0B0D;
 
-@define-color destructive_color #e0443e;
-@define-color destructive_bg_color #e0443e;
+@define-color destructive_color #ef4444;
+@define-color destructive_bg_color #ef4444;
 @define-color destructive_fg_color #ffffff;
 
-@define-color window_bg_color #18201b;
-@define-color window_fg_color #dbe4de;
+@define-color window_bg_color #0A0B0D;
+@define-color window_fg_color #F8FAFC;
 
-@define-color view_bg_color #141b16;
-@define-color view_fg_color #dbe4de;
+@define-color view_bg_color #0A0B0D;
+@define-color view_fg_color #F8FAFC;
 
-@define-color headerbar_bg_color #141b16;
-@define-color headerbar_fg_color #ffffff;
-@define-color headerbar_border_color rgba(135, 207, 62, 0.25);
+@define-color headerbar_bg_color #14161A;
+@define-color headerbar_fg_color #FFFFFF;
+@define-color headerbar_border_color rgba(255, 255, 255, 0.12);
 
-@define-color card_bg_color #202a23;
-@define-color card_fg_color #dbe4de;
-@define-color card_border_color rgba(135, 207, 62, 0.15);
+@define-color card_bg_color #202329;
+@define-color card_fg_color #F8FAFC;
+@define-color card_border_color rgba(255, 255, 255, 0.10);
 
-@define-color popover_bg_color #18201b;
-@define-color popover_fg_color #dbe4de;
+@define-color popover_bg_color #14161A;
+@define-color popover_fg_color #F8FAFC;
 
 window {
     background-color: @window_bg_color;
@@ -41,16 +41,16 @@ headerbar {
 }
 
 button {
-    background-color: #212c24;
-    color: #e0e8e3;
+    background-color: #202329;
+    color: #F8FAFC;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     transition: all 120ms ease;
 }
 
 button:hover {
-    background-color: #2a372e;
-    border-color: rgba(135, 207, 62, 0.35);
+    background-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.25);
 }
 
 button.suggested-action {
@@ -60,15 +60,15 @@ button.suggested-action {
 }
 
 entry {
-    background-color: #121814;
-    color: #ffffff;
-    border: 1px solid rgba(135, 207, 62, 0.25);
+    background-color: #202329;
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
 }
 
 entry:focus-within {
     border-color: @accent_color;
-    outline: 2px solid rgba(135, 207, 62, 0.3);
+    outline: 2px solid rgba(255, 255, 255, 0.20);
 }
 
 /* Cards & Lists */

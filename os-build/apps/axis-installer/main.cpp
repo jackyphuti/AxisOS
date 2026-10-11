@@ -21,14 +21,14 @@ static const char* WIN10_CSS = R"(
 }
 
 window {
-    background-color: #0c1527;
-    color: #ffffff;
+    background-color: #0A0B0D;
+    color: #F8FAFC;
 }
 
 headerbar {
-    background: #08101e;
-    border-bottom: 2px solid #0078d7;
-    color: #ffffff;
+    background: #14161A;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
     min-height: 40px;
     padding: 0 10px;
 }
@@ -36,162 +36,162 @@ headerbar {
 headerbar .title {
     font-weight: 600;
     font-size: 14px;
-    color: #ffffff;
+    color: #FFFFFF;
 }
 
 .setup-canvas {
-    background-color: #0f1826;
+    background-color: #0A0B0D;
     padding: 30px 45px;
 }
 
 .win-title {
     font-size: 22px;
     font-weight: 300;
-    color: #ffffff;
+    color: #FFFFFF;
     margin-bottom: 8px;
 }
 
 .win-subtitle {
     font-size: 13px;
-    color: #a0aec0;
+    color: #94A3B8;
     margin-bottom: 24px;
     line-height: 1.4;
 }
 
 .btn-win-primary {
-    background-color: #0078d7;
-    color: #ffffff;
+    background-color: #FFFFFF;
+    color: #0A0B0D;
     font-size: 13px;
-    font-weight: 600;
-    border: 1px solid #005a9e;
-    border-radius: 2px;
+    font-weight: 700;
+    border: 1px solid #FFFFFF;
+    border-radius: 4px;
     padding: 8px 24px;
 }
 
 .btn-win-primary:hover {
-    background-color: #1a88e1;
-    border-color: #0078d7;
+    background-color: #E2E8F0;
+    border-color: #E2E8F0;
 }
 
 .btn-win-primary:disabled {
-    background-color: #2d3748;
-    color: #718096;
-    border-color: #4a5568;
+    background-color: #202329;
+    color: #64748B;
+    border-color: #202329;
 }
 
 .btn-win-secondary {
-    background-color: #1e293b;
-    color: #e2e8f0;
+    background-color: #202329;
+    color: #F8FAFC;
     font-size: 13px;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 2px;
+    border-radius: 4px;
     padding: 7px 18px;
 }
 
 .btn-win-secondary:hover {
-    background-color: #334155;
-    color: #ffffff;
-    border-color: #0078d7;
+    background-color: rgba(255, 255, 255, 0.14);
+    color: #FFFFFF;
+    border-color: #FFFFFF;
 }
 
 .btn-install-large {
-    background-color: #0078d7;
-    color: #ffffff;
+    background-color: #FFFFFF;
+    color: #0A0B0D;
     font-size: 16px;
-    font-weight: 600;
-    border: 1px solid #005a9e;
-    border-radius: 2px;
+    font-weight: 700;
+    border: 1px solid #FFFFFF;
+    border-radius: 4px;
     padding: 14px 44px;
 }
 
 .btn-install-large:hover {
-    background-color: #1a88e1;
+    background-color: #E2E8F0;
 }
 
 .option-card {
-    background-color: #141f30;
-    border: 1px solid #23354d;
-    border-radius: 3px;
+    background-color: #14161A;
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 6px;
     padding: 16px 20px;
     margin-bottom: 12px;
 }
 
 .option-card:hover {
-    border-color: #0078d7;
-    background-color: #18263a;
+    border-color: #FFFFFF;
+    background-color: #202329;
 }
 
 .option-card-title {
     font-size: 15px;
     font-weight: 600;
-    color: #0078d7;
+    color: #FFFFFF;
     margin-bottom: 4px;
 }
 
 .option-card-desc {
     font-size: 12px;
-    color: #94a3b8;
+    color: #94A3B8;
 }
 
 .treeview-win {
-    background-color: #111a28;
-    color: #f1f5f9;
-    border: 1px solid #23354d;
+    background-color: #14161A;
+    color: #F8FAFC;
+    border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .treeview-win:selected {
-    background-color: #0078d7;
-    color: #ffffff;
+    background-color: #FFFFFF;
+    color: #0A0B0D;
 }
 
 entry {
-    background-color: #141f30;
-    color: #ffffff;
-    border: 1px solid #2b3d56;
-    border-radius: 2px;
+    background-color: #202329;
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 4px;
     padding: 8px 12px;
     font-size: 13px;
 }
 
 entry:focus {
-    border-color: #0078d7;
+    border-color: #FFFFFF;
 }
 
 combobox button {
-    background-color: #141f30;
-    color: #ffffff;
-    border: 1px solid #2b3d56;
-    border-radius: 2px;
+    background-color: #202329;
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 4px;
     padding: 6px 10px;
 }
 
 .check-label {
     font-size: 13px;
-    color: #e2e8f0;
+    color: #F8FAFC;
 }
 
 .progress-stage {
     font-size: 14px;
-    color: #94a3b8;
+    color: #94A3B8;
     margin-bottom: 10px;
 }
 
 .progress-stage.active {
-    color: #ffffff;
+    color: #FFFFFF;
     font-weight: 600;
 }
 
 .progress-stage.done {
-    color: #4ade80;
+    color: #FFFFFF;
 }
 
 progressbar progress {
-    background-color: #0078d7;
+    background-color: #FFFFFF;
     border-radius: 2px;
 }
 
 progressbar trough {
-    background-color: #141f30;
+    background-color: #202329;
     border-radius: 2px;
 }
 )";
@@ -214,7 +214,7 @@ public:
     std::string selected_disk = "/dev/sda";
     std::string fullname = "AxisOS User";
     std::string username = "axis";
-    std::string password = "password";
+    std::string password = "axis";
     std::string hostname = "axis-pc";
 
     // Widgets for steps

@@ -1,19 +1,19 @@
 /* ==============================================================================
  * AxisOS GTK-3.0 Theme (Axis-Mint-Dark)
- * Charcoal Black (#18201b / #141b16) with Mint Green (#87cf3e) Accents
+ * Obsidian Black (#0A0B0D / #14161A) with Titanium Slate & Crisp White Accents
  * ============================================================================== */
 
-@define-color theme_base_color #141b16;
-@define-color theme_bg_color #18201b;
-@define-color theme_fg_color #dbe4de;
-@define-color theme_selected_bg_color #87cf3e;
-@define-color theme_selected_fg_color #0d140f;
+@define-color theme_base_color #0A0B0D;
+@define-color theme_bg_color #14161A;
+@define-color theme_fg_color #F8FAFC;
+@define-color theme_selected_bg_color #FFFFFF;
+@define-color theme_selected_fg_color #0A0B0D;
 
-@define-color headerbar_bg #141b16;
-@define-color headerbar_fg #ffffff;
+@define-color headerbar_bg #14161A;
+@define-color headerbar_fg #FFFFFF;
 
-@define-color borders rgba(135, 207, 62, 0.2);
-@define-color content_view_bg #141b16;
+@define-color borders rgba(255, 255, 255, 0.12);
+@define-color content_view_bg #0A0B0D;
 
 /* Global Window & Typography */
 window, dialog {
@@ -25,26 +25,26 @@ window, dialog {
 headerbar {
     background-color: @headerbar_bg;
     color: @headerbar_fg;
-    border-bottom: 1px solid rgba(135, 207, 62, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
     min-height: 42px;
     padding: 0 6px;
 }
 
 headerbar:backdrop {
-    background-color: #121814;
-    color: #8b9990;
+    background-color: #0A0B0D;
+    color: #94A3B8;
     border-color: rgba(255, 255, 255, 0.05);
 }
 
 headerbar .title {
     font-weight: bold;
-    color: #ffffff;
+    color: #FFFFFF;
 }
 
 headerbar .subtitle {
     font-size: smaller;
-    color: #87cf3e;
+    color: #94A3B8;
 }
 
 /* Window Titlebar Buttons (macOS / Mint style) */
@@ -59,71 +59,71 @@ headerbar button.titlebutton {
 }
 
 headerbar button.titlebutton.close:hover {
-    background-color: #ff5f56;
+    background-color: #ef4444;
     color: #ffffff;
 }
 
 headerbar button.titlebutton.minimize:hover {
-    background-color: #ffbd2e;
+    background-color: #f59e0b;
     color: #ffffff;
 }
 
 headerbar button.titlebutton.maximize:hover {
-    background-color: #27c93f;
+    background-color: #22c55e;
     color: #ffffff;
 }
 
 /* Buttons */
 button {
-    background-color: #212c24;
-    color: #e0e8e3;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: #202329;
+    color: #F8FAFC;
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 8px;
     padding: 6px 14px;
     transition: all 120ms ease;
 }
 
 button:hover {
-    background-color: #2a372e;
-    border-color: rgba(135, 207, 62, 0.35);
-    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #FFFFFF;
 }
 
 button:active, button:checked {
-    background-color: #87cf3e;
-    color: #0d140f;
-    border-color: #87cf3e;
+    background-color: #FFFFFF;
+    color: #0A0B0D;
+    border-color: #FFFFFF;
     font-weight: 600;
 }
 
 button.suggested-action {
-    background-color: #87cf3e;
-    color: #0d140f;
-    border: 1px solid #87cf3e;
+    background-color: #FFFFFF;
+    color: #0A0B0D;
+    border: 1px solid #FFFFFF;
     font-weight: bold;
 }
 
 button.suggested-action:hover {
-    background-color: #9ce055;
+    background-color: #E2E8F0;
 }
 
 button.destructive-action {
-    background-color: #e0443e;
+    background-color: #ef4444;
     color: #ffffff;
 }
 
 /* Entries and Inputs */
 entry {
-    background-color: #121814;
-    color: #ffffff;
-    border: 1px solid rgba(135, 207, 62, 0.25);
+    background-color: #202329;
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
     padding: 6px 10px;
 }
 
 entry:focus {
-    border-color: #87cf3e;
-    box-shadow: 0 0 0 2px rgba(135, 207, 62, 0.25);
+    border-color: #FFFFFF;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.20);
 }
 
 /* TreeView, ListView, and Nemo File Browser */
@@ -133,9 +133,9 @@ treeview, list {
 }
 
 treeview:selected, list row:selected {
-    background-color: rgba(135, 207, 62, 0.2);
-    color: #ffffff;
-    border-left: 3px solid #87cf3e;
+    background-color: rgba(255, 255, 255, 0.15);
+    color: #FFFFFF;
+    border-left: 3px solid #FFFFFF;
 }
 
 /* Scrollbars */
@@ -147,18 +147,18 @@ scrollbar slider {
     min-width: 6px;
     min-height: 6px;
     border-radius: 6px;
-    background-color: rgba(135, 207, 62, 0.25);
+    background-color: rgba(255, 255, 255, 0.20);
 }
 
 scrollbar slider:hover {
-    background-color: #87cf3e;
+    background-color: #FFFFFF;
 }
 
 /* Tooltips */
 tooltip {
-    background-color: #141b16;
-    color: #e0e8e3;
-    border: 1px solid rgba(135, 207, 62, 0.3);
+    background-color: #14161A;
+    color: #F8FAFC;
+    border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 6px;
     padding: 4px 8px;
 }

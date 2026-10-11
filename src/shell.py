@@ -162,49 +162,49 @@ class BlurredWallpaperCache:
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         cr = cairo.Context(surface)
 
-        # 1. Base gradient matching HarmonyOS design tokens
+        # 1. Base gradient matching Monochrome Slate design tokens (Black, Grey, White)
         pat = cairo.LinearGradient(0, 0, width, height)
         if is_dark:
-            # Base #0E1411 to Surface Raised #223029 with teal tint
-            pat.add_color_stop_rgb(0.0, 0.055, 0.078, 0.067)
-            pat.add_color_stop_rgb(0.5, 0.094, 0.129, 0.114)
-            pat.add_color_stop_rgb(1.0, 0.133, 0.188, 0.161)
+            # Base #0A0B0D to Surface Raised #202329
+            pat.add_color_stop_rgb(0.0, 0.039, 0.043, 0.051)
+            pat.add_color_stop_rgb(0.5, 0.078, 0.086, 0.102)
+            pat.add_color_stop_rgb(1.0, 0.125, 0.137, 0.161)
         else:
-            # Base #F4F7F3 to Surface Raised #EAF1E8
-            pat.add_color_stop_rgb(0.0, 0.957, 0.969, 0.953)
-            pat.add_color_stop_rgb(0.5, 0.918, 0.945, 0.910)
-            pat.add_color_stop_rgb(1.0, 0.880, 0.920, 0.870)
+            # Base #F4F5F7 to Surface Raised #E2E5EB
+            pat.add_color_stop_rgb(0.0, 0.957, 0.961, 0.969)
+            pat.add_color_stop_rgb(0.5, 0.918, 0.925, 0.937)
+            pat.add_color_stop_rgb(1.0, 0.886, 0.898, 0.922)
 
         cr.set_source(pat)
         cr.paint()
 
-        # 2. Add subtle soft blurred bokeh shapes
+        # 2. Add subtle soft blurred bokeh shapes (atmospheric titanium & slate ambient glows)
         cr.save()
         if is_dark:
-            # Subtle accent (#8BC34A) & teal (#2EC4B6) glowing spheres
-            cr.set_source_rgba(0.545, 0.765, 0.290, 0.09)
+            # Pure white ambient glow & titanium slate (#94A3B8)
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.04)
             cr.arc(width * 0.25, height * 0.35, min(width, height) * 0.45, 0, 2 * math.pi)
             cr.fill()
-            cr.set_source_rgba(0.180, 0.769, 0.714, 0.08)
+            cr.set_source_rgba(0.580, 0.639, 0.722, 0.06)
             cr.arc(width * 0.75, height * 0.65, min(width, height) * 0.50, 0, 2 * math.pi)
             cr.fill()
         else:
-            # Subtle light forest lime (#4E8A1E) & teal glow
-            cr.set_source_rgba(0.306, 0.541, 0.118, 0.06)
+            # Neutral soft slate (#64748B) and white highlights
+            cr.set_source_rgba(0.392, 0.455, 0.545, 0.04)
             cr.arc(width * 0.30, height * 0.30, min(width, height) * 0.40, 0, 2 * math.pi)
             cr.fill()
-            cr.set_source_rgba(0.078, 0.561, 0.525, 0.05)
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.40)
             cr.arc(width * 0.70, height * 0.70, min(width, height) * 0.45, 0, 2 * math.pi)
             cr.fill()
         cr.restore()
 
         # 3. Apply frosted surface token overlay
-        # Dark scheme: surface token #18211D at 72% opacity
-        # Light scheme: surface token #FFFFFF at 80% opacity
+        # Dark scheme: surface token #14161A at 78% opacity
+        # Light scheme: surface token #FFFFFF at 85% opacity
         if is_dark:
-            cr.set_source_rgba(0.094, 0.129, 0.114, 0.72)
+            cr.set_source_rgba(0.078, 0.086, 0.102, 0.78)
         else:
-            cr.set_source_rgba(1.0, 1.0, 1.0, 0.80)
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.85)
         cr.paint()
 
         self._cache[key] = surface
@@ -346,33 +346,35 @@ class HarmonyDesktopShell(Adw.ApplicationWindow):
             return
         is_dark = self.theme_mgr.style_manager.get_dark() if self.theme_mgr.style_manager else True
 
-        # Render elegant base gradient
+        # Render elegant base gradient (Monochrome Slate Architecture)
         pat = cairo.LinearGradient(0, 0, width, height)
         if is_dark:
-            pat.add_color_stop_rgb(0.0, 0.055, 0.078, 0.067)
-            pat.add_color_stop_rgb(0.5, 0.094, 0.129, 0.114)
-            pat.add_color_stop_rgb(1.0, 0.133, 0.188, 0.161)
+            # Base #0A0B0D to Surface Raised #202329
+            pat.add_color_stop_rgb(0.0, 0.039, 0.043, 0.051)
+            pat.add_color_stop_rgb(0.5, 0.078, 0.086, 0.102)
+            pat.add_color_stop_rgb(1.0, 0.125, 0.137, 0.161)
         else:
-            pat.add_color_stop_rgb(0.0, 0.957, 0.969, 0.953)
-            pat.add_color_stop_rgb(0.5, 0.918, 0.945, 0.910)
-            pat.add_color_stop_rgb(1.0, 0.880, 0.920, 0.870)
+            # Base #F4F5F7 to Surface Raised #E2E5EB
+            pat.add_color_stop_rgb(0.0, 0.957, 0.961, 0.969)
+            pat.add_color_stop_rgb(0.5, 0.918, 0.925, 0.937)
+            pat.add_color_stop_rgb(1.0, 0.886, 0.898, 0.922)
         cr.set_source(pat)
         cr.paint()
 
-        # Atmospheric accent circles
+        # Atmospheric accent circles (subtle white and titanium slate ambient glow)
         cr.save()
         if is_dark:
-            cr.set_source_rgba(0.545, 0.765, 0.290, 0.14)
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.05)
             cr.arc(width * 0.3, height * 0.4, min(width, height) * 0.35, 0, 2 * math.pi)
             cr.fill()
-            cr.set_source_rgba(0.180, 0.769, 0.714, 0.10)
+            cr.set_source_rgba(0.580, 0.639, 0.722, 0.06)
             cr.arc(width * 0.7, height * 0.6, min(width, height) * 0.4, 0, 2 * math.pi)
             cr.fill()
         else:
-            cr.set_source_rgba(0.306, 0.541, 0.118, 0.08)
+            cr.set_source_rgba(0.392, 0.455, 0.545, 0.04)
             cr.arc(width * 0.3, height * 0.4, min(width, height) * 0.35, 0, 2 * math.pi)
             cr.fill()
-            cr.set_source_rgba(0.078, 0.561, 0.525, 0.07)
+            cr.set_source_rgba(1.0, 1.0, 1.0, 0.35)
             cr.arc(width * 0.7, height * 0.6, min(width, height) * 0.4, 0, 2 * math.pi)
             cr.fill()
         cr.restore()

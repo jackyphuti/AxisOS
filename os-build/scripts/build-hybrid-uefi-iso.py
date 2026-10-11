@@ -188,6 +188,10 @@ if os.path.exists(harmony_icons_src):
     if os.path.exists(dst):
         shutil.rmtree(dst)
     shutil.copytree(harmony_icons_src, dst)
+    dst_sys = os.path.join(chroot_dir, "usr", "share", "icons", "AxisHarmony")
+    if os.path.exists(dst_sys):
+        shutil.rmtree(dst_sys)
+    shutil.copytree(harmony_icons_src, dst_sys)
 
 harmony_apps_src = os.path.join(workspace_dir, "src")
 if os.path.exists(harmony_apps_src):

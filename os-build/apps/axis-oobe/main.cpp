@@ -29,39 +29,43 @@ static std::string exec_cmd(const std::string& cmd) {
 
 static const char* CSS_OOBE = R"(
 window {
-    background-color: #0c1527;
-    color: #f8fafc;
+    background-color: #0A0B0D;
+    color: #F8FAFC;
 }
 headerbar {
-    background: #0f1c35;
-    border-bottom: 2px solid #0078d7;
-    color: #ffffff;
+    background: #14161A;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
 }
 .card {
-    background: #13223f;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: #14161A;
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 8px;
     padding: 20px;
     margin: 8px 16px;
 }
 .btn-primary {
-    background: #0078d7;
-    color: #ffffff;
+    background: #FFFFFF;
+    color: #0A0B0D;
     font-weight: 700;
-    border-radius: 4px;
-    border: 1px solid #1084d8;
+    border-radius: 6px;
+    border: 1px solid #FFFFFF;
     padding: 10px 24px;
 }
 .btn-primary:hover {
-    background: #1a88e1;
+    background: #E2E8F0;
 }
 .btn-secondary {
-    background: #1e293b;
-    color: #e2e8f0;
+    background: #202329;
+    color: #F8FAFC;
     border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
+    border-radius: 6px;
     padding: 8px 18px;
     font-weight: 600;
+}
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #FFFFFF;
 }
 )";
 

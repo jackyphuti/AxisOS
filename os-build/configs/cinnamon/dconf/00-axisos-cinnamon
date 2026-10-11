@@ -1,5 +1,5 @@
 # AxisOS Cinnamon Desktop Default Dconf Settings
-# Mint Charcoal Theme (#18201b, #87cf3e) + Muffin Effects + Native Applets
+# Monochrome Obsidian Theme (#0A0B0D, #14161A, #94A3B8, #FFFFFF) + Muffin Effects + Native Applets
 
 [org/cinnamon]
 theme-name='Axis-Mint-Dark'
@@ -13,7 +13,7 @@ alttab-switcher-style='timeline'
 
 [org/cinnamon/desktop/interface]
 gtk-theme='Axis-Mint-Dark'
-icon-theme='Mint-Y-Dark'
+icon-theme='AxisHarmony'
 cursor-theme='DMZ-Black'
 font-name='Inter 10'
 monospace-font-name='Fira Code 10'

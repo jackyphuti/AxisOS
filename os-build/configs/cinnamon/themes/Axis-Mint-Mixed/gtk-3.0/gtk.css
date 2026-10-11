@@ -1,19 +1,19 @@
 /* ==============================================================================
  * AxisOS GTK-3.0 Theme (Axis-Mint-Mixed)
- * Dark Titlebars & Menubars (#18201b) with Light Content Windows (#ffffff)
+ * Dark Titlebars & Menubars (#14161A) with Light Content Windows (#FFFFFF)
  * ============================================================================== */
 
-@define-color theme_base_color #ffffff;
-@define-color theme_bg_color #f5f7f5;
-@define-color theme_fg_color #222a24;
-@define-color theme_selected_bg_color #87cf3e;
-@define-color theme_selected_fg_color #0d140f;
+@define-color theme_base_color #FFFFFF;
+@define-color theme_bg_color #F4F5F7;
+@define-color theme_fg_color #0F172A;
+@define-color theme_selected_bg_color #0F172A;
+@define-color theme_selected_fg_color #FFFFFF;
 
-@define-color headerbar_bg #141b16;
-@define-color headerbar_fg #ffffff;
+@define-color headerbar_bg #14161A;
+@define-color headerbar_fg #FFFFFF;
 
-@define-color borders rgba(0, 0, 0, 0.12);
-@define-color content_view_bg #ffffff;
+@define-color borders rgba(0, 0, 0, 0.10);
+@define-color content_view_bg #FFFFFF;
 
 window, dialog {
     background-color: @theme_bg_color;
@@ -23,68 +23,68 @@ window, dialog {
 headerbar {
     background-color: @headerbar_bg;
     color: @headerbar_fg;
-    border-bottom: 1px solid rgba(135, 207, 62, 0.25);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 menubar {
-    background-color: #141b16;
-    border-bottom: 1px solid rgba(135, 207, 62, 0.2);
+    background-color: #14161A;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.10);
 }
 
 menubar > menuitem {
     padding: 4px 10px;
-    color: #c8d5cc;
+    color: #94A3B8;
 }
 
 menubar > menuitem:hover {
-    background-color: rgba(135, 207, 62, 0.2);
-    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.12);
+    color: #FFFFFF;
 }
 
 toolbar {
-    background-color: #f0f3f0;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    background-color: #F4F5F7;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     padding: 4px 8px;
 }
 
 statusbar {
-    background-color: #141b16;
-    color: #c8d5cc;
-    border-top: 1px solid rgba(135, 207, 62, 0.2);
+    background-color: #14161A;
+    color: #94A3B8;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
     padding: 2px 8px;
     font-size: 9pt;
 }
 
 button {
-    background-color: #ffffff;
-    color: #222a24;
-    border: 1px solid rgba(0, 0, 0, 0.15);
+    background-color: #FFFFFF;
+    color: #0F172A;
+    border: 1px solid rgba(0, 0, 0, 0.12);
     border-radius: 6px;
     padding: 5px 12px;
 }
 
 button:hover {
-    background-color: #f0f7ec;
-    border-color: #87cf3e;
+    background-color: #E2E5EB;
+    border-color: rgba(0, 0, 0, 0.20);
 }
 
 button:active, button:checked {
-    background-color: #87cf3e;
-    color: #0d140f;
+    background-color: #0F172A;
+    color: #FFFFFF;
     font-weight: 600;
 }
 
 entry {
-    background-color: #ffffff;
-    color: #18201b;
-    border: 1px solid rgba(0, 0, 0, 0.2);
+    background-color: #FFFFFF;
+    color: #0F172A;
+    border: 1px solid rgba(0, 0, 0, 0.15);
     border-radius: 6px;
     padding: 6px 10px;
 }
 
 entry:focus {
-    border-color: #87cf3e;
-    box-shadow: 0 0 0 2px rgba(135, 207, 62, 0.3);
+    border-color: #0F172A;
+    box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.20);
 }
 
 treeview, list {
@@ -93,7 +93,7 @@ treeview, list {
 }
 
 treeview:selected, list row:selected {
-    background-color: rgba(135, 207, 62, 0.25);
-    color: #18201b;
+    background-color: rgba(15, 23, 42, 0.12);
+    color: #0F172A;
     font-weight: 600;
 }
