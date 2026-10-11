@@ -63,6 +63,13 @@ if os.path.exists(daemon_src):
     shutil.copyfile(daemon_src, dst)
     os.chmod(dst, 0o755)
 
+pam_greeter_src = os.path.join(workspace_dir, "data", "pam", "axis-greeter")
+if os.path.exists(pam_greeter_src):
+    dst = os.path.join(chroot_dir, "etc", "pam.d", "axis-greeter")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copyfile(pam_greeter_src, dst)
+    os.chmod(dst, 0o644)
+
 def copy_text_lf(src, dst, mode=None):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     with open(src, "rb") as f:
