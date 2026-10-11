@@ -92,26 +92,6 @@ To keep our repository organized and easy to navigate, detailed instructions hav
 
 ---
 
-## ⚡ Quick Start for Developers
-
-For complete setup instructions, please see the **[Development Guide](DEVELOPMENT.md)**.
-
-```bash
-# 1. Clone repository
-git clone https://github.com/jackyphuti/AxisOS.git
-cd AxisOS
-
-# 2. Install desktop shell dependencies
-cd shell
-npm install
-
-# 3. Launch development server
-npm run dev
-
-# 4. In a separate terminal, launch the system daemon
-npm run serve
-```
-
 ---
 
 ## 🗓️ Release Roadmap
