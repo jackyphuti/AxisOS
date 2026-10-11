@@ -72,6 +72,20 @@ def copy_text_lf(src, dst, mode=None):
     if mode is not None:
         os.chmod(dst, mode)
 
+def copy_binary_or_text(src, dst, mode=None):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    with open(src, "rb") as f:
+        magic = f.read(4)
+    if magic == b"\x7fELF":
+        shutil.copyfile(src, dst)
+    else:
+        with open(src, "rb") as f:
+            content = f.read().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        with open(dst, "wb") as f:
+            f.write(content)
+    if mode is not None:
+        os.chmod(dst, mode)
+
 def write_text_lf(dst, text, mode=None):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     with open(dst, "w", newline="\n", encoding="utf-8") as f:
@@ -142,11 +156,20 @@ if os.path.exists(cinnamon_dir):
                     shutil.rmtree(dst)
                 shutil.copytree(t_src, dst)
 
-# Deploy Native GTK Apps (Software Manager, Update Manager, Task Manager, Settings, Installer)
+# Build/Verify Native C/C++ applications inside chroot
+compile_script = os.path.join(workspace_dir, "os-build", "scripts", "compile-in-chroot.py")
+if os.path.exists(compile_script):
+    print("    Building/Verifying native C/C++ applications...")
+    try:
+        subprocess.run(["python3", compile_script], check=True)
+    except Exception as e:
+        print(f"    [INFO] Native compilation note: {e}")
+
+# Deploy Native GTK Apps (Software Manager, Update Manager, Task Manager, Settings, Installer, Terminal, USB Daemon)
 apps_dir = os.path.join(workspace_dir, "os-build", "apps")
 if os.path.exists(apps_dir):
-    print("    Syncing native GTK apps (Software, Updates, Task Manager, Settings, Installer)...")
-    for app_name in ["axis-software-manager", "axis-update-manager", "axis-task-manager", "axis-settings", "axis-installer"]:
+    print("    Syncing native C/C++ apps (Software, Updates, Task Manager, Settings, Installer, Terminal, USB Daemon)...")
+    for app_name in ["axis-software-manager", "axis-update-manager", "axis-task-manager", "axis-settings", "axis-installer", "axis-terminal", "axis-usb-daemon"]:
         app_bin = os.path.join(apps_dir, app_name, app_name)
         if not os.path.exists(app_bin):
             app_bin = os.path.join(apps_dir, app_name, f"{app_name}.py")
@@ -154,22 +177,24 @@ if os.path.exists(apps_dir):
         if os.path.exists(app_bin):
             dst = os.path.join(chroot_dir, "usr", "local", "bin", app_name)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
-            copy_text_lf(app_bin, dst, 0o755)
+            copy_binary_or_text(app_bin, dst, 0o755)
         if os.path.exists(app_desktop):
             dst = os.path.join(chroot_dir, "usr", "share", "applications", f"{app_name}.desktop")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             copy_text_lf(app_desktop, dst, 0o644)
-            if app_name == "axis-installer":
+            if app_name in ["axis-installer", "axis-terminal"]:
                 for desk_dir in [os.path.join(chroot_dir, "home", "axis", "Desktop"), os.path.join(chroot_dir, "etc", "skel", "Desktop")]:
                     os.makedirs(desk_dir, exist_ok=True)
-                    copy_text_lf(app_desktop, os.path.join(desk_dir, "axis-installer.desktop"), 0o755)
+                    copy_text_lf(app_desktop, os.path.join(desk_dir, f"{app_name}.desktop"), 0o755)
 
 # Deploy Nobara Welcome & Hardware Driver / Codec Manager
-nobara_welcome_py = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome.py")
+nobara_welcome_bin = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome")
+if not os.path.exists(nobara_welcome_bin):
+    nobara_welcome_bin = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome.py")
 nobara_welcome_desktop = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome.desktop")
-if os.path.exists(nobara_welcome_py):
+if os.path.exists(nobara_welcome_bin):
     dst = os.path.join(chroot_dir, "usr", "local", "bin", "nobara-welcome")
-    copy_text_lf(nobara_welcome_py, dst, 0o755)
+    copy_binary_or_text(nobara_welcome_bin, dst, 0o755)
     print("    Deployed Nobara Welcome & Hardware Driver / Codec Manager -> /usr/local/bin/nobara-welcome")
 if os.path.exists(nobara_welcome_desktop):
     dst = os.path.join(chroot_dir, "usr", "share", "applications", "nobara-welcome.desktop")
@@ -278,6 +303,19 @@ Categories=Network;FileTransfer;Game;
 MimeType=x-scheme-handler/steam;x-scheme-handler/steamlink;
 Actions=Store;Community;Library;Servers;Screenshots;News;Settings;BigPicture;Friends;
 """)
+for desk_dir in [os.path.join(chroot_dir, "home", "axis", "Desktop"), os.path.join(chroot_dir, "etc", "skel", "Desktop")]:
+    os.makedirs(desk_dir, exist_ok=True)
+    copy_text_lf(steam_desktop_dst, os.path.join(desk_dir, "steam.desktop"), 0o755)
+
+# Deploy Visual Studio Code desktop entry & shortcuts
+code_desktop_src = os.path.join(workspace_dir, "os-build", "configs", "wayland", "code.desktop")
+if os.path.exists(code_desktop_src):
+    code_desktop_dst = os.path.join(chroot_dir, "usr", "share", "applications", "code.desktop")
+    copy_text_lf(code_desktop_src, code_desktop_dst, 0o644)
+    for desk_dir in [os.path.join(chroot_dir, "home", "axis", "Desktop"), os.path.join(chroot_dir, "etc", "skel", "Desktop")]:
+        os.makedirs(desk_dir, exist_ok=True)
+        copy_text_lf(code_desktop_src, os.path.join(desk_dir, "code.desktop"), 0o755)
+    print("    Deployed Visual Studio Code desktop entry -> /usr/share/applications/code.desktop")
 
 steam_wrapper_dst = os.path.join(chroot_dir, "usr", "local", "bin", "steam")
 write_text_lf(steam_wrapper_dst, """#!/usr/bin/env bash
@@ -320,16 +358,33 @@ vm.swappiness = 10
 """)
 
 # Deploy Out-of-Box Experience (OOBE) First-Boot Setup Wizard
-oobe_py = os.path.join(workspace_dir, "os-build", "apps", "axis-oobe", "axis-oobe.py")
+oobe_bin = os.path.join(workspace_dir, "os-build", "apps", "axis-oobe", "axis-oobe")
+if not os.path.exists(oobe_bin):
+    oobe_bin = os.path.join(workspace_dir, "os-build", "apps", "axis-oobe", "axis-oobe.py")
 oobe_desktop = os.path.join(workspace_dir, "os-build", "apps", "axis-oobe", "axis-oobe.desktop")
-if os.path.exists(oobe_py):
+if os.path.exists(oobe_bin):
     dst = os.path.join(chroot_dir, "usr", "local", "bin", "axis-oobe")
-    copy_text_lf(oobe_py, dst, 0o755)
+    copy_binary_or_text(oobe_bin, dst, 0o755)
     print("    Deployed AxisOS OOBE Wizard -> /usr/local/bin/axis-oobe")
 if os.path.exists(oobe_desktop):
     dst = os.path.join(chroot_dir, "usr", "share", "applications", "axis-oobe.desktop")
     os.makedirs(os.path.dirname(dst), exist_ok=True)
-    shutil.copyfile(oobe_desktop, dst)
+    copy_text_lf(oobe_desktop, dst, 0o644)
+
+# Deploy Real-Time USB Subsystem Daemon Service
+usb_service = os.path.join(workspace_dir, "os-build", "configs", "systemd", "axis-usb-daemon.service")
+if os.path.exists(usb_service):
+    dst = os.path.join(chroot_dir, "etc", "systemd", "system", "axis-usb-daemon.service")
+    copy_text_lf(usb_service, dst, 0o644)
+    wants_dir = os.path.join(chroot_dir, "etc", "systemd", "system", "multi-user.target.wants")
+    os.makedirs(wants_dir, exist_ok=True)
+    symlink_dst = os.path.join(wants_dir, "axis-usb-daemon.service")
+    if not os.path.exists(symlink_dst):
+        try:
+            os.symlink("/etc/systemd/system/axis-usb-daemon.service", symlink_dst)
+        except Exception:
+            pass
+    print("    Deployed and enabled axis-usb-daemon.service")
 
 # Deploy Automated NVIDIA Driver Installer & Service
 nvidia_script = os.path.join(workspace_dir, "os-build", "scripts", "nvidia-auto-install.sh")

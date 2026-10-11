@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Debian Terminal
+Comment=High-performance native C++ terminal emulator with GPU acceleration and tabs
+Exec=/usr/local/bin/axis-terminal
+Icon=utilities-terminal
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;Utility;
+Keywords=shell;prompt;command;commandline;cmd;bash;

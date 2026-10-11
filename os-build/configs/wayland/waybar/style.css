@@ -32,6 +32,7 @@ window#waybar {
 #custom-settings,
 #custom-welcome,
 #custom-steam,
+#custom-code,
 #custom-terminal,
 #custom-browser {
     background: #161e2e;
@@ -45,6 +46,7 @@ window#waybar {
 #custom-settings:hover,
 #custom-welcome:hover,
 #custom-steam:hover,
+#custom-code:hover,
 #custom-terminal:hover,
 #custom-browser:hover {
     background: #1e293b;

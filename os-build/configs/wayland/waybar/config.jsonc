@@ -1,13 +1,14 @@
 {
     "layer": "top",
-    "position": "top",
-    "height": 36,
+    "position": "bottom",
+    "height": 40,
     "spacing": 6,
     "modules-left": [
         "custom/menu",
         "custom/settings",
         "custom/welcome",
         "custom/steam",
+        "custom/code",
         "custom/terminal",
         "custom/browser",
         "wlr/taskbar"
@@ -45,10 +46,15 @@
         "tooltip": "Launch Steam Gaming Platform",
         "on-click": "steam"
     },
+    "custom/code": {
+        "format": "󰨞 VS Code",
+        "tooltip": "Launch Visual Studio Code",
+        "on-click": "code --no-sandbox"
+    },
     "custom/terminal": {
         "format": " Terminal",
-        "tooltip": "Launch Foot Terminal",
-        "on-click": "foot"
+        "tooltip": "Launch Native Debian Terminal",
+        "on-click": "axis-terminal"
     },
     "custom/browser": {
         "format": "󰈹 Web",
