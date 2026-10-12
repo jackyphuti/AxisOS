@@ -5,6 +5,8 @@ node_modules/
 dist/
 dist-ssr/
 *.local
+build/
+**/build/
 
 # Live ISO and VM files
 *.iso

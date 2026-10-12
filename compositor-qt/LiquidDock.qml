@@ -33,14 +33,21 @@ Rectangle {
             model: [
                 {
                     id: "terminal",
-                    name: "Debian Terminal",
+                    name: "Terminal",
                     cmd: "axis-terminal",
                     icon: "file:///usr/share/icons/Papirus/48x48/apps/utilities-terminal.svg",
                     accent: "#00F2FE"
                 },
                 {
+                    id: "welcome",
+                    name: "AxisOS Welcome",
+                    cmd: "axis-welcome",
+                    icon: "file:///usr/share/icons/Papirus/48x48/apps/preferences-desktop.svg",
+                    accent: "#9D4EDD"
+                },
+                {
                     id: "files",
-                    name: "File Manager",
+                    name: "Files",
                     cmd: "nautilus",
                     icon: "file:///usr/share/icons/Papirus/48x48/apps/system-file-manager.svg",
                     accent: "#38BDF8"
@@ -48,30 +55,30 @@ Rectangle {
                 {
                     id: "browser",
                     name: "Web Browser",
-                    cmd: "firefox",
-                    icon: "file:///usr/share/icons/Papirus/48x48/apps/firefox.svg",
-                    accent: "#F59E0B"
+                    cmd: "x-www-browser",
+                    icon: "file:///usr/share/icons/Papirus/48x48/apps/chromium.svg",
+                    accent: "#00F2FE"
                 },
                 {
-                    id: "software",
-                    name: "App Center",
-                    cmd: "axis-software-manager",
+                    id: "packages",
+                    name: "Package Installer",
+                    cmd: "axis-package-installer",
                     icon: "file:///usr/share/icons/Papirus/48x48/apps/system-software-install.svg",
                     accent: "#8B5CF6"
                 },
                 {
-                    id: "steam",
-                    name: "Steam & Games",
-                    cmd: "steam",
-                    icon: "file:///usr/share/icons/Papirus/48x48/apps/steam.svg",
+                    id: "scheduler",
+                    name: "Kernel Scheduler (SCX)",
+                    cmd: "axis-scheduler-manager",
+                    icon: "file:///usr/share/icons/Papirus/48x48/apps/preferences-system-performance.svg",
                     accent: "#00F2FE"
                 },
                 {
-                    id: "code",
-                    name: "VS Code Editor",
-                    cmd: "code",
-                    icon: "file:///usr/share/icons/Papirus/48x48/apps/visual-studio-code.svg",
-                    accent: "#38BDF8"
+                    id: "steam",
+                    name: "Steam Games",
+                    cmd: "steam",
+                    icon: "file:///usr/share/icons/Papirus/48x48/apps/steam.svg",
+                    accent: "#00F2FE"
                 },
                 {
                     id: "tasks",

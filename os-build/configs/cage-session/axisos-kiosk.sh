@@ -13,7 +13,7 @@ chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 
 # Display and compositor environment
 export XDG_SESSION_TYPE=wayland
-export XDG_CURRENT_DESKTOP=Nobara-Axis
+export XDG_CURRENT_DESKTOP=AxisOS-LiquidNodes
 unset WAYLAND_DISPLAY
 unset DISPLAY
 export OZONE_PLATFORM=wayland
@@ -69,8 +69,8 @@ if [ -f "$FIRST_BOOT_FLAG" ] && command -v axis-oobe >/dev/null 2>&1; then
     echo "[AxisOS] First-boot pending: launching Out-of-Box Experience (OOBE)..." >> "$HOME/.axis-session.log"
     STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & axis-oobe"
 else
-    # Define standard Nobara desktop startup suite
-    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & nobara-welcome &"
+    # Define standard AxisOS Liquid Nodes desktop startup suite
+    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & axis-welcome &"
 fi
 
 if [ -x "/usr/local/bin/LiquidNodesOS" ]; then

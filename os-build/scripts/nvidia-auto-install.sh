@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# AxisOS Nobara Edition - Automated NVIDIA GPU Driver First-Boot Installer
+# AxisOS Edition - Automated NVIDIA GPU Driver First-Boot Installer
 # Detects NVIDIA GPU via PCI bus and non-interactively installs proprietary drivers.
 # AMD and Intel GPUs are natively powered by in-kernel Mesa / amdgpu / i915 drivers.
 # ==============================================================================

@@ -1,0 +1,11 @@
+# AxisOS High-Performance Wayland & GPU Acceleration Flags
+export CHROMIUM_FLAGS="$CHROMIUM_FLAGS \
+  --ozone-platform=wayland \
+  --enable-features=VaapiVideoDecoder,VaapiVideoEncoder,CanvasOopRasterization,UseOzonePlatform \
+  --enable-gpu-rasterization \
+  --enable-zero-copy \
+  --ignore-gpu-blocklist \
+  --enable-accelerated-video-decode \
+  --enable-accelerated-mjpeg-decode \
+  --force-dark-mode \
+  --enable-features=WebUIDarkMode"

@@ -1,0 +1,41 @@
+/* AxisOS Liquid Nodes Theme for Firefox */
+:root {
+  --toolbar-bgcolor: #0B0D13 !important;
+  --tab-selected-bgcolor: #141722 !important;
+  --tab-hover-bgcolor: #1C2030 !important;
+  --chrome-content-separator-color: #23283B !important;
+  --lwt-accent-color: #0B0D13 !important;
+  --toolbarbutton-icon-fill: #F0F3F8 !important;
+  --lwt-text-color: #F0F3F8 !important;
+}
+
+#nav-bar {
+  background-color: #0B0D13 !important;
+  box-shadow: none !important;
+  border-top: none !important;
+  border-bottom: 1px solid #23283B !important;
+}
+
+#urlbar-background {
+  background-color: #141722 !important;
+  border: 1px solid #23283B !important;
+  border-radius: 8px !important;
+}
+
+#urlbar[focused="true"] > #urlbar-background {
+  border-color: #00F2FE !important;
+  box-shadow: 0 0 8px rgba(0, 242, 254, 0.25) !important;
+}
+
+.tab-background[selected="true"] {
+  background-color: #141722 !important;
+  border-bottom: 2px solid #00F2FE !important;
+}
+
+.tabbrowser-tab:hover > .tab-stack > .tab-background:not([selected="true"]) {
+  background-color: #1C2030 !important;
+}
+
+#TabsToolbar {
+  background-color: #0B0D13 !important;
+}

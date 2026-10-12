@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=AxisOS Welcome
+Comment=Welcome to AxisOS - System Telemetry, Quick Setup & Performance Tuning
+Exec=/usr/local/bin/axis-welcome
+Icon=preferences-desktop
+Terminal=false
+Type=Application
+Categories=System;Utility;
+StartupNotify=true

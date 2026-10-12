@@ -209,11 +209,22 @@ if os.path.exists(harmony_apps_src):
             shutil.copyfile(os.path.join(harmony_apps_src, f), os.path.join(dst, f))
             os.chmod(os.path.join(dst, f), 0o755)
 
-# Deploy Native GTK Apps (Software Manager, Update Manager, Task Manager, Settings, Installer, Terminal, USB Daemon)
+# Deploy Native C++/Qt Apps (Terminal, Package Installer, Scheduler Manager, Welcome, Settings, Task Manager, Installer, USB Daemon)
 apps_dir = os.path.join(workspace_dir, "os-build", "apps")
 if os.path.exists(apps_dir):
-    print("    Syncing native C/C++ apps (Software, Updates, Task Manager, Settings, Installer, Terminal, USB Daemon)...")
-    for app_name in ["axis-software-manager", "axis-update-manager", "axis-task-manager", "axis-settings", "axis-installer", "axis-terminal", "axis-usb-daemon"]:
+    print("    Syncing native C/C++ apps (Terminal, Package Installer, Scheduler Manager, Welcome, Settings, Task Manager, Installer)...")
+    for app_name in [
+        "axis-terminal",
+        "axis-package-installer",
+        "axis-scheduler-manager",
+        "axis-welcome",
+        "axis-software-manager",
+        "axis-update-manager",
+        "axis-task-manager",
+        "axis-settings",
+        "axis-installer",
+        "axis-usb-daemon"
+    ]:
         app_bin = os.path.join(apps_dir, app_name, app_name)
         if not os.path.exists(app_bin):
             app_bin = os.path.join(apps_dir, app_name, f"{app_name}.py")
@@ -226,39 +237,52 @@ if os.path.exists(apps_dir):
             dst = os.path.join(chroot_dir, "usr", "share", "applications", f"{app_name}.desktop")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             copy_text_lf(app_desktop, dst, 0o644)
-            if app_name in ["axis-installer", "axis-terminal"]:
+            if app_name in ["axis-installer", "axis-terminal", "axis-welcome", "axis-package-installer"]:
                 for desk_dir in [os.path.join(chroot_dir, "home", "axis", "Desktop"), os.path.join(chroot_dir, "etc", "skel", "Desktop")]:
                     os.makedirs(desk_dir, exist_ok=True)
                     copy_text_lf(app_desktop, os.path.join(desk_dir, f"{app_name}.desktop"), 0o755)
+            if app_name == "axis-welcome":
+                for auto_dir in [os.path.join(chroot_dir, "home", "axis", ".config", "autostart"), os.path.join(chroot_dir, "etc", "skel", ".config", "autostart")]:
+                    os.makedirs(auto_dir, exist_ok=True)
+                    copy_text_lf(app_desktop, os.path.join(auto_dir, f"{app_name}.desktop"), 0o644)
 
-# Deploy Nobara Welcome & Hardware Driver / Codec Manager
-nobara_welcome_bin = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome")
-if not os.path.exists(nobara_welcome_bin):
-    nobara_welcome_bin = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome.py")
-nobara_welcome_desktop = os.path.join(workspace_dir, "os-build", "apps", "nobara-welcome", "nobara-welcome.desktop")
-if os.path.exists(nobara_welcome_bin):
-    dst = os.path.join(chroot_dir, "usr", "local", "bin", "nobara-welcome")
-    copy_binary_or_text(nobara_welcome_bin, dst, 0o755)
-    print("    Deployed Nobara Welcome & Hardware Driver / Codec Manager -> /usr/local/bin/nobara-welcome")
-if os.path.exists(nobara_welcome_desktop):
-    dst = os.path.join(chroot_dir, "usr", "share", "applications", "nobara-welcome.desktop")
+# Deploy Native Qt 6 Wayland Compositor & Display Manager (LiquidNodesOS)
+liquid_src = os.path.join(workspace_dir, "compositor-qt", "LiquidNodesOS")
+if not os.path.exists(liquid_src):
+    liquid_src = os.path.join(workspace_dir, "compositor-qt", "build", "LiquidNodesOS")
+if not os.path.exists(liquid_src):
+    chroot_liquid = os.path.join(chroot_dir, "usr", "local", "bin", "LiquidNodesOS")
+    if os.path.exists(chroot_liquid):
+        liquid_src = chroot_liquid
+if os.path.exists(liquid_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "LiquidNodesOS")
     os.makedirs(os.path.dirname(dst), exist_ok=True)
-    shutil.copyfile(nobara_welcome_desktop, dst)
-
-# Deploy Native wlroots Wayland Compositor (axis-compositor)
-comp_src = os.path.join(workspace_dir, "compositor", "axis-compositor")
-if not os.path.exists(comp_src):
-    # Check if built in chroot
-    chroot_comp = os.path.join(chroot_dir, "usr", "local", "bin", "axis-compositor")
-    if os.path.exists(chroot_comp):
-        comp_src = chroot_comp
-if os.path.exists(comp_src):
-    dst = os.path.join(chroot_dir, "usr", "local", "bin", "axis-compositor")
-    os.makedirs(os.path.dirname(dst), exist_ok=True)
-    if comp_src != dst:
-        shutil.copyfile(comp_src, dst)
+    if liquid_src != dst:
+        shutil.copyfile(liquid_src, dst)
     os.chmod(dst, 0o755)
-    print("    Deployed Native wlroots Wayland Compositor -> /usr/local/bin/axis-compositor")
+    print("    Deployed Native Qt 6 LiquidNodesOS Compositor -> /usr/local/bin/LiquidNodesOS")
+
+# Deploy Browser Performance and Dark Theme Configs
+browser_configs = os.path.join(workspace_dir, "os-build", "configs", "browser")
+if os.path.exists(browser_configs):
+    print("    Syncing browser GPU acceleration & Liquid Nodes configs...")
+    chrom_src = os.path.join(browser_configs, "chromium", "99-axisos-performance")
+    if os.path.exists(chrom_src):
+        dst = os.path.join(chroot_dir, "etc", "chromium.d", "99-axisos-performance")
+        os.makedirs(os.path.dirname(dst), exist_ok=True)
+        copy_text_lf(chrom_src, dst, 0o644)
+    ff_pref = os.path.join(browser_configs, "firefox", "syspref.js")
+    if os.path.exists(ff_pref):
+        for ffd in ["firefox", "firefox-esr"]:
+            dst = os.path.join(chroot_dir, "etc", ffd, "syspref.js")
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            copy_text_lf(ff_pref, dst, 0o644)
+    ff_chrome = os.path.join(browser_configs, "firefox", "userChrome.css")
+    if os.path.exists(ff_chrome):
+        for skel in [os.path.join(chroot_dir, "etc", "skel", ".mozilla", "firefox", "axisos.default", "chrome"),
+                     os.path.join(chroot_dir, "home", "axis", ".mozilla", "firefox", "axisos.default", "chrome")]:
+            os.makedirs(skel, exist_ok=True)
+            copy_text_lf(ff_chrome, os.path.join(skel, "userChrome.css"), 0o644)
 
 # Deploy Wayland Desktop Configs (Waybar, Wofi, Mako, Foot, Backgrounds)
 wayland_configs = os.path.join(workspace_dir, "os-build", "configs", "wayland")

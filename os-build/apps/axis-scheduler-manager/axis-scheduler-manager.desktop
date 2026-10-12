@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Kernel Scheduler Manager
+Comment=Manage sched-ext kernel schedulers and CPU governors in AxisOS
+Exec=/usr/local/bin/axis-scheduler-manager
+Icon=preferences-system-performance
+Terminal=false
+Type=Application
+Categories=System;Settings;
+StartupNotify=true
