@@ -559,15 +559,17 @@ if os.path.exists(tz_sh):
 print("--> 1. Building filesystem.squashfs with parallel XZ compression")
 squashfs_target = f"{binary_dir}/live/filesystem.squashfs"
 os.makedirs(f"{binary_dir}/live", exist_ok=True)
-if os.path.exists(squashfs_target):
-    os.remove(squashfs_target)
-
-subprocess.run([
-    "mksquashfs", chroot_dir, squashfs_target,
-    "-comp", "xz",
-    "-noappend",
-    "-e", "boot/vmlinuz*", "boot/initrd.img*"
-], check=True)
+if os.environ.get("REUSE_SQUASHFS") == "1" and os.path.exists(squashfs_target) and os.path.getsize(squashfs_target) > 500 * 1024 * 1024:
+    print(f"    [OPTIMIZATION] Reusing verified squashfs ({os.path.getsize(squashfs_target)} bytes) -> skipping recompression")
+else:
+    if os.path.exists(squashfs_target):
+        os.remove(squashfs_target)
+    subprocess.run([
+        "mksquashfs", chroot_dir, squashfs_target,
+        "-comp", "xz",
+        "-noappend",
+        "-e", "boot/vmlinuz*", "boot/initrd.img*"
+    ], check=True)
 
 # Step 2: Ensure kernel and initrd are in binary/live
 print("--> 2. Syncing kernel and initramfs to /live")
@@ -600,7 +602,7 @@ PROMPT 0
 TIMEOUT 50
 DEFAULT live
 
-MENU TITLE AxisOS Linux 2.0 (Nobara Gaming Edition)
+MENU TITLE AxisOS 2.0 (Liquid Nodes Edition)
 MENU COLOR border       30;44   #40ffffff #a0000000 std
 MENU COLOR title        1;36;44 #902563eb #a0000000 std
 MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
@@ -608,18 +610,18 @@ MENU COLOR unsel        37;44   #50ffffff #a0000000 std
 MENU COLOR help         37;40   #c0ffffff #a0000000 std
 
 LABEL live
-  MENU LABEL ^1. Try AxisOS 2.0 Nobara (Live Gaming Desktop)
+  MENU LABEL ^1. Try AxisOS 2.0 (Liquid Nodes Wayland Desktop)
   MENU DEFAULT
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
 
 LABEL install
-  MENU LABEL ^2. Install AxisOS 2.0 Nobara (Direct Setup Wizard)
+  MENU LABEL ^2. Install AxisOS 2.0 (Direct Setup Wizard)
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 axisos.autoinstall=1 amdgpu.freesync_video=1
 
 LABEL failsafe
-  MENU LABEL ^3. AxisOS 2.0 Nobara (Safe Graphics Mode)
+  MENU LABEL ^3. AxisOS 2.0 (Safe Graphics Mode)
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC nomodeset quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3
 """)
@@ -673,17 +675,17 @@ insmod fat
 insmod iso9660
 insmod all_video
 
-menuentry "Try AxisOS 2.0 Nobara (Live Gaming Desktop)" --class axisos --class gnu-linux --class gnu {
+menuentry "Try AxisOS 2.0 (Liquid Nodes Wayland Desktop)" --class axisos --class gnu-linux --class gnu {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }
 
-menuentry "Install AxisOS 2.0 Nobara (Direct Setup Wizard)" --class axisos {
+menuentry "Install AxisOS 2.0 (Direct Setup Wizard)" --class axisos {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 axisos.autoinstall=1 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }
 
-menuentry "AxisOS 2.0 Nobara (Safe Graphics Mode - nomodeset)" --class axisos {
+menuentry "AxisOS 2.0 (Safe Graphics Mode - nomodeset)" --class axisos {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC nomodeset quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3
     initrd /live/initrd.img
 }
