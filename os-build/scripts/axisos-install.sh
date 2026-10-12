@@ -102,6 +102,23 @@ if [[ ! -b "$TARGET_DISK" ]]; then
     exit 1
 fi
 
+# Detect and safeguard live USB medium
+LIVE_MEDIA_DEV=$(findmnt -n -o SOURCE /run/live/medium 2>/dev/null || findmnt -n -o SOURCE /run/live/rootfs 2>/dev/null || echo "")
+if [[ -n "$LIVE_MEDIA_DEV" ]]; then
+    LIVE_DISK=$(lsblk -no PKNAME "$LIVE_MEDIA_DEV" 2>/dev/null || echo "")
+    if [[ -n "$LIVE_DISK" ]]; then
+        LIVE_DISK="/dev/$LIVE_DISK"
+    else
+        LIVE_DISK="${LIVE_MEDIA_DEV%[0-9]*}"
+        LIVE_DISK="${LIVE_DISK%p}"
+    fi
+    if [[ "$TARGET_DISK" == "$LIVE_DISK" || "$TARGET_DISK" == "$LIVE_MEDIA_DEV" ]]; then
+        echo "ERROR: Target disk $TARGET_DISK is the live USB! Cannot install onto active installation media." >&2
+        report 0 "Error: Selected disk is the live USB media. Please select an internal drive."
+        exit 1
+    fi
+fi
+
 # Detect UEFI vs BIOS
 IS_UEFI=false
 if [[ -d /sys/firmware/efi ]]; then
@@ -113,35 +130,43 @@ fi
 
 # Unmount any existing partitions on target disk
 report 5 "Unmounting existing partitions on $TARGET_DISK..."
+swapoff -a 2>/dev/null || true
 for part in $(lsblk -ln -o NAME "$TARGET_DISK" 2>/dev/null | tail -n +2); do
     mountpoint="/dev/$part"
-    if grep -qs "$mountpoint" /proc/mounts; then
-        log "Unmounting $mountpoint..."
-        umount -f "$mountpoint" || true
-    fi
+    umount -f -l "$mountpoint" 2>/dev/null || true
     swapoff "$mountpoint" 2>/dev/null || true
 done
 umount -R /mnt 2>/dev/null || true
+umount -R /mnt_axis_tmp 2>/dev/null || true
 
 report 10 "Wiping partition signatures on $TARGET_DISK..."
-wipefs -a -f "$TARGET_DISK" || dd if=/dev/zero of="$TARGET_DISK" bs=1M count=10 conv=notrunc status=none
+wipefs -a -f "$TARGET_DISK" 2>/dev/null || true
+dd if=/dev/zero of="$TARGET_DISK" bs=1M count=10 conv=notrunc status=none 2>/dev/null || true
 
 report 15 "Partitioning drive with GPT scheme..."
-# Calculate partitioning:
-# 1: ESP (512MB)
-# 2: Swap (4096MB)
-# 3: Root (Remaining)
+# Calculate swap size based on disk capacity
+DISK_SIZE_BYTES=$(blockdev --getsize64 "$TARGET_DISK" 2>/dev/null || echo 0)
+DISK_SIZE_GB=$(( DISK_SIZE_BYTES / 1024 / 1024 / 1024 ))
+SWAP_SIZE="4096M"
+if [ "$DISK_SIZE_GB" -lt 30 ]; then
+    SWAP_SIZE="2048M"
+fi
+if [ "$DISK_SIZE_GB" -lt 15 ]; then
+    SWAP_SIZE="1024M"
+fi
+
 if command -v sgdisk >/dev/null 2>&1; then
-    sgdisk --zap-all "$TARGET_DISK"
+    sgdisk --zap-all "$TARGET_DISK" 2>/dev/null || true
+    dd if=/dev/zero of="$TARGET_DISK" bs=1M count=2 conv=notrunc status=none 2>/dev/null || true
     sgdisk -n 1:2048:+512M -t 1:ef00 -c 1:"AXIS_BOOT" "$TARGET_DISK"
-    sgdisk -n 2:0:+4096M -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK"
+    sgdisk -n 2:0:+${SWAP_SIZE} -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK"
     sgdisk -n 3:0:0 -t 3:8300 -c 3:"AXIS_ROOT" "$TARGET_DISK"
 elif command -v parted >/dev/null 2>&1; then
     parted -s "$TARGET_DISK" mklabel gpt
     parted -s "$TARGET_DISK" mkpart "AXIS_BOOT" fat32 1MiB 513MiB
     parted -s "$TARGET_DISK" set 1 esp on
-    parted -s "$TARGET_DISK" mkpart "AXIS_SWAP" linux-swap 513MiB 4609MiB
-    parted -s "$TARGET_DISK" mkpart "AXIS_ROOT" ext4 4609MiB 100%
+    parted -s "$TARGET_DISK" mkpart "AXIS_SWAP" linux-swap 513MiB 2561MiB
+    parted -s "$TARGET_DISK" mkpart "AXIS_ROOT" ext4 2561MiB 100%
 else
     echo "ERROR: Neither sgdisk nor parted found." >&2
     exit 1
@@ -162,70 +187,117 @@ SWAP_PART="${PART_PREFIX}2"
 ROOT_PART="${PART_PREFIX}3"
 
 # Wait for partitions to appear
-for i in {1..10}; do
-    if [[ -b "$ROOT_PART" ]]; then break; fi
+for i in {1..15}; do
+    if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then break; fi
     sleep 1
+    partprobe "$TARGET_DISK" 2>/dev/null || true
 done
 
-if [[ ! -b "$ROOT_PART" ]]; then
-    echo "ERROR: Partition $ROOT_PART not found after partitioning." >&2
+if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
+    echo "ERROR: Partition $ROOT_PART or $ESP_PART not found after partitioning." >&2
     exit 1
 fi
 
-report 25 "Formatting filesystems (ESP FAT32, Swap, and Btrfs)..."
-mkfs.vfat -F32 -n "AXIS_BOOT" "$ESP_PART"
-mkswap -L "AXIS_SWAP" "$SWAP_PART"
+report 25 "Formatting filesystems (ESP FAT32, Swap, and Root)..."
+wipefs -a -f "$ESP_PART" 2>/dev/null || true
+mkfs.vfat -F32 -n "AXIS_BOOT" "$ESP_PART" || mkfs.fat -n "AXIS_BOOT" "$ESP_PART" || true
 
+wipefs -a -f "$SWAP_PART" 2>/dev/null || true
+mkswap -L "AXIS_SWAP" "$SWAP_PART" 2>/dev/null || true
+
+USE_EXT4=false
 if [[ "$FILESYSTEM" == "btrfs" ]] && command -v mkfs.btrfs >/dev/null 2>&1; then
-    mkfs.btrfs -f -L "AXIS_ROOT" "$ROOT_PART"
+    modprobe btrfs 2>/dev/null || true
+    wipefs -a -f "$ROOT_PART" 2>/dev/null || true
+    if mkfs.btrfs -f -L "AXIS_ROOT" "$ROOT_PART"; then
+        report 30 "Setting up Btrfs subvolumes (@, @home, @snapshots, @var_log)..."
+        mkdir -p /mnt_axis_tmp
+        if mount -t btrfs "$ROOT_PART" /mnt_axis_tmp 2>/dev/null; then
+            btrfs subvolume create /mnt_axis_tmp/@ 2>/dev/null || true
+            btrfs subvolume create /mnt_axis_tmp/@home 2>/dev/null || true
+            btrfs subvolume create /mnt_axis_tmp/@snapshots 2>/dev/null || true
+            btrfs subvolume create /mnt_axis_tmp/@var_log 2>/dev/null || true
+            umount /mnt_axis_tmp 2>/dev/null || true
+            rmdir /mnt_axis_tmp 2>/dev/null || true
 
-    report 32 "Setting up Btrfs subvolumes (@, @home, @snapshots, @var_log)..."
-    mkdir -p /mnt/axis_tmp
-    mount -t btrfs "$ROOT_PART" /mnt/axis_tmp
-    btrfs subvolume create /mnt/axis_tmp/@
-    btrfs subvolume create /mnt/axis_tmp/@home
-    btrfs subvolume create /mnt/axis_tmp/@snapshots
-    btrfs subvolume create /mnt/axis_tmp/@var_log
-    umount /mnt/axis_tmp
-    rmdir /mnt/axis_tmp
-
-    # Mount subvolumes in target layout
-    mount -o noatime,compress=zstd:3,subvol=@ "$ROOT_PART" /mnt
-    mkdir -p /mnt/{home,boot/efi,var/log,.snapshots}
-    mount -o noatime,compress=zstd:3,subvol=@home "$ROOT_PART" /mnt/home
-    mount -o noatime,compress=zstd:3,subvol=@var_log "$ROOT_PART" /mnt/var/log
-    mount -o noatime,compress=zstd:3,subvol=@snapshots "$ROOT_PART" /mnt/.snapshots
+            mkdir -p /mnt
+            mount -o noatime,compress=zstd:3,subvol=@ "$ROOT_PART" /mnt
+            mkdir -p /mnt/{home,boot/efi,var/log,.snapshots}
+            mount -o noatime,compress=zstd:3,subvol=@home "$ROOT_PART" /mnt/home 2>/dev/null || true
+            mount -o noatime,compress=zstd:3,subvol=@var_log "$ROOT_PART" /mnt/var/log 2>/dev/null || true
+            mount -o noatime,compress=zstd:3,subvol=@snapshots "$ROOT_PART" /mnt/.snapshots 2>/dev/null || true
+        else
+            USE_EXT4=true
+        fi
+    else
+        USE_EXT4=true
+    fi
 else
-    mkfs.ext4 -F -L "AXIS_ROOT" "$ROOT_PART"
-    mount "$ROOT_PART" /mnt
-    mkdir -p /mnt/boot/efi
+    USE_EXT4=true
 fi
 
-mount "$ESP_PART" /mnt/boot/efi
+if [[ "$USE_EXT4" == "true" ]]; then
+    report 30 "Formatting root as high-performance EXT4 filesystem..."
+    wipefs -a -f "$ROOT_PART" 2>/dev/null || true
+    mkfs.ext4 -F -L "AXIS_ROOT" "$ROOT_PART"
+    mkdir -p /mnt
+    mount "$ROOT_PART" /mnt
+    mkdir -p /mnt/{home,boot/efi,var/log}
+fi
+
+mkdir -p /mnt/boot/efi
+mount "$ESP_PART" /mnt/boot/efi 2>/dev/null || true
 swapon "$SWAP_PART" 2>/dev/null || true
 
-report 40 "Copying AxisOS Linux system files to target root..."
-# Identify source root (live rootfs, live medium, or running host)
+report 35 "Copying AxisOS Linux system files to target root..."
 SOURCE_DIR="/"
-if [[ -d "/run/live/rootfs/filesystem.squashfs" ]]; then
-    SOURCE_DIR="/"
-fi
-
-rsync -aAXv --delete \
-    --exclude={"/dev/*","/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found","/run/live/*","/etc/udev/rules.d/70-persistent*"} \
-    "$SOURCE_DIR" /mnt/ >/dev/null 2>&1 || {
-        log "Warning: rsync encountered non-fatal skipped items, continuing..."
-    }
-
-# Create required mount skeleton
 mkdir -p /mnt/{dev,proc,sys,run,tmp,etc,root}
 chmod 1777 /mnt/tmp
 
-report 60 "Generating filesystem mount table (/etc/fstab)..."
+# Execute rsync with live progress tracking
+rsync -aAX \
+    --exclude=/dev/* \
+    --exclude=/proc/* \
+    --exclude=/sys/* \
+    --exclude=/tmp/* \
+    --exclude=/run/* \
+    --exclude=/mnt/* \
+    --exclude=/media/* \
+    --exclude=/lost+found \
+    --exclude=/run/live/* \
+    --exclude=/etc/udev/rules.d/70-persistent* \
+    "$SOURCE_DIR" /mnt/ >/dev/null 2>&1 &
+RSYNC_PID=$!
+
+while kill -0 $RSYNC_PID 2>/dev/null; do
+    sleep 2
+    CUR_USED_MB=$(df -m /mnt 2>/dev/null | awk 'NR==2 {print $3}' || echo 0)
+    PCT=$(( 35 + (CUR_USED_MB * 40 / 7000) ))
+    if [ "$PCT" -gt 75 ]; then PCT=75; fi
+    if [ "$PCT" -lt 35 ]; then PCT=35; fi
+    report "$PCT" "Copying system files (${CUR_USED_MB} MB transferred)..."
+done
+
+wait $RSYNC_PID || {
+    log "Notice: rsync finished with minor exclusions."
+}
+
+report 76 "System file transfer complete."
+
+report 77 "Generating filesystem mount table (/etc/fstab)..."
 ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART")
 ESP_UUID=$(blkid -s UUID -o value "$ESP_PART")
 SWAP_UUID=$(blkid -s UUID -o value "$SWAP_PART")
 
+if [[ "$USE_EXT4" == "true" ]]; then
+cat << EOF > /mnt/etc/fstab
+# /etc/fstab: static file system information generated by AxisOS Installer
+# <file system>             <mount point>   <type>  <options>                               <dump>  <pass>
+UUID=$ROOT_UUID             /               ext4    errors=remount-ro,noatime               0       1
+UUID=$ESP_UUID              /boot/efi       vfat    umask=0077                              0       2
+UUID=$SWAP_UUID             none            swap    sw                                      0       0
+EOF
+else
 cat << EOF > /mnt/etc/fstab
 # /etc/fstab: static file system information generated by AxisOS Installer
 # <file system>             <mount point>   <type>  <options>                               <dump>  <pass>
@@ -236,8 +308,9 @@ UUID=$ROOT_UUID             /.snapshots     btrfs   defaults,noatime,compress=zs
 UUID=$ESP_UUID              /boot/efi       vfat    umask=0077                              0       2
 UUID=$SWAP_UUID             none            swap    sw                                      0       0
 EOF
+fi
 
-report 70 "Configuring hostname, locale, and network settings..."
+report 78 "Configuring hostname, locale, and network settings..."
 echo "$HOSTNAME" > /mnt/etc/hostname
 cat << EOF > /mnt/etc/hosts
 127.0.0.1   localhost
@@ -264,7 +337,7 @@ XKBOPTIONS=""
 BACKSPACE="guess"
 EOF
 
-report 80 "Setting up user account ($USERNAME)..."
+report 80 "Mounting virtual filesystems for configuration..."
 # Mount kernel virtual filesystems for chroot operations
 mount --bind /dev /mnt/dev
 mount --bind /dev/pts /mnt/dev/pts
@@ -274,11 +347,11 @@ mount --bind /run /mnt/run
 mount -t efivarfs efivarfs /mnt/sys/firmware/efi/efivars 2>/dev/null || true
 
 # Enable 32-bit multiarch for Steam, Proton, and Wine compatibility
-report 78 "Enabling 32-bit multiarch (i386) for gaming compatibility..."
+report 82 "Enabling 32-bit multiarch (i386) for gaming compatibility..."
 chroot /mnt dpkg --add-architecture i386 || true
 
 # Configure Debian Bookworm repositories including contrib, non-free, non-free-firmware, and backports
-report 78 "Configuring Debian Bookworm repositories with non-free and backports..."
+report 84 "Configuring Debian Bookworm repositories with non-free and backports..."
 mkdir -p /mnt/etc/apt
 cat << 'EOF' > /mnt/etc/apt/sources.list
 deb http://deb.debian.org/debian/ bookworm main contrib non-free non-free-firmware
@@ -309,7 +382,7 @@ EOF
 
 # Enable Flathub for universal application distribution
 if chroot /mnt command -v flatpak >/dev/null 2>&1; then
-    report 79 "Configuring Flathub universal software repository..."
+    report 85 "Configuring Flathub universal software repository..."
     chroot /mnt flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 fi
 
@@ -349,6 +422,7 @@ fi
 EOF
 chmod 0755 /mnt/usr/local/bin/steam
 
+report 86 "Setting up user account ($USERNAME)..."
 # Create user if it doesn't already exist
 chroot /mnt groupadd -f gamemode 2>/dev/null || true
 chroot /mnt groupadd -f games 2>/dev/null || true
@@ -441,7 +515,7 @@ BOOT_MODE="$([[ "$IS_UEFI" == "true" ]] && echo "UEFI" || echo "BIOS")"
 EOF
 chmod 644 /mnt/etc/axisos-installed
 
-report 85 "Configuring automated kernel & system updates (unattended-upgrades)..."
+report 87 "Configuring automated kernel & system updates (unattended-upgrades)..."
 mkdir -p /mnt/etc/apt/apt.conf.d
 cat << 'EOF' > /mnt/etc/apt/apt.conf.d/20auto-upgrades
 APT::Periodic::Update-Package-Lists "1";

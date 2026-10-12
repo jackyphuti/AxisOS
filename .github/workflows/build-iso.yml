@@ -16,21 +16,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 20
-
-      - name: Build Desktop Shell
-        working-directory: shell
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-          npm run build
-
       - name: Install Debian Live Build Toolchain
         run: |
           sudo apt-get update

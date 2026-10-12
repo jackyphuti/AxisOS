@@ -7,54 +7,16 @@ on:
     branches: [ main ]
 
 jobs:
-  shell-check:
-    name: Desktop Shell (React 19 / TypeScript / Vite)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: shell/package-lock.json
-
-      - name: Install dependencies
-        working-directory: shell
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          else
-            npm install
-          fi
-
-      - name: Typecheck and Build Bundle
-        working-directory: shell
-        run: npm run build
-
-  daemon-check:
-    name: System Daemon Syntax
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: 20
-
-      - name: Validate Daemon Syntax
-        run: node -c os-build/configs/cage-session/axisos-daemon.cjs
-
   native-check:
-    name: Native Subsystems (C Update Engine)
+    name: Native Subsystems & Build Scripts
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Validate Python Build Scripts
+        run: |
+          python3 -m py_compile os-build/scripts/*.py
 
       - name: Compile and Test axis-update
         working-directory: os-build/updater

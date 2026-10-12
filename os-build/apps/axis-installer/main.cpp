@@ -503,7 +503,7 @@ public:
         gtk_box_pack_start(GTK_BOX(box), title, FALSE, FALSE, 0);
 
         // Table with Drive 0, Drive 1
-        store_drives = gtk_list_store_new(4, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+        store_drives = gtk_list_store_new(5, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
         tree_drives = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_drives));
         gtk_style_context_add_class(gtk_widget_get_style_context(tree_drives), "treeview-win");
 
@@ -512,6 +512,9 @@ public:
         gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tree_drives), -1, "Total size", renderer, "text", 1, NULL);
         gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tree_drives), -1, "Free space", renderer, "text", 2, NULL);
         gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tree_drives), -1, "Type / Model", renderer, "text", 3, NULL);
+
+        GtkTreeSelection* sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_drives));
+        g_signal_connect(sel, "changed", G_CALLBACK(on_drive_selection_changed), this);
 
         GtkWidget* scroll = gtk_scrolled_window_new(NULL, NULL);
         gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 200);
@@ -542,11 +545,54 @@ public:
         populate_drives();
     }
 
+    static void on_drive_selection_changed(GtkTreeSelection* selection, Win10InstallerApp* app) {
+        GtkTreeModel* model;
+        GtkTreeIter iter;
+        if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+            gchar* dev_path = nullptr;
+            gtk_tree_model_get(model, &iter, 4, &dev_path, -1);
+            if (dev_path) {
+                app->selected_disk = dev_path;
+                g_free(dev_path);
+            }
+        }
+    }
+
     void populate_drives() {
         gtk_list_store_clear(store_drives);
-        
+
+        // Identify live installation media to prevent targeting the USB installer
+        std::string live_media = "";
+        FILE* flive = popen("findmnt -n -o SOURCE /run/live/medium 2>/dev/null || findmnt -n -o SOURCE /run/live/rootfs 2>/dev/null", "r");
+        if (flive) {
+            char lbuf[256];
+            if (fgets(lbuf, sizeof(lbuf), flive)) {
+                live_media = lbuf;
+                while (!live_media.empty() && (live_media.back() == '\n' || live_media.back() == '\r')) live_media.pop_back();
+            }
+            pclose(flive);
+        }
+        std::string live_disk = "";
+        if (!live_media.empty()) {
+            std::string cmd = "lsblk -n -o PKNAME " + live_media + " 2>/dev/null";
+            FILE* fpk = popen(cmd.c_str(), "r");
+            if (fpk) {
+                char pbuf[256];
+                if (fgets(pbuf, sizeof(pbuf), fpk)) {
+                    std::string pk = pbuf;
+                    while (!pk.empty() && (pk.back() == '\n' || pk.back() == '\r')) pk.pop_back();
+                    if (!pk.empty()) live_disk = "/dev/" + pk;
+                }
+                pclose(fpk);
+            }
+            if (live_disk.empty()) live_disk = live_media;
+        }
+
         FILE* fp = popen("lsblk -d -p -n -l -o NAME,SIZE,MODEL,TYPE 2>/dev/null", "r");
         bool found = false;
+        GtkTreePath* target_path = nullptr;
+        int row_idx = 0;
+
         if (fp) {
             char line[512];
             int idx = 0;
@@ -556,22 +602,41 @@ public:
                 iss >> dev_name >> size;
                 std::string rest;
                 std::getline(iss, rest);
+                while (!rest.empty() && (rest.front() == ' ' || rest.front() == '\t')) rest.erase(0, 1);
+                while (!rest.empty() && (rest.back() == '\n' || rest.back() == '\r' || rest.back() == ' ')) rest.pop_back();
                 
                 if (dev_name.find("/dev/loop") == std::string::npos &&
                     dev_name.find("/dev/zram") == std::string::npos &&
                     dev_name.find("/dev/ram") == std::string::npos) {
-                    
+
+                    bool is_live = (!live_disk.empty() && dev_name == live_disk) ||
+                                   (!live_media.empty() && dev_name == live_media);
+
                     GtkTreeIter iter;
                     gtk_list_store_append(store_drives, &iter);
                     std::string label = "Drive " + std::to_string(idx) + " (" + dev_name + ")";
+                    if (is_live) {
+                        label += " [Live USB Media]";
+                    }
+                    std::string desc = rest.empty() ? "Primary Storage" : rest;
+                    if (is_live) desc += " (Installation Media)";
+
                     gtk_list_store_set(store_drives, &iter,
                         0, label.c_str(),
                         1, size.c_str(),
                         2, size.c_str(),
-                        3, (rest.empty() ? "Primary Disk" : rest.c_str()),
+                        3, desc.c_str(),
+                        4, dev_name.c_str(),
                         -1);
-                    if (idx == 0) selected_disk = dev_name;
+
+                    // Select first non-live drive as preferred default
+                    if (!is_live && target_path == nullptr) {
+                        target_path = gtk_tree_path_new_from_indices(row_idx, -1);
+                        selected_disk = dev_name;
+                    }
+
                     idx++;
+                    row_idx++;
                     found = true;
                 }
             }
@@ -586,15 +651,20 @@ public:
                 1, "64.0 GB",
                 2, "64.0 GB",
                 3, "Primary System Storage",
+                4, "/dev/sda",
                 -1);
             selected_disk = "/dev/sda";
+            target_path = gtk_tree_path_new_first();
+        } else if (target_path == nullptr) {
+            target_path = gtk_tree_path_new_first();
         }
 
-        // Select first row
+        // Select chosen drive
         GtkTreeSelection* sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_drives));
-        GtkTreePath* path = gtk_tree_path_new_first();
-        gtk_tree_selection_select_path(sel, path);
-        gtk_tree_path_free(path);
+        if (target_path) {
+            gtk_tree_selection_select_path(sel, target_path);
+            gtk_tree_path_free(target_path);
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -748,20 +818,34 @@ public:
         gtk_stack_set_visible_child_name(GTK_STACK(stack), name.c_str());
 
         // Back button
+        gtk_widget_set_visible(btn_back, current_step > 0 && current_step < 6);
         gtk_widget_set_sensitive(btn_back, current_step > 0 && current_step < 6);
+        gtk_button_set_label(GTK_BUTTON(btn_back), "Back");
 
-        // Next button
-        if (current_step == 1) { // Install now screen
-            gtk_widget_set_visible(btn_next, FALSE);
-            gtk_widget_set_visible(btn_back, TRUE);
+        // Next button - ALWAYS VISIBLE ON WIZARD STEPS 0 THROUGH 5
+        if (current_step == 0) { // Locale
+            gtk_widget_set_visible(btn_next, TRUE);
+            gtk_widget_set_sensitive(btn_next, TRUE);
+            gtk_button_set_label(GTK_BUTTON(btn_next), "Next");
+        } else if (current_step == 1) { // Install now
+            gtk_widget_set_visible(btn_next, TRUE);
+            gtk_widget_set_sensitive(btn_next, TRUE);
+            gtk_button_set_label(GTK_BUTTON(btn_next), "Next");
         } else if (current_step == 2) { // License
             gtk_widget_set_visible(btn_next, TRUE);
             gtk_widget_set_sensitive(btn_next, gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(chk_license)));
             gtk_button_set_label(GTK_BUTTON(btn_next), "Next");
         } else if (current_step == 3) { // Type
-            gtk_widget_set_visible(btn_next, FALSE);
+            gtk_widget_set_visible(btn_next, TRUE);
+            gtk_widget_set_sensitive(btn_next, TRUE);
+            gtk_button_set_label(GTK_BUTTON(btn_next), "Next");
+        } else if (current_step == 4) { // Disk Selection
+            gtk_widget_set_visible(btn_next, TRUE);
+            gtk_widget_set_sensitive(btn_next, !selected_disk.empty());
+            gtk_button_set_label(GTK_BUTTON(btn_next), "Next");
         } else if (current_step == 5) { // Account
             gtk_widget_set_visible(btn_next, TRUE);
+            gtk_widget_set_sensitive(btn_next, TRUE);
             gtk_button_set_label(GTK_BUTTON(btn_next), "Install");
         } else if (current_step == 6) { // Installing
             gtk_widget_set_visible(btn_next, FALSE);
@@ -797,6 +881,12 @@ public:
     }
 
     static void on_back_clicked(Win10InstallerApp* app) {
+        if (app->current_step == 6) {
+            // Recovery from installation failure: return to disk selection
+            app->current_step = 4;
+            app->update_navigation_state();
+            return;
+        }
         if (app->current_step > 0) {
             app->current_step--;
             if (app->current_step == 3) app->current_step = 2;
@@ -805,6 +895,16 @@ public:
     }
 
     static void on_next_clicked(Win10InstallerApp* app) {
+        if (app->current_step == 1) {
+            app->current_step = 2; // Jump to License
+            app->update_navigation_state();
+            return;
+        }
+        if (app->current_step == 3) {
+            app->current_step = 4; // Jump to Disk Table
+            app->update_navigation_state();
+            return;
+        }
         if (app->current_step == 5) {
             // Confirm install
             app->fullname = gtk_entry_get_text(GTK_ENTRY(app->entry_fullname));
@@ -842,13 +942,18 @@ public:
             std::string cmd = "sudo -n /usr/local/bin/axisos-installer.sh --disk " + selected_disk +
                               " --username " + username +
                               " --password " + password +
-                              " --fullname '" + fullname + "' --hostname " + hostname;
+                              " --fullname '" + fullname + "' --hostname " + hostname + " 2>&1";
 
             FILE* fp = popen(cmd.c_str(), "r");
+            std::string last_error_line = "Unexpected installation error.";
             if (fp) {
                 char buf[512];
                 while (fgets(buf, sizeof(buf), fp)) {
                     std::string line(buf);
+                    while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
+                    if (!line.empty()) {
+                        last_error_line = line;
+                    }
                     if (line.find("PROGRESS:") == 0) {
                         size_t p1 = line.find(':', 9);
                         if (p1 != std::string::npos) {
@@ -905,6 +1010,30 @@ public:
                         app->update_navigation_state();
                         return G_SOURCE_REMOVE;
                     }, this);
+                } else {
+                    g_idle_add(+[](gpointer data) -> gboolean {
+                        auto pair = static_cast<std::pair<Win10InstallerApp*, std::string>*>(data);
+                        Win10InstallerApp* app = pair->first;
+                        std::string err = pair->second;
+
+                        std::string err_text = "Installation stopped: " + err;
+                        gtk_label_set_text(GTK_LABEL(app->lbl_progress_percent), err_text.c_str());
+
+                        // Enable Back button for user recovery
+                        gtk_widget_set_visible(app->btn_back, TRUE);
+                        gtk_widget_set_sensitive(app->btn_back, TRUE);
+                        gtk_button_set_label(GTK_BUTTON(app->btn_back), "Back to Drive Selection");
+
+                        GtkWidget* d = gtk_message_dialog_new(GTK_WINDOW(app->window),
+                            GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
+                            "An issue occurred during installation:\n\n%s\n\nPlease select 'Back to Drive Selection' to choose another drive or verify disk health.",
+                            err.c_str());
+                        gtk_dialog_run(GTK_DIALOG(d));
+                        gtk_widget_destroy(d);
+
+                        delete pair;
+                        return G_SOURCE_REMOVE;
+                    }, new std::pair<Win10InstallerApp*, std::string>(this, last_error_line));
                 }
             }
         }).detach();

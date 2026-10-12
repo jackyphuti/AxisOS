@@ -118,13 +118,29 @@ def deploy_branding(target_root="/build/chroot"):
         os.path.join(target_root, "usr", "share", "pixmaps", "axisos.svg"),
         os.path.join(target_root, "usr", "share", "pixmaps", "distributor-logo.svg"),
         os.path.join(target_root, "usr", "share", "pixmaps", "debian-logo.svg"),
+        os.path.join(target_root, "usr", "share", "pixmaps", "distributor-logo-debian.svg"),
         os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "gnome-logo-text.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "gnome-logo-text-dark.svg"),
+        # Vendor logo loaded directly by GNOME Control Center (About panel)
+        os.path.join(target_root, "usr", "share", "icons", "vendor", "scalable", "emblems", "emblem-vendor.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "vendor", "scalable", "emblems", "emblem-vendor-white.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "desktop-base", "scalable", "emblems", "emblem-debian.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "desktop-base", "scalable", "emblems", "emblem-debian-white.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "emblems", "emblem-debian.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "emblems", "emblem-debian-white.svg"),
         os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "apps", "axisos.svg"),
         os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "apps", "distributor-logo-axisos.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "apps", "distributor-logo-debian.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "apps", "debian-logo.svg"),
         os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "places", "distributor-logo.svg"),
         os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "places", "start-here.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus", "scalable", "apps", "axisos.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "Papirus", "scalable", "apps", "distributor-logo-debian.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "Papirus", "scalable", "apps", "debian-logo.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", "scalable", "apps", "axisos.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", "scalable", "apps", "distributor-logo-debian.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", "scalable", "apps", "debian-logo.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus", "scalable", "places", "distributor-logo.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", "scalable", "places", "distributor-logo.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus", "scalable", "places", "start-here.svg"),
@@ -132,6 +148,18 @@ def deploy_branding(target_root="/build/chroot"):
         os.path.join(target_root, "usr", "share", "icons", "AxisHarmony", "scalable", "apps", "axisos.svg"),
         os.path.join(target_root, "usr", "share", "icons", "AxisHarmony", "scalable", "places", "distributor-logo.svg"),
     ]
+
+    # Add all Papirus and Papirus-Dark size variants
+    for p_size in ["16x16", "22x22", "24x24", "32x32", "48x48", "64x64"]:
+        for theme in ["Papirus", "Papirus-Dark"]:
+            svg_icon_targets.extend([
+                os.path.join(target_root, "usr", "share", "icons", theme, p_size, "apps", "distributor-logo-debian.svg"),
+                os.path.join(target_root, "usr", "share", "icons", theme, p_size, "apps", "debian-logo.svg"),
+                os.path.join(target_root, "usr", "share", "icons", theme, p_size, "apps", "distributor-logo.svg"),
+                os.path.join(target_root, "usr", "share", "icons", theme, p_size, "apps", "axisos.svg"),
+                os.path.join(target_root, "usr", "share", "icons", theme, p_size, "places", "distributor-logo.svg"),
+            ])
+
     for p in svg_icon_targets:
         write_file(p, axis_icon_svg)
 
@@ -152,9 +180,13 @@ def deploy_branding(target_root="/build/chroot"):
 
     symbolic_targets = [
         os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "apps", "axisos-symbolic.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "hicolor", "scalable", "emblems", "emblem-debian-symbolic.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "vendor", "scalable", "emblems", "emblem-vendor-symbolic.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "desktop-base", "scalable", "emblems", "emblem-debian-symbolic.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus", "scalable", "apps", "axisos-symbolic.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", "scalable", "apps", "axisos-symbolic.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", "scalable", "places", "distributor-logo-symbolic.svg"),
+        os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", "scalable", "places", "distributor-logo-debian-symbolic.svg"),
         os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", "scalable", "places", "start-here-symbolic.svg"),
     ]
     for p in symbolic_targets:
@@ -166,16 +198,25 @@ def deploy_branding(target_root="/build/chroot"):
     with open(temp_svg, "w", encoding="utf-8") as f:
         f.write(axis_icon_svg)
 
-    sizes = [16, 24, 32, 48, 64, 128, 256, 512]
+    sizes = [16, 22, 24, 32, 36, 48, 64, 128, 256, 512]
     for sz in sizes:
         png_targets = [
             os.path.join(target_root, "usr", "share", "icons", "hicolor", f"{sz}x{sz}", "apps", "axisos.png"),
+            os.path.join(target_root, "usr", "share", "icons", "hicolor", f"{sz}x{sz}", "apps", "distributor-logo-debian.png"),
+            os.path.join(target_root, "usr", "share", "icons", "hicolor", f"{sz}x{sz}", "apps", "debian-logo.png"),
+            os.path.join(target_root, "usr", "share", "icons", "hicolor", f"{sz}x{sz}", "emblems", "emblem-debian.png"),
+            os.path.join(target_root, "usr", "share", "icons", "hicolor", f"{sz}x{sz}", "emblems", "emblem-debian-white.png"),
+            os.path.join(target_root, "usr", "share", "icons", "hicolor", f"{sz}x{sz}", "emblems", "emblem-debian-symbolic.png"),
+            os.path.join(target_root, "usr", "share", "icons", "desktop-base", f"{sz}x{sz}", "emblems", "emblem-debian.png"),
+            os.path.join(target_root, "usr", "share", "icons", "desktop-base", f"{sz}x{sz}", "emblems", "emblem-debian-white.png"),
+            os.path.join(target_root, "usr", "share", "icons", "desktop-base", f"{sz}x{sz}", "emblems", "emblem-debian-symbolic.png"),
             os.path.join(target_root, "usr", "share", "icons", "Papirus", f"{sz}x{sz}", "apps", "axisos.png"),
             os.path.join(target_root, "usr", "share", "icons", "Papirus-Dark", f"{sz}x{sz}", "apps", "axisos.png"),
         ]
         if sz == 256 or sz == 64:
             png_targets.append(os.path.join(target_root, "usr", "share", "pixmaps", "axisos.png"))
             png_targets.append(os.path.join(target_root, "usr", "share", "pixmaps", "debian-logo.png"))
+            png_targets.append(os.path.join(target_root, "usr", "share", "pixmaps", "debian-security.png"))
         if sz == 64:
             png_targets.append(os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-64.png"))
         if sz == 128:
@@ -220,7 +261,7 @@ def deploy_branding(target_root="/build/chroot"):
     print("    [OK] Generated multi-resolution PNG icons and system logos")
 
     # 5. Update icon caches
-    for theme in ["hicolor", "Papirus", "Papirus-Dark"]:
+    for theme in ["hicolor", "Papirus", "Papirus-Dark", "vendor", "desktop-base"]:
         tpath = os.path.join(target_root, "usr", "share", "icons", theme)
         if os.path.exists(tpath):
             try:
