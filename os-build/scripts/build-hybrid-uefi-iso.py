@@ -121,47 +121,42 @@ if os.path.exists(gpu_svc_src):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(gpu_svc_src, dst)
 
-# Cinnamon Desktop Environment Sessions, Themes & Configuration
-cinnamon_dir = os.path.join(workspace_dir, "os-build", "configs", "cinnamon")
-if os.path.exists(cinnamon_dir):
-    print("    Syncing Cinnamon desktop configurations, sessions, and themes...")
-    # Sessions
-    sess_x11 = os.path.join(cinnamon_dir, "sessions", "cinnamon.desktop")
-    if os.path.exists(sess_x11):
-        dst = os.path.join(chroot_dir, "usr", "share", "xsessions", "cinnamon.desktop")
+# GNOME Desktop Environment Sessions, GDM3, Dconf & Extensions
+gnome_dir = os.path.join(workspace_dir, "os-build", "configs", "gnome")
+if os.path.exists(gnome_dir):
+    print("    Syncing GNOME desktop configurations, GDM3, and dconf profiles...")
+    gdm3_conf = os.path.join(gnome_dir, "gdm3", "daemon.conf")
+    if os.path.exists(gdm3_conf):
+        dst = os.path.join(chroot_dir, "etc", "gdm3", "daemon.conf")
         os.makedirs(os.path.dirname(dst), exist_ok=True)
-        shutil.copyfile(sess_x11, dst)
-
-    sess_wayland = os.path.join(cinnamon_dir, "sessions", "cinnamon-wayland.desktop")
-    if os.path.exists(sess_wayland):
-        dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "cinnamon-wayland.desktop")
+        copy_text_lf(gdm3_conf, dst, 0o644)
+    dconf_profile = os.path.join(gnome_dir, "dconf", "profile", "user")
+    if os.path.exists(dconf_profile):
+        dst = os.path.join(chroot_dir, "etc", "dconf", "profile", "user")
         os.makedirs(os.path.dirname(dst), exist_ok=True)
-        shutil.copyfile(sess_wayland, dst)
-
-    # LightDM
-    lightdm_conf = os.path.join(cinnamon_dir, "lightdm", "00-axisos-cinnamon.conf")
-    if os.path.exists(lightdm_conf):
-        dst = os.path.join(chroot_dir, "etc", "lightdm", "lightdm.conf.d", "00-axisos-cinnamon.conf")
+        copy_text_lf(dconf_profile, dst, 0o644)
+    dconf_local = os.path.join(gnome_dir, "dconf", "00-axisos-gnome")
+    if os.path.exists(dconf_local):
+        dst = os.path.join(chroot_dir, "etc", "dconf", "db", "local.d", "00-axisos-gnome")
         os.makedirs(os.path.dirname(dst), exist_ok=True)
-        shutil.copyfile(lightdm_conf, dst)
-
-    # Dconf
-    dconf_src = os.path.join(cinnamon_dir, "dconf", "00-axisos-cinnamon")
-    if os.path.exists(dconf_src):
-        dst = os.path.join(chroot_dir, "etc", "dconf", "db", "local.d", "00-axisos-cinnamon")
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        shutil.copyfile(dconf_src, dst)
-
-    # Themes (Dark, Light, Mixed variants)
-    themes_root = os.path.join(cinnamon_dir, "themes")
-    if os.path.exists(themes_root):
-        for t_name in os.listdir(themes_root):
-            t_src = os.path.join(themes_root, t_name)
-            if os.path.isdir(t_src):
-                dst = os.path.join(chroot_dir, "usr", "share", "themes", t_name)
-                if os.path.exists(dst):
-                    shutil.rmtree(dst)
-                shutil.copytree(t_src, dst)
+        copy_text_lf(dconf_local, dst, 0o644)
+    # Remove obsolete lightdm/session files
+    for stale in [
+        os.path.join(chroot_dir, "etc", "lightdm", "lightdm.conf.d", "01_autologin.conf"),
+        os.path.join(chroot_dir, "etc", "lightdm", "lightdm.conf.d", "00-axisos-cinnamon.conf"),
+        os.path.join(chroot_dir, "usr", "local", "bin", "axisos-xsession.sh"),
+        os.path.join(chroot_dir, "assets"),
+    ]:
+        if os.path.islink(stale) or os.path.isfile(stale):
+            try:
+                os.remove(stale)
+            except Exception:
+                pass
+    try:
+        subprocess.run(["chroot", chroot_dir, "dconf", "update"], check=False)
+        subprocess.run(["chroot", chroot_dir, "systemctl", "set-default", "graphical.target"], check=False)
+    except Exception:
+        pass
 
 # Build/Verify Native C/C++ applications inside chroot
 compile_script = os.path.join(workspace_dir, "os-build", "scripts", "compile-in-chroot.py")
@@ -602,7 +597,7 @@ PROMPT 0
 TIMEOUT 50
 DEFAULT live
 
-MENU TITLE AxisOS 2.0 (Liquid Nodes Edition)
+MENU TITLE AxisOS 2.0 (GNOME Desktop Edition)
 MENU COLOR border       30;44   #40ffffff #a0000000 std
 MENU COLOR title        1;36;44 #902563eb #a0000000 std
 MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
@@ -610,7 +605,7 @@ MENU COLOR unsel        37;44   #50ffffff #a0000000 std
 MENU COLOR help         37;40   #c0ffffff #a0000000 std
 
 LABEL live
-  MENU LABEL ^1. Try AxisOS 2.0 (Liquid Nodes Wayland Desktop)
+  MENU LABEL ^1. Try AxisOS 2.0 (GNOME Desktop)
   MENU DEFAULT
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
@@ -675,7 +670,7 @@ insmod fat
 insmod iso9660
 insmod all_video
 
-menuentry "Try AxisOS 2.0 (Liquid Nodes Wayland Desktop)" --class axisos --class gnu-linux --class gnu {
+menuentry "Try AxisOS 2.0 (GNOME Desktop)" --class axisos --class gnu-linux --class gnu {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }

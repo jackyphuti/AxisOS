@@ -1,0 +1,44 @@
+# AxisOS GNOME Liquid Nodes Obsidian Theme & Dock Favorites
+[org/gnome/shell]
+favorite-apps=['axis-terminal.desktop', 'axis-welcome.desktop', 'axis-package-installer.desktop', 'axis-scheduler-manager.desktop', 'org.gnome.Nautilus.desktop', 'chromium.desktop', 'axis-settings.desktop', 'axis-task-manager.desktop', 'axis-installer.desktop']
+enabled-extensions=['dash-to-dock@vswitch.org', 'appindicatorsupport@rgcjonas.gmail.com']
+
+[org/gnome/desktop/interface]
+color-scheme='prefer-dark'
+gtk-theme='Adwaita-dark'
+icon-theme='Papirus-Dark'
+cursor-theme='Adwaita'
+font-name='Cantarell 11'
+document-font-name='Cantarell 11'
+monospace-font-name='JetBrains Mono 10'
+
+[org/gnome/desktop/background]
+picture-uri='file:///usr/share/backgrounds/axis-wallpaper.png'
+picture-uri-dark='file:///usr/share/backgrounds/axis-wallpaper.png'
+picture-options='zoom'
+primary-color='#0B0D13'
+secondary-color='#0B0D13'
+
+[org/gnome/desktop/screensaver]
+picture-uri='file:///usr/share/backgrounds/axis-wallpaper.png'
+picture-uri-dark='file:///usr/share/backgrounds/axis-wallpaper.png'
+primary-color='#0B0D13'
+secondary-color='#0B0D13'
+
+[org/gnome/desktop/wm/preferences]
+theme='Adwaita-dark'
+button-layout='appmenu:minimize,maximize,close'
+
+[org/gnome/shell/extensions/dash-to-dock]
+dock-position='BOTTOM'
+dock-fixed=false
+autohide=true
+intellihide=true
+dash-max-icon-size=48
+custom-theme-shrink=true
+transparency-mode='FIXED'
+background-opacity=0.8
+apply-custom-theme=true
+show-trash=false
+show-mounts=false
+hot-keys=true

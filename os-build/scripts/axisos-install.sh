@@ -369,7 +369,7 @@ echo "root:${PASSWORD}" | chroot /mnt chpasswd
 rm -f "/mnt/etc/sudoers.d/$USERNAME"
 rm -f /mnt/etc/sudoers.d/axis 2>/dev/null || true
 
-# Configure display manager (LightDM) for installed system
+# Configure display manager (GDM3 / GNOME) for installed system
 chroot /mnt groupadd -r autologin 2>/dev/null || true
 chroot /mnt groupadd -r nopasswdlogin 2>/dev/null || true
 chroot /mnt gpasswd -a "${USERNAME}" autologin 2>/dev/null || true
@@ -378,28 +378,45 @@ chroot /mnt gpasswd -a "${USERNAME}" nopasswdlogin 2>/dev/null || true
 # Remove tty1 conflicting autologin or old service overrides
 rm -rf /mnt/etc/systemd/system/getty@tty1.service.d 2>/dev/null || true
 rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos.service 2>/dev/null || true
+rm -rf /mnt/etc/lightdm/lightdm.conf.d 2>/dev/null || true
 
-mkdir -p /mnt/etc/lightdm/lightdm.conf.d
-cat << 'EOF' > /mnt/etc/lightdm/lightdm.conf.d/00-axisos-cinnamon.conf
-[Seat:*]
-greeter-session=slick-greeter
-greeter-hide-users=false
-user-session=cinnamon
-allow-guest=false
-session-wrapper=/etc/X11/Xsession
-xserver-command=X -core -noreset -background none
-EOF
-
+# Configure GDM3 for GNOME Wayland desktop
+mkdir -p /mnt/etc/gdm3
 if [[ "$AUTOLOGIN" == "true" ]]; then
-    cat << EOF > /mnt/etc/lightdm/lightdm.conf.d/01_autologin.conf
-[Seat:*]
-autologin-user=${USERNAME}
-autologin-user-timeout=0
-user-session=cinnamon
+    cat << EOF > /mnt/etc/gdm3/daemon.conf
+# GDM configuration for AxisOS
+[daemon]
+AutomaticLoginEnable = true
+AutomaticLogin = ${USERNAME}
+WaylandEnable = true
+
+[security]
+
+[xdmcp]
+
+[chooser]
+
+[debug]
 EOF
 else
-    rm -f /mnt/etc/lightdm/lightdm.conf.d/01_autologin.conf 2>/dev/null || true
+    cat << EOF > /mnt/etc/gdm3/daemon.conf
+# GDM configuration for AxisOS
+[daemon]
+AutomaticLoginEnable = false
+WaylandEnable = true
+
+[security]
+
+[xdmcp]
+
+[chooser]
+
+[debug]
+EOF
 fi
+
+chroot /mnt systemctl set-default graphical.target 2>/dev/null || true
+chroot /mnt systemctl enable gdm3.service 2>/dev/null || true
 
 # Compile dconf system databases
 chroot /mnt dconf update 2>/dev/null || true
