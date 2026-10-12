@@ -1194,6 +1194,13 @@ public:
     }
 
     static void on_next_clicked(AxisInstallerApp* app) {
+        if (app->current_step == 1) {
+            if (app->selected_disk.empty()) {
+                show_alert(app->window, "Please select a target storage drive before continuing.");
+                return;
+            }
+        }
+
         if (app->current_step == 2) {
             // Validate account credentials
             app->fullname = gtk_entry_get_text(GTK_ENTRY(app->entry_fullname));
@@ -1218,6 +1225,10 @@ public:
         }
 
         if (app->current_step == 3) {
+            if (app->selected_disk.empty()) {
+                show_alert(app->window, "Please select a target storage drive before continuing.");
+                return;
+            }
             // User confirmed on summary screen -> Launch installation worker
             app->current_step = 4;
             app->update_navigation_state();
@@ -1236,6 +1247,10 @@ public:
     }
 
     static void on_install_now_clicked(AxisInstallerApp* app) {
+        if (app->selected_disk.empty()) {
+            show_alert(app->window, "Please select a target storage drive before continuing.");
+            return;
+        }
         // Center button on summary screen
         app->current_step = 4;
         app->update_navigation_state();
@@ -1248,7 +1263,7 @@ public:
 
     void start_installer_worker() {
         std::thread([this]() {
-            std::string sudo_prefix = (geteuid() == 0) ? "" : "sudo -n ";
+            std::string sudo_prefix = (geteuid() == 0) ? "" : "sudo ";
             std::string cmd = sudo_prefix + "/usr/local/bin/axisos-installer.sh"
                               " --disk " + selected_disk +
                               " --fs " + selected_fs +
@@ -1271,7 +1286,7 @@ public:
                     if (!line.empty() && line.find("PROGRESS:") != 0) {
                         if (line.rfind("ERROR:", 0) == 0 || line.rfind("Error:", 0) == 0) {
                             last_error_line = line;
-                        } else if (last_error_line == "Unexpected installation error.") {
+                        } else if (last_error_line.rfind("ERROR:", 0) != 0 && last_error_line.rfind("Error:", 0) != 0) {
                             last_error_line = line;
                         }
                     }

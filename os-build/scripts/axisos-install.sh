@@ -6,7 +6,8 @@
 # and GRUB 2 EFI / BIOS bootloader installation.
 # ==============================================================================
 
-set -eo pipefail
+# Standard error handling (explicit checks for critical operations)
+umask 022
 
 TARGET_DISK=""
 USERNAME="axis"
@@ -25,11 +26,19 @@ report() {
     local percent="$1"
     local message="$2"
     echo "PROGRESS:${percent}:${message}"
-    echo "[AxisOS Install] (${percent}%) ${message}" >&2
+    echo "[AxisOS Install] (${percent}%) ${message}" >> /tmp/axisos-installer.log 2>/dev/null || true
 }
 
 log() {
-    echo "[AxisOS Install] $*" >&2
+    echo "[AxisOS Install] $*" >> /tmp/axisos-installer.log 2>/dev/null || true
+}
+
+error_exit() {
+    local message="$1"
+    echo "ERROR: ${message}" >&2
+    echo "[AxisOS Install ERROR] ${message}" >> /tmp/axisos-installer.log 2>/dev/null || true
+    report 0 "Error: ${message}"
+    exit 1
 }
 
 usage() {
@@ -70,8 +79,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$TARGET_DISK" ]]; then
-    echo "ERROR: --disk parameter is required." >&2
-    usage
+    error_exit "--disk parameter is required."
 fi
 
 report 2 "Validating pre-installation requirements..."
@@ -92,14 +100,12 @@ fi
 
 # Ensure running as root
 if [[ $EUID -ne 0 ]]; then
-    echo "ERROR: This installer must be run as root." >&2
-    exit 1
+    error_exit "This installer must be run as root."
 fi
 
 # Verify disk exists
 if [[ ! -b "$TARGET_DISK" ]]; then
-    echo "ERROR: Target disk $TARGET_DISK does not exist or is not a block device." >&2
-    exit 1
+    error_exit "Target disk $TARGET_DISK does not exist or is not a block device."
 fi
 
 # Detect and safeguard live USB medium
@@ -112,10 +118,8 @@ if [[ -n "$LIVE_MEDIA_DEV" ]]; then
         LIVE_DISK="${LIVE_MEDIA_DEV%[0-9]*}"
         LIVE_DISK="${LIVE_DISK%p}"
     fi
-    if [[ "$TARGET_DISK" == "$LIVE_DISK" || "$TARGET_DISK" == "$LIVE_MEDIA_DEV" ]]; then
-        echo "ERROR: Target disk $TARGET_DISK is the live USB! Cannot install onto active installation media." >&2
-        report 0 "Error: Selected disk is the live USB media. Please select an internal drive."
-        exit 1
+    if [[ -n "$LIVE_DISK" ]] && [[ "$TARGET_DISK" == "$LIVE_DISK" || "$TARGET_DISK" == "$LIVE_MEDIA_DEV" ]]; then
+        error_exit "Target disk $TARGET_DISK is the active installation media. Please select an internal drive."
     fi
 fi
 
@@ -143,10 +147,10 @@ if mountpoint -q /mnt_axis_tmp; then
     umount -l -R /mnt_axis_tmp 2>/dev/null || true
 fi
 
-findmnt -lno TARGET,SOURCE 2>/dev/null | grep -F "$TARGET_DISK" | awk '{print $1}' | while read -r mp; do
+for mp in $(findmnt -lno TARGET,SOURCE 2>/dev/null | awk -v disk="$TARGET_DISK" '$2 ~ disk {print $1}'); do
     umount -f -l "$mp" 2>/dev/null || true
 done
-for part in $(lsblk -ln -o NAME "$TARGET_DISK" 2>/dev/null); do
+for part in $(lsblk -ln -o NAME "$TARGET_DISK" 2>/dev/null || true); do
     umount -f -l "/dev/$part" 2>/dev/null || true
 done
 sync
@@ -215,8 +219,7 @@ for i in {1..20}; do
 done
 
 if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
-    echo "ERROR: Partition $ROOT_PART or $ESP_PART not found after partitioning." >&2
-    exit 1
+    error_exit "Partition $ROOT_PART or $ESP_PART not found after partitioning on $TARGET_DISK."
 fi
 
 report 25 "Formatting filesystems (ESP FAT32, Swap, and Root)..."
@@ -298,9 +301,7 @@ mount "$ESP_PART" /mnt/boot/efi 2>/dev/null || {
 
 # Verify that root is successfully mounted
 if ! mountpoint -q /mnt; then
-    echo "ERROR: Failed to mount target root filesystem on /mnt." >&2
-    report 0 "Error: Failed to mount target root filesystem on /mnt."
-    exit 1
+    error_exit "Failed to mount target root filesystem on /mnt."
 fi
 
 report 35 "Copying AxisOS Linux system files to target root..."
