@@ -661,6 +661,11 @@ if os.path.exists(grub_src):
 if os.path.exists(mm_src):
     shutil.copyfile(mm_src, mmx64_path)
 
+# Copy official AxisOS 1080p boot splash image to GRUB directory
+grub_splash_src = os.path.join(workspace_dir, "data", "branding", "axisos-boot-1920x1080.png")
+if os.path.exists(grub_splash_src):
+    shutil.copyfile(grub_splash_src, f"{binary_dir}/boot/grub/splash.png")
+
 # Early GRUB config in /EFI/BOOT/grub.cfg that finds USB root and chains to /boot/grub/grub.cfg
 write_text_lf(f"{binary_dir}/EFI/BOOT/grub.cfg", """search --set=root --file /live/vmlinuz
 set prefix=($root)/boot/grub
@@ -678,6 +683,15 @@ insmod part_msdos
 insmod fat
 insmod iso9660
 insmod all_video
+insmod png
+insmod gfxterm
+
+set gfxmode=auto
+terminal_output gfxterm
+
+if [ -f /boot/grub/splash.png ]; then
+    background_image /boot/grub/splash.png
+fi
 
 menuentry "Try AxisOS 2.0 (GNOME Desktop)" --class axisos --class gnu-linux --class gnu {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1

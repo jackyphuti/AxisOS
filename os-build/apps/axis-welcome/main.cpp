@@ -16,7 +16,7 @@ int main(int argc, char *argv[])
     app.setApplicationName(QStringLiteral("axis-welcome"));
     app.setOrganizationName(QStringLiteral("AxisOS"));
     app.setApplicationVersion(QStringLiteral("2.0.0"));
-    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("preferences-desktop")));
+    app.setWindowIcon(QIcon::fromTheme(QStringLiteral("axisos"), QIcon(QStringLiteral("/usr/share/pixmaps/axisos.png"))));
 
     QQuickWindow::setDefaultAlphaBuffer(true);
 

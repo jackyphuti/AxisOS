@@ -1173,8 +1173,20 @@ private:
     void build_about_page() {
         GtkWidget* page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
 
+        // Official AxisOS Logo banner
+        if (access("/usr/share/pixmaps/axisos-logo.png", F_OK) == 0) {
+            GtkWidget* logo_img = gtk_image_new_from_file("/usr/share/pixmaps/axisos-logo.png");
+            gtk_box_pack_start(GTK_BOX(page), logo_img, FALSE, FALSE, 4);
+        } else if (access("/usr/share/pixmaps/axisos.png", F_OK) == 0) {
+            GtkWidget* logo_img = gtk_image_new_from_file("/usr/share/pixmaps/axisos.png");
+            gtk_box_pack_start(GTK_BOX(page), logo_img, FALSE, FALSE, 4);
+        } else {
+            GtkWidget* logo_img = gtk_image_new_from_icon_name("axisos", GTK_ICON_SIZE_DIALOG);
+            gtk_box_pack_start(GTK_BOX(page), logo_img, FALSE, FALSE, 4);
+        }
+
         GtkWidget* card = create_card("System Specifications & Hardware",
-            "AxisOS 2.0 (Nobara & Debian Native Edition)");
+            "AxisOS 2.0 (Liquid Nodes Edition)");
 
         std::string model = exec_cmd("cat /sys/class/dmi/id/product_name 2>/dev/null || cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null || hostname");
         if (model.empty() || model == "None") model = "Personal Computer";
@@ -1210,8 +1222,8 @@ private:
                          + "🎮 Graphics (GPU): " + gpu + "\n"
                          + "💾 Disk Storage: " + disk + "\n"
                          + "🐧 Linux Kernel: " + kernel + " (" + arch + ")\n"
-                         + "✨ Operating System: AxisOS 2.0 (Harmony Edition)\n"
-                         + "🪟 Desktop Session: Wayland Native Compositor";
+                         + "✨ Operating System: AxisOS 2.0 (Liquid Nodes Edition)\n"
+                         + "🪟 Desktop Session: Wayland (GNOME Shell Native)";
 
         GtkWidget* lbl = gtk_label_new(text.c_str());
         gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);

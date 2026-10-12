@@ -244,6 +244,8 @@ public:
         gtk_window_set_title(GTK_WINDOW(window), "AxisOS 2.0 Setup");
         gtk_window_set_default_size(GTK_WINDOW(window), 820, 560);
         gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
+        gtk_window_set_default_icon_name("axisos");
+        gtk_window_set_icon_name(GTK_WINDOW(window), "axisos");
 
         // Apply Windows 10 CSS
         GtkCssProvider* provider = gtk_css_provider_new();
@@ -364,10 +366,23 @@ public:
         gtk_widget_set_valign(box, GTK_ALIGN_CENTER);
         gtk_widget_set_halign(box, GTK_ALIGN_CENTER);
 
+        // Official AxisOS Logo
+        GtkWidget* logo_img = NULL;
+        if (access("/usr/share/pixmaps/axisos-logo.png", F_OK) == 0) {
+            logo_img = gtk_image_new_from_file("/usr/share/pixmaps/axisos-logo.png");
+        } else if (access("/usr/share/pixmaps/axisos.png", F_OK) == 0) {
+            logo_img = gtk_image_new_from_file("/usr/share/pixmaps/axisos.png");
+        } else {
+            logo_img = gtk_image_new_from_icon_name("axisos", GTK_ICON_SIZE_DIALOG);
+        }
+        if (logo_img) {
+            gtk_box_pack_start(GTK_BOX(box), logo_img, FALSE, FALSE, 0);
+        }
+
         GtkWidget* logo_label = gtk_label_new("AxisOS Linux 2.0");
         gtk_style_context_add_class(gtk_widget_get_style_context(logo_label), "win-title");
 
-        GtkWidget* desc = gtk_label_new("Debian GNU/Linux Edition • 64-bit Hybrid Architecture");
+        GtkWidget* desc = gtk_label_new("Liquid Nodes Edition • 64-bit Hybrid Architecture");
         gtk_style_context_add_class(gtk_widget_get_style_context(desc), "win-subtitle");
 
         GtkWidget* btn_install_now = gtk_button_new_with_label("Install now");

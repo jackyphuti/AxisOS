@@ -81,24 +81,14 @@ ApplicationWindow {
                 Layout.rightMargin: 20
                 Layout.topMargin: 8
 
-                // AxisOS Monogram / Icon
-                Rectangle {
-                    width: 38
-                    height: 38
-                    radius: 10
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: root.cAccentTeal }
-                        GradientStop { position: 1.0; color: root.cAccentViolet }
-                    }
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "A"
-                        color: "#05070A"
-                        font.bold: true
-                        font.pixelSize: 22
-                        font.family: "Inter, Ubuntu, sans-serif"
-                    }
+                // AxisOS Official Vector Triangle Icon
+                Image {
+                    width: 36
+                    height: 36
+                    source: "file:///usr/share/icons/hicolor/scalable/apps/axisos.svg"
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    mipmap: true
                 }
 
                 ColumnLayout {

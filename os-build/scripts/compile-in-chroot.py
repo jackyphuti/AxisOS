@@ -34,7 +34,7 @@ cmd = ["chroot", CHROOT, "/bin/bash", "/tmp/compile.sh", "/tmp/apps"]
 res = subprocess.run(cmd, check=True)
 
 print("=== Copying compiled binaries back to repository ===")
-apps = ["axis-terminal", "axis-installer", "axis-settings", "axis-usb-daemon", "axis-task-manager", "nobara-welcome", "axis-oobe"]
+apps = ["axis-terminal", "axis-installer", "axis-settings", "axis-usb-daemon", "axis-task-manager", "nobara-welcome", "axis-oobe", "axis-package-installer", "axis-scheduler-manager", "axis-welcome"]
 for app in apps:
     built_bin = os.path.join(target_apps, app, app)
     repo_bin = os.path.join(SRC_APPS, app, app)

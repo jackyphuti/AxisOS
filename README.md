@@ -1,129 +1,71 @@
-# AxisOS — Production Linux Operating System
-
 <div align="center">
 
-  <h1>▲ AxisOS 2.0 "Nobara Gaming Edition"</h1>
-  <p><b>An out-of-the-box, high-performance Linux gaming and workstation OS powered by Debian 12, a custom native wlroots Wayland compositor, and pre-configured drivers and multimedia codecs.</b></p>
+  <img src="data/branding/axisos-logo.svg" alt="AxisOS" width="420" />
+
+  <p><b>A modern, high-performance Linux operating system powered by Debian 12 (Bookworm), native Wayland, and a responsive C++ / Qt 6 application suite.</b></p>
 
   <p>
-    <a href="https://github.com/jackyphuti/AxisOS/releases"><img src="https://img.shields.io/github/v/release/jackyphuti/AxisOS?style=flat-square&color=red" alt="Release"></a>
+    <a href="https://github.com/jackyphuti/AxisOS/releases"><img src="https://img.shields.io/github/v/release/jackyphuti/AxisOS?style=flat-square&color=3A9CC9" alt="Release"></a>
+    <img src="https://img.shields.io/badge/Base-Debian%2012%20(Bookworm)-D70A53?style=flat-square" alt="Debian 12">
     <img src="https://img.shields.io/badge/Architecture-x86__64-informational?style=flat-square" alt="Arch">
-    <img src="https://img.shields.io/badge/Compositor-Native%20wlroots%20(Wayland)-crimson?style=flat-square" alt="Compositor">
-    <img src="https://img.shields.io/badge/Init-systemd-orange?style=flat-square" alt="Init">
+    <img src="https://img.shields.io/badge/Desktop-GNOME%20Shell%20(Wayland)-4A90E2?style=flat-square" alt="GNOME Wayland">
+    <img src="https://img.shields.io/badge/UI%20Stack-C%2B%2B%20%2F%20Qt%206-41CD52?style=flat-square" alt="Qt 6">
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green?style=flat-square" alt="License"></a>
   </p>
 
   <p>
     <a href="./INSTALLATION_GUIDE.md"><b>📖 Installation Guide</b></a> •
-    <a href="./DEVELOPMENT.md"><b>🛠️ Build & Developer Guide</b></a> •
-    <a href="./CONTRIBUTING.md"><b>🤝 How to Contribute</b></a> •
-    <a href="https://github.com/jackyphuti/AxisOS/releases"><b>⬇️ Releases</b></a>
+    <a href="./DEVELOPMENT.md"><b>🛠️ Developer Guide</b></a> •
+    <a href="https://github.com/jackyphuti/AxisOS/releases"><b>⬇️ Download ISO</b></a> •
+    <a href="https://github.com/jackyphuti/AxisOS/issues"><b>🐛 Report Issue</b></a>
   </p>
 
 </div>
 
 ---
 
-## 🌟 Overview
+## ⚡ About AxisOS
 
-**AxisOS 2.0 (Nobara Gaming Edition)** is built for users seeking an operating system that **"just works" right out of the box**—similar to Nobara Linux. It replaces browser-based/kiosk UIs with a **fully native desktop environment** powered by a custom **`wlroots` Wayland compositor** (`axis-compositor`), native status bar (`waybar`), application launcher (`wofi`), GPU-accelerated terminal (`foot`), and a native **Nobara Driver & Codec Manager** (`nobara-welcome`).
-
----
-
-## 🚀 Key Features
-
-- **Custom Native `wlroots` Compositor (`axis-compositor`)**: Modular, event-driven display server following the official TinyWL architecture with `wlr_scene` rendering, XDG shell window management, layer-shell support, hardware input routing, and smooth window move/resize operations.
-- **Out-of-the-Box Drivers**: Pre-configured support and hardware detection for NVIDIA GPUs (PRIME offload ready), AMD Radeon (Mesa RADV with ACO compiler), and Intel Arc (Mesa ANV).
-- **Comprehensive Multimedia Codecs**: Pre-installed GStreamer (Good, Bad, Ugly, Libav), FFmpeg, VA-API hardware video decode acceleration, and VDPAU.
-- **Gaming & Proton Ready**: Pre-installed Valve Steam launcher, Proton 9.0 compatibility, Feral GameMode (`gamemode`), MangoHud overlay (`mangohud`), and high memory map limit (`vm.max_map_count = 2147483642`).
-- **Nobara Welcome & Hardware Driver / Codec Manager (`nobara-welcome`)**: Native GTK3 graphical center for verifying drivers, validating codecs, configuring GameMode, and tuning system responsiveness.
-- **Nobara Gaming Dark Desktop**: Custom dark charcoal (`#12161a`) theme with crimson (`#e53935`) accents across Waybar, Wofi, Mako notifications, and Foot terminal.
-- **Real OS Installer**: Production installation wizard supporting automated GPT partitioning, Btrfs subvolumes (`@`, `@home`, `@snapshots`) with zstd compression, and GRUB EFI bootloader configuration.
+**AxisOS** is a Debian-based Linux distribution engineered for speed, stability, and aesthetic precision. It combines the rock-solid foundation of Debian 12 Bookworm with the XanMod Linux performance kernel, a sleek GNOME Wayland desktop environment styled with the *Liquid Nodes* obsidian theme, and a suite of native C++ / Qt 6 system applications.
 
 ---
 
-## 🏗️ Architecture
+## 🖥️ System Specifications
 
-```mermaid
-flowchart TD
-    subgraph Hardware & Drivers
-        HW["PC Hardware / CPU / NVIDIA / AMD / Intel Arc"] --> GRUB["GRUB 2 UEFI & Legacy BIOS"]
-        GRUB --> Kernel["Linux Kernel 6.1.0 (amd64)"]
-        Kernel --> Drivers["Mesa RADV / ANV / NVIDIA PRIME / VA-API"]
-    end
-
-    subgraph Base Linux Core
-        Kernel --> Systemd["systemd (PID 1)"]
-        Systemd --> Udev["systemd-udevd (Hardware Hotplug)"]
-        Systemd --> PipeWire["PipeWire / WirePlumber Audio"]
-        Systemd --> NM["NetworkManager (Wi-Fi & Ethernet)"]
-        Systemd --> GameMode["Feral GameMode Daemon"]
-    end
-
-    subgraph Native Wayland Compositor Layer
-        Systemd --> Comp["axis-compositor (wlroots + wlr_scene)"]
-        Comp --> LayerShell["wlr_layer_shell_v1"]
-        Comp --> XdgShell["wlr_xdg_shell"]
-    end
-
-    subgraph Nobara Desktop Environment
-        LayerShell --> Waybar["Waybar (Nobara Crimson Bar)"]
-        LayerShell --> Swaybg["Swaybg (4K Dark Wallpaper)"]
-        LayerShell --> Mako["Mako (Notification Daemon)"]
-        XdgShell --> Wofi["Wofi (App Launcher)"]
-        XdgShell --> Foot["Foot (GPU Terminal)"]
-        XdgShell --> Welcome["nobara-welcome (Driver & Codec Manager)"]
-        XdgShell --> Steam["Steam Gaming Platform"]
-    end
-```
-
----
-
-## 📚 Documentation & Guides
-
-To keep our repository organized and easy to navigate, detailed instructions have been segmented into dedicated guides:
-
-| Document | Description |
+| Component | Specification |
 | :--- | :--- |
-| **[📖 Installation Guide](INSTALLATION_GUIDE.md)** | Step-by-step instructions for flashing to USB (Rufus, BalenaEtcher, Ventoy, `dd`), BIOS/UEFI setup, and bare-metal installation. |
-| **[🛠️ Build & Developer Guide](DEVELOPMENT.md)** | Complete guide to installing dependencies, running local dev servers, compiling C modules, building the ISO, and running QEMU. |
-| **[🤝 Contributing Guidelines](CONTRIBUTING.md)** | Code of conduct, pull request workflow, coding standards, and commit conventions. |
-| **[📦 Package Manager Guide](pkg-mgr/README.md)** | Architecture and usage for the native `axis` package manager. |
+| **Base System** | Debian 12 (Bookworm) `amd64` |
+| **Linux Kernel** | XanMod Realtime / Performance Linux Kernel (`linux-image-xanmod-x64v3`) |
+| **Display Server** | Wayland (Native GNOME Shell session with hardware acceleration) |
+| **Audio Server** | PipeWire + WirePlumber pro-audio stack |
+| **Graphics & Compute** | Mesa RADV (AMD ACO), Intel Arc ANV, NVIDIA PRIME offload, Vulkan, VA-API hardware decoding |
+| **Default Shell** | GNU Bash with modern interactive completions |
+| **File Systems** | Btrfs (with zstd compression & automated subvolumes) and EXT4 |
+| **Boot Mode** | UEFI (`x86_64-efi`) with fallback to Legacy BIOS (`isolinux`) |
 
 ---
 
-## ⚡ Quick Start for Developers
+## 🚀 Native C++ / Qt 6 Application Suite
 
-For complete setup instructions, please see the **[Development Guide](DEVELOPMENT.md)**.
+AxisOS features zero web-wrapper / Electron overhead. All core utilities are built from scratch with native C++17/20 and Qt 6:
 
-```bash
-# 1. Clone repository
-git clone https://github.com/jackyphuti/AxisOS.git
-cd AxisOS
-
-# 2. Install desktop shell dependencies
-cd shell
-npm install
-
-# 3. Launch development server
-npm run dev
-
-# 4. In a separate terminal, launch the system daemon
-npm run serve
-```
+- **Files (`axis-files`)**: Asynchronous multi-threaded file manager with high-speed thumbnailing, MIME integration, and archive management.
+- **Settings (`axis-settings`)**: Native control panel communicating with `systemd`, `NetworkManager`, `BlueZ`, and `UPower` via `QtDBus`.
+- **Terminal (`axis-terminal`)**: Ultra-low-latency PTY terminal emulator powered by `libvterm` and OpenGL/SceneGraph rendering.
+- **Installer (`axis-installer`)**: High-reliability graphical system installer supporting automated Btrfs/EXT4 disk partitioning, user creation, and GRUB EFI setup.
+- **Software Center (`axis-software`)**: Native package manager front-end for APT and Flatpak.
+- **Welcome Center (`axis-welcome`)**: Out-of-the-box system setup, driver verification, and onboarding.
+- **Task Manager (`axis-tasks`)**: Process inspector and hardware resource monitor querying Linux `/proc` and `sysfs`.
+- **Notes, Photos, Music, Camera**: Native Qt 6 productivity and multimedia tools.
 
 ---
 
-## 🗓️ Release Roadmap
+## 🔗 Quick Links & Documentation
 
-- **v1.0 "Horizon"**: Initial live ISO release with Wayland kiosk, installer, and core apps.
-- **v2.0 "Horizon v2"** *(December Release)*:
-  - Chromium-based Axis Browser integration
-  - Linux kernel platform and character driver stack
-  - High-performance File Manager with XDG trash and USB hotplugging
-  - Dual-partition atomic updates (`axis update`) with `kexec` fast boot
-  - Full-featured POSIX Terminal emulator and REPL engine
-  - Production ISO release
+- **[Installation Guide](INSTALLATION_GUIDE.md)** — Step-by-step flashing, BIOS/UEFI setup, and drive partitioning guide.
+- **[Developer & Build Guide](DEVELOPMENT.md)** — Compiling native C++ applications, chroot setup, and generating bootable ISOs.
+- **[Releases & ISO Downloads](https://github.com/jackyphuti/AxisOS/releases)** — Download the latest bootable live ISO (`axisos-v2.0-live-amd64.iso`).
+- **[Issue Tracker](https://github.com/jackyphuti/AxisOS/issues)** — Bug reports, feature requests, and system discussions.
 
 ---
 
