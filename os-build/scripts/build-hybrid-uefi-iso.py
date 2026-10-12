@@ -158,6 +158,15 @@ if os.path.exists(gnome_dir):
     except Exception:
         pass
 
+# Deploy Official AxisOS Branding, Logo, and OS Release
+branding_script = os.path.join(workspace_dir, "os-build", "scripts", "deploy-axisos-branding.py")
+if os.path.exists(branding_script):
+    print("    Deploying AxisOS OS-release branding and vector triangle logo...")
+    try:
+        subprocess.run(["python3", branding_script, chroot_dir], check=True)
+    except Exception as e:
+        print(f"    [INFO] Branding deployment note: {e}")
+
 # Build/Verify Native C/C++ applications inside chroot
 compile_script = os.path.join(workspace_dir, "os-build", "scripts", "compile-in-chroot.py")
 if os.path.exists(compile_script):

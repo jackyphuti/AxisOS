@@ -824,10 +824,10 @@ public:
 
     void start_installer_worker() {
         std::thread([this]() {
-            std::string cmd = "/usr/local/bin/axisos-installer.sh --disk " + selected_disk +
-                              " --user " + username +
-                              " --pass " + password +
-                              " --name '" + fullname + "' --host " + hostname;
+            std::string cmd = "sudo -n /usr/local/bin/axisos-installer.sh --disk " + selected_disk +
+                              " --username " + username +
+                              " --password " + password +
+                              " --fullname '" + fullname + "' --hostname " + hostname;
 
             FILE* fp = popen(cmd.c_str(), "r");
             if (fp) {

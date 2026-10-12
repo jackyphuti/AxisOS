@@ -55,10 +55,10 @@ EOF
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --disk) TARGET_DISK="$2"; shift 2 ;;
-        --username) USERNAME="$2"; shift 2 ;;
-        --password) PASSWORD="$2"; shift 2 ;;
-        --fullname) USER_FULLNAME="$2"; shift 2 ;;
-        --hostname) HOSTNAME="$2"; shift 2 ;;
+        --user|--username) USERNAME="$2"; shift 2 ;;
+        --pass|--password) PASSWORD="$2"; shift 2 ;;
+        --name|--fullname) USER_FULLNAME="$2"; shift 2 ;;
+        --host|--hostname) HOSTNAME="$2"; shift 2 ;;
         --autologin) AUTOLOGIN="$2"; shift 2 ;;
         --locale) LOCALE="$2"; shift 2 ;;
         --keymap) KEYMAP="$2"; shift 2 ;;

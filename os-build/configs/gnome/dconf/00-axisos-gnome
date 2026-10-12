@@ -1,6 +1,6 @@
 # AxisOS GNOME Liquid Nodes Obsidian Theme & Dock Favorites
 [org/gnome/shell]
-favorite-apps=['axis-terminal.desktop', 'axis-welcome.desktop', 'axis-package-installer.desktop', 'axis-scheduler-manager.desktop', 'org.gnome.Nautilus.desktop', 'chromium.desktop', 'axis-settings.desktop', 'axis-task-manager.desktop', 'axis-installer.desktop']
+favorite-apps=['axis-terminal.desktop', 'axis-welcome.desktop', 'axis-installer.desktop', 'axis-package-installer.desktop', 'axis-scheduler-manager.desktop', 'org.gnome.Nautilus.desktop', 'chromium.desktop', 'axis-settings.desktop', 'axis-task-manager.desktop']
 enabled-extensions=['dash-to-dock@vswitch.org', 'appindicatorsupport@rgcjonas.gmail.com']
 
 [org/gnome/desktop/interface]
