@@ -17,7 +17,7 @@ AUTOLOGIN="true"
 LOCALE="en_US.UTF-8"
 KEYMAP="us"
 TIMEZONE="UTC"
-FILESYSTEM="btrfs"
+FILESYSTEM="ext4"
 DRY_RUN="false"
 
 # Helper for progress reporting: PROGRESS:<percent>:<message>
@@ -128,36 +128,54 @@ else
     log "Boot mode: Legacy BIOS / CSM detected"
 fi
 
-# Unmount any existing partitions on target disk
-report 5 "Unmounting existing partitions on $TARGET_DISK..."
+# Unmount any existing partitions, deactive LVM, dmsetup and swap
+report 5 "Preparing target disk and deactivating previous filesystems on $TARGET_DISK..."
 swapoff -a 2>/dev/null || true
-for part in $(lsblk -ln -o NAME "$TARGET_DISK" 2>/dev/null | tail -n +2); do
-    mountpoint="/dev/$part"
-    umount -f -l "$mountpoint" 2>/dev/null || true
-    swapoff "$mountpoint" 2>/dev/null || true
-done
+vgchange -an 2>/dev/null || true
+dmsetup remove_all -f 2>/dev/null || true
+mdadm --stop --scan 2>/dev/null || true
+
+# Force unmount any active mounts associated with the target disk
+fuser -km /mnt 2>/dev/null || true
+fuser -km /mnt_axis_tmp 2>/dev/null || true
 umount -R /mnt 2>/dev/null || true
 umount -R /mnt_axis_tmp 2>/dev/null || true
 
+findmnt -lno TARGET,SOURCE 2>/dev/null | grep -F "$TARGET_DISK" | awk '{print $1}' | while read -r mp; do
+    umount -f -l "$mp" 2>/dev/null || true
+done
+for part in $(lsblk -ln -o NAME "$TARGET_DISK" 2>/dev/null); do
+    umount -f -l "/dev/$part" 2>/dev/null || true
+done
+sync
+udevadm settle --timeout=3 2>/dev/null || sleep 1
+
 report 10 "Wiping partition signatures on $TARGET_DISK..."
 wipefs -a -f "$TARGET_DISK" 2>/dev/null || true
-dd if=/dev/zero of="$TARGET_DISK" bs=1M count=10 conv=notrunc status=none 2>/dev/null || true
+dd if=/dev/zero of="$TARGET_DISK" bs=1M count=16 conv=notrunc status=none 2>/dev/null || true
+sync
+blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
+partprobe "$TARGET_DISK" 2>/dev/null || true
+udevadm settle --timeout=3 2>/dev/null || sleep 1
 
 report 15 "Partitioning drive with GPT scheme..."
 # Calculate swap size based on disk capacity
 DISK_SIZE_BYTES=$(blockdev --getsize64 "$TARGET_DISK" 2>/dev/null || echo 0)
-DISK_SIZE_GB=$(( DISK_SIZE_BYTES / 1024 / 1024 / 1024 ))
+DISK_SIZE_MB=$(( DISK_SIZE_BYTES / 1024 / 1024 ))
 SWAP_SIZE="4096M"
-if [ "$DISK_SIZE_GB" -lt 30 ]; then
+if [ "$DISK_SIZE_MB" -lt 65536 ]; then
     SWAP_SIZE="2048M"
 fi
-if [ "$DISK_SIZE_GB" -lt 15 ]; then
+if [ "$DISK_SIZE_MB" -lt 25600 ]; then
     SWAP_SIZE="1024M"
+fi
+if [ "$DISK_SIZE_MB" -lt 12800 ]; then
+    SWAP_SIZE="512M"
 fi
 
 if command -v sgdisk >/dev/null 2>&1; then
     sgdisk --zap-all "$TARGET_DISK" 2>/dev/null || true
-    dd if=/dev/zero of="$TARGET_DISK" bs=1M count=2 conv=notrunc status=none 2>/dev/null || true
+    sgdisk -o "$TARGET_DISK" 2>/dev/null || true
     sgdisk -n 1:2048:+512M -t 1:ef00 -c 1:"AXIS_BOOT" "$TARGET_DISK"
     sgdisk -n 2:0:+${SWAP_SIZE} -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK"
     sgdisk -n 3:0:0 -t 3:8300 -c 3:"AXIS_ROOT" "$TARGET_DISK"
@@ -172,9 +190,9 @@ else
     exit 1
 fi
 
-# Settle udev and reread partition table
+sync
 partprobe "$TARGET_DISK" 2>/dev/null || true
-udevadm settle 2>/dev/null || sleep 2
+udevadm settle --timeout=5 2>/dev/null || sleep 2
 
 # Resolve partition paths (e.g., /dev/nvme0n1p1 vs /dev/sda1)
 PART_PREFIX="$TARGET_DISK"
@@ -187,10 +205,11 @@ SWAP_PART="${PART_PREFIX}2"
 ROOT_PART="${PART_PREFIX}3"
 
 # Wait for partitions to appear
-for i in {1..15}; do
+for i in {1..20}; do
     if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then break; fi
     sleep 1
     partprobe "$TARGET_DISK" 2>/dev/null || true
+    udevadm trigger 2>/dev/null || true
 done
 
 if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
@@ -199,17 +218,28 @@ if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
 fi
 
 report 25 "Formatting filesystems (ESP FAT32, Swap, and Root)..."
+# Ensure all partitions are unmounted before formatting
+umount -f -l "$ESP_PART" 2>/dev/null || true
+umount -f -l "$SWAP_PART" 2>/dev/null || true
+umount -f -l "$ROOT_PART" 2>/dev/null || true
+umount -R /mnt 2>/dev/null || true
+
+# Format ESP
 wipefs -a -f "$ESP_PART" 2>/dev/null || true
 mkfs.vfat -F32 -n "AXIS_BOOT" "$ESP_PART" || mkfs.fat -n "AXIS_BOOT" "$ESP_PART" || true
 
+# Format Swap
 wipefs -a -f "$SWAP_PART" 2>/dev/null || true
 mkswap -L "AXIS_SWAP" "$SWAP_PART" 2>/dev/null || true
+swapon "$SWAP_PART" 2>/dev/null || true
 
-USE_EXT4=false
+# Format Root
+wipefs -a -f "$ROOT_PART" 2>/dev/null || true
+FORMAT_SUCCESS=false
+
 if [[ "$FILESYSTEM" == "btrfs" ]] && command -v mkfs.btrfs >/dev/null 2>&1; then
     modprobe btrfs 2>/dev/null || true
-    wipefs -a -f "$ROOT_PART" 2>/dev/null || true
-    if mkfs.btrfs -f -L "AXIS_ROOT" "$ROOT_PART"; then
+    if mkfs.btrfs -f -L "AXIS_ROOT" "$ROOT_PART" 2>/dev/null; then
         report 30 "Setting up Btrfs subvolumes (@, @home, @snapshots, @var_log)..."
         mkdir -p /mnt_axis_tmp
         if mount -t btrfs "$ROOT_PART" /mnt_axis_tmp 2>/dev/null; then
@@ -217,29 +247,32 @@ if [[ "$FILESYSTEM" == "btrfs" ]] && command -v mkfs.btrfs >/dev/null 2>&1; then
             btrfs subvolume create /mnt_axis_tmp/@home 2>/dev/null || true
             btrfs subvolume create /mnt_axis_tmp/@snapshots 2>/dev/null || true
             btrfs subvolume create /mnt_axis_tmp/@var_log 2>/dev/null || true
+            sync
             umount /mnt_axis_tmp 2>/dev/null || true
             rmdir /mnt_axis_tmp 2>/dev/null || true
+            sync
+            sleep 1
 
             mkdir -p /mnt
-            mount -o noatime,compress=zstd:3,subvol=@ "$ROOT_PART" /mnt
-            mkdir -p /mnt/{home,boot/efi,var/log,.snapshots}
-            mount -o noatime,compress=zstd:3,subvol=@home "$ROOT_PART" /mnt/home 2>/dev/null || true
-            mount -o noatime,compress=zstd:3,subvol=@var_log "$ROOT_PART" /mnt/var/log 2>/dev/null || true
-            mount -o noatime,compress=zstd:3,subvol=@snapshots "$ROOT_PART" /mnt/.snapshots 2>/dev/null || true
-        else
-            USE_EXT4=true
+            if mount -o noatime,compress=zstd,subvol=@ "$ROOT_PART" /mnt 2>/dev/null || \
+               mount -o noatime,subvol=@ "$ROOT_PART" /mnt 2>/dev/null; then
+                mkdir -p /mnt/{home,boot/efi,var/log,.snapshots}
+                mount -o noatime,subvol=@home "$ROOT_PART" /mnt/home 2>/dev/null || true
+                mount -o noatime,subvol=@var_log "$ROOT_PART" /mnt/var/log 2>/dev/null || true
+                mount -o noatime,subvol=@snapshots "$ROOT_PART" /mnt/.snapshots 2>/dev/null || true
+                FORMAT_SUCCESS=true
+            fi
         fi
-    else
-        USE_EXT4=true
     fi
-else
-    USE_EXT4=true
 fi
 
-if [[ "$USE_EXT4" == "true" ]]; then
+if [[ "$FORMAT_SUCCESS" != "true" ]]; then
+    FILESYSTEM="ext4"
     report 30 "Formatting root as high-performance EXT4 filesystem..."
+    umount -f -l "$ROOT_PART" 2>/dev/null || true
     wipefs -a -f "$ROOT_PART" 2>/dev/null || true
-    mkfs.ext4 -F -L "AXIS_ROOT" "$ROOT_PART"
+    mkfs.ext4 -F -F -L "AXIS_ROOT" "$ROOT_PART"
+    sync
     mkdir -p /mnt
     mount "$ROOT_PART" /mnt
     mkdir -p /mnt/{home,boot/efi,var/log}
@@ -247,7 +280,12 @@ fi
 
 mkdir -p /mnt/boot/efi
 mount "$ESP_PART" /mnt/boot/efi 2>/dev/null || true
-swapon "$SWAP_PART" 2>/dev/null || true
+
+# Verify that root is successfully mounted
+if ! mountpoint -q /mnt; then
+    echo "ERROR: Failed to mount target root filesystem on /mnt." >&2
+    exit 1
+fi
 
 report 35 "Copying AxisOS Linux system files to target root..."
 SOURCE_DIR="/"
@@ -289,7 +327,7 @@ ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART")
 ESP_UUID=$(blkid -s UUID -o value "$ESP_PART")
 SWAP_UUID=$(blkid -s UUID -o value "$SWAP_PART")
 
-if [[ "$USE_EXT4" == "true" ]]; then
+if [[ "$FILESYSTEM" == "ext4" ]]; then
 cat << EOF > /mnt/etc/fstab
 # /etc/fstab: static file system information generated by AxisOS Installer
 # <file system>             <mount point>   <type>  <options>                               <dump>  <pass>

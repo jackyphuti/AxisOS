@@ -375,6 +375,28 @@ static void show_alert(GtkWidget* parent, const std::string& msg) {
     gtk_widget_destroy(d);
 }
 
+static GtkWidget* create_scaled_logo(int max_w, int max_h) {
+    const char* paths[] = {
+        "/usr/share/pixmaps/axisos.png",
+        "/usr/share/pixmaps/axisos-logo.png",
+        "/usr/share/icons/hicolor/128x128/apps/axisos.png",
+        "/usr/share/icons/hicolor/256x256/apps/axisos.png",
+        "/usr/share/pixmaps/axisos.svg"
+    };
+    for (const char* p : paths) {
+        if (access(p, F_OK) == 0) {
+            GError* err = NULL;
+            GdkPixbuf* pb = gdk_pixbuf_new_from_file_at_scale(p, max_w, max_h, TRUE, &err);
+            if (pb) {
+                GtkWidget* img = gtk_image_new_from_pixbuf(pb);
+                g_object_unref(pb);
+                return img;
+            }
+        }
+    }
+    return gtk_image_new_from_icon_name("axisos", GTK_ICON_SIZE_DIALOG);
+}
+
 class AxisInstallerApp {
 public:
     GtkWidget* window;
@@ -385,6 +407,7 @@ public:
 
     // User preferences
     std::string selected_disk = "/dev/sda";
+    std::string selected_fs = "ext4";
     std::string selected_locale = "en_US.UTF-8";
     std::string selected_locale_name = "English (United States)";
     std::string selected_timezone = "America/New_York";
@@ -403,10 +426,11 @@ public:
     GtkWidget* combo_keyboard;
     GtkWidget* entry_keytest;
 
-    // Step 1: Disk selection
+    // Step 1: Disk selection & Filesystem
     GtkWidget* tree_drives;
     GtkListStore* store_drives;
     GtkWidget* lbl_disk_selection_status;
+    GtkWidget* combo_fs;
     std::string live_media_device = "";
     std::string live_disk_device = "";
 
@@ -419,6 +443,7 @@ public:
 
     // Step 3: Summary
     GtkWidget* lbl_summary_disk;
+    GtkWidget* lbl_summary_fs;
     GtkWidget* lbl_summary_lang;
     GtkWidget* lbl_summary_tz;
     GtkWidget* lbl_summary_keymap;
@@ -437,9 +462,19 @@ public:
     AxisInstallerApp() {
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_window_set_title(GTK_WINDOW(window), "AxisOS 2.0 Setup");
-        gtk_window_set_default_size(GTK_WINDOW(window), 820, 540);
+
+        // Fit entire screen and start maximized
+        GdkScreen* screen = gdk_screen_get_default();
+        if (screen) {
+            int sw = gdk_screen_get_width(screen);
+            int sh = gdk_screen_get_height(screen);
+            gtk_window_set_default_size(GTK_WINDOW(window), sw, sh);
+        } else {
+            gtk_window_set_default_size(GTK_WINDOW(window), 1024, 720);
+        }
         gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
         gtk_window_set_resizable(GTK_WINDOW(window), TRUE);
+        gtk_window_maximize(GTK_WINDOW(window));
         gtk_window_set_default_icon_name("axisos");
         gtk_window_set_icon_name(GTK_WINDOW(window), "axisos");
 
@@ -544,16 +579,9 @@ public:
     void build_step_locale() {
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
 
-        // Header with Logo
+        // Header with Scaled Logo (clean, crisp 56x56 icon)
         GtkWidget* header_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 16);
-        GtkWidget* logo_img = NULL;
-        if (access("/usr/share/pixmaps/axisos-logo.png", F_OK) == 0) {
-            logo_img = gtk_image_new_from_file("/usr/share/pixmaps/axisos-logo.png");
-        } else if (access("/usr/share/pixmaps/axisos.png", F_OK) == 0) {
-            logo_img = gtk_image_new_from_file("/usr/share/pixmaps/axisos.png");
-        } else {
-            logo_img = gtk_image_new_from_icon_name("axisos", GTK_ICON_SIZE_DIALOG);
-        }
+        GtkWidget* logo_img = create_scaled_logo(56, 56);
         if (logo_img) gtk_box_pack_start(GTK_BOX(header_row), logo_img, FALSE, FALSE, 0);
 
         GtkWidget* title_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
@@ -715,9 +743,39 @@ public:
         gtk_box_pack_end(GTK_BOX(btn_row), b_refresh, FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(box), btn_row, FALSE, FALSE, 4);
 
+        // Filesystem Architecture selector
+        GtkWidget* fs_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+        gtk_style_context_add_class(gtk_widget_get_style_context(fs_card), "info-card");
+
+        GtkWidget* fs_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 14);
+        GtkWidget* lbl_fs_title = gtk_label_new("Target Filesystem:");
+        gtk_style_context_add_class(gtk_widget_get_style_context(lbl_fs_title), "field-label");
+
+        combo_fs = gtk_combo_box_text_new();
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_fs), "ext4", "EXT4 (Recommended - Maximum Stability & Universal Compatibility)");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_fs), "btrfs", "Btrfs (Modern Copy-on-Write with Transparent Compression)");
+        gtk_combo_box_set_active_id(GTK_COMBO_BOX(combo_fs), "ext4");
+        g_signal_connect(combo_fs, "changed", G_CALLBACK(on_fs_changed), this);
+
+        gtk_box_pack_start(GTK_BOX(fs_row), lbl_fs_title, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(fs_row), combo_fs, TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(fs_card), fs_row, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(box), fs_card, FALSE, FALSE, 4);
+
         GtkWidget* scroller = wrap_in_scroller(box);
         gtk_stack_add_named(GTK_STACK(stack), scroller, "step_1");
         populate_drives();
+    }
+
+    static void on_fs_changed(GtkComboBox* combo, AxisInstallerApp* app) {
+        const char* id = gtk_combo_box_get_active_id(combo);
+        if (id) {
+            app->selected_fs = id;
+            if (!app->selected_disk.empty()) {
+                std::string st = "✓ Selected Target Disk: " + app->selected_disk + " (Filesystem: " + (app->selected_fs == "ext4" ? "EXT4" : "Btrfs") + ")";
+                gtk_label_set_text(GTK_LABEL(app->lbl_disk_selection_status), st.c_str());
+            }
+        }
     }
 
     static void on_drive_selection_changed(GtkTreeSelection* selection, AxisInstallerApp* app) {
@@ -737,7 +795,7 @@ public:
                         "⚠️ Target is the live USB installation media! Please select an internal drive.");
                     gtk_widget_set_sensitive(app->btn_next, FALSE);
                 } else {
-                    std::string st = "✓ Selected Target Disk: " + app->selected_disk + " (Will be formatted with Btrfs)";
+                    std::string st = "✓ Selected Target Disk: " + app->selected_disk + " (Filesystem: " + (app->selected_fs == "ext4" ? "EXT4" : "Btrfs") + ")";
                     gtk_label_set_text(GTK_LABEL(app->lbl_disk_selection_status), st.c_str());
                     gtk_widget_set_sensitive(app->btn_next, TRUE);
                 }
@@ -947,12 +1005,7 @@ public:
         };
 
         add_row(0, "Target Hard Disk:", &lbl_summary_disk);
-        add_row(1, "Filesystem Architecture:", new GtkWidget*); // placeholder
-        GtkWidget* l_fs = gtk_label_new("Btrfs (ZSTD compression, @, @home, @snapshots)");
-        gtk_label_set_xalign(GTK_LABEL(l_fs), 0.0);
-        gtk_style_context_add_class(gtk_widget_get_style_context(l_fs), "summary-val");
-        gtk_grid_attach(GTK_GRID(grid), l_fs, 1, 1, 1, 1);
-
+        add_row(1, "Filesystem Architecture:", &lbl_summary_fs);
         add_row(2, "Language & Locale:", &lbl_summary_lang);
         add_row(3, "Location & Timezone:", &lbl_summary_tz);
         add_row(4, "Keyboard Layout:", &lbl_summary_keymap);
@@ -981,6 +1034,8 @@ public:
     void update_summary_card() {
         if (!lbl_summary_disk) return;
         gtk_label_set_text(GTK_LABEL(lbl_summary_disk), selected_disk.c_str());
+        std::string fs_str = (selected_fs == "ext4") ? "EXT4 (Recommended - Universal Stability)" : "Btrfs (Modern with Transparent Compression)";
+        if (lbl_summary_fs) gtk_label_set_text(GTK_LABEL(lbl_summary_fs), fs_str.c_str());
         gtk_label_set_text(GTK_LABEL(lbl_summary_lang), selected_locale_name.c_str());
         gtk_label_set_text(GTK_LABEL(lbl_summary_tz), selected_tz_name.c_str());
         gtk_label_set_text(GTK_LABEL(lbl_summary_keymap), selected_keymap_name.c_str());
@@ -1057,6 +1112,9 @@ public:
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 18);
         gtk_widget_set_valign(box, GTK_ALIGN_CENTER);
         gtk_widget_set_halign(box, GTK_ALIGN_CENTER);
+
+        GtkWidget* logo_img = create_scaled_logo(72, 72);
+        if (logo_img) gtk_box_pack_start(GTK_BOX(box), logo_img, FALSE, FALSE, 0);
 
         GtkWidget* title = gtk_label_new("AxisOS 2.0 Successfully Installed!");
         gtk_style_context_add_class(gtk_widget_get_style_context(title), "win-title");
@@ -1190,8 +1248,10 @@ public:
 
     void start_installer_worker() {
         std::thread([this]() {
-            std::string cmd = "sudo -n /usr/local/bin/axisos-installer.sh"
+            std::string sudo_prefix = (geteuid() == 0) ? "" : "sudo ";
+            std::string cmd = sudo_prefix + "/usr/local/bin/axisos-installer.sh"
                               " --disk " + selected_disk +
+                              " --fs " + selected_fs +
                               " --username " + username +
                               " --password " + password +
                               " --fullname '" + fullname + "'" +

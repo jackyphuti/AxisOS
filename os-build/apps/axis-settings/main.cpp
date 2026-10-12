@@ -1167,23 +1167,40 @@ private:
         gtk_entry_set_text(GTK_ENTRY(app->entry_confirm_pass), "");
     }
 
+    static GtkWidget* create_scaled_logo(int max_w, int max_h) {
+        const char* paths[] = {
+            "/usr/share/pixmaps/axisos-logo.png",
+            "/usr/share/pixmaps/axisos.png",
+            "/usr/share/icons/hicolor/128x128/apps/axisos.png",
+            "/usr/share/icons/hicolor/256x256/apps/axisos.png",
+            "/usr/share/pixmaps/axisos.svg"
+        };
+        for (const char* p : paths) {
+            if (access(p, F_OK) == 0) {
+                GError* err = NULL;
+                GdkPixbuf* pb = gdk_pixbuf_new_from_file_at_scale(p, max_w, max_h, TRUE, &err);
+                if (pb) {
+                    GtkWidget* img = gtk_image_new_from_pixbuf(pb);
+                    g_object_unref(pb);
+                    return img;
+                }
+            }
+        }
+        return gtk_image_new_from_icon_name("axisos", GTK_ICON_SIZE_DIALOG);
+    }
+
     // =========================================================================
     // 10. About AxisOS Page (Hardware Specs & System Details)
     // =========================================================================
     void build_about_page() {
         GtkWidget* page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
 
-        // Official AxisOS Logo banner
-        if (access("/usr/share/pixmaps/axisos-logo.png", F_OK) == 0) {
-            GtkWidget* logo_img = gtk_image_new_from_file("/usr/share/pixmaps/axisos-logo.png");
-            gtk_box_pack_start(GTK_BOX(page), logo_img, FALSE, FALSE, 4);
-        } else if (access("/usr/share/pixmaps/axisos.png", F_OK) == 0) {
-            GtkWidget* logo_img = gtk_image_new_from_file("/usr/share/pixmaps/axisos.png");
-            gtk_box_pack_start(GTK_BOX(page), logo_img, FALSE, FALSE, 4);
-        } else {
-            GtkWidget* logo_img = gtk_image_new_from_icon_name("axisos", GTK_ICON_SIZE_DIALOG);
-            gtk_box_pack_start(GTK_BOX(page), logo_img, FALSE, FALSE, 4);
-        }
+        // Official AxisOS Logo banner (crisp, centered and cleanly sized)
+        GtkWidget* logo_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+        gtk_widget_set_halign(logo_box, GTK_ALIGN_CENTER);
+        GtkWidget* logo_img = create_scaled_logo(120, 80);
+        gtk_box_pack_start(GTK_BOX(logo_box), logo_img, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(page), logo_box, FALSE, FALSE, 6);
 
         GtkWidget* card = create_card("System Specifications & Hardware",
             "AxisOS 2.0 (Liquid Nodes Edition)");

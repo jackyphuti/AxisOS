@@ -246,18 +246,47 @@ def deploy_branding(target_root="/build/chroot"):
             shutil.copyfile(icon_512_path, dst)
 
     if os.path.exists(logo_png_path):
-        for dst in [
-            os.path.join(target_root, "usr", "share", "pixmaps", "axisos-logo.png"),
-            os.path.join(target_root, "usr", "share", "pixmaps", "system-logo.png"),
-            os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-64.png"),
-            os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-128.png"),
-            os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-256.png"),
-            os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-64.png"),
-            os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-128.png"),
-            os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-256.png"),
-        ]:
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            shutil.copyfile(logo_png_path, dst)
+        # Full resolution backup
+        full_dst = os.path.join(target_root, "usr", "share", "pixmaps", "axisos-logo-full.png")
+        os.makedirs(os.path.dirname(full_dst), exist_ok=True)
+        shutil.copyfile(logo_png_path, full_dst)
+
+        # Scale down logos using PIL for crisp, proper UI sizing in GNOME Control Center and GTK dialogs
+        try:
+            from PIL import Image
+            orig_img = Image.open(logo_png_path)
+
+            def save_scaled(dst_path, max_w, max_h):
+                os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+                img = orig_img.copy()
+                img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+                img.save(dst_path, "PNG")
+
+            # GNOME Settings & System Logo (clean badge size)
+            save_scaled(os.path.join(target_root, "usr", "share", "pixmaps", "axisos-logo.png"), 160, 120)
+            save_scaled(os.path.join(target_root, "usr", "share", "pixmaps", "system-logo.png"), 160, 120)
+
+            # Debian desktop-base variants
+            save_scaled(os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-64.png"), 64, 48)
+            save_scaled(os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-64.png"), 64, 48)
+            save_scaled(os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-128.png"), 128, 96)
+            save_scaled(os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-128.png"), 128, 96)
+            save_scaled(os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-256.png"), 256, 192)
+            save_scaled(os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-256.png"), 256, 192)
+        except Exception as e:
+            print(f"    [WARN] PIL scaling fallback: {e}")
+            for dst in [
+                os.path.join(target_root, "usr", "share", "pixmaps", "axisos-logo.png"),
+                os.path.join(target_root, "usr", "share", "pixmaps", "system-logo.png"),
+                os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-64.png"),
+                os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-128.png"),
+                os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-256.png"),
+                os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-64.png"),
+                os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-128.png"),
+                os.path.join(target_root, "usr", "share", "desktop-base", "debian-logos", "logo-text-version-256.png"),
+            ]:
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copyfile(logo_png_path, dst)
     print("    [OK] Generated multi-resolution PNG icons and system logos")
 
     # 5. Update icon caches

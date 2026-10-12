@@ -118,10 +118,10 @@ def main():
     p.communicate("axis:axis\nroot:axis\n")
     print("--> Set passwords for axis and root to 'axis'")
 
-    # 6. Ensure sudoers group and secure_path
+    # 6. Ensure sudoers group and secure_path (NOPASSWD for live session installer)
     sudoers_axis = (
         "# AxisOS standard sudoer configuration\n"
-        "axis ALL=(ALL:ALL) ALL\n"
+        "axis ALL=(ALL:ALL) NOPASSWD: ALL\n"
         "Defaults secure_path=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"\n"
         "Defaults use_pty\n"
     )
