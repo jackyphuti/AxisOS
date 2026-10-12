@@ -538,8 +538,30 @@ if os.path.exists(captive_sh):
     dispatcher_dst = os.path.join(chroot_dir, "etc", "NetworkManager", "dispatcher.d", "99-captive-portal.sh")
     dispatcher_src = os.path.join(workspace_dir, "os-build", "configs", "networkmanager", "dispatcher.d", "99-captive-portal.sh")
     if os.path.exists(dispatcher_src):
+        os.makedirs(os.path.dirname(dispatcher_dst), exist_ok=True)
         copy_text_lf(dispatcher_src, dispatcher_dst, 0o755)
-    print("    Deployed Wi-Fi Captive Portal Redirect Handler")
+    
+    nm_conn_src = os.path.join(workspace_dir, "os-build", "configs", "networkmanager", "conf.d", "20-connectivity.conf")
+    if os.path.exists(nm_conn_src):
+        nm_conn_dst = os.path.join(chroot_dir, "etc", "NetworkManager", "conf.d", "20-connectivity.conf")
+        os.makedirs(os.path.dirname(nm_conn_dst), exist_ok=True)
+        copy_text_lf(nm_conn_src, nm_conn_dst, 0o644)
+
+    wifi_desktop_src = os.path.join(workspace_dir, "os-build", "configs", "networkmanager", "axis-wifi-login.desktop")
+    if os.path.exists(wifi_desktop_src):
+        wifi_desktop_dst = os.path.join(chroot_dir, "usr", "share", "applications", "axis-wifi-login.desktop")
+        copy_text_lf(wifi_desktop_src, wifi_desktop_dst, 0o644)
+        for desk_dir in [os.path.join(chroot_dir, "home", "axis", "Desktop"), os.path.join(chroot_dir, "etc", "skel", "Desktop")]:
+            os.makedirs(desk_dir, exist_ok=True)
+            copy_text_lf(wifi_desktop_src, os.path.join(desk_dir, "axis-wifi-login.desktop"), 0o755)
+
+    chrom_desktop_src = os.path.join(chroot_dir, "usr", "share", "applications", "chromium.desktop")
+    if os.path.exists(chrom_desktop_src):
+        for desk_dir in [os.path.join(chroot_dir, "home", "axis", "Desktop"), os.path.join(chroot_dir, "etc", "skel", "Desktop")]:
+            os.makedirs(desk_dir, exist_ok=True)
+            copy_text_lf(chrom_desktop_src, os.path.join(desk_dir, "chromium.desktop"), 0o755)
+
+    print("    Deployed Wi-Fi Captive Portal Redirect Handler, NetworkManager config, and Chromium desktop shortcuts")
 
 tz_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-autotimezone.sh")
 if os.path.exists(tz_sh):

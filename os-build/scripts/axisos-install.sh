@@ -135,11 +135,13 @@ vgchange -an 2>/dev/null || true
 dmsetup remove_all -f 2>/dev/null || true
 mdadm --stop --scan 2>/dev/null || true
 
-# Force unmount any active mounts associated with the target disk
-fuser -km /mnt 2>/dev/null || true
-fuser -km /mnt_axis_tmp 2>/dev/null || true
-umount -R /mnt 2>/dev/null || true
-umount -R /mnt_axis_tmp 2>/dev/null || true
+# Safely unmount target mountpoints if mounted
+if mountpoint -q /mnt; then
+    umount -l -R /mnt 2>/dev/null || true
+fi
+if mountpoint -q /mnt_axis_tmp; then
+    umount -l -R /mnt_axis_tmp 2>/dev/null || true
+fi
 
 findmnt -lno TARGET,SOURCE 2>/dev/null | grep -F "$TARGET_DISK" | awk '{print $1}' | while read -r mp; do
     umount -f -l "$mp" 2>/dev/null || true
@@ -222,7 +224,9 @@ report 25 "Formatting filesystems (ESP FAT32, Swap, and Root)..."
 umount -f -l "$ESP_PART" 2>/dev/null || true
 umount -f -l "$SWAP_PART" 2>/dev/null || true
 umount -f -l "$ROOT_PART" 2>/dev/null || true
-umount -R /mnt 2>/dev/null || true
+if mountpoint -q /mnt; then
+    umount -l -R /mnt 2>/dev/null || true
+fi
 
 # Format ESP
 wipefs -a -f "$ESP_PART" 2>/dev/null || true
@@ -231,7 +235,6 @@ mkfs.vfat -F32 -n "AXIS_BOOT" "$ESP_PART" || mkfs.fat -n "AXIS_BOOT" "$ESP_PART"
 # Format Swap
 wipefs -a -f "$SWAP_PART" 2>/dev/null || true
 mkswap -L "AXIS_SWAP" "$SWAP_PART" 2>/dev/null || true
-swapon "$SWAP_PART" 2>/dev/null || true
 
 # Format Root
 wipefs -a -f "$ROOT_PART" 2>/dev/null || true
@@ -271,19 +274,32 @@ if [[ "$FORMAT_SUCCESS" != "true" ]]; then
     report 30 "Formatting root as high-performance EXT4 filesystem..."
     umount -f -l "$ROOT_PART" 2>/dev/null || true
     wipefs -a -f "$ROOT_PART" 2>/dev/null || true
-    mkfs.ext4 -F -F -L "AXIS_ROOT" "$ROOT_PART"
     sync
+    udevadm settle --timeout=3 2>/dev/null || sleep 1
+    mkfs.ext4 -F -F -L "AXIS_ROOT" "$ROOT_PART" || {
+        sleep 2
+        mkfs.ext4 -F -F -L "AXIS_ROOT" "$ROOT_PART"
+    }
+    sync
+    udevadm settle --timeout=3 2>/dev/null || sleep 1
     mkdir -p /mnt
-    mount "$ROOT_PART" /mnt
+    mount "$ROOT_PART" /mnt || {
+        sleep 1
+        mount "$ROOT_PART" /mnt
+    }
     mkdir -p /mnt/{home,boot/efi,var/log}
 fi
 
 mkdir -p /mnt/boot/efi
-mount "$ESP_PART" /mnt/boot/efi 2>/dev/null || true
+mount "$ESP_PART" /mnt/boot/efi 2>/dev/null || {
+    sleep 1
+    mount "$ESP_PART" /mnt/boot/efi 2>/dev/null || true
+}
 
 # Verify that root is successfully mounted
 if ! mountpoint -q /mnt; then
     echo "ERROR: Failed to mount target root filesystem on /mnt." >&2
+    report 0 "Error: Failed to mount target root filesystem on /mnt."
     exit 1
 fi
 
@@ -323,9 +339,10 @@ wait $RSYNC_PID || {
 report 76 "System file transfer complete."
 
 report 77 "Generating filesystem mount table (/etc/fstab)..."
-ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART")
-ESP_UUID=$(blkid -s UUID -o value "$ESP_PART")
-SWAP_UUID=$(blkid -s UUID -o value "$SWAP_PART")
+udevadm settle --timeout=3 2>/dev/null || true
+ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART" 2>/dev/null || lsblk -no UUID "$ROOT_PART" 2>/dev/null || true)
+ESP_UUID=$(blkid -s UUID -o value "$ESP_PART" 2>/dev/null || lsblk -no UUID "$ESP_PART" 2>/dev/null || true)
+SWAP_UUID=$(blkid -s UUID -o value "$SWAP_PART" 2>/dev/null || lsblk -no UUID "$SWAP_PART" 2>/dev/null || true)
 
 if [[ "$FILESYSTEM" == "ext4" ]]; then
 cat << EOF > /mnt/etc/fstab
@@ -533,9 +550,14 @@ chroot /mnt systemctl enable gdm3.service 2>/dev/null || true
 # Compile dconf system databases
 chroot /mnt dconf update 2>/dev/null || true
 
-# Clean user profile to ensure no live-session kiosk loop
-mkdir -p "/mnt/home/${USERNAME}"
+# Clean user profile to ensure no live-session kiosk loop and deploy desktop applications
+mkdir -p "/mnt/home/${USERNAME}/Desktop"
 sed -i '/axisos-kiosk/d' "/mnt/home/${USERNAME}/.profile" 2>/dev/null || true
+if [ -d /mnt/etc/skel/Desktop ]; then
+    cp -r /mnt/etc/skel/Desktop/* "/mnt/home/${USERNAME}/Desktop/" 2>/dev/null || true
+fi
+rm -f "/mnt/home/${USERNAME}/Desktop/axis-installer.desktop" 2>/dev/null || true
+chmod +x "/mnt/home/${USERNAME}/Desktop"/*.desktop 2>/dev/null || true
 chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}"
 
 # Permanent marker indicating system is fully installed to hard disk
@@ -748,8 +770,17 @@ log "Configured /var/lib/axisos/first-boot-pending for first-boot OOBE wizard"
 
 report 96 "Cleaning up mounts..."
 sync
-umount -R /mnt/dev /mnt/proc /mnt/sys /mnt/run 2>/dev/null || true
-umount -R /mnt 2>/dev/null || true
+umount -l /mnt/sys/firmware/efi/efivars 2>/dev/null || true
+umount -l /mnt/dev/pts 2>/dev/null || true
+umount -l /mnt/dev 2>/dev/null || true
+umount -l /mnt/proc 2>/dev/null || true
+umount -l /mnt/sys 2>/dev/null || true
+umount -l /mnt/run 2>/dev/null || true
+umount -l /mnt/boot/efi 2>/dev/null || true
+umount -l /mnt/home 2>/dev/null || true
+umount -l /mnt/var/log 2>/dev/null || true
+umount -l /mnt/.snapshots 2>/dev/null || true
+umount -R /mnt 2>/dev/null || umount -l /mnt 2>/dev/null || true
 
 report 100 "AxisOS successfully installed! Ready to reboot."
 log "Installation completed successfully on $TARGET_DISK."

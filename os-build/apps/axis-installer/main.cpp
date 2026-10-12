@@ -1248,7 +1248,7 @@ public:
 
     void start_installer_worker() {
         std::thread([this]() {
-            std::string sudo_prefix = (geteuid() == 0) ? "" : "sudo ";
+            std::string sudo_prefix = (geteuid() == 0) ? "" : "sudo -n ";
             std::string cmd = sudo_prefix + "/usr/local/bin/axisos-installer.sh"
                               " --disk " + selected_disk +
                               " --fs " + selected_fs +
@@ -1268,8 +1268,12 @@ public:
                 while (fgets(buf, sizeof(buf), fp)) {
                     std::string line(buf);
                     while (!line.empty() && (line.back() == '\n' || line.back() == '\r')) line.pop_back();
-                    if (!line.empty()) {
-                        last_error_line = line;
+                    if (!line.empty() && line.find("PROGRESS:") != 0) {
+                        if (line.rfind("ERROR:", 0) == 0 || line.rfind("Error:", 0) == 0) {
+                            last_error_line = line;
+                        } else if (last_error_line == "Unexpected installation error.") {
+                            last_error_line = line;
+                        }
                     }
                     if (line.find("PROGRESS:") == 0) {
                         size_t p1 = line.find(':', 9);

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Wi-Fi Web Login
+GenericName=Captive Portal Web Login
+Comment=Log in to Wi-Fi networks requiring web browser authentication
+Exec=/usr/local/bin/axis-captive-portal.sh
+Icon=network-wireless
+Terminal=false
+Type=Application
+Categories=Network;Settings;GTK;
+Keywords=wifi;portal;login;captive;network;internet;web;
+StartupNotify=true
