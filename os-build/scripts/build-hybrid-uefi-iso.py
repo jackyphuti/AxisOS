@@ -531,6 +531,12 @@ if os.path.exists(installer_sh):
     copy_text_lf(installer_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axisos-installer.sh"), 0o755)
     print("    Deployed Installer Scripts with OOBE flag")
 
+# Deploy Disk Inspector Script
+disk_info_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-disk-info.sh")
+if os.path.exists(disk_info_sh):
+    copy_text_lf(disk_info_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axis-disk-info.sh"), 0o755)
+    print("    Deployed AxisOS Disk Information Script -> /usr/local/bin/axis-disk-info.sh")
+
 # Deploy Captive Portal & Auto-Timezone services
 captive_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-captive-portal.sh")
 if os.path.exists(captive_sh):

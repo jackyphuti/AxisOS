@@ -157,8 +157,21 @@ sync
 udevadm settle --timeout=3 2>/dev/null || sleep 1
 
 report 10 "Wiping partition signatures on $TARGET_DISK..."
+# Unmount all child partitions and wipe individual partition signatures
+for p in $(lsblk -lno NAME "$TARGET_DISK" 2>/dev/null); do
+    [ -b "/dev/$p" ] && wipefs -a -f "/dev/$p" 2>/dev/null || true
+done
 wipefs -a -f "$TARGET_DISK" 2>/dev/null || true
-dd if=/dev/zero of="$TARGET_DISK" bs=1M count=16 conv=notrunc status=none 2>/dev/null || true
+
+# Zero out first 32MB (primary GPT, MBR, partition tables)
+dd if=/dev/zero of="$TARGET_DISK" bs=1M count=32 conv=notrunc status=none 2>/dev/null || true
+
+# Zero out last 32MB (secondary/backup GPT header and tables at end of disk)
+DISK_SECTORS=$(blockdev --getsz "$TARGET_DISK" 2>/dev/null || echo 0)
+if [ "$DISK_SECTORS" -gt 65536 ]; then
+    SEEK_START=$(( DISK_SECTORS - 65536 ))
+    dd if=/dev/zero of="$TARGET_DISK" bs=512 seek=$SEEK_START count=65536 conv=notrunc status=none 2>/dev/null || true
+fi
 sync
 blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
 partprobe "$TARGET_DISK" 2>/dev/null || true
@@ -179,25 +192,39 @@ if [ "$DISK_SIZE_MB" -lt 12800 ]; then
     SWAP_SIZE="512M"
 fi
 
-if command -v sgdisk >/dev/null 2>&1; then
-    sgdisk --zap-all "$TARGET_DISK" 2>/dev/null || true
-    sgdisk -o "$TARGET_DISK" 2>/dev/null || true
-    sgdisk -n 1:2048:+512M -t 1:ef00 -c 1:"AXIS_BOOT" "$TARGET_DISK"
-    sgdisk -n 2:0:+${SWAP_SIZE} -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK"
-    sgdisk -n 3:0:0 -t 3:8300 -c 3:"AXIS_ROOT" "$TARGET_DISK"
+if command -v sfdisk >/dev/null 2>&1; then
+    log "Using atomic sfdisk GPT partitioning..."
+    sfdisk --wipe always --wipe-partitions always --force "$TARGET_DISK" <<EOF
+label: gpt
+size=512M, type=U, name="AXIS_BOOT"
+size=${SWAP_SIZE}, type=S, name="AXIS_SWAP"
+type=L, name="AXIS_ROOT"
+EOF
 elif command -v parted >/dev/null 2>&1; then
+    log "Using parted GPT partitioning..."
     parted -s "$TARGET_DISK" mklabel gpt
     parted -s "$TARGET_DISK" mkpart "AXIS_BOOT" fat32 1MiB 513MiB
     parted -s "$TARGET_DISK" set 1 esp on
     parted -s "$TARGET_DISK" mkpart "AXIS_SWAP" linux-swap 513MiB 2561MiB
     parted -s "$TARGET_DISK" mkpart "AXIS_ROOT" ext4 2561MiB 100%
+elif command -v sgdisk >/dev/null 2>&1; then
+    log "Using sgdisk GPT partitioning..."
+    sgdisk --zap-all "$TARGET_DISK" 2>/dev/null || true
+    sgdisk -o "$TARGET_DISK" 2>/dev/null || true
+    sgdisk -n 1:2048:+512M -t 1:ef00 -c 1:"AXIS_BOOT" "$TARGET_DISK"
+    sgdisk -n 2:0:+${SWAP_SIZE} -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK"
+    sgdisk -n 3:0:0 -t 3:8300 -c 3:"AXIS_ROOT" "$TARGET_DISK"
 else
-    echo "ERROR: Neither sgdisk nor parted found." >&2
+    echo "ERROR: Neither sfdisk, parted, nor sgdisk found." >&2
     exit 1
 fi
 
 sync
+blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
+partx -u "$TARGET_DISK" 2>/dev/null || true
+partx -a "$TARGET_DISK" 2>/dev/null || true
 partprobe "$TARGET_DISK" 2>/dev/null || true
+udevadm trigger --subsystem-match=block 2>/dev/null || true
 udevadm settle --timeout=5 2>/dev/null || sleep 2
 
 # Resolve partition paths (e.g., /dev/nvme0n1p1 vs /dev/sda1)
@@ -210,16 +237,39 @@ ESP_PART="${PART_PREFIX}1"
 SWAP_PART="${PART_PREFIX}2"
 ROOT_PART="${PART_PREFIX}3"
 
-# Wait for partitions to appear
+# Wait for partitions to appear and create device nodes if udev delayed them
 for i in {1..20}; do
-    if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then break; fi
+    if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then
+        break
+    fi
+
+    # Check /sys/class/block and create device nodes with mknod if missing
+    for p_idx in 1 2 3; do
+        p_dev="${PART_PREFIX}${p_idx}"
+        p_base=$(basename "$p_dev")
+        if [[ ! -b "$p_dev" && -f "/sys/class/block/${p_base}/dev" ]]; then
+            dev_major_minor=$(cat "/sys/class/block/${p_base}/dev" 2>/dev/null || true)
+            if [ -n "$dev_major_minor" ]; then
+                major=$(echo "$dev_major_minor" | cut -d: -f1)
+                minor=$(echo "$dev_major_minor" | cut -d: -f2)
+                mknod "$p_dev" b "$major" "$minor" 2>/dev/null || true
+            fi
+        fi
+    done
+
+    if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then
+        break
+    fi
+
     sleep 1
     partprobe "$TARGET_DISK" 2>/dev/null || true
-    udevadm trigger 2>/dev/null || true
+    partx -u "$TARGET_DISK" 2>/dev/null || true
+    partx -a "$TARGET_DISK" 2>/dev/null || true
+    udevadm trigger --subsystem-match=block 2>/dev/null || true
 done
 
 if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
-    error_exit "Partition $ROOT_PART or $ESP_PART not found after partitioning on $TARGET_DISK."
+    error_exit "Partition $ROOT_PART or $ESP_PART not found after partitioning on $TARGET_DISK. Please select back to drive selection to choose another drive or check verify drive."
 fi
 
 report 25 "Formatting filesystems (ESP FAT32, Swap, and Root)..."

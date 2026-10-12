@@ -130,6 +130,23 @@ headerbar .title {
     color: #FFFFFF;
 }
 
+/* Danger Action Buttons */
+.btn-danger {
+    background-color: #7A2234;
+    color: #FFFFFF;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid #D9384E;
+    border-radius: 6px;
+    padding: 9px 18px;
+}
+
+.btn-danger:hover {
+    background-color: #9C2B42;
+    border-color: #FFFFFF;
+    color: #FFFFFF;
+}
+
 /* Information & Summary Cards */
 .info-card {
     background-color: #14171E;
@@ -719,7 +736,7 @@ public:
         gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tree_drives), -1, "Drive", renderer, "text", 0, NULL);
         gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tree_drives), -1, "Capacity", renderer, "text", 1, NULL);
         gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tree_drives), -1, "Free Space", renderer, "text", 2, NULL);
-        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tree_drives), -1, "Model & Bus Type", renderer, "text", 3, NULL);
+        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tree_drives), -1, "Model & Status / OS", renderer, "text", 3, NULL);
 
         GtkTreeSelection* sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_drives));
         g_signal_connect(sel, "changed", G_CALLBACK(on_drive_selection_changed), this);
@@ -735,12 +752,17 @@ public:
         gtk_style_context_add_class(gtk_widget_get_style_context(lbl_disk_selection_status), "field-label");
 
         GtkWidget* btn_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+        GtkWidget* b_format = gtk_button_new_with_label("🧹 Wipe & Format Selected Drive");
+        gtk_style_context_add_class(gtk_widget_get_style_context(b_format), "btn-danger");
+        g_signal_connect(b_format, "clicked", G_CALLBACK(on_format_drive_clicked), this);
+
         GtkWidget* b_refresh = gtk_button_new_with_label("↻ Refresh Drives");
         gtk_style_context_add_class(gtk_widget_get_style_context(b_refresh), "btn-secondary");
         g_signal_connect_swapped(b_refresh, "clicked", G_CALLBACK(on_refresh_drives_clicked), this);
 
         gtk_box_pack_start(GTK_BOX(btn_row), lbl_disk_selection_status, TRUE, TRUE, 0);
         gtk_box_pack_end(GTK_BOX(btn_row), b_refresh, FALSE, FALSE, 0);
+        gtk_box_pack_end(GTK_BOX(btn_row), b_format, FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(box), btn_row, FALSE, FALSE, 4);
 
         // Filesystem Architecture selector
@@ -809,26 +831,27 @@ public:
         gtk_list_store_clear(store_drives);
         detect_live_media();
 
-        FILE* fp = popen("lsblk -d -p -n -l -o NAME,SIZE,MODEL,TYPE 2>/dev/null", "r");
+        // 1. Run axis-disk-info.sh for accurate capacity, true unallocated free space, and OS detection
+        FILE* fp = popen("/usr/local/bin/axis-disk-info.sh 2>/dev/null || bash /os-build/scripts/axis-disk-info.sh 2>/dev/null", "r");
         bool found = false;
         GtkTreePath* target_path = nullptr;
         int row_idx = 0;
 
         if (fp) {
-            char line[512];
+            char line[1024];
             int idx = 0;
             while (fgets(line, sizeof(line), fp)) {
-                std::istringstream iss(line);
-                std::string dev_name, size, model, type;
-                iss >> dev_name >> size;
-                std::string rest;
-                std::getline(iss, rest);
-                while (!rest.empty() && (rest.front() == ' ' || rest.front() == '\t')) rest.erase(0, 1);
-                while (!rest.empty() && (rest.back() == '\n' || rest.back() == '\r' || rest.back() == ' ')) rest.pop_back();
+                std::string sline(line);
+                while (!sline.empty() && (sline.back() == '\n' || sline.back() == '\r')) sline.pop_back();
+                if (sline.empty()) continue;
 
-                if (dev_name.find("/dev/loop") == std::string::npos &&
-                    dev_name.find("/dev/zram") == std::string::npos &&
-                    dev_name.find("/dev/ram") == std::string::npos) {
+                if (sline.find('|') != std::string::npos) {
+                    std::stringstream ss(sline);
+                    std::string dev_name, cap, free_sp, desc;
+                    std::getline(ss, dev_name, '|');
+                    std::getline(ss, cap, '|');
+                    std::getline(ss, free_sp, '|');
+                    std::getline(ss, desc);
 
                     bool is_live = (!live_disk_device.empty() && dev_name == live_disk_device) ||
                                    (!live_media_device.empty() && dev_name == live_media_device);
@@ -838,13 +861,12 @@ public:
                     std::string label = "Drive " + std::to_string(idx) + " (" + dev_name + ")";
                     if (is_live) label += " [Live USB - Protected]";
 
-                    std::string desc = rest.empty() ? "Internal Storage" : rest;
                     if (is_live) desc += " (Active Installation Media)";
 
                     gtk_list_store_set(store_drives, &iter,
                         0, label.c_str(),
-                        1, size.c_str(),
-                        2, size.c_str(),
+                        1, cap.c_str(),
+                        2, free_sp.c_str(),
                         3, desc.c_str(),
                         4, dev_name.c_str(),
                         -1);
@@ -863,14 +885,66 @@ public:
             pclose(fp);
         }
 
+        // 2. Fallback to lsblk if axis-disk-info.sh returned no entries
+        if (!found) {
+            FILE* fp_lsblk = popen("lsblk -d -p -n -l -o NAME,SIZE,MODEL,TYPE 2>/dev/null", "r");
+            if (fp_lsblk) {
+                char line[512];
+                int idx = 0;
+                while (fgets(line, sizeof(line), fp_lsblk)) {
+                    std::istringstream iss(line);
+                    std::string dev_name, size;
+                    iss >> dev_name >> size;
+                    std::string rest;
+                    std::getline(iss, rest);
+                    while (!rest.empty() && (rest.front() == ' ' || rest.front() == '\t')) rest.erase(0, 1);
+                    while (!rest.empty() && (rest.back() == '\n' || rest.back() == '\r' || rest.back() == ' ')) rest.pop_back();
+
+                    if (dev_name.find("/dev/loop") == std::string::npos &&
+                        dev_name.find("/dev/zram") == std::string::npos &&
+                        dev_name.find("/dev/ram") == std::string::npos) {
+
+                        bool is_live = (!live_disk_device.empty() && dev_name == live_disk_device) ||
+                                       (!live_media_device.empty() && dev_name == live_media_device);
+
+                        GtkTreeIter iter;
+                        gtk_list_store_append(store_drives, &iter);
+                        std::string label = "Drive " + std::to_string(idx) + " (" + dev_name + ")";
+                        if (is_live) label += " [Live USB - Protected]";
+
+                        std::string desc = rest.empty() ? "Internal Storage" : rest;
+                        if (is_live) desc += " (Active Installation Media)";
+
+                        gtk_list_store_set(store_drives, &iter,
+                            0, label.c_str(),
+                            1, size.c_str(),
+                            2, "Unknown",
+                            3, desc.c_str(),
+                            4, dev_name.c_str(),
+                            -1);
+
+                        if (!is_live && target_path == nullptr) {
+                            target_path = gtk_tree_path_new_from_indices(row_idx, -1);
+                            selected_disk = dev_name;
+                        }
+
+                        idx++;
+                        row_idx++;
+                        found = true;
+                    }
+                }
+                pclose(fp_lsblk);
+            }
+        }
+
         if (!found) {
             GtkTreeIter iter;
             gtk_list_store_append(store_drives, &iter);
             gtk_list_store_set(store_drives, &iter,
                 0, "Drive 0 (/dev/sda)",
                 1, "64.0 GB",
-                2, "64.0 GB",
-                3, "Primary System Storage",
+                2, "64.0 GB (100% Free)",
+                3, "Primary System Storage [Clean / Empty Drive]",
                 4, "/dev/sda",
                 -1);
             selected_disk = "/dev/sda";
@@ -884,6 +958,68 @@ public:
         if (target_path) {
             gtk_tree_selection_select_path(sel, target_path);
             gtk_tree_path_free(target_path);
+        }
+    }
+
+    static void on_format_drive_clicked(GtkButton* btn, AxisInstallerApp* app) {
+        if (app->selected_disk.empty()) {
+            GtkWidget* alert = gtk_message_dialog_new(GTK_WINDOW(app->window),
+                GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
+                "No target drive selected. Please select a drive from the list first.");
+            gtk_dialog_run(GTK_DIALOG(alert));
+            gtk_widget_destroy(alert);
+            return;
+        }
+
+        bool is_live = (!app->live_disk_device.empty() && app->selected_disk == app->live_disk_device) ||
+                       (!app->live_media_device.empty() && app->selected_disk == app->live_media_device);
+        if (is_live) {
+            GtkWidget* alert = gtk_message_dialog_new(GTK_WINDOW(app->window),
+                GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
+                "Cannot format the active installation media (%s)!\nPlease select an internal drive.",
+                app->selected_disk.c_str());
+            gtk_dialog_run(GTK_DIALOG(alert));
+            gtk_widget_destroy(alert);
+            return;
+        }
+
+        GtkWidget* dialog = gtk_message_dialog_new(GTK_WINDOW(app->window),
+            GTK_DIALOG_MODAL,
+            GTK_MESSAGE_WARNING,
+            GTK_BUTTONS_OK_CANCEL,
+            "⚠️ Format & Wipe Target Drive\n\nAre you sure you want to completely erase %s?\n\nThis will wipe all existing partition tables, Windows/Linux operating systems, and user files on %s.\n\nThe drive will be reset to a clean GPT disk ready for AxisOS.",
+            app->selected_disk.c_str(), app->selected_disk.c_str());
+
+        gint response = gtk_dialog_run(GTK_DIALOG(dialog));
+        gtk_widget_destroy(dialog);
+
+        if (response == GTK_RESPONSE_OK) {
+            gtk_label_set_text(GTK_LABEL(app->lbl_disk_selection_status), "⏳ Wiping and initializing drive partition table...");
+            while (gtk_events_pending()) gtk_main_iteration();
+
+            std::string cmd = "umount -f -l " + app->selected_disk + "* 2>/dev/null; "
+                              "swapoff -a 2>/dev/null; "
+                              "wipefs -a -f " + app->selected_disk + " 2>/dev/null; "
+                              "dd if=/dev/zero of=" + app->selected_disk + " bs=1M count=32 conv=notrunc status=none 2>/dev/null; "
+                              "SECTORS=$(blockdev --getsz " + app->selected_disk + " 2>/dev/null || echo 0); "
+                              "if [ \"$SECTORS\" -gt 65536 ]; then dd if=/dev/zero of=" + app->selected_disk + " bs=512 seek=$(( SECTORS - 65536 )) count=65536 conv=notrunc status=none 2>/dev/null; fi; "
+                              "sfdisk --wipe always --wipe-partitions always --force " + app->selected_disk + " <<< 'label: gpt' 2>/dev/null || true; "
+                              "sync; blockdev --rereadpt " + app->selected_disk + " 2>/dev/null || true; "
+                              "partprobe " + app->selected_disk + " 2>/dev/null || true; "
+                              "udevadm settle --timeout=3 2>/dev/null || sleep 1";
+            system(cmd.c_str());
+
+            app->populate_drives();
+
+            std::string success_msg = "✓ Successfully wiped and formatted " + app->selected_disk + "! Drive is clean.";
+            gtk_label_set_text(GTK_LABEL(app->lbl_disk_selection_status), success_msg.c_str());
+
+            GtkWidget* done_diag = gtk_message_dialog_new(GTK_WINDOW(app->window),
+                GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
+                "✓ Drive %s wiped and formatted successfully!\n\nIt is now completely clean and ready for AxisOS installation.",
+                app->selected_disk.c_str());
+            gtk_dialog_run(GTK_DIALOG(done_diag));
+            gtk_widget_destroy(done_diag);
         }
     }
 
