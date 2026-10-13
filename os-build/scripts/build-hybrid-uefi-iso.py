@@ -623,8 +623,18 @@ else:
     subprocess.run([
         "mksquashfs", chroot_dir, squashfs_target,
         "-comp", "xz",
+        "-b", "1048576",
+        "-Xbcj", "x86",
         "-noappend",
-        "-e", "boot/vmlinuz*", "boot/initrd.img*"
+        "-e",
+        "boot/vmlinuz*",
+        "boot/initrd.img*",
+        "var/cache/apt/archives/*",
+        "var/lib/apt/lists/*",
+        "tmp/*",
+        "var/tmp/*",
+        "var/log/*",
+        "root/.cache/*"
     ], check=True)
 
 # Step 2: Ensure kernel and initrd are in binary/live

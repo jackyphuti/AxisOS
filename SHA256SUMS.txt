@@ -1,1 +1,1 @@
-c0132769c5c6daff13d31e7855ccd448ea6dfd20f54921a3381907244c82c9f7  axisos-v2.0-live-amd64.iso
+04b5b9ad99d5ae63e7c4c07e9a560e77eba9fb8d26efbc4ed68db7886a47d297  axisos-v2.0-live-amd64.iso

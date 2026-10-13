@@ -28,7 +28,7 @@ Download `axisos-v2.0-live-amd64.iso` and `SHA256SUMS.txt` from the [GitHub Rele
   ```powershell
   (Get-FileHash axisos-v2.0-live-amd64.iso -Algorithm SHA256).Hash
   ```
-  Expected: `C0132769C5C6DAFF13D31E7855CCD448EA6DFD20F54921A3381907244C82C9F7`
+  Expected: `04B5B9AD99D5AE63E7C4C07E9A560E77EBA9FB8D26EFBC4ED68DB7886A47D297`
 - **Linux / macOS**:
   ```bash
   sha256sum -c SHA256SUMS.txt

@@ -59,7 +59,7 @@ Welcome to **AxisOS 2.0 Beta**! This release introduces major performance, stabi
 
 | Asset | Size | SHA-256 Checksum |
 | :--- | :--- | :--- |
-| **`axisos-v2.0-live-amd64.iso`** | 2.93 GB (2,939,158,528 bytes) | `c0132769c5c6daff13d31e7855ccd448ea6dfd20f54921a3381907244c82c9f7` |
+| **`axisos-v2.0-live-amd64.iso`** | 1.90 GiB (2,043,674,624 bytes) | `04b5b9ad99d5ae63e7c4c07e9a560e77eba9fb8d26efbc4ed68db7886a47d297` |
 | **`SHA256SUMS.txt`** | 99 bytes | *(Checksum validation manifest)* |
 
 ### Verifying Download Integrity:
