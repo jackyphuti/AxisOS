@@ -450,6 +450,7 @@ public:
     GtkWidget* combo_fs;
     std::string live_media_device = "";
     std::string live_disk_device = "";
+    std::vector<std::string> excluded_disks;
 
     // Step 2: Account
     GtkWidget* entry_fullname;
@@ -554,32 +555,94 @@ public:
     }
 
     void detect_live_media() {
-        FILE* flive = popen("findmnt -n -o SOURCE /run/live/medium 2>/dev/null || findmnt -n -o SOURCE /run/live/rootfs 2>/dev/null", "r");
+        excluded_disks.clear();
+        live_media_device = "";
+        live_disk_device = "";
+
+        const char* check_cmd = "for mp in /run/live/medium /run/live/rootfs /run/initramfs /run/initramfs/live /cdrom /live/image; do "
+                                "  if mountpoint -q \"$mp\" 2>/dev/null || [ -d \"$mp\" ]; then "
+                                "    src=$(findmnt -n -o SOURCE \"$mp\" 2>/dev/null || true); "
+                                "    [ -n \"$src\" ] && echo \"$src\"; "
+                                "  fi; "
+                                "done; "
+                                "rsrc=$(findmnt -n -o SOURCE / 2>/dev/null || true); "
+                                "if [ -n \"$rsrc\" ] && [ \"$rsrc\" != \"overlay\" ] && [ \"$rsrc\" != \"rootfs\" ] && [ \"$rsrc\" != \"tmpfs\" ]; then "
+                                "  echo \"$rsrc\"; "
+                                "fi; "
+                                "awk '$2 ~ /^\\/run\\/(live|initramfs)/ || $2 ~ /^\\/cdrom/ {if ($1 ~ /^\\/dev/) print $1}' /proc/mounts 2>/dev/null || true";
+
+        FILE* flive = popen(check_cmd, "r");
         if (flive) {
-            char lbuf[256];
-            if (fgets(lbuf, sizeof(lbuf), flive)) {
-                live_media_device = lbuf;
-                while (!live_media_device.empty() && (live_media_device.back() == '\n' || live_media_device.back() == '\r')) {
-                    live_media_device.pop_back();
+            char lbuf[512];
+            while (fgets(lbuf, sizeof(lbuf), flive)) {
+                std::string dev = lbuf;
+                while (!dev.empty() && (dev.back() == '\n' || dev.back() == '\r' || dev.back() == ' ')) dev.pop_back();
+                if (dev.empty()) continue;
+
+                std::string parent = dev;
+                if (parent.find("/dev/loop") == 0) {
+                    std::string back_cmd = "losetup -O BACK-FILE -n " + parent + " 2>/dev/null";
+                    FILE* fback = popen(back_cmd.c_str(), "r");
+                    if (fback) {
+                        char bbuf[512];
+                        if (fgets(bbuf, sizeof(bbuf), fback)) {
+                            std::string bfile = bbuf;
+                            while (!bfile.empty() && (bfile.back() == '\n' || bfile.back() == '\r')) bfile.pop_back();
+                            if (!bfile.empty()) {
+                                std::string df_cmd = "df -P \"" + bfile + "\" 2>/dev/null | awk 'NR==2 {print $1}'";
+                                FILE* fdf = popen(df_cmd.c_str(), "r");
+                                if (fdf) {
+                                    char dbuf[512];
+                                    if (fgets(dbuf, sizeof(dbuf), fdf)) {
+                                        std::string ddev = dbuf;
+                                        while (!ddev.empty() && (ddev.back() == '\n' || ddev.back() == '\r')) ddev.pop_back();
+                                        if (!ddev.empty()) parent = ddev;
+                                    }
+                                    pclose(fdf);
+                                }
+                            }
+                        }
+                        pclose(fback);
+                    }
+                }
+
+                if (parent.find("/dev/") == 0) {
+                    std::string pk_cmd = "lsblk -n -o PKNAME " + parent + " 2>/dev/null";
+                    FILE* fpk = popen(pk_cmd.c_str(), "r");
+                    if (fpk) {
+                        char pbuf[256];
+                        if (fgets(pbuf, sizeof(pbuf), fpk)) {
+                            std::string pk = pbuf;
+                            while (!pk.empty() && (pk.back() == '\n' || pk.back() == '\r' || pk.back() == ' ')) pk.pop_back();
+                            if (!pk.empty()) parent = "/dev/" + pk;
+                        }
+                        pclose(fpk);
+                    }
+                }
+
+                if (live_media_device.empty()) live_media_device = dev;
+                if (live_disk_device.empty()) live_disk_device = parent;
+
+                bool exists = false;
+                for (const auto& ex : excluded_disks) {
+                    if (ex == parent || ex == dev) { exists = true; break; }
+                }
+                if (!exists) {
+                    excluded_disks.push_back(parent);
+                    if (dev != parent) excluded_disks.push_back(dev);
                 }
             }
             pclose(flive);
         }
+    }
 
-        if (!live_media_device.empty()) {
-            std::string cmd = "lsblk -n -o PKNAME " + live_media_device + " 2>/dev/null";
-            FILE* fpk = popen(cmd.c_str(), "r");
-            if (fpk) {
-                char pbuf[256];
-                if (fgets(pbuf, sizeof(pbuf), fpk)) {
-                    std::string pk = pbuf;
-                    while (!pk.empty() && (pk.back() == '\n' || pk.back() == '\r')) pk.pop_back();
-                    if (!pk.empty()) live_disk_device = "/dev/" + pk;
-                }
-                pclose(fpk);
-            }
-            if (live_disk_device.empty()) live_disk_device = live_media_device;
+    bool is_disk_excluded(const std::string& dev) const {
+        if (!live_disk_device.empty() && dev == live_disk_device) return true;
+        if (!live_media_device.empty() && dev == live_media_device) return true;
+        for (const auto& ex : excluded_disks) {
+            if (dev == ex) return true;
         }
+        return false;
     }
 
     GtkWidget* wrap_in_scroller(GtkWidget* child) {
@@ -810,8 +873,7 @@ public:
             gtk_tree_model_get(model, &iter, 4, &dev_path, 0, &label, 3, &desc, -1);
             if (dev_path) {
                 app->selected_disk = dev_path;
-                bool is_live = (!app->live_disk_device.empty() && app->selected_disk == app->live_disk_device) ||
-                               (!app->live_media_device.empty() && app->selected_disk == app->live_media_device);
+                bool is_live = app->is_disk_excluded(app->selected_disk);
 
                 if (is_live) {
                     gtk_label_set_text(GTK_LABEL(app->lbl_disk_selection_status),
@@ -865,15 +927,14 @@ public:
                     std::getline(ss, free_sp, '|');
                     std::getline(ss, desc);
 
-                    bool is_live = (!live_disk_device.empty() && dev_name == live_disk_device) ||
-                                   (!live_media_device.empty() && dev_name == live_media_device);
+                    // Requirement 3: Exclude installer boot device and live media from drive list
+                    if (is_disk_excluded(dev_name)) {
+                        continue;
+                    }
 
                     GtkTreeIter iter;
                     gtk_list_store_append(store_drives, &iter);
                     std::string label = "Drive " + std::to_string(idx) + " (" + dev_name + ")";
-                    if (is_live) label += " [Live USB - Protected]";
-
-                    if (is_live) desc += " (Active Installation Media)";
 
                     gtk_list_store_set(store_drives, &iter,
                         0, label.c_str(),
@@ -883,18 +944,16 @@ public:
                         4, dev_name.c_str(),
                         -1);
 
-                    // Prefer clean / empty drive as default, otherwise first non-live drive
-                    if (!is_live) {
-                        if (desc.find("Clean") != std::string::npos || free_sp.find("100% Free") != std::string::npos) {
-                            if (clean_path == nullptr) {
-                                clean_path = gtk_tree_path_new_from_indices(row_idx, -1);
-                                clean_disk = dev_name;
-                            }
+                    // Prefer clean / empty drive as default, otherwise first available drive
+                    if (desc.find("Clean") != std::string::npos || free_sp.find("100% Free") != std::string::npos) {
+                        if (clean_path == nullptr) {
+                            clean_path = gtk_tree_path_new_from_indices(row_idx, -1);
+                            clean_disk = dev_name;
                         }
-                        if (target_path == nullptr) {
-                            target_path = gtk_tree_path_new_from_indices(row_idx, -1);
-                            selected_disk = dev_name;
-                        }
+                    }
+                    if (target_path == nullptr) {
+                        target_path = gtk_tree_path_new_from_indices(row_idx, -1);
+                        selected_disk = dev_name;
                     }
 
                     idx++;
@@ -930,16 +989,16 @@ public:
                         dev_name.find("/dev/zram") == std::string::npos &&
                         dev_name.find("/dev/ram") == std::string::npos) {
 
-                        bool is_live = (!live_disk_device.empty() && dev_name == live_disk_device) ||
-                                       (!live_media_device.empty() && dev_name == live_media_device);
+                        // Requirement 3: Exclude installer boot device and live media from drive list
+                        if (is_disk_excluded(dev_name)) {
+                            continue;
+                        }
 
                         GtkTreeIter iter;
                         gtk_list_store_append(store_drives, &iter);
                         std::string label = "Drive " + std::to_string(idx) + " (" + dev_name + ")";
-                        if (is_live) label += " [Live USB - Protected]";
 
                         std::string desc = rest.empty() ? "Internal Storage" : rest;
-                        if (is_live) desc += " (Active Installation Media)";
 
                         gtk_list_store_set(store_drives, &iter,
                             0, label.c_str(),
@@ -949,7 +1008,7 @@ public:
                             4, dev_name.c_str(),
                             -1);
 
-                        if (!is_live && target_path == nullptr) {
+                        if (target_path == nullptr) {
                             target_path = gtk_tree_path_new_from_indices(row_idx, -1);
                             selected_disk = dev_name;
                         }

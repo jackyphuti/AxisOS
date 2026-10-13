@@ -108,20 +108,99 @@ if [[ ! -b "$TARGET_DISK" ]]; then
     error_exit "Target disk $TARGET_DISK does not exist or is not a block device."
 fi
 
-# Detect and safeguard live USB medium
-LIVE_MEDIA_DEV=$(findmnt -n -o SOURCE /run/live/medium 2>/dev/null || findmnt -n -o SOURCE /run/live/rootfs 2>/dev/null || echo "")
-if [[ -n "$LIVE_MEDIA_DEV" ]]; then
-    LIVE_DISK=$(lsblk -no PKNAME "$LIVE_MEDIA_DEV" 2>/dev/null || echo "")
-    if [[ -n "$LIVE_DISK" ]]; then
-        LIVE_DISK="/dev/$LIVE_DISK"
-    else
-        LIVE_DISK="${LIVE_MEDIA_DEV%[0-9]*}"
-        LIVE_DISK="${LIVE_DISK%p}"
+# Helper: Resolve parent disk of a device (handles partitions, loop devices, etc.)
+resolve_parent_disk() {
+    local dev="$1"
+    [ -z "$dev" ] && return
+    if [[ "$dev" =~ /dev/loop[0-9]+ ]]; then
+        local back_file
+        back_file=$(losetup -O BACK-FILE -n "$dev" 2>/dev/null || true)
+        if [[ -n "$back_file" && -e "$back_file" ]]; then
+            local back_src
+            back_src=$(df -P "$back_file" 2>/dev/null | awk 'NR==2 {print $1}')
+            if [[ -n "$back_src" && "$back_src" != "$dev" ]]; then
+                resolve_parent_disk "$back_src"
+                return
+            fi
+        fi
     fi
-    if [[ -n "$LIVE_DISK" ]] && [[ "$TARGET_DISK" == "$LIVE_DISK" || "$TARGET_DISK" == "$LIVE_MEDIA_DEV" ]]; then
-        error_exit "Target disk $TARGET_DISK is the active installation media. Please select an internal drive."
+
+    if [[ "$dev" == /dev/* ]]; then
+        local pk
+        pk=$(lsblk -no PKNAME "$dev" 2>/dev/null | head -n 1 || true)
+        if [[ -n "$pk" ]]; then
+            echo "/dev/$pk"
+            return
+        fi
+        local dtype
+        dtype=$(lsblk -no TYPE "$dev" 2>/dev/null | head -n 1 || true)
+        if [[ "$dtype" == "disk" ]]; then
+            echo "$dev"
+            return
+        fi
+        local stripped="$dev"
+        if [[ "$stripped" =~ ^(/dev/.*)p[0-9]+$ ]]; then
+            echo "${BASH_REMATCH[1]}"
+            return
+        elif [[ "$stripped" =~ ^(/dev/[a-zA-Z]+)[0-9]+$ ]]; then
+            echo "${BASH_REMATCH[1]}"
+            return
+        fi
+        echo "$dev"
+        return
     fi
-fi
+}
+
+get_excluded_disks() {
+    local excluded_disks=()
+
+    add_excluded() {
+        local d="$1"
+        [ -z "$d" ] && return
+        local parent
+        parent=$(resolve_parent_disk "$d")
+        if [[ -n "$parent" ]]; then
+            for e in "${excluded_disks[@]}"; do
+                [[ "$e" == "$parent" ]] && return
+            done
+            excluded_disks+=("$parent")
+        fi
+    }
+
+    # 1. Mount points for installation medium and initramfs
+    for mp in /run/live/medium /run/live/rootfs /run/initramfs /run/initramfs/live /cdrom /live/image; do
+        if mountpoint -q "$mp" 2>/dev/null || [ -d "$mp" ]; then
+            local src
+            src=$(findmnt -n -o SOURCE "$mp" 2>/dev/null || true)
+            [ -n "$src" ] && add_excluded "$src"
+        fi
+    done
+
+    # 2. Check / (root) backing device if not a pure overlay/tmpfs/rootfs
+    local root_src
+    root_src=$(findmnt -n -o SOURCE / 2>/dev/null || true)
+    if [[ -n "$root_src" && "$root_src" != "overlay" && "$root_src" != "rootfs" && "$root_src" != "tmpfs" && "$root_src" == /dev/* ]]; then
+        add_excluded "$root_src"
+    fi
+
+    # 3. Check /proc/mounts for any live or initramfs mounts
+    while read -r src target fstype rest; do
+        if [[ "$target" =~ ^/run/live || "$target" =~ ^/run/initramfs || "$target" =~ ^/cdrom ]]; then
+            [[ "$src" == /dev/* ]] && add_excluded "$src"
+        fi
+    done < /proc/mounts 2>/dev/null || true
+
+    echo "${excluded_disks[@]}"
+}
+
+# Safeguard installer boot device, initramfs, and live USB medium
+EXCLUDED_DISKS=($(get_excluded_disks))
+log "Excluded boot/installer disks: ${EXCLUDED_DISKS[*]}"
+for ex_disk in "${EXCLUDED_DISKS[@]}"; do
+    if [[ "$TARGET_DISK" == "$ex_disk" ]]; then
+        error_exit "Target disk $TARGET_DISK is the installer's active boot device or installation medium ($ex_disk). Refusing to overwrite. Please select an internal drive."
+    fi
+done
 
 # Detect UEFI vs BIOS
 IS_UEFI=false
@@ -142,8 +221,12 @@ multipath -F 2>/dev/null || true
 dmraid -an 2>/dev/null || true
 
 # Kill any processes holding open handles on the target disk or any of its partitions
-fuser -k -9 "$TARGET_DISK"* 2>/dev/null || true
 fuser -k -9 "$TARGET_DISK" 2>/dev/null || true
+for p_init in $(lsblk -rno NAME,TYPE "$TARGET_DISK" 2>/dev/null | awk '$2=="part" {print $1}'); do
+    p_dev="/dev/$p_init"
+    [[ "$p_init" == /* ]] && p_dev="$p_init"
+    fuser -k -9 "$p_dev" 2>/dev/null || true
+done
 sleep 1
 
 # Disable all active swap
@@ -173,8 +256,10 @@ done
 findmnt -lno TARGET,SOURCE 2>/dev/null | awk -v disk="$TARGET_DISK" '$2 ~ disk {print $1}' | while read -r mp; do
     umount -f -l "$mp" 2>/dev/null || true
 done
-for part in ${TARGET_DISK}*; do
-    [ -b "$part" ] && umount -f -l "$part" 2>/dev/null || true
+for p_init in $(lsblk -rno NAME,TYPE "$TARGET_DISK" 2>/dev/null | awk '$2=="part" {print $1}'); do
+    p_dev="/dev/$p_init"
+    [[ "$p_init" == /* ]] && p_dev="$p_init"
+    [ -b "$p_dev" ] && umount -f -l "$p_dev" 2>/dev/null || true
 done
 sync
 
@@ -274,71 +359,111 @@ udevadm settle --timeout=5 2>/dev/null || sleep 2
 # Resume udisks2 now that partitioning is committed
 systemctl start udisks2.service 2>/dev/null || true
 
-# Resolve partition paths (e.g., /dev/nvme0n1p1 vs /dev/sda1)
-PART_PREFIX="$TARGET_DISK"
-if [[ "$TARGET_DISK" =~ [0-9]$ ]]; then
-    PART_PREFIX="${TARGET_DISK}p"
-fi
-
-ESP_PART="${PART_PREFIX}1"
-SWAP_PART="${PART_PREFIX}2"
-ROOT_PART="${PART_PREFIX}3"
-
-# Wait for partitions to appear and create device nodes if udev delayed them
-DISK_NAME=$(basename "$TARGET_DISK")
-for i in {1..20}; do
-    if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then
-        break
+# Helper function to compute expected partition naming supporting NVMe (nvme0n1p1), eMMC (mmcblk0p1), loop (loop0p1), SATA (sda1)
+get_expected_partition_name() {
+    local disk="$1"
+    local part_num="$2"
+    if [[ "$disk" =~ [0-9]$ ]] || [[ "$disk" =~ (nvme|mmcblk|loop) ]]; then
+        echo "${disk}p${part_num}"
+    else
+        echo "${disk}${part_num}"
     fi
+}
 
-    # Force partx to load partition entries into the kernel
-    partx -a "$TARGET_DISK" 2>/dev/null || true
+EXPECTED_ESP=$(get_expected_partition_name "$TARGET_DISK" 1)
+EXPECTED_SWAP=$(get_expected_partition_name "$TARGET_DISK" 2)
+EXPECTED_ROOT=$(get_expected_partition_name "$TARGET_DISK" 3)
 
-    # Check /sys/block/${DISK_NAME} and /sys/class/block for major:minor
-    for p_idx in 1 2 3; do
-        p_target="${PART_PREFIX}${p_idx}"
-        p_short=$(basename "$p_target")
+# Wait up to 10 seconds for each expected partition node to appear before continuing
+DISK_NAME=$(basename "$TARGET_DISK")
+for expected_part in "$EXPECTED_ESP" "$EXPECTED_SWAP" "$EXPECTED_ROOT"; do
+    node_found=false
+    for ((s=1; s<=10; s++)); do
+        if [ -b "$expected_part" ]; then
+            node_found=true
+            break
+        fi
 
+        # Check sysfs for major:minor in case udev delayed block device node creation
+        p_short=$(basename "$expected_part")
         dev_num=""
         for sys_path in "/sys/block/${DISK_NAME}/${p_short}/dev" \
-                         "/sys/class/block/${p_short}/dev" \
-                         "/sys/block/${DISK_NAME}/${DISK_NAME}${p_idx}/dev"; do
+                         "/sys/class/block/${p_short}/dev"; do
             if [[ -f "$sys_path" ]]; then
                 dev_num=$(cat "$sys_path" 2>/dev/null || true)
                 [ -n "$dev_num" ] && break
             fi
         done
 
-        if [[ -n "$dev_num" && ! -b "$p_target" ]]; then
+        if [[ -n "$dev_num" && ! -b "$expected_part" ]]; then
             major=$(echo "$dev_num" | cut -d: -f1)
             minor=$(echo "$dev_num" | cut -d: -f2)
-            mknod -m 660 "$p_target" b "$major" "$minor" 2>/dev/null || true
-            chown root:disk "$p_target" 2>/dev/null || true
+            mknod -m 660 "$expected_part" b "$major" "$minor" 2>/dev/null || true
+            chown root:disk "$expected_part" 2>/dev/null || true
+            if [ -b "$expected_part" ]; then
+                node_found=true
+                break
+            fi
         fi
+
+        partx -a "$TARGET_DISK" 2>/dev/null || true
+        partprobe "$TARGET_DISK" 2>/dev/null || true
+        udevadm trigger --action=add --subsystem-match=block 2>/dev/null || true
+        udevadm settle --timeout=2 2>/dev/null || sleep 1
     done
 
-    # Fallback: scan lsblk for partition paths in case kernel used alternate naming
-    if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
-        found_parts=($(lsblk -n -r -o PATH "$TARGET_DISK" 2>/dev/null | grep -v "^$TARGET_DISK$" || true))
-        if [[ ${#found_parts[@]} -ge 3 ]]; then
-            [ ! -b "$ESP_PART" ] && ESP_PART="${found_parts[0]}"
-            [ ! -b "$SWAP_PART" ] && SWAP_PART="${found_parts[1]}"
-            [ ! -b "$ROOT_PART" ] && ROOT_PART="${found_parts[2]}"
-        fi
+    if [ "$node_found" != "true" ]; then
+        error_exit "Expected partition device node $expected_part was not found after waiting 10 seconds on $TARGET_DISK."
     fi
-
-    if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then
-        break
-    fi
-
-    sleep 1
-    partprobe "$TARGET_DISK" 2>/dev/null || true
-    udevadm trigger --action=add --subsystem-match=block 2>/dev/null || true
 done
 
-if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
-    error_exit "Partition $ROOT_PART or $ESP_PART not found after partitioning on $TARGET_DISK. Please select back to drive selection to choose another drive or format this drive."
+# Read the real partition names after partitioning, using lsblk -rno NAME,TYPE or blkid
+real_partitions=()
+while read -r name type; do
+    if [ "$type" = "part" ]; then
+        if [[ "$name" = /* ]]; then
+            real_partitions+=("$name")
+        else
+            real_partitions+=("/dev/$name")
+        fi
+    fi
+done < <(lsblk -rno NAME,TYPE "$TARGET_DISK" 2>/dev/null || true)
+
+# If lsblk returned fewer than 3 partitions, fallback to blkid lookup
+if [[ ${#real_partitions[@]} -lt 3 ]]; then
+    while read -r b_dev rest; do
+        b_clean="${b_dev%:}"
+        if [[ "$b_clean" == /dev/* && "$b_clean" != "$TARGET_DISK" ]]; then
+            already_in=false
+            for existing_p in "${real_partitions[@]}"; do
+                if [[ "$existing_p" == "$b_clean" ]]; then
+                    already_in=true
+                    break
+                fi
+            done
+            if [[ "$already_in" == "false" ]]; then
+                real_partitions+=("$b_clean")
+            fi
+        fi
+    done < <(blkid 2>/dev/null | grep "^${TARGET_DISK}" || true)
 fi
+
+if [[ ${#real_partitions[@]} -lt 3 ]]; then
+    error_exit "Partition discovery failed: expected 3 partitions on $TARGET_DISK, found ${#real_partitions[@]} (${real_partitions[*]})."
+fi
+
+ESP_PART="${real_partitions[0]}"
+SWAP_PART="${real_partitions[1]}"
+ROOT_PART="${real_partitions[2]}"
+
+# Add a log line for each partition found, with its device path, size, and filesystem
+for part_dev in "$ESP_PART" "$SWAP_PART" "$ROOT_PART"; do
+    part_size=$(lsblk -b -n -o SIZE "$part_dev" 2>/dev/null || echo "0")
+    part_size_hr=$(lsblk -n -o SIZE "$part_dev" 2>/dev/null || echo "unknown")
+    part_fs=$(lsblk -n -o FSTYPE "$part_dev" 2>/dev/null || blkid -s TYPE -o value "$part_dev" 2>/dev/null || echo "unformatted")
+    [ -z "$part_fs" ] && part_fs="unformatted"
+    log "Partition found: device=$part_dev, size=$part_size_hr (${part_size} bytes), filesystem=$part_fs"
+done
 
 report 25 "Formatting filesystems (ESP FAT32, Swap, and Root)..."
 # Ensure all partitions are unmounted before formatting
@@ -416,6 +541,15 @@ mount "$ESP_PART" /mnt/boot/efi 2>/dev/null || {
     sleep 1
     mount "$ESP_PART" /mnt/boot/efi 2>/dev/null || true
 }
+
+# Log all partitions formatted with their device path, size, and filesystem
+for part_dev in "$ESP_PART" "$SWAP_PART" "$ROOT_PART"; do
+    part_size=$(lsblk -b -n -o SIZE "$part_dev" 2>/dev/null || echo "0")
+    part_size_hr=$(lsblk -n -o SIZE "$part_dev" 2>/dev/null || echo "unknown")
+    part_fs=$(lsblk -n -o FSTYPE "$part_dev" 2>/dev/null || blkid -s TYPE -o value "$part_dev" 2>/dev/null || echo "unformatted")
+    [ -z "$part_fs" ] && part_fs="unformatted"
+    log "Partition formatted: device=$part_dev, size=$part_size_hr (${part_size} bytes), filesystem=$part_fs"
+done
 
 # Verify that root is successfully mounted
 if ! mountpoint -q /mnt; then
