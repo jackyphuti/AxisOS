@@ -7,6 +7,7 @@
 # ==============================================================================
 
 # Standard error handling (explicit checks for critical operations)
+export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 umask 022
 
 TARGET_DISK=""
@@ -202,6 +203,14 @@ for ex_disk in "${EXCLUDED_DISKS[@]}"; do
     fi
 done
 
+# Print chosen disk, its model, and its size before wiping
+DISK_MODEL=$(lsblk -d -n -o MODEL "$TARGET_DISK" 2>/dev/null | sed -e 's/^[ \t]*//' -e 's/[ \t]*$//' || echo "Generic Storage Device")
+[ -z "$DISK_MODEL" ] && DISK_MODEL="Generic Storage Device"
+DISK_SIZE_HR=$(lsblk -d -n -o SIZE "$TARGET_DISK" 2>/dev/null || echo "Unknown Size")
+DISK_SIZE_BYTES=$(blockdev --getsize64 "$TARGET_DISK" 2>/dev/null || echo 0)
+log "Selected installation target: $TARGET_DISK | Model: $DISK_MODEL | Size: $DISK_SIZE_HR ($DISK_SIZE_BYTES bytes)"
+echo "Target disk selected: $TARGET_DISK (Model: $DISK_MODEL, Size: $DISK_SIZE_HR)"
+
 # Detect UEFI vs BIOS
 IS_UEFI=false
 if [[ -d /sys/firmware/efi ]]; then
@@ -230,6 +239,7 @@ done
 sleep 1
 
 # Disable all active swap
+swapoff "$TARGET_DISK"* 2>/dev/null || true
 swapoff -a 2>/dev/null || true
 
 # Deactivate LVM
@@ -250,16 +260,26 @@ fi
 if mountpoint -q /mnt_axis_tmp; then
     umount -l -R /mnt_axis_tmp 2>/dev/null || true
 fi
+
+# 1. Using findmnt
+while read -r target; do
+    if [[ -n "$target" ]]; then
+        log "Unmounting active mountpoint $target on $TARGET_DISK..."
+        umount -f "$target" 2>/dev/null || umount -l "$target" 2>/dev/null || error_exit "Failed to unmount active filesystem at $target on $TARGET_DISK"
+    fi
+done < <(findmnt -rn -o TARGET -S "${TARGET_DISK}"* 2>/dev/null || true)
+
+# 2. Using lsblk MOUNTPOINT
+while read -r mp; do
+    if [[ -n "$mp" ]]; then
+        log "Unmounting partition mountpoint $mp on $TARGET_DISK..."
+        umount -f "$mp" 2>/dev/null || umount -l "$mp" 2>/dev/null || error_exit "Failed to unmount partition mountpoint at $mp on $TARGET_DISK"
+    fi
+done < <(lsblk -rno MOUNTPOINT "$TARGET_DISK" 2>/dev/null | awk 'NF' || true)
+
+# 3. /proc/mounts fallback
 awk -v d="$TARGET_DISK" '$1 ~ d {print $2}' /proc/mounts 2>/dev/null | while read -r mp; do
     umount -f -l "$mp" 2>/dev/null || true
-done
-findmnt -lno TARGET,SOURCE 2>/dev/null | awk -v disk="$TARGET_DISK" '$2 ~ disk {print $1}' | while read -r mp; do
-    umount -f -l "$mp" 2>/dev/null || true
-done
-for p_init in $(lsblk -rno NAME,TYPE "$TARGET_DISK" 2>/dev/null | awk '$2=="part" {print $1}'); do
-    p_dev="/dev/$p_init"
-    [[ "$p_init" == /* ]] && p_dev="$p_init"
-    [ -b "$p_dev" ] && umount -f -l "$p_dev" 2>/dev/null || true
 done
 sync
 
@@ -275,7 +295,16 @@ report 10 "Wiping partition signatures on $TARGET_DISK..."
 for p in $(lsblk -lno NAME "$TARGET_DISK" 2>/dev/null); do
     [ -b "/dev/$p" ] && wipefs -a -f "/dev/$p" 2>/dev/null || true
 done
-wipefs -a -f "$TARGET_DISK" 2>/dev/null || true
+
+# Wipe target disk signatures with wipefs -a -f and check exit code
+log "Running wipefs -a -f on $TARGET_DISK..."
+wipefs -a -f "$TARGET_DISK" || error_exit "wipefs -a -f failed on $TARGET_DISK (exit code $?)"
+
+# Zap partition table with sgdisk --zap-all and check exit code
+if command -v sgdisk >/dev/null 2>&1; then
+    log "Running sgdisk --zap-all on $TARGET_DISK..."
+    sgdisk --zap-all "$TARGET_DISK" || error_exit "sgdisk --zap-all failed on $TARGET_DISK (exit code $?)"
+fi
 
 # Zero out first 32MB (primary GPT, MBR, partition tables)
 dd if=/dev/zero of="$TARGET_DISK" bs=1M count=32 conv=notrunc status=none 2>/dev/null || true
@@ -289,7 +318,9 @@ fi
 sync
 blockdev --flushbufs "$TARGET_DISK" 2>/dev/null || true
 blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
-partprobe "$TARGET_DISK" 2>/dev/null || true
+if command -v partprobe >/dev/null 2>&1; then
+    partprobe "$TARGET_DISK" 2>/dev/null || true
+fi
 udevadm settle --timeout=3 2>/dev/null || sleep 1
 
 report 15 "Partitioning drive with GPT scheme..."
@@ -320,114 +351,183 @@ type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="AXIS_ROOT"
 EOF
     then
         PARTITION_SUCCESS=true
+        log "sfdisk completed successfully."
+    else
+        log "sfdisk failed with exit code $?."
     fi
 fi
 
-# Method 2: parted fallback with optimal alignment if sfdisk failed
-if [[ "$PARTITION_SUCCESS" != "true" ]] && command -v parted >/dev/null 2>&1; then
-    log "Partitioning with parted optimal alignment..."
-    parted -s -a optimal "$TARGET_DISK" mklabel gpt || true
-    parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_BOOT" fat32 1MiB 513MiB || true
-    parted -s "$TARGET_DISK" set 1 esp on || true
-    SWAP_MB_VAL=${SWAP_SIZE%M}
-    SWAP_END=$(( 513 + SWAP_MB_VAL ))
-    parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_SWAP" linux-swap 513MiB "${SWAP_END}MiB" || true
-    parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_ROOT" ext4 "${SWAP_END}MiB" 100% || true
-    PARTITION_SUCCESS=true
+# Method 2: sgdisk fallback if sfdisk failed
+if [[ "$PARTITION_SUCCESS" != "true" ]] && command -v sgdisk >/dev/null 2>&1; then
+    log "Partitioning with sgdisk fallback..."
+    if sgdisk -o "$TARGET_DISK" && \
+       sgdisk -n 1:2048:+512M -t 1:ef00 -c 1:"AXIS_BOOT" "$TARGET_DISK" && \
+       sgdisk -n 2:0:+${SWAP_SIZE} -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK" && \
+       sgdisk -n 3:0:0 -t 3:8300 -c 3:"AXIS_ROOT" "$TARGET_DISK"; then
+        PARTITION_SUCCESS=true
+        log "sgdisk completed successfully."
+    else
+        log "sgdisk failed with exit code $?."
+    fi
 fi
 
-# Method 3: sgdisk fallback
-if [[ "$PARTITION_SUCCESS" != "true" ]] && command -v sgdisk >/dev/null 2>&1; then
-    log "Partitioning with sgdisk..."
-    sgdisk --zap-all "$TARGET_DISK" 2>/dev/null || true
-    sgdisk -o "$TARGET_DISK" 2>/dev/null || true
-    sgdisk -n 1:2048:+512M -t 1:ef00 -c 1:"AXIS_BOOT" "$TARGET_DISK" || true
-    sgdisk -n 2:0:+${SWAP_SIZE} -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK" || true
-    sgdisk -n 3:0:0 -t 3:8300 -c 3:"AXIS_ROOT" "$TARGET_DISK" || true
-    PARTITION_SUCCESS=true
+# Method 3: parted fallback with optimal alignment if sfdisk and sgdisk failed
+if [[ "$PARTITION_SUCCESS" != "true" ]] && command -v parted >/dev/null 2>&1; then
+    log "Partitioning with parted optimal alignment fallback..."
+    SWAP_MB_VAL=${SWAP_SIZE%M}
+    SWAP_END=$(( 513 + SWAP_MB_VAL ))
+    if parted -s -a optimal "$TARGET_DISK" mklabel gpt && \
+       parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_BOOT" fat32 1MiB 513MiB && \
+       parted -s "$TARGET_DISK" set 1 esp on && \
+       parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_SWAP" linux-swap 513MiB "${SWAP_END}MiB" && \
+       parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_ROOT" ext4 "${SWAP_END}MiB" 100%; then
+        PARTITION_SUCCESS=true
+        log "parted completed successfully."
+    else
+        log "parted failed with exit code $?."
+    fi
 fi
+
+[[ "$PARTITION_SUCCESS" != "true" ]] && error_exit "Partitioning failed: could not write GPT partition table on $TARGET_DISK using sfdisk, sgdisk, or parted."
 
 sync
 blockdev --flushbufs "$TARGET_DISK" 2>/dev/null || true
-blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
-partx -u "$TARGET_DISK" 2>/dev/null || true
-partx -a "$TARGET_DISK" 2>/dev/null || true
-partprobe "$TARGET_DISK" 2>/dev/null || true
-udevadm trigger --action=add --subsystem-match=block 2>/dev/null || true
-udevadm settle --timeout=5 2>/dev/null || sleep 2
+if command -v partprobe >/dev/null 2>&1; then
+    partprobe "$TARGET_DISK" || log "partprobe returned exit code $?"
+fi
+udevadm settle --timeout=30 2>/dev/null || sleep 2
 
-# Resume udisks2 now that partitioning is committed
+# Verify table with sgdisk -p or sfdisk -d, confirming expected partition count and types
+log "Verifying partition table layout on $TARGET_DISK..."
+table_verified=false
+part_table_count=0
+has_esp_type=false
+
+if command -v sgdisk >/dev/null 2>&1; then
+    sg_check=$(sgdisk -p "$TARGET_DISK" 2>/dev/null || true)
+    log "sgdisk -p verification:
+$sg_check"
+    part_table_count=$(echo "$sg_check" | awk '$1 ~ /^[1-9][0-9]*$/ {count++} END {print count+0}')
+    if echo "$sg_check" | grep -qiE 'EF00|C12A7328-F81F-11D2-BA4B-00A0C93EC93B'; then
+        has_esp_type=true
+    fi
+    if [ "$part_table_count" -ge 3 ]; then
+        if [[ "$IS_UEFI" == "true" ]]; then
+            [ "$has_esp_type" = "true" ] && table_verified=true
+        else
+            table_verified=true
+        fi
+    fi
+fi
+
+if [[ "$table_verified" != "true" ]] && command -v sfdisk >/dev/null 2>&1; then
+    sf_check=$(sfdisk -d "$TARGET_DISK" 2>/dev/null || true)
+    log "sfdisk -d verification:
+$sf_check"
+    part_table_count=$(echo "$sf_check" | grep -c "type=" || true)
+    if echo "$sf_check" | grep -qiE 'C12A7328-F81F-11D2-BA4B-00A0C93EC93B|type=c12a7328'; then
+        has_esp_type=true
+    fi
+    if [ "$part_table_count" -ge 3 ]; then
+        if [[ "$IS_UEFI" == "true" ]]; then
+            [ "$has_esp_type" = "true" ] && table_verified=true
+        else
+            table_verified=true
+        fi
+    fi
+fi
+
+if [[ "$table_verified" != "true" ]]; then
+    if [ "$part_table_count" -lt 3 ]; then
+        error_exit "Partition table verification failed on $TARGET_DISK: expected at least 3 partitions, but found $part_table_count in table."
+    elif [[ "$IS_UEFI" == "true" && "$has_esp_type" != "true" ]]; then
+        error_exit "Partition table verification failed on $TARGET_DISK: UEFI mode requires EFI System Partition (type EF00), none found."
+    fi
+fi
+log "Partition table verified: $part_table_count partitions confirmed (ESP type present: $has_esp_type)."
+
+# Resume udisks2 now that partitioning is verified
 systemctl start udisks2.service 2>/dev/null || true
 
-# Helper function to compute expected partition naming supporting NVMe (nvme0n1p1), eMMC (mmcblk0p1), loop (loop0p1), SATA (sda1)
-get_expected_partition_name() {
-    local disk="$1"
-    local part_num="$2"
-    if [[ "$disk" =~ [0-9]$ ]] || [[ "$disk" =~ (nvme|mmcblk|loop) ]]; then
-        echo "${disk}p${part_num}"
-    else
-        echo "${disk}${part_num}"
-    fi
-}
+# Find partition nodes by reading the table, not by constructing names.
+# Use lsblk -rno NAME,TYPE /dev/DISK and filter for TYPE=part.
+# Handle "p" separator for nvme (nvme0n1p1), mmcblk (mmcblk0p1), and loop (loop0p1) automatically.
+report 20 "Waiting for partition device nodes to be exposed by kernel..."
+real_partitions=()
+START_TIME=$(date +%s)
+MAX_WAIT_SECONDS=30
+RETRY_REREAD_DONE_5=false
+RETRY_REREAD_DONE_15=false
 
-EXPECTED_ESP=$(get_expected_partition_name "$TARGET_DISK" 1)
-EXPECTED_SWAP=$(get_expected_partition_name "$TARGET_DISK" 2)
-EXPECTED_ROOT=$(get_expected_partition_name "$TARGET_DISK" 3)
-
-# Wait up to 10 seconds for each expected partition node to appear before continuing
-DISK_NAME=$(basename "$TARGET_DISK")
-for expected_part in "$EXPECTED_ESP" "$EXPECTED_SWAP" "$EXPECTED_ROOT"; do
-    node_found=false
-    for ((s=1; s<=10; s++)); do
-        if [ -b "$expected_part" ]; then
-            node_found=true
-            break
-        fi
-
-        # Check sysfs for major:minor in case udev delayed block device node creation
-        p_short=$(basename "$expected_part")
-        dev_num=""
-        for sys_path in "/sys/block/${DISK_NAME}/${p_short}/dev" \
-                         "/sys/class/block/${p_short}/dev"; do
-            if [[ -f "$sys_path" ]]; then
-                dev_num=$(cat "$sys_path" 2>/dev/null || true)
-                [ -n "$dev_num" ] && break
+while true; do
+    real_partitions=()
+    while read -r name type; do
+        if [ "$type" = "part" ]; then
+            if [[ "$name" = /* ]]; then
+                real_partitions+=("$name")
+            else
+                real_partitions+=("/dev/$name")
             fi
-        done
+        fi
+    done < <(lsblk -rno NAME,TYPE "$TARGET_DISK" 2>/dev/null || true)
 
-        if [[ -n "$dev_num" && ! -b "$expected_part" ]]; then
-            major=$(echo "$dev_num" | cut -d: -f1)
-            minor=$(echo "$dev_num" | cut -d: -f2)
-            mknod -m 660 "$expected_part" b "$major" "$minor" 2>/dev/null || true
-            chown root:disk "$expected_part" 2>/dev/null || true
-            if [ -b "$expected_part" ]; then
-                node_found=true
+    # Check if we have at least 3 partition nodes and that every node exists as a block special device
+    if [ ${#real_partitions[@]} -ge 3 ]; then
+        all_block_nodes=true
+        for p_dev in "${real_partitions[@]}"; do
+            if [ ! -b "$p_dev" ]; then
+                all_block_nodes=false
                 break
             fi
+        done
+        if [ "$all_block_nodes" = "true" ]; then
+            log "All partition nodes found and confirmed as block devices: ${real_partitions[*]}"
+            break
         fi
+    fi
 
+    NOW=$(date +%s)
+    ELAPSED=$(( NOW - START_TIME ))
+
+    # If the table lists partitions but no nodes appear after partprobe and udevadm settle,
+    # call partx -a /dev/DISK or blockdev --rereadpt /dev/DISK, then retry the wait loop.
+    if [ "$ELAPSED" -ge 5 ] && [ "$RETRY_REREAD_DONE_5" = "false" ]; then
+        log "Nodes delayed: triggering kernel re-read with partx -a and blockdev --rereadpt on $TARGET_DISK..."
         partx -a "$TARGET_DISK" 2>/dev/null || true
-        partprobe "$TARGET_DISK" 2>/dev/null || true
-        udevadm trigger --action=add --subsystem-match=block 2>/dev/null || true
-        udevadm settle --timeout=2 2>/dev/null || sleep 1
-    done
-
-    if [ "$node_found" != "true" ]; then
-        error_exit "Expected partition device node $expected_part was not found after waiting 10 seconds on $TARGET_DISK."
-    fi
-done
-
-# Read the real partition names after partitioning, using lsblk -rno NAME,TYPE or blkid
-real_partitions=()
-while read -r name type; do
-    if [ "$type" = "part" ]; then
-        if [[ "$name" = /* ]]; then
-            real_partitions+=("$name")
-        else
-            real_partitions+=("/dev/$name")
+        blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
+        if command -v partprobe >/dev/null 2>&1; then
+            partprobe "$TARGET_DISK" 2>/dev/null || true
         fi
+        udevadm trigger --action=add --subsystem-match=block 2>/dev/null || true
+        udevadm settle --timeout=5 2>/dev/null || true
+        RETRY_REREAD_DONE_5=true
     fi
-done < <(lsblk -rno NAME,TYPE "$TARGET_DISK" 2>/dev/null || true)
+
+    if [ "$ELAPSED" -ge 15 ] && [ "$RETRY_REREAD_DONE_15" = "false" ]; then
+        log "Nodes still delayed: retrying partx -u, partx -a, and blockdev --rereadpt on $TARGET_DISK..."
+        partx -u "$TARGET_DISK" 2>/dev/null || true
+        partx -a "$TARGET_DISK" 2>/dev/null || true
+        blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
+        udevadm trigger --action=add --subsystem-match=block 2>/dev/null || true
+        udevadm settle --timeout=5 2>/dev/null || true
+        RETRY_REREAD_DONE_15=true
+    fi
+
+    if [ "$ELAPSED" -ge "$MAX_WAIT_SECONDS" ]; then
+        log "TIMEOUT: Partition device nodes failed to appear after ${MAX_WAIT_SECONDS} seconds on $TARGET_DISK."
+        log "=== lsblk output ==="
+        lsblk "$TARGET_DISK" >> /tmp/axisos-installer.log 2>&1 || true
+        log "=== lsblk -rno NAME,TYPE,FSTYPE,SIZE ==="
+        lsblk -rno NAME,TYPE,FSTYPE,SIZE "$TARGET_DISK" >> /tmp/axisos-installer.log 2>&1 || true
+        if command -v sgdisk >/dev/null 2>&1; then
+            log "=== sgdisk -p output ==="
+            sgdisk -p "$TARGET_DISK" >> /tmp/axisos-installer.log 2>&1 || true
+        fi
+        error_exit "Expected partition device nodes failed to appear after waiting ${MAX_WAIT_SECONDS} seconds on $TARGET_DISK. Partition table was written, but kernel did not expose block devices. Diagnostic logs dumped to /tmp/axisos-installer.log."
+    fi
+
+    sleep 0.5
+done
 
 # If lsblk returned fewer than 3 partitions, fallback to blkid lookup
 if [[ ${#real_partitions[@]} -lt 3 ]]; then
@@ -800,16 +900,44 @@ fi
 chroot /mnt systemctl set-default graphical.target 2>/dev/null || true
 chroot /mnt systemctl enable gdm3.service 2>/dev/null || true
 
-# Compile dconf system databases
-chroot /mnt dconf update 2>/dev/null || true
-
 # Clean user profile to ensure no live-session kiosk loop and deploy desktop applications
 mkdir -p "/mnt/home/${USERNAME}/Desktop"
 sed -i '/axisos-kiosk/d' "/mnt/home/${USERNAME}/.profile" 2>/dev/null || true
 if [ -d /mnt/etc/skel/Desktop ]; then
     cp -r /mnt/etc/skel/Desktop/* "/mnt/home/${USERNAME}/Desktop/" 2>/dev/null || true
 fi
+
+# Ensure installer is completely removed and unavailable in installed system
 rm -f "/mnt/home/${USERNAME}/Desktop/axis-installer.desktop" 2>/dev/null || true
+rm -f "/mnt/etc/skel/Desktop/axis-installer.desktop" 2>/dev/null || true
+rm -f "/mnt/usr/share/applications/axis-installer.desktop" 2>/dev/null || true
+rm -f "/mnt/usr/local/bin/axisos-installer.sh" 2>/dev/null || true
+
+# Strip axis-installer.desktop from GNOME dock favorites in dconf
+if [ -f /mnt/etc/dconf/db/local.d/00-axisos-gnome ]; then
+    sed -i "s/'axis-installer.desktop',[ ]*//g" /mnt/etc/dconf/db/local.d/00-axisos-gnome
+    sed -i "s/,[ ]*'axis-installer.desktop'//g" /mnt/etc/dconf/db/local.d/00-axisos-gnome
+fi
+chroot /mnt dconf update 2>/dev/null || true
+
+# Replace installer binary with no-op script so it cannot be invoked
+cat << 'EOF' > /mnt/usr/local/bin/axis-installer
+#!/bin/sh
+echo "AxisOS is already installed on this system."
+exit 0
+EOF
+chmod 755 /mnt/usr/local/bin/axis-installer
+
+# Ensure GameBoost engine utility and service are deployed in target OS
+if [ -f /usr/local/bin/axis-game-boost ]; then
+    cp -f /usr/local/bin/axis-game-boost /mnt/usr/local/bin/axis-game-boost
+    chmod 755 /mnt/usr/local/bin/axis-game-boost
+fi
+if [ -f /etc/systemd/system/axis-game-boost.service ]; then
+    cp -f /etc/systemd/system/axis-game-boost.service /mnt/etc/systemd/system/axis-game-boost.service
+    chroot /mnt systemctl enable axis-game-boost.service 2>/dev/null || true
+fi
+
 chmod +x "/mnt/home/${USERNAME}/Desktop"/*.desktop 2>/dev/null || true
 chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}"
 

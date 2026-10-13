@@ -15,9 +15,10 @@ WelcomeBackend::WelcomeBackend(QObject *parent)
     : QObject(parent)
 {
     m_cpuCores = QThread::idealThreadCount();
-    m_isLiveSession = QFile::exists(QStringLiteral("/run/live")) || 
+    m_isLiveSession = (QFile::exists(QStringLiteral("/run/live")) || 
                       qEnvironmentVariable("USER") == QStringLiteral("axisos") ||
-                      qEnvironmentVariable("USER") == QStringLiteral("live");
+                      qEnvironmentVariable("USER") == QStringLiteral("live")) &&
+                      !QFile::exists(QStringLiteral("/etc/axisos-installed"));
 
     detectHardware();
     readMemoryInfo();
@@ -195,7 +196,9 @@ void WelcomeBackend::launchApp(const QString &appId)
     } else if (appId == QStringLiteral("terminal")) {
         QProcess::startDetached(QStringLiteral("/usr/local/bin/axis-terminal"), {});
     } else if (appId == QStringLiteral("os-installer")) {
-        QProcess::startDetached(QStringLiteral("/usr/local/bin/axis-installer"), {});
+        if (m_isLiveSession && !QFile::exists(QStringLiteral("/etc/axisos-installed"))) {
+            QProcess::startDetached(QStringLiteral("/usr/local/bin/axis-installer"), {});
+        }
     } else if (appId == QStringLiteral("nvidia")) {
         QProcess::startDetached(QStringLiteral("/usr/local/bin/axis-terminal"), 
             QStringList() << QStringLiteral("-e") << QStringLiteral("pkexec /usr/local/bin/nvidia-auto-install.sh"));

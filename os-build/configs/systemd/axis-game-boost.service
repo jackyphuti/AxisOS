@@ -1,0 +1,11 @@
+[Unit]
+Description=AxisOS GameBoost Extreme Hardware Tuning Service
+After=multi-user.target graphical.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/axis-game-boost apply-current
+
+[Install]
+WantedBy=multi-user.target

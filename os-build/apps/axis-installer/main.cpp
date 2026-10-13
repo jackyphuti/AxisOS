@@ -1598,6 +1598,11 @@ public:
 };
 
 int main(int argc, char* argv[]) {
+    // If AxisOS is already installed on the drive, prevent launching the installer
+    if (access("/etc/axisos-installed", F_OK) == 0) {
+        g_print("AxisOS is already installed on this machine.\n");
+        return 0;
+    }
     gtk_init(&argc, &argv);
     AxisInstallerApp app;
     gtk_widget_show_all(app.window);

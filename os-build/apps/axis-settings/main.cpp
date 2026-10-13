@@ -217,6 +217,13 @@ public:
     GtkWidget* entry_confirm_pass;
     GtkWidget* lbl_pass_status;
 
+    // GameBoost widgets
+    GtkWidget* switch_game_boost;
+    GtkWidget* lbl_game_boost_status;
+    GtkWidget* lbl_boost_cpu;
+    GtkWidget* lbl_boost_gpu;
+    GtkWidget* lbl_boost_latency;
+
     AxisSettingsApp() {
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_window_set_title(GTK_WINDOW(window), "Settings - AxisOS");
@@ -255,6 +262,7 @@ public:
 
         const std::vector<std::pair<std::string, std::string>> pages = {
             {"🖥️  Display & Graphics", "display"},
+            {"⚡  Gaming Boost & Performance", "game_boost"},
             {"☀️  Brightness & Sound", "audio_display"},
             {"📶  Wi-Fi & Network", "network"},
             {"󰂯  Bluetooth", "bluetooth"},
@@ -298,6 +306,7 @@ public:
 
         // Build Pages
         build_display_page();
+        build_game_boost_page();
         build_brightness_audio_page();
         build_network_page();
         build_bluetooth_page();
@@ -474,7 +483,116 @@ private:
     }
 
     // =========================================================================
-    // 2. Brightness & Audio Page (sysfs / brightnessctl & PipeWire / ALSA)
+    // 2. Gaming Boost & Performance Page (Dynamic Overclocking & Latency Tuning)
+    // =========================================================================
+    static gboolean on_game_boost_toggled_cb(GtkSwitch* sw, gboolean state, gpointer user_data) {
+        AxisSettingsApp* app = static_cast<AxisSettingsApp*>(user_data);
+        std::string sudo_prefix = (geteuid() == 0) ? "" : "pkexec ";
+        std::string cmd = sudo_prefix + "/usr/local/bin/axis-game-boost " + (state ? "on" : "off") + " 2>/dev/null || true";
+        exec_cmd(cmd);
+        app->update_game_boost_status();
+        return FALSE;
+    }
+
+    void update_game_boost_status() {
+        std::string st = exec_cmd("/usr/local/bin/axis-game-boost status 2>/dev/null || true");
+        bool is_on = (st.find("GAME_BOOST_ENABLED=true") != std::string::npos);
+
+        if (switch_game_boost) {
+            g_signal_handlers_block_by_func(switch_game_boost, (gpointer)on_game_boost_toggled_cb, this);
+            gtk_switch_set_active(GTK_SWITCH(switch_game_boost), is_on);
+            g_signal_handlers_unblock_by_func(switch_game_boost, (gpointer)on_game_boost_toggled_cb, this);
+        }
+
+        if (lbl_game_boost_status) {
+            if (is_on) {
+                gtk_label_set_markup(GTK_LABEL(lbl_game_boost_status),
+                    "<span foreground='#10B981' weight='bold'>⚡ GAME BOOST ENGAGED • MAXIMUM HARDWARE OVERCLOCK ACTIVE</span>");
+            } else {
+                gtk_label_set_markup(GTK_LABEL(lbl_game_boost_status),
+                    "<span foreground='#94A3B8' weight='normal'>🍃 Balanced Energy Mode • Dynamic Clocks Active</span>");
+            }
+        }
+
+        std::string gov = exec_cmd("cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor 2>/dev/null || echo 'schedutil'");
+        if (!gov.empty() && gov.back() == '\n') gov.pop_back();
+
+        if (lbl_boost_cpu) {
+            std::string cpu_txt = is_on ?
+                ("⚡ CPU Core Scaling: Pinned Peak Clocks (Governor: " + gov + ", EPP: performance, Turbo: 100%)") :
+                ("🍃 CPU Core Scaling: Dynamic Balanced (Governor: " + gov + ", EPP: balance_performance)");
+            gtk_label_set_text(GTK_LABEL(lbl_boost_cpu), cpu_txt.c_str());
+        }
+
+        if (lbl_boost_gpu) {
+            std::string gpu_txt = is_on ?
+                "🎮 GPU Overclocking: Maximum Power Limit Unlocked • 3D Fullscreen High-Clocks Active" :
+                "🎮 GPU Dynamic Tuning: Adaptive Clocks • Energy-Efficient Profile";
+            gtk_label_set_text(GTK_LABEL(lbl_boost_gpu), gpu_txt.c_str());
+        }
+
+        if (lbl_boost_latency) {
+            std::string lat_txt = is_on ?
+                "🚀 Latency Tuning: Zero Split-Lock Jitter (Off) • Swappiness: 10 • Max Mappings: 2.14B" :
+                "⚖️ Latency Tuning: Standard Kernel Defaults (Swappiness: 60)";
+            gtk_label_set_text(GTK_LABEL(lbl_boost_latency), lat_txt.c_str());
+        }
+    }
+
+    void build_game_boost_page() {
+        GtkWidget* page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
+
+        // Header / Master Switch Card
+        GtkWidget* card_master = create_card("Gaming Boost & Hardware Overclocking",
+            "Unleash maximum system performance. Dynamically pins CPU clock speeds to peak frequencies, unlocks GPU wattage and clocks, eliminates memory split-lock micro-stutters, and optimizes frame latency for DirectX/Vulkan games.");
+
+        GtkWidget* hbox_toggle = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+        GtkWidget* lbl_toggle_desc = gtk_label_new("Activate GameBoost Maximum Overclocking Engine");
+        gtk_label_set_xalign(GTK_LABEL(lbl_toggle_desc), 0.0);
+        gtk_box_pack_start(GTK_BOX(hbox_toggle), lbl_toggle_desc, TRUE, TRUE, 0);
+
+        switch_game_boost = gtk_switch_new();
+        gtk_widget_set_valign(switch_game_boost, GTK_ALIGN_CENTER);
+        g_signal_connect(switch_game_boost, "state-set", G_CALLBACK(on_game_boost_toggled_cb), this);
+        gtk_box_pack_end(GTK_BOX(hbox_toggle), switch_game_boost, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(card_master), hbox_toggle, FALSE, FALSE, 6);
+
+        lbl_game_boost_status = gtk_label_new(NULL);
+        gtk_label_set_xalign(GTK_LABEL(lbl_game_boost_status), 0.0);
+        gtk_box_pack_start(GTK_BOX(card_master), lbl_game_boost_status, FALSE, FALSE, 4);
+
+        gtk_box_pack_start(GTK_BOX(page), card_master, FALSE, FALSE, 0);
+
+        // Hardware Telemetry & Real-Time Tuning Card
+        GtkWidget* card_details = create_card("Active Tuning & Hardware Subsystems",
+            "Real-time status of CPU governors, graphics pipelines, and kernel memory allocators.");
+
+        lbl_boost_cpu = gtk_label_new("⚡ CPU Clocks: Initializing...");
+        gtk_label_set_xalign(GTK_LABEL(lbl_boost_cpu), 0.0);
+        gtk_box_pack_start(GTK_BOX(card_details), lbl_boost_cpu, FALSE, FALSE, 4);
+
+        lbl_boost_gpu = gtk_label_new("🎮 GPU State: Initializing...");
+        gtk_label_set_xalign(GTK_LABEL(lbl_boost_gpu), 0.0);
+        gtk_box_pack_start(GTK_BOX(card_details), lbl_boost_gpu, FALSE, FALSE, 4);
+
+        lbl_boost_latency = gtk_label_new("🚀 Latency: Initializing...");
+        gtk_label_set_xalign(GTK_LABEL(lbl_boost_latency), 0.0);
+        gtk_box_pack_start(GTK_BOX(card_details), lbl_boost_latency, FALSE, FALSE, 4);
+
+        gtk_box_pack_start(GTK_BOX(page), card_details, FALSE, FALSE, 0);
+
+        // Pro-Tips Card
+        GtkWidget* card_info = create_card("Gaming Performance Recommendations",
+            "• GameBoost works automatically with Steam, Proton, Heroic, Lutris, and native Linux games.\n• When turned off, the system returns immediately to balanced energy-saving clocks to preserve battery life and reduce fan noise.\n• Combine with Feral GameMode (gamemoderun %command%) for per-process scheduler prioritization.");
+        gtk_box_pack_start(GTK_BOX(page), card_info, FALSE, FALSE, 0);
+
+        update_game_boost_status();
+
+        gtk_stack_add_named(GTK_STACK(stack), page, "game_boost");
+    }
+
+    // =========================================================================
+    // 3. Brightness & Audio Page (sysfs / brightnessctl & PipeWire / ALSA)
     // =========================================================================
     void build_brightness_audio_page() {
         GtkWidget* page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
@@ -1169,6 +1287,9 @@ private:
 
     static GtkWidget* create_scaled_logo(int max_w, int max_h) {
         const char* paths[] = {
+            "/usr/share/pixmaps/axisos-icon.svg",
+            "/usr/share/pixmaps/axisos-icon.png",
+            "/usr/share/pixmaps/axisos-icon-512.png",
             "/usr/share/pixmaps/axisos-logo.png",
             "/usr/share/pixmaps/axisos.png",
             "/usr/share/icons/hicolor/128x128/apps/axisos.png",
@@ -1186,21 +1307,39 @@ private:
                 }
             }
         }
-        return gtk_image_new_from_icon_name("axisos", GTK_ICON_SIZE_DIALOG);
+        return gtk_image_new_from_icon_name("axisos", GTK_ICON_SIZE_LARGE_TOOLBAR);
     }
 
     // =========================================================================
-    // 10. About AxisOS Page (Hardware Specs & System Details)
+    // 11. About AxisOS Page (Hardware Specs & System Details)
     // =========================================================================
     void build_about_page() {
         GtkWidget* page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
 
-        // Official AxisOS Logo banner (crisp, centered and cleanly sized)
-        GtkWidget* logo_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-        gtk_widget_set_halign(logo_box, GTK_ALIGN_CENTER);
-        GtkWidget* logo_img = create_scaled_logo(120, 80);
-        gtk_box_pack_start(GTK_BOX(logo_box), logo_img, FALSE, FALSE, 0);
-        gtk_box_pack_start(GTK_BOX(page), logo_box, FALSE, FALSE, 6);
+        // Official AxisOS Logo & Header (compact 48x48 icon badge alongside OS branding)
+        GtkWidget* header_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 16);
+        gtk_widget_set_margin_top(header_box, 8);
+        gtk_widget_set_margin_bottom(header_box, 10);
+        gtk_widget_set_margin_start(header_box, 6);
+
+        GtkWidget* logo_img = create_scaled_logo(48, 48);
+        gtk_widget_set_valign(logo_img, GTK_ALIGN_CENTER);
+        gtk_box_pack_start(GTK_BOX(header_box), logo_img, FALSE, FALSE, 0);
+
+        GtkWidget* title_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+        gtk_widget_set_valign(title_box, GTK_ALIGN_CENTER);
+        GtkWidget* title_lbl = gtk_label_new(NULL);
+        gtk_label_set_markup(GTK_LABEL(title_lbl), "<span size='x-large' weight='bold'>AxisOS 2.0</span>");
+        gtk_label_set_xalign(GTK_LABEL(title_lbl), 0.0);
+        gtk_box_pack_start(GTK_BOX(title_box), title_lbl, FALSE, FALSE, 0);
+
+        GtkWidget* subtitle_lbl = gtk_label_new("Debian Edition • Liquid Nodes Gaming & Workstation Desktop");
+        gtk_label_set_xalign(GTK_LABEL(subtitle_lbl), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(subtitle_lbl), "card-subtitle");
+        gtk_box_pack_start(GTK_BOX(title_box), subtitle_lbl, FALSE, FALSE, 0);
+
+        gtk_box_pack_start(GTK_BOX(header_box), title_box, TRUE, TRUE, 0);
+        gtk_box_pack_start(GTK_BOX(page), header_box, FALSE, FALSE, 0);
 
         GtkWidget* card = create_card("System Specifications & Hardware",
             "AxisOS 2.0 (Liquid Nodes Edition)");

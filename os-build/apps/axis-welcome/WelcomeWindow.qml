@@ -171,7 +171,7 @@ ApplicationWindow {
                     model: [
                         { name: "Hardware & Telemetry", icon: "📊" },
                         { name: "Quick Setup & Tuning", icon: "⚡" },
-                        { name: "Install to Disk", icon: "💾" },
+                        { name: WelcomeBackend.isLiveSession ? "Install to Disk" : "System Status", icon: WelcomeBackend.isLiveSession ? "💾" : "✓" },
                         { name: "Community & Docs", icon: "🌐" }
                     ]
 
@@ -696,20 +696,25 @@ ApplicationWindow {
                                     radius: 8
                                     gradient: Gradient {
                                         orientation: Gradient.Horizontal
-                                        GradientStop { position: 0.0; color: root.cAccentTeal }
-                                        GradientStop { position: 1.0; color: root.cAccentViolet }
+                                        GradientStop { position: 0.0; color: WelcomeBackend.isLiveSession ? root.cAccentTeal : "#10B981" }
+                                        GradientStop { position: 1.0; color: WelcomeBackend.isLiveSession ? root.cAccentViolet : "#059669" }
                                     }
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: "Launch AxisOS Disk Installer"
-                                        color: "#05070A"
+                                        text: WelcomeBackend.isLiveSession ? "Launch AxisOS Disk Installer" : "✓ AxisOS Is Installed and Active"
+                                        color: WelcomeBackend.isLiveSession ? "#05070A" : "#FFFFFF"
                                         font.bold: true
                                         font.pixelSize: 14
                                     }
 
                                     TapHandler {
-                                        onTapped: WelcomeBackend.launchApp("os-installer")
+                                        enabled: WelcomeBackend.isLiveSession
+                                        onTapped: {
+                                            if (WelcomeBackend.isLiveSession) {
+                                                WelcomeBackend.launchApp("os-installer")
+                                            }
+                                        }
                                     }
                                 }
                             }

@@ -121,6 +121,17 @@ if os.path.exists(gpu_svc_src):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(gpu_svc_src, dst)
 
+game_boost_src = os.path.join(workspace_dir, "os-build", "scripts", "axis-game-boost.sh")
+if os.path.exists(game_boost_src):
+    dst = os.path.join(chroot_dir, "usr", "local", "bin", "axis-game-boost")
+    copy_text_lf(game_boost_src, dst, 0o755)
+
+game_boost_svc_src = os.path.join(workspace_dir, "os-build", "configs", "systemd", "axis-game-boost.service")
+if os.path.exists(game_boost_svc_src):
+    dst = os.path.join(chroot_dir, "etc", "systemd", "system", "axis-game-boost.service")
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    shutil.copyfile(game_boost_svc_src, dst)
+
 # GNOME Desktop Environment Sessions, GDM3, Dconf & Extensions
 gnome_dir = os.path.join(workspace_dir, "os-build", "configs", "gnome")
 if os.path.exists(gnome_dir):
@@ -536,6 +547,19 @@ disk_info_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-disk-inf
 if os.path.exists(disk_info_sh):
     copy_text_lf(disk_info_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axis-disk-info.sh"), 0o755)
     print("    Deployed AxisOS Disk Information Script -> /usr/local/bin/axis-disk-info.sh")
+
+# Deploy Game Boost Script & Service
+game_boost_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-game-boost.sh")
+if os.path.exists(game_boost_sh):
+    copy_text_lf(game_boost_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axis-game-boost"), 0o755)
+    print("    Deployed AxisOS Game Boost Script -> /usr/local/bin/axis-game-boost")
+
+game_boost_svc = os.path.join(workspace_dir, "os-build", "configs", "systemd", "axis-game-boost.service")
+if os.path.exists(game_boost_svc):
+    game_boost_svc_dst = os.path.join(chroot_dir, "etc", "systemd", "system", "axis-game-boost.service")
+    os.makedirs(os.path.dirname(game_boost_svc_dst), exist_ok=True)
+    shutil.copyfile(game_boost_svc, game_boost_svc_dst)
+    print("    Deployed AxisOS Game Boost Service -> /etc/systemd/system/axis-game-boost.service")
 
 # Deploy Captive Portal & Auto-Timezone services
 captive_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-captive-portal.sh")
