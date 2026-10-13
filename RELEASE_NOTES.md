@@ -1,56 +1,57 @@
-# AxisOS 1.0 "Horizon" (Sonoma Edition) — Official Release
+# AxisOS 2.0 (Beta Preview — Live USB & Performance Edition)
 
-Welcome to the updated official release of **AxisOS Linux 1.0 "Horizon"**!
-
-AxisOS is a next-generation Linux operating system designed for speed, glassmorphic beauty, and hardware versatility. It features **LightDM** autologin, a lightweight **Openbox/X11** display engine, an asynchronous **System Management Daemon** (`axisos-daemon`), everyday desktop apps, and a complete **Windows-style graphical installation experience**.
+Welcome to **AxisOS 2.0 Beta**! This release introduces major performance, stability, and system management upgrades engineered for gamers, developers, and power users. AxisOS combines the stability of Debian 12 (Bookworm) with high-performance kernel tuning, an obsidian glassmorphic desktop environment, native C++ / Qt 6 applications, and the all-new **GameBoost Extreme Performance Engine**.
 
 ---
 
-## 🌟 What's New in this Build
+## ⚡ Key Highlights & What's New in AxisOS 2.0 Beta
 
-1. **Fully Responsive Mouse, Touchpad & Keyboard (Xorg Input Driver Stack)**:
-   - Installed `xserver-xorg-input-libinput`, `xserver-xorg-input-synaptics`, `xserver-xorg-input-evdev`, and `xserver-xorg-input-all`.
-   - Added automatic touchpad tapping and natural scrolling configuration (`/etc/X11/xorg.conf.d/40-libinput-touchpad.conf`).
-   - Configured global standard arrow pointer cursor (`left_ptr`).
-   - Resolves unresponsive mouse cursor, touchpad clicks, and keyboard inputs on laptop and desktop hardware.
+### 1. 🚀 GameBoost Extreme Performance & Hardware Overclocking Engine
+- **One-Click Performance Mode in Settings**: Switch between **Balanced Standard Mode** and **Extreme Overclock Mode** via the new *⚡ Gaming Boost & Performance* panel in Settings (`axis-settings`).
+- **CPU Overclocking & Unconstrained Governors**: Pins CPU scaling governor to `performance`, sets Energy Performance Preference (EPP) to maximum throughput, unthrottles Intel P-state and AMD Core Performance Boost, and fixes minimum core clocks to maximum turbo frequencies.
+- **GPU Overclocking & Power Unleashed**:
+  - **NVIDIA**: Sets PowerMizer to Maximum Performance (Level 1) and raises board power limits to maximum factory wattage via `nvidia-smi`.
+  - **AMD Radeon**: Engages high performance DPM force performance level and profile mode 1 (3D Full Speed) in `sysfs`.
+  - **Intel Arc / Iris Xe**: Elevates GT boost frequencies to peak allowable MHz.
+- **Kernel & Latency Optimization**: Sets `vm.split_lock_mitigate=0` (eliminates stutter in Windows games under Proton/Wine), tunes `vm.swappiness=10`, raises `vm.max_map_count=2147483642` for heavy game memory maps, and integrates Feral Interactive `gamemoded`.
+- **CLI & Service Integration**: Managed by `/usr/local/bin/axis-game-boost` and the `axis-game-boost.service` systemd daemon.
 
-2. **LightDM Display Manager Auto-Login (Bypasses tty1 / MOTD / Console)**:
-   - Configured **LightDM** with zero-timeout passwordless autologin (`/etc/lightdm/lightdm.conf.d/01_autologin.conf`) directly into an X11 Openbox kiosk session.
-   - Completely eliminates the `Debian GNU/Linux 12 debian tty1 ... ABSOLUTELY NO WARRANTY` text console screen and blinking prompt.
-   - 100% stable across all Intel, AMD, and NVIDIA laptop and desktop hardware.
+### 2. 🛡️ Hardened Disk Partitioning & Real Device Node Detection
+- **Eliminated Partition Missing Errors**: Completely fixes previous `/dev/sda3 or /dev/sda1 not found` installer errors.
+- **Atomic Disk Partitioning**: Replaced error-prone manual name concatenation with atomic `sfdisk` GPT partitioning, backed by `sgdisk` and `parted` safety fallbacks.
+- **Pre-Wipe Drive Sanitation**: Safely unmounts active mounts with `findmnt` and `lsblk`, executes verified `wipefs -a -f`, and performs GPT zap with `sgdisk --zap-all`.
+- **Dynamic Partition Node Polling**: Implements a high-precision 30-second polling loop reading real partition nodes via `lsblk -rno NAME,TYPE` with automatic self-healing retries using `partx -a` and `blockdev --rereadpt`.
+- **Universal Storage Device Support**: Full support for SATA/SCSI (`/dev/sda`), NVMe (`/dev/nvme0n1pX`), and eMMC (`/dev/mmcblk0pX`).
 
-2. **Aggressively Silenced Kernel Boot (Zero Hardware Noise)**:
-   - Configured kernel command line parameters:
-     `quiet splash loglevel=0 systemd.show_status=false rd.udev.log_level=3 vt.global_cursor_default=0`
-   - Suppresses all harmless motherboard ACPI errors, SGX disabled warnings, and X.509 certificate notices during boot.
-   - Provides a calm, clean, zero-touch boot sequence straight into the graphical environment.
+### 3. 🧹 Complete Post-Installation Installer Cleanup
+- **Automatic Installer Removal on Target Drive**: After installation completes, the installer is permanently hidden from the installed OS.
+- **Desktop & Dock Cleanup**: Desktop shortcuts and dock pinned launchers (`axis-installer.desktop`) are purged from `/etc/skel`, user desktops, and `/etc/dconf/db/local.d/00-axisos-gnome`.
+- **Installed State Marker (`/etc/axisos-installed`)**: Signals system applications that the OS is permanently installed.
+- **Welcome Center Adaptive UI**: In live mode, the Welcome Center offers installation options; on an installed system, it automatically transforms into **✓ System Status**, displaying uptime, memory utilization, and hardware specs.
 
-3. **Windows-Style Installation Experience (No Commands Required)**:
-   - **Language, Location & Keyboard Preferences**: Just like Windows Setup, select your preferred *Language to install*, *Time and currency format (Location / Timezone)*, and *Keyboard input method*.
-   - **"Where do you want to install AxisOS?" Table**: Displays all connected storage devices (Drive 0: Toshiba 930 GB HDD, NVMe SSDs, etc.) with capacity, drive type, and Windows/BitLocker detection flags.
-   - **Visual Partition Layout Preview**: Automatically sets up the 512 MB UEFI Boot ESP, 4.0 GB swap, and Btrfs root filesystem with transparent `zstd` compression.
-   - **Windows-Style Checklist Progress**: Live progress checklist for Copying files, Getting files ready, Installing drivers, Installing Secure Boot certificates, and Registering BIOS boot entries.
-   - **One-Click Reboot**: Click **Restart Computer Now** upon completion.
+### 4. 🎨 Compact & Refined Settings Branding
+- **OS Logo Resizing**: The operating system logo in Settings has been redesigned from an oversized 120x80 banner into a sleek, crisp 48x48 icon badge placed beside the system title and edition tag.
+- **Theme Consistency**: Obsidian black (`#0A0B0D`), titanium slate (`#14161A`, `#202329`), and crisp white typography with zero visual clipping across all display resolutions.
 
-4. **Boot from USB to Test Before Installing**:
-   - Test AxisOS completely in RAM without touching your internal hard drive or Windows partitions.
-   - The Welcome Window provides:
-     - **Try Live Demo**: Explore the Horizon desktop, test Wi-Fi, sound, Safari browser, and apps.
-     - **Install AxisOS**: Launches the Windows-style Setup Wizard whenever you are ready.
+### 5. 🌐 Captive Portal & Web-Based Wi-Fi Login Support
+- **Pre-Installed Web Login Compatibility**: Built-in support for public, hotel, and school Wi-Fi networks requiring captive portal login authentication.
+- **Automatic Portal Detection**: NetworkManager captive portal detection automatically opens the authentication window when connected to restricted networks.
 
-5. **Microsoft UEFI CA Signed Bootloader (`shimx64.efi.signed`)**:
-   - Both the Live USB and the target drive use the official Microsoft-signed Shim loader as `BOOTX64.EFI`.
-   - Compatible with modern UEFI Secure Boot without security policy violations.
+### 6. 🌍 Expanded Internationalization & Localization
+- **Installer Regional Selection**: Full selection for system display languages, locations/timezones, and international keyboard layouts (US, UK, European, Asian, and Latin layouts) with instant live test input.
 
-6. **Guaranteed Lenovo / HP / Dell Boot Menu Visibility**:
-   - Installs to both `/EFI/AxisOS/` and `/EFI/BOOT/BOOTX64.EFI` (the universal hardware fallback).
-   - Automatically registers dual entries into motherboard NVRAM (`AxisOS` and `AxisOS (UEFI Fallback)`).
+---
 
-7. **Direct Internal Drive Booting & Installer Suppression**:
-   - Deploys `/etc/axisos-installed` marker on target drives so the system permanently identifies as an installed OS, disabling live mode, welcome modals, and the installer wizard.
-   - Automatically configures UEFI `BootNext` and #1 `BootOrder` priority via `efibootmgr` so your PC boots straight into AxisOS from the drive upon restart.
-   - Configures LightDM autologin specifically for the newly created user account, completely bypassing console tty prompts and previous kiosk loops.
-   - Adds a clear prompt on the final setup screen reminding you to remove your USB flash drive before clicking **Restart Computer Now**.
+## 🖥️ System Requirements
+
+| Component | Minimum Requirements | Recommended Specifications |
+| :--- | :--- | :--- |
+| **Processor** | 64-bit x86_64 Dual-Core CPU | 64-bit Quad-Core CPU or higher (Intel Core i3/i5/i7/i9 or AMD Ryzen) |
+| **RAM (Memory)** | 2 GB RAM (4 GB for Live Desktop) | 8 GB to 16 GB+ RAM |
+| **Storage** | 25 GB free disk space | 64 GB+ NVMe SSD or high-speed SATA SSD |
+| **Graphics** | UEFI Framebuffer / Intel HD Graphics 4000+ | Intel UHD/Iris Xe/Arc, AMD Radeon RX, or NVIDIA GeForce |
+| **Firmware** | Modern UEFI (Secure Boot Compatible) or Legacy BIOS | UEFI with Microsoft UEFI CA enabled |
+| **USB Media** | 4 GB Flash Drive | 8 GB+ USB 3.0 / 3.1 Flash Drive |
 
 ---
 
@@ -58,10 +59,27 @@ AxisOS is a next-generation Linux operating system designed for speed, glassmorp
 
 | Asset | Size | SHA-256 Checksum |
 | :--- | :--- | :--- |
-| **`axisos-live-amd64.iso`** | 884 MB | `CD483CC189B73A3F41157EBCEFD089D23D976AB5B78F7AB07F225827412E8243` |
+| **`axisos-v2.0-live-amd64.iso`** | 2.93 GB (2,939,158,528 bytes) | `c0132769c5c6daff13d31e7855ccd448ea6dfd20f54921a3381907244c82c9f7` |
+| **`SHA256SUMS.txt`** | 99 bytes | *(Checksum validation manifest)* |
+
+### Verifying Download Integrity:
+- **Windows (PowerShell)**:
+  ```powershell
+  (Get-FileHash axisos-v2.0-live-amd64.iso -Algorithm SHA256).Hash
+  ```
+- **Linux / macOS (Terminal)**:
+  ```bash
+  sha256sum -c SHA256SUMS.txt
+  ```
 
 ---
 
-## 📖 Step-by-Step Installation Guide
+## 🚀 How to Try and Install AxisOS
 
-For the full detailed walkthrough (writing with Rufus/BalenaEtcher, BIOS keys, and dual-booting), see the [**AxisOS Installation Guide**](https://github.com/jackyphuti/AxisOS/blob/main/INSTALLATION_GUIDE.md).
+1. **Download the ISO**: Download `axisos-v2.0-live-amd64.iso` and `SHA256SUMS.txt`.
+2. **Flash to USB**:
+   - **Windows**: Use [Rufus](https://rufus.ie/) (select GPT / UEFI, ISO or DD mode).
+   - **macOS / Linux / Windows**: Use [balenaEtcher](https://etcher.balena.io/) or [Ventoy](https://www.ventoy.net/).
+3. **Boot Your Computer**: Insert the USB flash drive and restart your PC while tapping your boot menu key (<kbd>F12</kbd>, <kbd>F11</kbd>, <kbd>F8</kbd>, <kbd>F9</kbd>, or <kbd>Esc</kbd>).
+4. **Try Live Session**: Select **`1. Try AxisOS 2.0 (Live Desktop)`** in GRUB. The OS runs entirely in RAM, leaving internal drives untouched.
+5. **Install AxisOS**: Launch **Install AxisOS** from the desktop or Welcome Center whenever you are ready to deploy to disk.
