@@ -806,7 +806,8 @@ public:
         if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
             gchar* dev_path = nullptr;
             gchar* label = nullptr;
-            gtk_tree_model_get(model, &iter, 4, &dev_path, 0, &label, -1);
+            gchar* desc = nullptr;
+            gtk_tree_model_get(model, &iter, 4, &dev_path, 0, &label, 3, &desc, -1);
             if (dev_path) {
                 app->selected_disk = dev_path;
                 bool is_live = (!app->live_disk_device.empty() && app->selected_disk == app->live_disk_device) ||
@@ -814,16 +815,25 @@ public:
 
                 if (is_live) {
                     gtk_label_set_text(GTK_LABEL(app->lbl_disk_selection_status),
-                        "⚠️ Target is the live USB installation media! Please select an internal drive.");
+                        " Target is the live USB installation media! Please select an internal drive.");
                     gtk_widget_set_sensitive(app->btn_next, FALSE);
                 } else {
-                    std::string st = "✓ Selected Target Disk: " + app->selected_disk + " (Filesystem: " + (app->selected_fs == "ext4" ? "EXT4" : "Btrfs") + ")";
+                    std::string s_desc = desc ? desc : "";
+                    std::string st;
+                    if (s_desc.find("Windows") != std::string::npos) {
+                        st = " Caution: " + app->selected_disk + " contains Windows! Installing here will overwrite Windows.";
+                    } else if (s_desc.find("Clean") != std::string::npos || s_desc.find("100% Free") != std::string::npos) {
+                        st = "✓ Selected Target: " + app->selected_disk + " [Clean / Empty Drive - Recommended] (Filesystem: " + (app->selected_fs == "ext4" ? "EXT4" : "Btrfs") + ")";
+                    } else {
+                        st = "✓ Selected Target Disk: " + app->selected_disk + " (Filesystem: " + (app->selected_fs == "ext4" ? "EXT4" : "Btrfs") + ")";
+                    }
                     gtk_label_set_text(GTK_LABEL(app->lbl_disk_selection_status), st.c_str());
                     gtk_widget_set_sensitive(app->btn_next, TRUE);
                 }
                 g_free(dev_path);
             }
             if (label) g_free(label);
+            if (desc) g_free(desc);
         }
     }
 
@@ -835,6 +845,8 @@ public:
         FILE* fp = popen("/usr/local/bin/axis-disk-info.sh 2>/dev/null || bash /os-build/scripts/axis-disk-info.sh 2>/dev/null", "r");
         bool found = false;
         GtkTreePath* target_path = nullptr;
+        GtkTreePath* clean_path = nullptr;
+        std::string clean_disk;
         int row_idx = 0;
 
         if (fp) {
@@ -871,10 +883,18 @@ public:
                         4, dev_name.c_str(),
                         -1);
 
-                    // Prefer first non-live drive as default
-                    if (!is_live && target_path == nullptr) {
-                        target_path = gtk_tree_path_new_from_indices(row_idx, -1);
-                        selected_disk = dev_name;
+                    // Prefer clean / empty drive as default, otherwise first non-live drive
+                    if (!is_live) {
+                        if (desc.find("Clean") != std::string::npos || free_sp.find("100% Free") != std::string::npos) {
+                            if (clean_path == nullptr) {
+                                clean_path = gtk_tree_path_new_from_indices(row_idx, -1);
+                                clean_disk = dev_name;
+                            }
+                        }
+                        if (target_path == nullptr) {
+                            target_path = gtk_tree_path_new_from_indices(row_idx, -1);
+                            selected_disk = dev_name;
+                        }
                     }
 
                     idx++;
@@ -883,6 +903,12 @@ public:
                 }
             }
             pclose(fp);
+        }
+
+        if (clean_path != nullptr) {
+            if (target_path) gtk_tree_path_free(target_path);
+            target_path = clean_path;
+            selected_disk = clean_disk;
         }
 
         // 2. Fallback to lsblk if axis-disk-info.sh returned no entries

@@ -132,28 +132,57 @@ else
     log "Boot mode: Legacy BIOS / CSM detected"
 fi
 
-# Unmount any existing partitions, deactive LVM, dmsetup and swap
-report 5 "Preparing target disk and deactivating previous filesystems on $TARGET_DISK..."
+# Unmount any existing partitions, deactivate LVM, dmsetup, multipath, and swap
+report 5 "Preparing target disk and unlocking block device $TARGET_DISK..."
+
+# Stop system daemons that may hold exclusive inotify/O_EXCL locks on block devices
+systemctl stop udisks2.service 2>/dev/null || true
+systemctl stop multipathd.service multipathd.socket 2>/dev/null || true
+multipath -F 2>/dev/null || true
+dmraid -an 2>/dev/null || true
+
+# Kill any processes holding open handles on the target disk or any of its partitions
+fuser -k -9 "$TARGET_DISK"* 2>/dev/null || true
+fuser -k -9 "$TARGET_DISK" 2>/dev/null || true
+sleep 1
+
+# Disable all active swap
 swapoff -a 2>/dev/null || true
+
+# Deactivate LVM
 vgchange -an 2>/dev/null || true
+lvchange -an 2>/dev/null || true
+
+# Remove all device-mapper mappings associated with the disk
+for dm in $(dmsetup ls 2>/dev/null | awk '{print $1}'); do
+    dmsetup remove -f "$dm" 2>/dev/null || true
+done
 dmsetup remove_all -f 2>/dev/null || true
 mdadm --stop --scan 2>/dev/null || true
 
-# Safely unmount target mountpoints if mounted
+# Safely unmount all mountpoints matching target disk
 if mountpoint -q /mnt; then
     umount -l -R /mnt 2>/dev/null || true
 fi
 if mountpoint -q /mnt_axis_tmp; then
     umount -l -R /mnt_axis_tmp 2>/dev/null || true
 fi
-
-for mp in $(findmnt -lno TARGET,SOURCE 2>/dev/null | awk -v disk="$TARGET_DISK" '$2 ~ disk {print $1}'); do
+awk -v d="$TARGET_DISK" '$1 ~ d {print $2}' /proc/mounts 2>/dev/null | while read -r mp; do
     umount -f -l "$mp" 2>/dev/null || true
 done
-for part in $(lsblk -ln -o NAME "$TARGET_DISK" 2>/dev/null || true); do
-    umount -f -l "/dev/$part" 2>/dev/null || true
+findmnt -lno TARGET,SOURCE 2>/dev/null | awk -v disk="$TARGET_DISK" '$2 ~ disk {print $1}' | while read -r mp; do
+    umount -f -l "$mp" 2>/dev/null || true
+done
+for part in ${TARGET_DISK}*; do
+    [ -b "$part" ] && umount -f -l "$part" 2>/dev/null || true
 done
 sync
+
+# Force kernel to drop all existing in-memory partition table entries
+for p_num in $(seq 1 16); do
+    delpart "$TARGET_DISK" "$p_num" 2>/dev/null || true
+done
+partx -d "$TARGET_DISK" 2>/dev/null || true
 udevadm settle --timeout=3 2>/dev/null || sleep 1
 
 report 10 "Wiping partition signatures on $TARGET_DISK..."
@@ -173,6 +202,7 @@ if [ "$DISK_SECTORS" -gt 65536 ]; then
     dd if=/dev/zero of="$TARGET_DISK" bs=512 seek=$SEEK_START count=65536 conv=notrunc status=none 2>/dev/null || true
 fi
 sync
+blockdev --flushbufs "$TARGET_DISK" 2>/dev/null || true
 blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
 partprobe "$TARGET_DISK" 2>/dev/null || true
 udevadm settle --timeout=3 2>/dev/null || sleep 1
@@ -192,40 +222,57 @@ if [ "$DISK_SIZE_MB" -lt 12800 ]; then
     SWAP_SIZE="512M"
 fi
 
+PARTITION_SUCCESS=false
+
+# Method 1: Atomic sfdisk with standard GPT GUIDs
 if command -v sfdisk >/dev/null 2>&1; then
-    log "Using atomic sfdisk GPT partitioning..."
-    sfdisk --wipe always --wipe-partitions always --force "$TARGET_DISK" <<EOF
+    log "Partitioning with atomic sfdisk..."
+    if sfdisk --wipe always --wipe-partitions always --force "$TARGET_DISK" <<EOF
 label: gpt
-size=512M, type=U, name="AXIS_BOOT"
-size=${SWAP_SIZE}, type=S, name="AXIS_SWAP"
-type=L, name="AXIS_ROOT"
+size=512M, type=C12A7328-F81F-11D2-BA4B-00A0C93EC93B, name="AXIS_BOOT"
+size=${SWAP_SIZE}, type=0657FD6D-A4AB-43C4-84E5-0933C84B4F4F, name="AXIS_SWAP"
+type=0FC63DAF-8483-4772-8E79-3D69D8477DE4, name="AXIS_ROOT"
 EOF
-elif command -v parted >/dev/null 2>&1; then
-    log "Using parted GPT partitioning..."
-    parted -s "$TARGET_DISK" mklabel gpt
-    parted -s "$TARGET_DISK" mkpart "AXIS_BOOT" fat32 1MiB 513MiB
-    parted -s "$TARGET_DISK" set 1 esp on
-    parted -s "$TARGET_DISK" mkpart "AXIS_SWAP" linux-swap 513MiB 2561MiB
-    parted -s "$TARGET_DISK" mkpart "AXIS_ROOT" ext4 2561MiB 100%
-elif command -v sgdisk >/dev/null 2>&1; then
-    log "Using sgdisk GPT partitioning..."
+    then
+        PARTITION_SUCCESS=true
+    fi
+fi
+
+# Method 2: parted fallback with optimal alignment if sfdisk failed
+if [[ "$PARTITION_SUCCESS" != "true" ]] && command -v parted >/dev/null 2>&1; then
+    log "Partitioning with parted optimal alignment..."
+    parted -s -a optimal "$TARGET_DISK" mklabel gpt || true
+    parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_BOOT" fat32 1MiB 513MiB || true
+    parted -s "$TARGET_DISK" set 1 esp on || true
+    SWAP_MB_VAL=${SWAP_SIZE%M}
+    SWAP_END=$(( 513 + SWAP_MB_VAL ))
+    parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_SWAP" linux-swap 513MiB "${SWAP_END}MiB" || true
+    parted -s -a optimal "$TARGET_DISK" mkpart "AXIS_ROOT" ext4 "${SWAP_END}MiB" 100% || true
+    PARTITION_SUCCESS=true
+fi
+
+# Method 3: sgdisk fallback
+if [[ "$PARTITION_SUCCESS" != "true" ]] && command -v sgdisk >/dev/null 2>&1; then
+    log "Partitioning with sgdisk..."
     sgdisk --zap-all "$TARGET_DISK" 2>/dev/null || true
     sgdisk -o "$TARGET_DISK" 2>/dev/null || true
-    sgdisk -n 1:2048:+512M -t 1:ef00 -c 1:"AXIS_BOOT" "$TARGET_DISK"
-    sgdisk -n 2:0:+${SWAP_SIZE} -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK"
-    sgdisk -n 3:0:0 -t 3:8300 -c 3:"AXIS_ROOT" "$TARGET_DISK"
-else
-    echo "ERROR: Neither sfdisk, parted, nor sgdisk found." >&2
-    exit 1
+    sgdisk -n 1:2048:+512M -t 1:ef00 -c 1:"AXIS_BOOT" "$TARGET_DISK" || true
+    sgdisk -n 2:0:+${SWAP_SIZE} -t 2:8200 -c 2:"AXIS_SWAP" "$TARGET_DISK" || true
+    sgdisk -n 3:0:0 -t 3:8300 -c 3:"AXIS_ROOT" "$TARGET_DISK" || true
+    PARTITION_SUCCESS=true
 fi
 
 sync
+blockdev --flushbufs "$TARGET_DISK" 2>/dev/null || true
 blockdev --rereadpt "$TARGET_DISK" 2>/dev/null || true
 partx -u "$TARGET_DISK" 2>/dev/null || true
 partx -a "$TARGET_DISK" 2>/dev/null || true
 partprobe "$TARGET_DISK" 2>/dev/null || true
-udevadm trigger --subsystem-match=block 2>/dev/null || true
+udevadm trigger --action=add --subsystem-match=block 2>/dev/null || true
 udevadm settle --timeout=5 2>/dev/null || sleep 2
+
+# Resume udisks2 now that partitioning is committed
+systemctl start udisks2.service 2>/dev/null || true
 
 # Resolve partition paths (e.g., /dev/nvme0n1p1 vs /dev/sda1)
 PART_PREFIX="$TARGET_DISK"
@@ -238,24 +285,47 @@ SWAP_PART="${PART_PREFIX}2"
 ROOT_PART="${PART_PREFIX}3"
 
 # Wait for partitions to appear and create device nodes if udev delayed them
+DISK_NAME=$(basename "$TARGET_DISK")
 for i in {1..20}; do
     if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then
         break
     fi
 
-    # Check /sys/class/block and create device nodes with mknod if missing
+    # Force partx to load partition entries into the kernel
+    partx -a "$TARGET_DISK" 2>/dev/null || true
+
+    # Check /sys/block/${DISK_NAME} and /sys/class/block for major:minor
     for p_idx in 1 2 3; do
-        p_dev="${PART_PREFIX}${p_idx}"
-        p_base=$(basename "$p_dev")
-        if [[ ! -b "$p_dev" && -f "/sys/class/block/${p_base}/dev" ]]; then
-            dev_major_minor=$(cat "/sys/class/block/${p_base}/dev" 2>/dev/null || true)
-            if [ -n "$dev_major_minor" ]; then
-                major=$(echo "$dev_major_minor" | cut -d: -f1)
-                minor=$(echo "$dev_major_minor" | cut -d: -f2)
-                mknod "$p_dev" b "$major" "$minor" 2>/dev/null || true
+        p_target="${PART_PREFIX}${p_idx}"
+        p_short=$(basename "$p_target")
+
+        dev_num=""
+        for sys_path in "/sys/block/${DISK_NAME}/${p_short}/dev" \
+                         "/sys/class/block/${p_short}/dev" \
+                         "/sys/block/${DISK_NAME}/${DISK_NAME}${p_idx}/dev"; do
+            if [[ -f "$sys_path" ]]; then
+                dev_num=$(cat "$sys_path" 2>/dev/null || true)
+                [ -n "$dev_num" ] && break
             fi
+        done
+
+        if [[ -n "$dev_num" && ! -b "$p_target" ]]; then
+            major=$(echo "$dev_num" | cut -d: -f1)
+            minor=$(echo "$dev_num" | cut -d: -f2)
+            mknod -m 660 "$p_target" b "$major" "$minor" 2>/dev/null || true
+            chown root:disk "$p_target" 2>/dev/null || true
         fi
     done
+
+    # Fallback: scan lsblk for partition paths in case kernel used alternate naming
+    if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
+        found_parts=($(lsblk -n -r -o PATH "$TARGET_DISK" 2>/dev/null | grep -v "^$TARGET_DISK$" || true))
+        if [[ ${#found_parts[@]} -ge 3 ]]; then
+            [ ! -b "$ESP_PART" ] && ESP_PART="${found_parts[0]}"
+            [ ! -b "$SWAP_PART" ] && SWAP_PART="${found_parts[1]}"
+            [ ! -b "$ROOT_PART" ] && ROOT_PART="${found_parts[2]}"
+        fi
+    fi
 
     if [[ -b "$ROOT_PART" && -b "$ESP_PART" ]]; then
         break
@@ -263,13 +333,11 @@ for i in {1..20}; do
 
     sleep 1
     partprobe "$TARGET_DISK" 2>/dev/null || true
-    partx -u "$TARGET_DISK" 2>/dev/null || true
-    partx -a "$TARGET_DISK" 2>/dev/null || true
-    udevadm trigger --subsystem-match=block 2>/dev/null || true
+    udevadm trigger --action=add --subsystem-match=block 2>/dev/null || true
 done
 
 if [[ ! -b "$ROOT_PART" || ! -b "$ESP_PART" ]]; then
-    error_exit "Partition $ROOT_PART or $ESP_PART not found after partitioning on $TARGET_DISK. Please select back to drive selection to choose another drive or check verify drive."
+    error_exit "Partition $ROOT_PART or $ESP_PART not found after partitioning on $TARGET_DISK. Please select back to drive selection to choose another drive or format this drive."
 fi
 
 report 25 "Formatting filesystems (ESP FAT32, Swap, and Root)..."
