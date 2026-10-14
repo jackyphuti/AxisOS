@@ -649,7 +649,8 @@ class SoftwareApp(Gtk.Window):
             if "Flatpak" in source:
                 cmd = ["flatpak", "install" if action == "install" else "uninstall", "-y", pkg if action != "install" else "flathub", pkg] if action == "install" else ["flatpak", "uninstall", "-y", pkg]
             else:
-                cmd = ["sudo", "axis", "install"] + pkg.split() if action == "install" else ["sudo", "apt-get", "remove", "-y"] + pkg.split()
+                priv = [] if os.geteuid() == 0 else ["pkexec"]
+                cmd = priv + ["axis", "install"] + pkg.split() if action == "install" else priv + ["apt-get", "-o", "DPkg::Lock::Timeout=120", "remove", "-y"] + pkg.split()
 
             proc = subprocess.run(cmd, capture_output=True, text=True)
             success = (proc.returncode == 0)
@@ -668,7 +669,8 @@ class SoftwareApp(Gtk.Window):
     def refresh_repositories(self):
         self.update_statusbar("Synchronizing APT indices and Flathub remotes...")
         def worker():
-            subprocess.run(["sudo", "apt-get", "update"], capture_output=True)
+            priv = [] if os.geteuid() == 0 else ["pkexec"]
+            subprocess.run(priv + ["apt-get", "-o", "DPkg::Lock::Timeout=120", "update"], capture_output=True)
             if subprocess.run(["which", "flatpak"], capture_output=True).returncode == 0:
                 subprocess.run(["flatpak", "update", "--appstream"], capture_output=True)
             def done():
@@ -694,7 +696,7 @@ class SoftwareApp(Gtk.Window):
             chooser.destroy()
             self.update_statusbar(f"Installing {filename} via dpkg/apt...")
             def worker():
-                proc = subprocess.run(["sudo", "axis", "install", filename], capture_output=True, text=True)
+                proc = subprocess.run(([] if os.geteuid() == 0 else ["pkexec"]) + ["axis", "install", filename], capture_output=True, text=True)
                 def done():
                     self.update_statusbar(f"Finished installing {os.path.basename(filename)}.")
                     self.populate_apps()
@@ -720,7 +722,7 @@ class SoftwareApp(Gtk.Window):
             chooser.destroy()
             self.update_statusbar(f"Installing {filename} via axis engine...")
             def worker():
-                subprocess.run(["sudo", "axis", "install", filename], capture_output=True)
+                subprocess.run(([] if os.geteuid() == 0 else ["pkexec"]) + ["axis", "install", filename], capture_output=True)
                 def done():
                     self.update_statusbar(f"Finished installing {os.path.basename(filename)}.")
                     self.populate_apps()

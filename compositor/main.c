@@ -26,6 +26,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
@@ -139,6 +140,7 @@ struct axis_keyboard {
 	struct wlr_input_device *device;
 	struct wl_listener modifiers;
 	struct wl_listener key;
+	struct wl_listener destroy;
 };
 
 /* Forward declarations */
@@ -241,7 +243,13 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 
 	/* Super + E: File Manager */
 	if (is_super && (sym == XKB_KEY_e || sym == XKB_KEY_E)) {
-		spawn_command("thunar &");
+		spawn_command("nautilus &");
+		return true;
+	}
+
+	/* Super + L: Lock Session */
+	if (is_super && (sym == XKB_KEY_l || sym == XKB_KEY_L)) {
+		spawn_command("loginctl lock-session &");
 		return true;
 	}
 
@@ -855,6 +863,16 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 /* ========================================================================= */
 /* Input Device Management                                                   */
 /* ========================================================================= */
+static void keyboard_handle_destroy(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct axis_keyboard *keyboard = wl_container_of(listener, keyboard, destroy);
+	wl_list_remove(&keyboard->modifiers.link);
+	wl_list_remove(&keyboard->key.link);
+	wl_list_remove(&keyboard->destroy.link);
+	wl_list_remove(&keyboard->link);
+	free(keyboard);
+}
+
 static void server_new_keyboard(struct axis_server *server, struct wlr_input_device *device) {
 	struct axis_keyboard *keyboard = calloc(1, sizeof(struct axis_keyboard));
 	keyboard->server = server;
@@ -881,6 +899,8 @@ static void server_new_keyboard(struct axis_server *server, struct wlr_input_dev
 	wl_signal_add(&device->keyboard->events.modifiers, &keyboard->modifiers);
 	keyboard->key.notify = keyboard_handle_key;
 	wl_signal_add(&device->keyboard->events.key, &keyboard->key);
+	keyboard->destroy.notify = keyboard_handle_destroy;
+	wl_signal_add(&device->events.destroy, &keyboard->destroy);
 
 	wlr_seat_set_keyboard(server->seat, device);
 	wl_list_insert(&server->keyboards, &keyboard->link);
@@ -950,6 +970,12 @@ static void seat_request_set_selection(struct wl_listener *listener, void *data)
 /* Main Server Initialization & Event Loop                                   */
 /* ========================================================================= */
 int main(int argc, char *argv[]) {
+	/* Automatically reap spawned child processes to prevent zombies */
+	struct sigaction sa_chld = {0};
+	sa_chld.sa_handler = SIG_IGN;
+	sa_chld.sa_flags = SA_NOCLDWAIT;
+	sigaction(SIGCHLD, &sa_chld, NULL);
+
 	wlr_log_init(WLR_DEBUG, NULL);
 	char *startup_cmd = NULL;
 

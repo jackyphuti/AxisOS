@@ -3,7 +3,7 @@ import os
 import shutil
 import subprocess
 
-REPO_ROOT = "/mnt/c/Users/jacky/Documents/GitHub/AxisOS"
+REPO_ROOT = os.environ.get("WORKSPACE_DIR") or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 CHROOT = "/build/chroot"
 SRC_APPS = os.path.join(REPO_ROOT, "os-build", "apps")
 SCRIPT = os.path.join(REPO_ROOT, "os-build", "scripts", "compile-native-apps.sh")

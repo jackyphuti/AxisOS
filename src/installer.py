@@ -106,12 +106,26 @@ class InstallerWindow(Adw.ApplicationWindow):
             description="Select the drive to install AxisOS. All existing data on this drive will be replaced."
         )
 
-        # Scan available disks or provide default list
-        disks = [
-            "/dev/nvme0n1 · 512 GB High-Speed NVMe SSD",
-            "/dev/sda · 1.0 TB Internal SATA SSD",
-            "/dev/sdb · 256 GB Portable Flash Drive"
-        ]
+        # Scan real hardware block devices via axis-disk-info.sh / lsblk
+        import subprocess
+        disks = []
+        try:
+            out = subprocess.check_output(
+                ["/usr/local/bin/axis-disk-info.sh"],
+                text=True, stderr=subprocess.DEVNULL
+            )
+            for line in out.splitlines():
+                if "|" in line:
+                    parts = line.split("|")
+                    if len(parts) >= 4:
+                        disks.append(f"{parts[0]} · {parts[1]} ({parts[2]}) · {parts[3]}")
+        except Exception:
+            pass
+        if not disks:
+            disks = [
+                "/dev/nvme0n1 · 512 GB High-Speed NVMe SSD",
+                "/dev/sda · 1.0 TB Internal SATA SSD"
+            ]
         self.disk_row = Adw.ComboRow(title="Install Disk")
         self.disk_row.set_model(Gtk.StringList.new(disks))
         group.add(self.disk_row)
@@ -192,8 +206,8 @@ class InstallerWindow(Adw.ApplicationWindow):
         return status
 
     def on_restart_clicked(self, _):
-        # In a real environment: systemctl reboot
-        print("Reboot triggered from Installer.")
+        import subprocess
+        subprocess.Popen(["systemctl", "reboot"])
         self.close()
 
     def go(self, delta):
@@ -252,9 +266,52 @@ class InstallerWindow(Adw.ApplicationWindow):
             row.set_subtitle(value)
 
     def start_install(self):
+        import subprocess, threading
         self.progress_value = 0.0
         self.progress.set_fraction(0.0)
-        GLib.timeout_add(70, self.tick_install)
+        installer_bin = "/usr/local/bin/axisos-installer.sh"
+        if not os.path.exists(installer_bin):
+            installer_bin = "/usr/local/bin/axisos-install.sh"
+
+        raw_disk = (self.config.get("disk") or "/dev/sda").split("·")[0].strip()
+        if os.path.exists(installer_bin) and os.geteuid() == 0:
+            def worker():
+                cmd = [
+                    installer_bin,
+                    "--disk", raw_disk,
+                    "--username", self.config.get("username") or "axis",
+                    "--password", self.pass_row.get_text() or "axis",
+                    "--hostname", self.config.get("hostname") or "axisos",
+                ]
+                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                for line in proc.stdout:
+                    line = line.strip()
+                    if line.startswith("PROGRESS:"):
+                        parts = line.split(":", 2)
+                        if len(parts) >= 3:
+                            pct = max(0.0, min(1.0, float(parts[1]) / 100.0))
+                            msg = parts[2]
+                            GLib.idle_add(self._update_real_progress, pct, msg)
+                proc.wait()
+                GLib.idle_add(self._finish_real_install, proc.returncode == 0)
+            threading.Thread(target=worker, daemon=True).start()
+        else:
+            GLib.timeout_add(70, self.tick_install)
+
+    def _update_real_progress(self, pct, msg):
+        self.progress_value = pct
+        self.progress.set_fraction(pct)
+        self.status.set_text(msg)
+        return False
+
+    def _finish_real_install(self, ok):
+        if ok:
+            self.index = self.PAGES.index("done")
+            self.stack.set_visible_child_name("done")
+            self.refresh()
+        else:
+            self.status.set_text("Installation encountered an error. Check /tmp/axisos-installer.log.")
+        return False
 
     def tick_install(self):
         self.progress_value = min(1.0, self.progress_value + 0.015)

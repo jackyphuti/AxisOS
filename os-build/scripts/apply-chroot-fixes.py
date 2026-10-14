@@ -4,7 +4,7 @@ import shutil
 import subprocess
 
 chroot = "/build/chroot"
-workspace = "/mnt/c/Users/jacky/documents/github/AxisOS"
+workspace = os.environ.get("WORKSPACE_DIR") or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 print("=== 1. Setting up bind mounts for chroot ===")
 mounts = ["/dev", "/dev/pts", "/proc", "/sys"]

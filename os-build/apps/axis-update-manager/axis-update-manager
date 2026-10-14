@@ -281,7 +281,8 @@ class UpdateManagerApp(Gtk.Window):
 
         def worker():
             self.append_log("--> Synchronizing package cache (apt-get update)...")
-            proc = subprocess.run(["sudo", "apt-get", "update"], capture_output=True, text=True)
+            priv = [] if os.geteuid() == 0 else ["pkexec"]
+            proc = subprocess.run(priv + ["apt-get", "-o", "DPkg::Lock::Timeout=120", "update"], capture_output=True, text=True)
             self.append_log(proc.stdout)
 
             # Query upgradable packages
@@ -370,7 +371,8 @@ class UpdateManagerApp(Gtk.Window):
 
         def worker():
             self.append_log("--> Executing system upgrade (apt-get dist-upgrade)...")
-            proc = subprocess.run(["sudo", "apt-get", "dist-upgrade", "-y"], capture_output=True, text=True)
+            priv = [] if os.geteuid() == 0 else ["pkexec"]
+            proc = subprocess.run(priv + ["apt-get", "-o", "DPkg::Lock::Timeout=120", "dist-upgrade", "-y"], capture_output=True, text=True)
             self.append_log(proc.stdout)
             self.append_log(proc.stderr)
 

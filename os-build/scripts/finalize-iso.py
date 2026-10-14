@@ -5,7 +5,7 @@ import glob
 import shutil
 
 build_dir = "/build"
-workspace_dir = "/mnt/c/Users/jacky/documents/github/AxisOS"
+workspace_dir = os.environ.get("WORKSPACE_DIR") or os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
 print("=== Generating SHA256 Checksums ===")
 subprocess.run(["sh", "-c", "cd /build/binary && find . -type f ! -name SHA256SUMS | sort | xargs sha256sum > SHA256SUMS"], check=True)

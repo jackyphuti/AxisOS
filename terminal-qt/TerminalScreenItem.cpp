@@ -277,7 +277,38 @@ void TerminalScreenItem::keyPressEvent(QKeyEvent *event)
 
 void TerminalScreenItem::copyToClipboard()
 {
-    // Copy placeholder / selection
+    QClipboard *clipboard = QGuiApplication::clipboard();
+    if (!clipboard || !m_backend) return;
+
+    QStringList lines;
+    const int totalRows = m_backend->rows();
+    const int totalCols = m_backend->cols();
+
+    for (int r = 0; r < totalRows; ++r) {
+        QString rowStr;
+        rowStr.reserve(totalCols);
+        for (int c = 0; c < totalCols; ++c) {
+            TerminalCell cell = m_backend->getCell(r, c);
+            if (cell.character > 0) {
+                const char32_t ucs = static_cast<char32_t>(cell.character);
+                rowStr.append(QString::fromUcs4(&ucs, 1));
+            } else {
+                rowStr.append(QLatin1Char(' '));
+            }
+            if (cell.width > 1) {
+                c += (cell.width - 1);
+            }
+        }
+        while (rowStr.endsWith(QLatin1Char(' '))) {
+            rowStr.chop(1);
+        }
+        lines.append(rowStr);
+    }
+
+    while (!lines.isEmpty() && lines.last().isEmpty()) {
+        lines.removeLast();
+    }
+    clipboard->setText(lines.join(QLatin1Char('\n')));
 }
 
 void TerminalScreenItem::pasteFromClipboard()

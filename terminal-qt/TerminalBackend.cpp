@@ -153,7 +153,14 @@ void TerminalBackend::closeShell()
     if (m_childPid > 0) {
         kill(m_childPid, SIGHUP);
         int status = 0;
-        waitpid(m_childPid, &status, WNOHANG);
+        pid_t res = waitpid(m_childPid, &status, WNOHANG);
+        if (res == 0) {
+            usleep(25000);
+            if (waitpid(m_childPid, &status, WNOHANG) == 0) {
+                kill(m_childPid, SIGTERM);
+                waitpid(m_childPid, &status, 0);
+            }
+        }
         m_childPid = -1;
     }
 }
@@ -170,7 +177,9 @@ void TerminalBackend::onPtyDataAvailable()
     }
 
     if (bytesRead < 0 && (errno != EAGAIN && errno != EWOULDBLOCK)) {
-        qWarning() << "[AxisTerminal] PTY read error:" << strerror(errno);
+        if (errno != EIO) {
+            qWarning() << "[AxisTerminal] PTY read error:" << strerror(errno);
+        }
         closeShell();
         emit shellExited(0);
         return;
