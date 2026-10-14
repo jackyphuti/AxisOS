@@ -1031,6 +1031,14 @@ if [[ -f /etc/pam.d/axis-greeter ]]; then
 fi
 chroot /mnt usermod -aG plugdev,video,input "$USERNAME" 2>/dev/null || true
 
+# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield)
+for util_bin in axis-rewind axis-neural-pulse axis-usb-vault axis-gaze-shield; do
+    if [[ -f "/usr/local/bin/$util_bin" ]]; then
+        cp -f "/usr/local/bin/$util_bin" "/mnt/usr/local/bin/$util_bin"
+        chmod 755 "/mnt/usr/local/bin/$util_bin"
+    fi
+done
+
 # Copy GPU autodetect script and systemd service
 if [[ -f /usr/local/bin/gpu-autodetect.sh ]]; then
     cp /usr/local/bin/gpu-autodetect.sh /mnt/usr/local/bin/gpu-autodetect.sh

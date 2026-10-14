@@ -6,6 +6,9 @@ Item {
     id: windowRoot
     property var shellSurface: null
     property var toplevel: null
+    property bool privacyShieldEnabled: false
+    property bool isFocusedWindow: true
+    property string rewindStatusText: "" 
 
     width: shellItem.width + 16
     height: shellItem.height + 48
@@ -208,7 +211,94 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                 }
 
-                Item { width: 36 }
+                // Signature AxisOS Window Action Pills (Rewind, Privacy Shield & LiquidNode Port)
+                RowLayout {
+                    spacing: 6
+                    z: 20
+
+                    // Status toast badge for Rewind / Node actions
+                    Text {
+                        visible: windowRoot.rewindStatusText.length > 0
+                        text: windowRoot.rewindStatusText
+                        color: "#00FF9D"
+                        font.pixelSize: 10
+                        font.bold: true
+                    }
+
+                    // Feature 2A: Time-Travel Checkpoint Button
+                    Rectangle {
+                        width: 22; height: 20; radius: 6
+                        color: cpMouse.containsMouse ? "#1E293B" : "#151C28"
+                        border.color: "#00F2FE"; border.width: 1
+                        Text { anchors.centerIn: parent; text: "⏱"; font.pixelSize: 10; color: "#00F2FE" }
+                        MouseArea {
+                            id: cpMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                var t = (windowRoot.toplevel && windowRoot.toplevel.title) ? windowRoot.toplevel.title : "window";
+                                SystemController.checkpointWindow(t);
+                                windowRoot.rewindStatusText = "✓ Snapshot";
+                            }
+                        }
+                    }
+
+                    // Feature 2B: Time-Travel Rewind Button
+                    Rectangle {
+                        width: 22; height: 20; radius: 6
+                        color: rwMouse.containsMouse ? "#1E293B" : "#151C28"
+                        border.color: "#8B5CF6"; border.width: 1
+                        Text { anchors.centerIn: parent; text: "⏪"; font.pixelSize: 10; color: "#D8B4FE" }
+                        MouseArea {
+                            id: rwMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                var t = (windowRoot.toplevel && windowRoot.toplevel.title) ? windowRoot.toplevel.title : "window";
+                                SystemController.rewindWindow(t);
+                                windowRoot.rewindStatusText = "⏪ Rewound";
+                            }
+                        }
+                    }
+
+                    // Feature 4: Gaze & Shoulder-Surfing Privacy Shield Toggle
+                    Rectangle {
+                        width: 22; height: 20; radius: 6
+                        color: windowRoot.privacyShieldEnabled ? "#00F2FE" : "#151C28"
+                        border.color: "#00F2FE"; border.width: 1
+                        Text {
+                            anchors.centerIn: parent
+                            text: "🛡"
+                            font.pixelSize: 10
+                            color: windowRoot.privacyShieldEnabled ? "#06070A" : "#94A3B8"
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: windowRoot.privacyShieldEnabled = !windowRoot.privacyShieldEnabled
+                        }
+                    }
+
+                    // Feature 1: Visual LiquidNode Port Connector
+                    Rectangle {
+                        width: 22; height: 20; radius: 10
+                        color: (windowRoot.parent && windowRoot.parent.pendingNodeSource === windowRoot) ? "#00FF9D" : "#151C28"
+                        border.color: "#00FF9D"; border.width: 1.5
+                        Text {
+                            anchors.centerIn: parent
+                            text: "◉"
+                            font.pixelSize: 11
+                            color: (windowRoot.parent && windowRoot.parent.pendingNodeSource === windowRoot) ? "#06070A" : "#00FF9D"
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: {
+                                if (windowRoot.parent && windowRoot.parent.handleNodePortClicked) {
+                                    windowRoot.parent.handleNodePortClicked(windowRoot);
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             // Drag Handler with Velocity Reset
@@ -228,6 +318,9 @@ Item {
                     windowRoot.velX = 0;
                     windowRoot.velY = 0;
                     windowRoot.z = ++windowRoot.parent.topZ;
+                    windowRoot.isFocusedWindow = true;
+                    var t = (windowRoot.toplevel && windowRoot.toplevel.title) ? windowRoot.toplevel.title : "Application";
+                    SystemController.boostFocusedWindow(t, false);
                 }
 
                 onReleased: {
@@ -246,7 +339,49 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.topMargin: 4
             shellSurface: windowRoot.shellSurface
+            opacity: (windowRoot.privacyShieldEnabled && (AuthManager.shoulderSurfingDetected || !windowRoot.isFocusedWindow)) ? 0.05 : 1.0
             onSurfaceDestroyed: windowRoot.destroy()
+        }
+
+        // Feature 4: Biometric Gaze & Shoulder-Surfing Frosted Privacy Veil
+        Rectangle {
+            id: privacyVeil
+            anchors.top: titleBar.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.margins: 6
+            radius: 10
+            color: "#F20B0D14"
+            border.color: "#00F2FE"
+            border.width: 1
+            visible: windowRoot.privacyShieldEnabled && (AuthManager.shoulderSurfingDetected || !windowRoot.isFocusedWindow)
+
+            ColumnLayout {
+                anchors.centerIn: parent
+                spacing: 8
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "🛡 BIOMETRIC PRIVACY SHIELD ACTIVE"
+                    color: "#00F2FE"
+                    font.bold: true
+                    font.pixelSize: 13
+                }
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    text: "Window content frosted to prevent shoulder-surfing. Click or look at IR sensor to unblur."
+                    color: "#94A3B8"
+                    font.pixelSize: 11
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    windowRoot.isFocusedWindow = true;
+                    AuthManager.shoulderSurfingDetected = false;
+                }
+            }
         }
     }
 }

@@ -22,6 +22,7 @@ class AuthManager : public QObject
     Q_PROPERTY(bool hasIrisAuth READ hasIrisAuth NOTIFY hardwareChanged)
     Q_PROPERTY(QString lockAuthMode READ lockAuthMode NOTIFY hardwareChanged)
     Q_PROPERTY(bool passwordlessUnlock READ passwordlessUnlock NOTIFY hardwareChanged)
+    Q_PROPERTY(bool shoulderSurfingDetected READ shoulderSurfingDetected WRITE setShoulderSurfingDetected NOTIFY hardwareChanged)
 
     // Live Authentication State
     Q_PROPERTY(bool isAuthenticating READ isAuthenticating NOTIFY authStateChanged)
@@ -46,6 +47,13 @@ public:
     bool hasIrisAuth() const { return m_hasIrisAuth; }
     QString lockAuthMode() const { return m_lockAuthMode; }
     bool passwordlessUnlock() const { return m_lockAuthMode == QStringLiteral("none"); }
+    bool shoulderSurfingDetected() const { return m_shoulderSurfingDetected; }
+    void setShoulderSurfingDetected(bool detected) {
+        if (m_shoulderSurfingDetected != detected) {
+            m_shoulderSurfingDetected = detected;
+            emit hardwareChanged();
+        }
+    }
     bool isAuthenticating() const { return m_isAuthenticating; }
     bool isFingerprintActive() const { return m_isFingerprintActive; }
     bool isFaceAuthActive() const { return m_isFaceAuthActive; }
@@ -96,6 +104,7 @@ private:
     bool m_hasFingerprint{false};
     bool m_hasFaceAuth{false};
     bool m_hasIrisAuth{false};
+    bool m_shoulderSurfingDetected{false};
     bool m_fpEnabledCfg{true};
     bool m_irisEnabledCfg{true};
     QString m_lockAuthMode{QStringLiteral("biometric_or_password")};

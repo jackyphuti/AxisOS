@@ -6,6 +6,7 @@
  * desktop user's Wayland/DBus session.
  */
 
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -175,22 +176,33 @@ static void handle_block_device(struct udev_device *dev, const char *action) {
         char label[128];
         sanitize_string(raw_label ? raw_label : "USB Storage Device", label, sizeof(label));
 
-        printf("[USB DAEMON] Mounting filesystem on %s (%s)...\n", devnode, label);
+        printf("[USB DAEMON] Mounting %s (%s) inside AxisOS Quarantine Vault...\n", devnode, label);
         fflush(stdout);
 
-        char *const mount_argv[] = {
-            "udisksctl",
-            "mount",
-            "--no-user-interaction",
-            "-b",
-            (char *)devnode,
-            NULL
-        };
-        spawn_async_process(mount_argv, true);
+        if (access("/usr/local/bin/axis-usb-vault", X_OK) == 0) {
+            char *const vault_argv[] = {
+                "/usr/local/bin/axis-usb-vault",
+                "mount",
+                (char *)devnode,
+                label,
+                NULL
+            };
+            spawn_async_process(vault_argv, false);
+        } else {
+            char *const mount_argv[] = {
+                "udisksctl",
+                "mount",
+                "--no-user-interaction",
+                "-b",
+                (char *)devnode,
+                NULL
+            };
+            spawn_async_process(mount_argv, true);
+        }
 
         char msg[256];
-        snprintf(msg, sizeof(msg), "%s (%s) mounted and ready", label, devnode);
-        send_notification("media-flash", "USB Flash Drive Mounted", msg);
+        snprintf(msg, sizeof(msg), "%s (%s) isolated in Quarantine Vault (nosuid/noexec + RAM overlay)", label, devnode);
+        send_notification("security-high", "USB Mounted in Quarantine Vault", msg);
     }
 }
 

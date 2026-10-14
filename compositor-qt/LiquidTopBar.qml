@@ -154,6 +154,40 @@ Rectangle {
                 }
             }
 
+            // Feature 3: NeuralPulse Focus Booster & Active LiquidNodes Badge
+            Rectangle {
+                height: 20
+                width: npRow.implicitWidth + 14
+                radius: 10
+                color: "#141D2B"
+                border.color: "#00F2FE"
+                border.width: 1
+                RowLayout {
+                    id: npRow
+                    anchors.centerIn: parent
+                    spacing: 5
+                    Text {
+                        text: "⚡ NeuralPulse:"
+                        color: "#00F2FE"
+                        font.pixelSize: 9
+                        font.bold: true
+                    }
+                    Text {
+                        text: SystemController.neuralPulseTarget
+                        color: "#F8FAFC"
+                        font.pixelSize: 9
+                        font.bold: true
+                    }
+                    Text {
+                        visible: SystemController.activeNodeLinks > 0
+                        text: "• ◉ " + SystemController.activeNodeLinks
+                        color: "#00FF9D"
+                        font.pixelSize: 9
+                        font.bold: true
+                    }
+                }
+            }
+
             // zRAM Compression Savings
             RowLayout {
                 spacing: 5
