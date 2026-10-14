@@ -24,13 +24,84 @@ WaylandCompositor {
                 id: liquidBg
             }
 
-            // 2. Desktop Workspace Surface Area for Wayland Windows
+            // 2. Desktop Workspace Surface Area + Visual LiquidNode Bezier Piping Graph
             Item {
                 id: surfaceArea
                 anchors.fill: parent
                 anchors.topMargin: 36
                 anchors.bottomMargin: 76
                 property int topZ: 10
+                property var pendingNodeSource: null
+                property var nodeConnections: []
+
+                function handleNodePortClicked(winObj) {
+                    if (!pendingNodeSource) {
+                        pendingNodeSource = winObj;
+                    } else if (pendingNodeSource === winObj) {
+                        pendingNodeSource = null;
+                    } else {
+                        var conn = { source: pendingNodeSource, target: winObj };
+                        var updated = nodeConnections.slice();
+                        updated.push(conn);
+                        nodeConnections = updated;
+                        var srcTitle = (pendingNodeSource.toplevel && pendingNodeSource.toplevel.title) ? pendingNodeSource.toplevel.title : "Window A";
+                        var dstTitle = (winObj.toplevel && winObj.toplevel.title) ? winObj.toplevel.title : "Window B";
+                        SystemController.connectLiquidNode(srcTitle, dstTitle);
+                        pendingNodeSource = null;
+                        nodeCableCanvas.requestPaint();
+                    }
+                }
+
+                // Live Bezier Cable Renderer connecting piped windows
+                Canvas {
+                    id: nodeCableCanvas
+                    anchors.fill: parent
+                    z: 999
+                    onPaint: {
+                        var ctx = getContext("2d");
+                        ctx.reset();
+                        for (var i = 0; i < surfaceArea.nodeConnections.length; ++i) {
+                            var link = surfaceArea.nodeConnections[i];
+                            if (!link.source || !link.target) continue;
+
+                            var x1 = link.source.x + link.source.width - 28;
+                            var y1 = link.source.y + 17;
+                            var x2 = link.target.x + link.target.width - 28;
+                            var y2 = link.target.y + 17;
+                            var dx = Math.abs(x2 - x1) * 0.45 + 60;
+
+                            var grad = ctx.createLinearGradient(x1, y1, x2, y2);
+                            grad.addColorStop(0.0, "#00F2FE");
+                            grad.addColorStop(0.5, "#8B5CF6");
+                            grad.addColorStop(1.0, "#00FF9D");
+
+                            ctx.strokeStyle = grad;
+                            ctx.lineWidth = 3.0;
+                            ctx.beginPath();
+                            ctx.moveTo(x1, y1);
+                            ctx.bezierCurveTo(x1 + dx, y1, x2 - dx, y2, x2, y2);
+                            ctx.stroke();
+
+                            // Glowing endpoints
+                            ctx.fillStyle = "#00F2FE";
+                            ctx.beginPath();
+                            ctx.arc(x1, y1, 5, 0, 2 * Math.PI);
+                            ctx.fill();
+
+                            ctx.fillStyle = "#00FF9D";
+                            ctx.beginPath();
+                            ctx.arc(x2, y2, 5, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
+                    }
+
+                    Timer {
+                        interval: 32
+                        running: surfaceArea.nodeConnections.length > 0
+                        repeat: true
+                        onTriggered: nodeCableCanvas.requestPaint()
+                    }
+                }
             }
 
             // 3. Floating Glassmorphic Top Bar with D-Bus IPC System Telemetry

@@ -280,3 +280,56 @@ void SystemController::suspend()
         QProcess::startDetached(QStringLiteral("systemctl"), {QStringLiteral("suspend")});
     }
 }
+
+void SystemController::boostFocusedWindow(const QString &title, bool isFullscreen)
+{
+    QString cleanTitle = title.trimmed().isEmpty() ? QStringLiteral("Desktop") : title.trimmed();
+    if (m_neuralPulseTarget != cleanTitle) {
+        m_neuralPulseTarget = cleanTitle;
+        emit neuralPulseChanged();
+    }
+    QProcess::startDetached(
+        QStringLiteral("/usr/local/bin/axis-neural-pulse"),
+        { QStringLiteral("boost"), cleanTitle, QStringLiteral("0"), isFullscreen ? QStringLiteral("true") : QStringLiteral("false") }
+    );
+}
+
+void SystemController::checkpointWindow(const QString &title)
+{
+    QString cleanTitle = title.trimmed().isEmpty() ? QStringLiteral("window") : title.trimmed();
+    QProcess::startDetached(
+        QStringLiteral("/usr/local/bin/axis-rewind"),
+        { QStringLiteral("checkpoint"), cleanTitle }
+    );
+    emit notificationReceived(QStringLiteral("Axis Rewind"), QStringLiteral("Snapshot saved for ") + cleanTitle);
+}
+
+void SystemController::rewindWindow(const QString &title)
+{
+    QString cleanTitle = title.trimmed().isEmpty() ? QStringLiteral("window") : title.trimmed();
+    QProcess::startDetached(
+        QStringLiteral("/usr/local/bin/axis-rewind"),
+        { QStringLiteral("rewind"), cleanTitle }
+    );
+    emit notificationReceived(QStringLiteral("Axis Rewind"), QStringLiteral("Restored snapshot for ") + cleanTitle);
+}
+
+void SystemController::connectLiquidNode(const QString &sourceTitle, const QString &targetTitle)
+{
+    m_activeNodeLinks++;
+    emit nodeLinksChanged();
+
+    // Create named IPC pipe in XDG_RUNTIME_DIR/axis-nodes and link PipeWire ports if applicable
+    QString runtimeDir = QString::fromUtf8(qgetenv("XDG_RUNTIME_DIR"));
+    if (runtimeDir.isEmpty()) runtimeDir = QStringLiteral("/tmp");
+    QString nodeDir = runtimeDir + QStringLiteral("/axis-nodes");
+    QDir().mkpath(nodeDir);
+
+    QString pipeName = nodeDir + QStringLiteral("/link_") + QString::number(m_activeNodeLinks) + QStringLiteral(".fifo");
+    QProcess::startDetached(QStringLiteral("mkfifo"), { pipeName });
+
+    emit notificationReceived(
+        QStringLiteral("LiquidNode Connected"),
+        sourceTitle + QStringLiteral(" ⟶ ") + targetTitle
+    );
+}

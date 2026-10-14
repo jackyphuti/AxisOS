@@ -174,6 +174,7 @@ void TerminalBackend::onPtyDataAvailable()
 
     while ((bytesRead = ::read(m_masterFd, buffer, sizeof(buffer))) > 0) {
         vterm_input_write(m_vterm, buffer, static_cast<size_t>(bytesRead));
+        analyzeOutputForSelfHealing(QString::fromUtf8(buffer, bytesRead));
     }
 
     if (bytesRead < 0 && (errno != EAGAIN && errno != EWOULDBLOCK)) {
@@ -337,4 +338,68 @@ int TerminalBackend::onResize(int rows, int cols, void *user)
         emit self->screenUpdated();
     }
     return 1;
+}
+
+void TerminalBackend::analyzeOutputForSelfHealing(const QString &chunk)
+{
+    QString lower = chunk.toLower();
+
+    if (lower.contains(QStringLiteral("could not get lock /var/lib/dpkg")) ||
+        lower.contains(QStringLiteral("unable to lock directory /var/lib/apt"))) {
+        m_hasDiagnostic = true;
+        m_diagnosticTitle = QStringLiteral("APT / Dpkg Lock Contention Detected");
+        m_diagnosticFixCommand = QStringLiteral("sudo rm -f /var/lib/dpkg/lock-frontend /var/lib/apt/lists/lock && sudo dpkg --configure -a");
+        emit diagnosticChanged();
+    } else if (lower.contains(QStringLiteral("command not found"))) {
+        // Extract missing binary name if possible
+        QString missingCmd = QStringLiteral("package");
+        int idx = chunk.indexOf(QStringLiteral(": command not found"));
+        if (idx > 0) {
+            QString prefix = chunk.left(idx).trimmed();
+            int lastColon = prefix.lastIndexOf(QLatin1Char(':'));
+            missingCmd = (lastColon >= 0) ? prefix.mid(lastColon + 1).trimmed() : prefix.section(QLatin1Char(' '), -1);
+        }
+        m_hasDiagnostic = true;
+        m_diagnosticTitle = QStringLiteral("Missing Command: '") + missingCmd + QStringLiteral("'");
+        m_diagnosticFixCommand = QStringLiteral("sudo axis install ") + missingCmd;
+        emit diagnosticChanged();
+    } else if (lower.contains(QStringLiteral("eaddrinuse")) ||
+               lower.contains(QStringLiteral("address already in use"))) {
+        m_hasDiagnostic = true;
+        m_diagnosticTitle = QStringLiteral("Network Port Conflict (EADDRINUSE)");
+        m_diagnosticFixCommand = QStringLiteral("sudo fuser -k 3000/tcp 2>/dev/null || lsof -i :3000");
+        emit diagnosticChanged();
+    } else if (lower.contains(QStringLiteral("error while loading shared libraries"))) {
+        m_hasDiagnostic = true;
+        m_diagnosticTitle = QStringLiteral("Missing Shared Library (.so) Cache");
+        m_diagnosticFixCommand = QStringLiteral("sudo ldconfig && sudo apt-get -o DPkg::Lock::Timeout=120 install -f -y");
+        emit diagnosticChanged();
+    } else if (lower.contains(QStringLiteral("no space left on device"))) {
+        m_hasDiagnostic = true;
+        m_diagnosticTitle = QStringLiteral("Storage Full (ENOSPC)");
+        m_diagnosticFixCommand = QStringLiteral("sudo apt-get clean && sudo journalctl --vacuum-size=100M");
+        emit diagnosticChanged();
+    } else if (lower.contains(QStringLiteral("permission denied"))) {
+        m_hasDiagnostic = true;
+        m_diagnosticTitle = QStringLiteral("Permission Denied — Elevate Command");
+        m_diagnosticFixCommand = QStringLiteral("sudo !!");
+        emit diagnosticChanged();
+    }
+}
+
+void TerminalBackend::applyDiagnosticFix()
+{
+    if (!m_hasDiagnostic || m_diagnosticFixCommand.isEmpty()) return;
+    QString cmd = m_diagnosticFixCommand + QStringLiteral("\r");
+    m_hasDiagnostic = false;
+    emit diagnosticChanged();
+    sendInput(cmd.toUtf8());
+}
+
+void TerminalBackend::dismissDiagnostic()
+{
+    if (m_hasDiagnostic) {
+        m_hasDiagnostic = false;
+        emit diagnosticChanged();
+    }
 }

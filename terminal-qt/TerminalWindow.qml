@@ -208,6 +208,87 @@ Window {
                     }
                 }
             }
+
+            // -----------------------------------------------------------------
+            // Feature 6: Offline "Self-Healing" Terminal Doctor Action Pill
+            // -----------------------------------------------------------------
+            Rectangle {
+                id: selfHealingPill
+                Layout.fillWidth: true
+                Layout.preferredHeight: terminalBackend.hasDiagnosticSuggestion ? 46 : 0
+                Layout.leftMargin: 12
+                Layout.rightMargin: 12
+                Layout.bottomMargin: terminalBackend.hasDiagnosticSuggestion ? 10 : 0
+                visible: terminalBackend.hasDiagnosticSuggestion
+                radius: 12
+                color: "#E6101826"
+                border.width: 1
+                border.color: "#00F2FE"
+                clip: true
+
+                RowLayout {
+                    anchors.fill: parent
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 12
+                    spacing: 12
+
+                    Text {
+                        text: "🩺 " + terminalBackend.diagnosticTitle
+                        color: "#00F2FE"
+                        font.pixelSize: 12
+                        font.bold: true
+                    }
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "Suggested fix: " + terminalBackend.diagnosticFixCommand
+                        color: "#E2E8F0"
+                        font.pixelSize: 11
+                        font.family: "monospace"
+                        elide: Text.ElideRight
+                    }
+
+                    Rectangle {
+                        width: 108
+                        height: 28
+                        radius: 8
+                        color: "#00F2FE"
+                        Text {
+                            anchors.centerIn: parent
+                            text: "⚡ Fix & Retry"
+                            color: "#06070A"
+                            font.pixelSize: 11
+                            font.bold: true
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                terminalBackend.applyDiagnosticFix();
+                                terminalScreen.forceActiveFocus();
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 24
+                        height: 24
+                        radius: 6
+                        color: "#1E293B"
+                        Text {
+                            anchors.centerIn: parent
+                            text: "✕"
+                            color: "#94A3B8"
+                            font.pixelSize: 11
+                        }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: terminalBackend.dismissDiagnostic()
+                        }
+                    }
+                }
+            }
         }
     }
 }

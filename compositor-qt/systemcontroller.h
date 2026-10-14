@@ -30,6 +30,8 @@ class SystemController : public QObject {
     Q_PROPERTY(int ramUsagePercent READ ramUsagePercent NOTIFY telemetryChanged)
     Q_PROPERTY(int zramSavedMb READ zramSavedMb NOTIFY telemetryChanged)
     Q_PROPERTY(QString kernelVersion READ kernelVersion CONSTANT)
+    Q_PROPERTY(QString neuralPulseTarget READ neuralPulseTarget NOTIFY neuralPulseChanged)
+    Q_PROPERTY(int activeNodeLinks READ activeNodeLinks NOTIFY nodeLinksChanged)
 
 public:
     explicit SystemController(QObject *parent = nullptr);
@@ -48,6 +50,8 @@ public:
     [[nodiscard]] int ramUsagePercent() const noexcept { return m_ramUsagePercent; }
     [[nodiscard]] int zramSavedMb() const noexcept { return m_zramSavedMb; }
     [[nodiscard]] QString kernelVersion() const { return m_kernelVersion; }
+    [[nodiscard]] QString neuralPulseTarget() const { return m_neuralPulseTarget; }
+    [[nodiscard]] int activeNodeLinks() const noexcept { return m_activeNodeLinks; }
 
     // Q_INVOKABLE Actions
     Q_INVOKABLE void launchApp(const QString &command);
@@ -59,6 +63,10 @@ public:
     Q_INVOKABLE void shutdownSystem() { powerOff(); }
     Q_INVOKABLE void rebootSystem() { reboot(); }
     Q_INVOKABLE void suspendSystem() { suspend(); }
+    Q_INVOKABLE void boostFocusedWindow(const QString &title, bool isFullscreen = false);
+    Q_INVOKABLE void checkpointWindow(const QString &title);
+    Q_INVOKABLE void rewindWindow(const QString &title);
+    Q_INVOKABLE void connectLiquidNode(const QString &sourceTitle, const QString &targetTitle);
 
 signals:
     void wifiChanged();
@@ -66,6 +74,8 @@ signals:
     void batteryChanged();
     void telemetryChanged();
     void notificationReceived(const QString &title, const QString &body);
+    void neuralPulseChanged();
+    void nodeLinksChanged();
 
 private slots:
     void pollTelemetry();
@@ -96,6 +106,8 @@ private:
     int m_ramUsagePercent{0};
     int m_zramSavedMb{0};
     QString m_kernelVersion{"Linux XanMod"};
+    QString m_neuralPulseTarget{"Desktop"};
+    int m_activeNodeLinks{0};
 
     // CPU telemetry tracking
     unsigned long long m_prevIdle{0};

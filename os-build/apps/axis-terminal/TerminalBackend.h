@@ -31,6 +31,9 @@ class TerminalBackend : public QObject
     Q_PROPERTY(int cursorCol READ cursorCol NOTIFY cursorChanged)
     Q_PROPERTY(bool cursorVisible READ cursorVisible NOTIFY cursorChanged)
     Q_PROPERTY(QString title READ title NOTIFY titleChanged)
+    Q_PROPERTY(bool hasDiagnosticSuggestion READ hasDiagnosticSuggestion NOTIFY diagnosticChanged)
+    Q_PROPERTY(QString diagnosticTitle READ diagnosticTitle NOTIFY diagnosticChanged)
+    Q_PROPERTY(QString diagnosticFixCommand READ diagnosticFixCommand NOTIFY diagnosticChanged)
 
 public:
     explicit TerminalBackend(int rows = 24, int cols = 80, QObject *parent = nullptr);
@@ -45,6 +48,9 @@ public:
     int cursorCol() const { return m_cursorCol; }
     bool cursorVisible() const { return m_cursorVisible; }
     QString title() const { return m_title; }
+    bool hasDiagnosticSuggestion() const { return m_hasDiagnostic; }
+    QString diagnosticTitle() const { return m_diagnosticTitle; }
+    QString diagnosticFixCommand() const { return m_diagnosticFixCommand; }
 
     // Screen buffer access
     TerminalCell getCell(int row, int col) const;
@@ -53,12 +59,15 @@ public:
 public Q_SLOTS:
     void sendInput(const QByteArray &data);
     void sendInput(const QString &text);
+    void applyDiagnosticFix();
+    void dismissDiagnostic();
 
 Q_SIGNALS:
     void screenUpdated();
     void cursorChanged();
     void sizeChanged();
     void titleChanged();
+    void diagnosticChanged();
     void bellTriggered();
     void shellExited(int exitCode);
 
@@ -83,7 +92,11 @@ private:
     int m_cursorRow{0};
     int m_cursorCol{0};
     bool m_cursorVisible{true};
+    void analyzeOutputForSelfHealing(const QString &chunk);
     QString m_title{QStringLiteral("Axis Terminal")};
+    bool m_hasDiagnostic{false};
+    QString m_diagnosticTitle;
+    QString m_diagnosticFixCommand;
 
     // PTY Process State
     int m_masterFd{-1};
