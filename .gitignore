@@ -46,3 +46,6 @@ yarn-error.log*
 # Python
 __pycache__/
 *.py[cod]
+
+# Temporary patch helper scripts
+push-*.sh
