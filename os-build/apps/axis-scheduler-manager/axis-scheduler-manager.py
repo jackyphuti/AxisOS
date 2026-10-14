@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+"""
+AxisOS 2.0 Kernel Scheduler & CPU Governor Manager (axis-scheduler-manager)
+"""
+import os, sys, subprocess, gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, GLib
+
+class SchedulerManagerWin(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="AxisOS Kernel Scheduler Manager")
+        self.set_default_size(680, 420)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        hb = Gtk.HeaderBar(title="AxisOS Kernel Scheduler & CPU Governor", subtitle="Manage CPU scaling governors, Game Boost & NeuralPulse")
+        hb.set_show_close_button(True)
+        self.set_titlebar(hb)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+        vbox.set_margin_start(20); vbox.set_margin_end(20); vbox.set_margin_top(20); vbox.set_margin_bottom(20)
+        self.add(vbox)
+
+        self.status_lbl = Gtk.Label(xalign=0.0)
+        vbox.pack_start(self.status_lbl, False, False, 0)
+
+        gov_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        for gov in ["performance", "schedutil", "ondemand", "powersave"]:
+            b = Gtk.Button(label=f"Set '{gov}' Governor")
+            b.connect("clicked", lambda _, g=gov: self._set_gov(g))
+            gov_box.pack_start(b, False, False, 0)
+        vbox.pack_start(gov_box, False, False, 0)
+
+        boost_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        b_on = Gtk.Button(label="⚡ Enable AxisOS Game Boost")
+        b_on.connect("clicked", lambda *_: self._run("pkexec /usr/local/bin/axis-game-boost start || /usr/local/bin/axis-game-boost start"))
+        boost_box.pack_start(b_on, False, False, 0)
+
+        b_off = Gtk.Button(label="Disable Game Boost")
+        b_off.connect("clicked", lambda *_: self._run("pkexec /usr/local/bin/axis-game-boost stop || /usr/local/bin/axis-game-boost stop"))
+        boost_box.pack_start(b_off, False, False, 0)
+        vbox.pack_start(boost_box, False, False, 0)
+
+        self._refresh()
+
+    def _refresh(self):
+        gov = "schedutil"
+        p = "/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor"
+        if os.path.exists(p):
+            try:
+                gov = open(p).read().strip()
+            except Exception:
+                pass
+        self.status_lbl.set_markup(f"<b>Active CPU Scaling Governor:</b> {GLib.markup_escape_text(gov)}")
+
+    def _set_gov(self, gov):
+        self._run(f"pkexec sh -c 'for f in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do echo {gov} > \"$f\" 2>/dev/null || true; done'")
+
+    def _run(self, cmd):
+        subprocess.call(cmd, shell=True)
+        self._refresh()
+
+if __name__ == "__main__":
+    w = SchedulerManagerWin()
+    w.connect("destroy", Gtk.main_quit)
+    w.show_all()
+    Gtk.main()

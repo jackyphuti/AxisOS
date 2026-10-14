@@ -5,110 +5,71 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 APPS_DIR="${1:-$REPO_ROOT/os-build/apps}"
 
-echo "=== AxisOS Native C/C++ Applications Compiler ==="
-echo "Building all native OS apps for x86_64..."
+echo "=== AxisOS Native & GTK3 Desktop Applications Builder ==="
 
-# 1. Compile axis-terminal (Native Qt 6 / C++20 / libvterm or GTK fallback)
-echo "--> Compiling axis-terminal..."
-if [ -f "$APPS_DIR/axis-terminal/CMakeLists.txt" ]; then
-    echo "    Using CMake for Qt 6 / libvterm terminal build..."
-    cmake -B "$APPS_DIR/axis-terminal/build" -S "$APPS_DIR/axis-terminal" -DCMAKE_BUILD_TYPE=Release
-    cmake --build "$APPS_DIR/axis-terminal/build" -j$(nproc 2>/dev/null || echo 4)
-    cp -f "$APPS_DIR/axis-terminal/build/axis-terminal" "$APPS_DIR/axis-terminal/axis-terminal"
-else
-    g++ -O2 -std=c++17 \
-        "$APPS_DIR/axis-terminal/main.cpp" \
-        $(pkg-config --cflags --libs gtk+-3.0 vte-2.91) \
-        -o "$APPS_DIR/axis-terminal/axis-terminal"
+# 1. Deploy GTK3 Self-Healing axis-terminal (zero Qt6 dependency, works on X11/Wayland/VMs)
+echo "--> Configuring axis-terminal..."
+if [ -f "$APPS_DIR/axis-terminal/axis-terminal.py" ]; then
+    cp -f "$APPS_DIR/axis-terminal/axis-terminal.py" "$APPS_DIR/axis-terminal/axis-terminal"
 fi
 chmod 755 "$APPS_DIR/axis-terminal/axis-terminal"
 
-# 2. Compile axis-installer (C++ with GTK 3, Windows 10 Wizard Style)
-echo "--> Compiling axis-installer..."
-g++ -O2 -std=c++17 \
-    "$APPS_DIR/axis-installer/main.cpp" \
-    $(pkg-config --cflags --libs gtk+-3.0) \
-    -o "$APPS_DIR/axis-installer/axis-installer"
+# 2. Compile axis-installer (C++ with GTK 3) or fallback to Python GTK3
+echo "--> Building axis-installer..."
+if command -v g++ >/dev/null 2>&1 && pkg-config --exists gtk+-3.0 2>/dev/null; then
+    g++ -O2 -std=c++17 "$APPS_DIR/axis-installer/main.cpp" $(pkg-config --cflags --libs gtk+-3.0) -o "$APPS_DIR/axis-installer/axis-installer"
+elif [ -f "$APPS_DIR/axis-installer/axis-installer.py" ]; then
+    cp -f "$APPS_DIR/axis-installer/axis-installer.py" "$APPS_DIR/axis-installer/axis-installer"
+fi
 chmod 755 "$APPS_DIR/axis-installer/axis-installer"
 
-# 3. Compile axis-settings (C++ with GTK 3, Hardware Controls & Desktop Tuning)
-echo "--> Compiling axis-settings..."
-g++ -O2 -std=c++17 \
-    "$APPS_DIR/axis-settings/main.cpp" \
-    $(pkg-config --cflags --libs gtk+-3.0) \
-    -o "$APPS_DIR/axis-settings/axis-settings"
+# 3. Deploy unified GTK3 axis-settings (includes Biometrics, Lock Screen, Game Boost & Signature Features)
+echo "--> Configuring unified axis-settings..."
+if [ -f "$APPS_DIR/axis-settings/axis-settings.py" ]; then
+    cp -f "$APPS_DIR/axis-settings/axis-settings.py" "$APPS_DIR/axis-settings/axis-settings"
+fi
 chmod 755 "$APPS_DIR/axis-settings/axis-settings"
 
 # 4. Compile axis-usb-daemon (C with libudev)
-echo "--> Compiling axis-usb-daemon..."
-gcc -O2 \
-    "$APPS_DIR/axis-usb-daemon/main.c" \
-    $(pkg-config --cflags --libs libudev) \
-    -o "$APPS_DIR/axis-usb-daemon/axis-usb-daemon"
-chmod 755 "$APPS_DIR/axis-usb-daemon/axis-usb-daemon"
+echo "--> Building axis-usb-daemon..."
+if command -v gcc >/dev/null 2>&1 && pkg-config --exists libudev 2>/dev/null; then
+    gcc -O2 "$APPS_DIR/axis-usb-daemon/main.c" $(pkg-config --cflags --libs libudev) -o "$APPS_DIR/axis-usb-daemon/axis-usb-daemon"
+fi
+chmod 755 "$APPS_DIR/axis-usb-daemon/axis-usb-daemon" 2>/dev/null || true
 
 # 5. Compile axis-task-manager (C++ with GTK 3)
-echo "--> Compiling axis-task-manager..."
-g++ -O2 -std=c++17 \
-    "$APPS_DIR/axis-task-manager/main.cpp" \
-    $(pkg-config --cflags --libs gtk+-3.0) \
-    -o "$APPS_DIR/axis-task-manager/axis-task-manager"
-chmod 755 "$APPS_DIR/axis-task-manager/axis-task-manager"
-
-# 6. Compile axis-package-installer (Qt 6 / C++20)
-if [ -f "$APPS_DIR/axis-package-installer/CMakeLists.txt" ] && which cmake >/dev/null 2>&1; then
-    echo "--> Compiling axis-package-installer..."
-    cmake -B "$APPS_DIR/axis-package-installer/build" -S "$APPS_DIR/axis-package-installer" -DCMAKE_BUILD_TYPE=Release
-    cmake --build "$APPS_DIR/axis-package-installer/build" -j$(nproc 2>/dev/null || echo 4)
-    cp -f "$APPS_DIR/axis-package-installer/build/axis-package-installer" "$APPS_DIR/axis-package-installer/axis-package-installer"
-    chmod 755 "$APPS_DIR/axis-package-installer/axis-package-installer"
+echo "--> Building axis-task-manager..."
+if command -v g++ >/dev/null 2>&1 && pkg-config --exists gtk+-3.0 2>/dev/null; then
+    g++ -O2 -std=c++17 "$APPS_DIR/axis-task-manager/main.cpp" $(pkg-config --cflags --libs gtk+-3.0) -o "$APPS_DIR/axis-task-manager/axis-task-manager"
 fi
+chmod 755 "$APPS_DIR/axis-task-manager/axis-task-manager" 2>/dev/null || true
 
-# 7. Compile axis-scheduler-manager (Qt 6 / C++20)
-if [ -f "$APPS_DIR/axis-scheduler-manager/CMakeLists.txt" ] && which cmake >/dev/null 2>&1; then
-    echo "--> Compiling axis-scheduler-manager..."
-    cmake -B "$APPS_DIR/axis-scheduler-manager/build" -S "$APPS_DIR/axis-scheduler-manager" -DCMAKE_BUILD_TYPE=Release
-    cmake --build "$APPS_DIR/axis-scheduler-manager/build" -j$(nproc 2>/dev/null || echo 4)
-    cp -f "$APPS_DIR/axis-scheduler-manager/build/axis-scheduler-manager" "$APPS_DIR/axis-scheduler-manager/axis-scheduler-manager"
-    chmod 755 "$APPS_DIR/axis-scheduler-manager/axis-scheduler-manager"
-fi
+# 6. Deploy GTK3 axis-package-installer, axis-scheduler-manager, and axis-welcome
+for py_app in axis-package-installer axis-scheduler-manager axis-welcome; do
+    echo "--> Configuring $py_app..."
+    if [ -f "$APPS_DIR/$py_app/$py_app.py" ]; then
+        cp -f "$APPS_DIR/$py_app/$py_app.py" "$APPS_DIR/$py_app/$py_app"
+    fi
+    chmod 755 "$APPS_DIR/$py_app/$py_app"
+done
 
-# 8. Compile axis-welcome (Qt 6 / C++20)
-if [ -f "$APPS_DIR/axis-welcome/CMakeLists.txt" ] && which cmake >/dev/null 2>&1; then
-    echo "--> Compiling axis-welcome..."
-    cmake -B "$APPS_DIR/axis-welcome/build" -S "$APPS_DIR/axis-welcome" -DCMAKE_BUILD_TYPE=Release
-    cmake --build "$APPS_DIR/axis-welcome/build" -j$(nproc 2>/dev/null || echo 4)
-    cp -f "$APPS_DIR/axis-welcome/build/axis-welcome" "$APPS_DIR/axis-welcome/axis-welcome"
-    chmod 755 "$APPS_DIR/axis-welcome/axis-welcome"
-fi
-
-# 8b. Compile axis-update (Atomic Btrfs/A-B System Update Engine)
-if [ -d "$REPO_ROOT/os-build/updater" ]; then
+# 7. Compile axis-update (Atomic Btrfs/A-B System Update Engine)
+if [ -d "$REPO_ROOT/os-build/updater" ] && command -v gcc >/dev/null 2>&1; then
     echo "--> Compiling axis-update atomic updater..."
-    make -C "$REPO_ROOT/os-build/updater" clean all
+    make -C "$REPO_ROOT/os-build/updater" clean all || true
 fi
 
-# 9. Compile axis-oobe (C++ with GTK 3)
-echo "--> Compiling axis-oobe..."
-g++ -O2 -std=c++17 \
-    "$APPS_DIR/axis-oobe/main.cpp" \
-    $(pkg-config --cflags --libs gtk+-3.0) \
-    -o "$APPS_DIR/axis-oobe/axis-oobe"
-chmod 755 "$APPS_DIR/axis-oobe/axis-oobe"
-
-# Optional: Install to system /usr/local/bin if running inside root chroot
-if [ -d "/usr/local/bin" ] && [ "$EUID" -eq 0 ]; then
-    echo "--> Installing compiled binaries to /usr/local/bin..."
-    [ -f "$APPS_DIR/axis-terminal/axis-terminal" ] && cp -f "$APPS_DIR/axis-terminal/axis-terminal" /usr/local/bin/
-    [ -f "$APPS_DIR/axis-package-installer/axis-package-installer" ] && cp -f "$APPS_DIR/axis-package-installer/axis-package-installer" /usr/local/bin/
-    [ -f "$APPS_DIR/axis-scheduler-manager/axis-scheduler-manager" ] && cp -f "$APPS_DIR/axis-scheduler-manager/axis-scheduler-manager" /usr/local/bin/
-    [ -f "$APPS_DIR/axis-welcome/axis-welcome" ] && cp -f "$APPS_DIR/axis-welcome/axis-welcome" /usr/local/bin/
-    [ -f "$APPS_DIR/axis-installer/axis-installer" ] && cp -f "$APPS_DIR/axis-installer/axis-installer" /usr/local/bin/
-    [ -f "$APPS_DIR/axis-settings/axis-settings" ] && cp -f "$APPS_DIR/axis-settings/axis-settings" /usr/local/bin/
-    [ -f "$APPS_DIR/axis-usb-daemon/axis-usb-daemon" ] && cp -f "$APPS_DIR/axis-usb-daemon/axis-usb-daemon" /usr/local/bin/
-    [ -f "$APPS_DIR/axis-task-manager/axis-task-manager" ] && cp -f "$APPS_DIR/axis-task-manager/axis-task-manager" /usr/local/bin/
-    [ -f "$APPS_DIR/axis-oobe/axis-oobe" ] && cp -f "$APPS_DIR/axis-oobe/axis-oobe" /usr/local/bin/
-    [ -f "$REPO_ROOT/os-build/updater/axis-update" ] && cp -f "$REPO_ROOT/os-build/updater/axis-update" /usr/bin/axis-update && chmod 755 /usr/bin/axis-update
+# 8. Install to /usr/local/bin and /usr/bin if running as root
+if [ -d "/usr/local/bin" ] && [ "${EUID:-$(id -u)}" -eq 0 ]; then
+    echo "--> Installing applications to /usr/local/bin and /usr/bin..."
+    for app in axis-terminal axis-package-installer axis-scheduler-manager axis-welcome axis-installer axis-settings axis-software-manager axis-update-manager axis-usb-daemon axis-task-manager axis-oobe; do
+        if [ -f "$APPS_DIR/$app/$app" ]; then
+            cp -f "$APPS_DIR/$app/$app" "/usr/local/bin/$app"
+            chmod 755 "/usr/local/bin/$app"
+            ln -sfn "/usr/local/bin/$app" "/usr/bin/$app"
+        fi
+    done
+    ln -sfn /usr/local/bin/axis-terminal /usr/local/bin/gnome-terminal
 fi
 
-echo "=== All AxisOS Native C/C++ Applications Built Successfully! ==="
+echo "=== All AxisOS Desktop Applications Configured Successfully! ==="

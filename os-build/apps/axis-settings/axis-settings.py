@@ -192,10 +192,12 @@ class AxisSettingsApp(Gtk.Window):
 
         categories = [
             ("🎨 Appearance & Desktop", "appearance"),
+            ("⚡ Gaming, Display & Audio", "gaming"),
+            ("🔐 Biometrics & Screen Lock", "security"),
+            ("✨ Signature Features", "signature"),
             ("🔄 Software & Updates", "updates"),
             ("📶 Wi-Fi & Network", "network"),
             ("🌍 Date, Time & Location", "datetime"),
-            ("🔒 Accounts & Security", "security"),
             ("ℹ️ About AxisOS", "about"),
         ]
 
@@ -226,10 +228,12 @@ class AxisSettingsApp(Gtk.Window):
 
         # Build pages
         self.build_appearance_page()
+        self.build_gaming_hardware_page()
+        self.build_security_page()
+        self.build_signature_features_page()
         self.build_updates_page()
         self.build_network_page()
         self.build_datetime_page()
-        self.build_security_page()
         self.build_about_page()
 
         # Select first category
@@ -902,6 +906,134 @@ class AxisSettingsApp(Gtk.Window):
             self.show_info_dialog("Error", f"Failed to update passwords:\n{e}")
 
     # =========================================================================
+    # Gaming, Display & Audio Page
+    # =========================================================================
+    def build_gaming_hardware_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+
+        # Card 1: Gaming Boost & CPU Governor
+        card_gb = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        card_gb.get_style_context().add_class("card")
+        t1 = Gtk.Label(label="Gaming Boost & CPU Governor", xalign=0)
+        t1.get_style_context().add_class("card-title")
+        s1 = Gtk.Label(label="Unlock peak CPU scaling frequencies, GPU power states, and low-latency scheduling.", xalign=0)
+        s1.get_style_context().add_class("card-subtitle")
+        card_gb.pack_start(t1, False, False, 0)
+        card_gb.pack_start(s1, False, False, 0)
+
+        row_gb = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        for lbl, cmd in [
+            ("⚡ Enable Game Boost", "pkexec /usr/local/bin/axis-game-boost start || /usr/local/bin/axis-game-boost start"),
+            ("Disable Game Boost", "pkexec /usr/local/bin/axis-game-boost stop || /usr/local/bin/axis-game-boost stop"),
+            ("Open Scheduler Manager", "/usr/local/bin/axis-scheduler-manager &"),
+        ]:
+            b = Gtk.Button(label=lbl)
+            b.get_style_context().add_class("primary-btn" if "Enable" in lbl else "secondary-btn")
+            b.connect("clicked", lambda _, c=cmd: subprocess.Popen(c, shell=True))
+            row_gb.pack_start(b, False, False, 0)
+        card_gb.pack_start(row_gb, False, False, 4)
+        page.pack_start(card_gb, False, False, 0)
+
+        # Card 2: Audio & Display Brightness
+        card_av = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        card_av.get_style_context().add_class("card")
+        t2 = Gtk.Label(label="Display Brightness & PipeWire Audio", xalign=0)
+        t2.get_style_context().add_class("card-title")
+        s2 = Gtk.Label(label="Adjust hardware backlight and PipeWire / ALSA master output volume.", xalign=0)
+        s2.get_style_context().add_class("card-subtitle")
+        card_av.pack_start(t2, False, False, 0)
+        card_av.pack_start(s2, False, False, 0)
+
+        row_av = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        for lbl, cmd in [
+            ("🔊 Volume +10%", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 10%+ 2>/dev/null || amixer -q sset Master 10%+"),
+            ("🔉 Volume -10%", "wpctl set-volume @DEFAULT_AUDIO_SINK@ 10%- 2>/dev/null || amixer -q sset Master 10%-"),
+            ("🔇 Toggle Mute", "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null || amixer -q sset Master toggle"),
+            ("☀️ Brightness +10%", "brightnessctl -q set +10%"),
+            ("🌙 Brightness -10%", "brightnessctl -q set 10%-"),
+        ]:
+            b = Gtk.Button(label=lbl)
+            b.get_style_context().add_class("secondary-btn")
+            b.connect("clicked", lambda _, c=cmd: subprocess.Popen(c, shell=True))
+            row_av.pack_start(b, False, False, 0)
+        card_av.pack_start(row_av, False, False, 4)
+        page.pack_start(card_av, False, False, 0)
+
+        self.stack.add_named(page, "gaming")
+
+    # =========================================================================
+    # Signature Features Page (Liquid Nodes, Rewind, NeuralPulse, Gaze Shield, USB Vault)
+    # =========================================================================
+    def build_signature_features_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+
+        features = [
+            (
+                "1. Axis Rewind — Per-App Copy-on-Write Time-Travel",
+                "Create instant zero-cost Btrfs/XFS reflink checkpoints of app configurations and state or roll back in <10ms.",
+                [
+                    ("⏱ Checkpoint Settings State", "/usr/local/bin/axis-rewind checkpoint axis-settings"),
+                    ("⏪ Rewind to Last Checkpoint", "/usr/local/bin/axis-rewind rewind axis-settings"),
+                ],
+            ),
+            (
+                "2. NeuralPulse — Focus-Driven Kernel & GPU Priority",
+                "Automatically boosts the focused window's CPU nice (-10), I/O priority, and cgroup v2 cpu.weight=1000.",
+                [
+                    ("⚡ Boost Current Session", "/usr/local/bin/axis-neural-pulse boost axis-settings $$"),
+                    ("📊 View Telemetry Status", "/usr/local/bin/axis-neural-pulse status"),
+                ],
+            ),
+            (
+                "3. Shoulder-Surfing & Gaze Privacy Shield",
+                "Uses V4L2 camera multi-face detection to automatically veil protected windows when someone looks over your shoulder.",
+                [
+                    ("👁 Scan Camera Now", "/usr/local/bin/axis-gaze-shield scan-once"),
+                    ("🛡 Simulate Shoulder-Surfer Alert", "/usr/local/bin/axis-gaze-shield simulate-alert"),
+                    ("✅ Clear Alert", "/usr/local/bin/axis-gaze-shield clear"),
+                ],
+            ),
+            (
+                "4. One-Click USB Quarantine Vault (RAM tmpfs + overlayfs + Bubblewrap)",
+                "Mounts untrusted USB drives strictly read-only with nosuid,nodev,noexec underneath a disposable RAM overlay.",
+                [
+                    ("🔒 Check Active USB Vaults", "/usr/local/bin/axis-usb-vault status"),
+                ],
+            ),
+        ]
+
+        for title_txt, sub_txt, btns in features:
+            card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            card.get_style_context().add_class("card")
+            t = Gtk.Label(label=title_txt, xalign=0)
+            t.get_style_context().add_class("card-title")
+            s = Gtk.Label(label=sub_txt, xalign=0)
+            s.set_line_wrap(True)
+            s.get_style_context().add_class("card-subtitle")
+            card.pack_start(t, False, False, 0)
+            card.pack_start(s, False, False, 0)
+
+            r = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+            for b_lbl, b_cmd in btns:
+                btn = Gtk.Button(label=b_lbl)
+                btn.get_style_context().add_class("secondary-btn")
+                btn.connect("clicked", lambda _, c=b_cmd, tl=title_txt: self._run_sig_action(tl, c))
+                r.pack_start(btn, False, False, 0)
+            card.pack_start(r, False, False, 4)
+            page.pack_start(card, False, False, 0)
+
+        self.stack.add_named(page, "signature")
+
+    def _run_sig_action(self, title_txt, cmd):
+        try:
+            out = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, text=True, timeout=5).strip()
+        except subprocess.CalledProcessError as e:
+            out = (e.output or str(e)).strip()
+        except Exception as e:
+            out = str(e)
+        self.show_info_dialog(title_txt, out or "Command executed.")
+
+    # =========================================================================
     # 6. About Page
     # =========================================================================
     def build_about_page(self):
@@ -962,6 +1094,8 @@ def main():
     app.show_all()
     Gtk.main()
 
+
+SettingsWindow = AxisSettingsApp
 
 if __name__ == "__main__":
     main()
