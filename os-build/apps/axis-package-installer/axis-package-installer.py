@@ -1,0 +1,80 @@
+#!/usr/bin/env python3
+"""
+AxisOS 2.0 Native Package Installer (axis-package-installer)
+"""
+import os, sys, subprocess, threading, gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, Gdk, GLib
+
+class PackageInstallerWin(Gtk.Window):
+    def __init__(self):
+        super().__init__(title="AxisOS Package Installer")
+        self.set_default_size(720, 460)
+        self.set_position(Gtk.WindowPosition.CENTER)
+        hb = Gtk.HeaderBar(title="AxisOS Package Installer", subtitle="Install .deb, .axis, and APT packages")
+        hb.set_show_close_button(True)
+        self.set_titlebar(hb)
+
+        vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
+        vbox.set_margin_start(20); vbox.set_margin_end(20); vbox.set_margin_top(20); vbox.set_margin_bottom(20)
+        self.add(vbox)
+
+        row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=8)
+        self.entry = Gtk.Entry()
+        self.entry.set_placeholder_text("Enter package name (e.g. htop, vlc, neovim) or path to .deb / .axis file...")
+        if len(sys.argv) > 1:
+            self.entry.set_text(sys.argv[1])
+        row.pack_start(self.entry, True, True, 0)
+
+        browse_btn = Gtk.Button(label="Browse File...")
+        browse_btn.connect("clicked", self._on_browse)
+        row.pack_start(browse_btn, False, False, 0)
+
+        inst_btn = Gtk.Button(label="Install Package")
+        inst_btn.connect("clicked", self._on_install)
+        row.pack_start(inst_btn, False, False, 0)
+
+        sw_btn = Gtk.Button(label="Open Software Catalog")
+        sw_btn.connect("clicked", lambda *_: subprocess.Popen(["/usr/local/bin/axis-software-manager"]))
+        row.pack_start(sw_btn, False, False, 0)
+        vbox.pack_start(row, False, False, 0)
+
+        self.log = Gtk.TextView(editable=False, monospace=True)
+        scroll = Gtk.ScrolledWindow()
+        scroll.add(self.log)
+        vbox.pack_start(scroll, True, True, 0)
+        self._append("Ready. Select a .deb / .axis package or enter an APT package name above.\n")
+
+    def _append(self, text):
+        buf = self.log.get_buffer()
+        buf.insert(buf.get_end_iter(), text)
+
+    def _on_browse(self, *_):
+        dlg = Gtk.FileChooserDialog(title="Select Package File", parent=self, action=Gtk.FileChooserAction.OPEN)
+        dlg.add_buttons(Gtk.STOCK_CANCEL, Gtk.ResponseType.CANCEL, Gtk.STOCK_OPEN, Gtk.ResponseType.OK)
+        if dlg.run() == Gtk.ResponseType.OK:
+            self.entry.set_text(dlg.get_filename())
+        dlg.destroy()
+
+    def _on_install(self, *_):
+        target = self.entry.get_text().strip()
+        if not target:
+            return
+        self._append(f"\n--> Installing {target}...\n")
+        def worker():
+            if target.endswith(".axis"):
+                cmd = ["pkexec", "/usr/local/bin/axis", "install", target]
+            else:
+                cmd = ["pkexec", "apt-get", "-o", "DPkg::Lock::Timeout=120", "install", "-y", target]
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            for line in proc.stdout:
+                GLib.idle_add(self._append, line)
+            proc.wait()
+            GLib.idle_add(self._append, f"--> Done (exit code {proc.returncode}).\n")
+        threading.Thread(target=worker, daemon=True).start()
+
+if __name__ == "__main__":
+    w = PackageInstallerWin()
+    w.connect("destroy", Gtk.main_quit)
+    w.show_all()
+    Gtk.main()

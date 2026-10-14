@@ -287,10 +287,15 @@ if os.path.exists(apps_dir):
         if not os.path.exists(app_bin):
             app_bin = os.path.join(apps_dir, app_name, f"{app_name}.py")
         app_desktop = os.path.join(apps_dir, app_name, f"{app_name}.desktop")
+        # Prefer .py implementation for GTK3 apps so stale Qt6 binaries never break launch
+        py_candidate = os.path.join(apps_dir, app_name, f"{app_name}.py")
+        if app_name in ["axis-terminal", "axis-welcome", "axis-settings", "axis-package-installer", "axis-scheduler-manager"] and os.path.exists(py_candidate):
+            app_bin = py_candidate
         if os.path.exists(app_bin):
-            dst = os.path.join(chroot_dir, "usr", "local", "bin", app_name)
-            os.makedirs(os.path.dirname(dst), exist_ok=True)
-            copy_binary_or_text(app_bin, dst, 0o755)
+            for bin_sub in [("usr", "local", "bin"), ("usr", "bin")]:
+                dst = os.path.join(chroot_dir, *bin_sub, app_name)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                copy_binary_or_text(app_bin, dst, 0o755)
         if os.path.exists(app_desktop):
             dst = os.path.join(chroot_dir, "usr", "share", "applications", f"{app_name}.desktop")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -624,6 +629,28 @@ for util_name, script_name in [
     if os.path.exists(u_src):
         copy_text_lf(u_src, os.path.join(chroot_dir, "usr", "local", "bin", util_name), 0o755)
         print(f"    Deployed AxisOS {util_name} -> /usr/local/bin/{util_name}")
+
+# Hide duplicate UXTerm, XTerm, and stock GNOME/Cinnamon Settings menu entries so only AxisOS Terminal & AxisOS Settings appear
+apps_menu_dir = os.path.join(chroot_dir, "usr", "share", "applications")
+for dup_d in [
+    "debian-xterm.desktop",
+    "debian-uxterm.desktop",
+    "xterm.desktop",
+    "uxterm.desktop",
+    "org.gnome.Settings.desktop",
+    "gnome-control-center.desktop",
+    "cinnamon-settings.desktop",
+]:
+    dup_p = os.path.join(apps_menu_dir, dup_d)
+    if os.path.exists(dup_p):
+        try:
+            with open(dup_p, "r", encoding="utf-8", errors="ignore") as f:
+                d_content = f.read()
+            if "NoDisplay=true" not in d_content:
+                d_content = d_content.rstrip() + "\nNoDisplay=true\n"
+                write_text_lf(dup_p, d_content, 0o644)
+        except Exception:
+            pass
 
 # Deploy Captive Portal & Auto-Timezone services
 captive_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-captive-portal.sh")
