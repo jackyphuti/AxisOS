@@ -871,13 +871,13 @@ class HarmonyDesktopShell(Adw.ApplicationWindow):
             win = InstallerWindow(self.get_application())
             win.present()
         elif app_id == "terminal":
-            for term_cmd in ["axis-terminal", "/usr/local/bin/axis-terminal", "/usr/bin/axis-terminal", "x-terminal-emulator"]:
+            for term_cmd in ["axis-terminal", "/usr/local/bin/axis-terminal", "/usr/bin/axis-terminal", "gnome-terminal", "foot", "kgx", "x-terminal-emulator", "xterm"]:
                 if shutil.which(term_cmd) or os.path.exists(term_cmd):
                     try:
                         subprocess.Popen([term_cmd])
                         return
                     except Exception as e:
-                        print(f"[Shell] Terminal launch error: {e}")
+                        print(f"[Shell] Terminal launch error ({term_cmd}): {e}")
         else:
             # Find in catalog
             app_info = next((a for a in APPLICATIONS if a["id"] == app_id), None)

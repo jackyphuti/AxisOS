@@ -182,41 +182,81 @@ entry:focus {
     background-color: #1E222B;
 }
 
-combobox {
+combobox,
+combobox.combo,
+combobox button,
+combobox button.combo,
+combobox > box > button,
+combobox > box > button.combo,
+combobox.linked > button,
+combobox.linked > button.combo {
     background-color: #181B22;
-    color: #FFFFFF;
-}
-
-combobox button {
-    background-color: #181B22;
+    background-image: none;
+    box-shadow: none;
+    text-shadow: none;
     color: #FFFFFF;
     border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 6px;
     padding: 7px 12px;
 }
 
-combobox button:hover {
+combobox:hover,
+combobox button:hover,
+combobox button.combo:hover,
+combobox > box > button:hover,
+combobox > box > button.combo:hover {
+    background-color: #222632;
+    background-image: none;
     border-color: #3A9CC9;
+    color: #FFFFFF;
 }
 
-combobox cellview {
+combobox:focus,
+combobox button:focus,
+combobox button.combo:focus {
+    border-color: #3A9CC9;
+    background-color: #1E222B;
+    background-image: none;
+    box-shadow: 0 0 0 1px #3A9CC9;
     color: #FFFFFF;
+}
+
+combobox cellview,
+combobox cellview text,
+combobox cellview label,
+combobox label,
+combobox text {
+    color: #FFFFFF;
+    background-color: transparent;
+    background-image: none;
+}
+
+combobox arrow {
+    color: #3A9CC9;
+    min-width: 14px;
+    min-height: 14px;
 }
 
 combobox menu,
-combobox window menu {
+combobox window menu,
+menu {
     background-color: #14171E;
     color: #FFFFFF;
     border: 1px solid rgba(255, 255, 255, 0.25);
+    padding: 4px;
 }
 
-combobox menu menuitem {
+combobox menu menuitem,
+menu menuitem {
+    background-color: transparent;
     color: #FFFFFF;
-    padding: 7px 14px;
+    padding: 8px 14px;
+    border-radius: 4px;
 }
 
-combobox menu menuitem:hover {
-    background-color: #3A9CC9;
+combobox menu menuitem:hover,
+menu menuitem:hover {
+    background-color: #2563EB;
     color: #FFFFFF;
 }
 
@@ -496,13 +536,20 @@ public:
         gtk_window_set_default_icon_name("axisos");
         gtk_window_set_icon_name(GTK_WINDOW(window), "axisos");
 
-        // Apply high-contrast AxisOS CSS
+        // Enforce dark theme preferences
+        GtkSettings* default_settings = gtk_settings_get_default();
+        if (default_settings) {
+            g_object_set(default_settings, "gtk-application-prefer-dark-theme", TRUE, NULL);
+            g_object_set(default_settings, "gtk-theme-name", "Adwaita-dark", NULL);
+        }
+
+        // Apply high-contrast AxisOS CSS with USER priority
         GtkCssProvider* provider = gtk_css_provider_new();
         gtk_css_provider_load_from_data(provider, AXIS_CSS, -1, NULL);
         gtk_style_context_add_provider_for_screen(
             gdk_screen_get_default(),
             GTK_STYLE_PROVIDER(provider),
-            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+            GTK_STYLE_PROVIDER_PRIORITY_USER
         );
         g_object_unref(provider);
 

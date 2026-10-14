@@ -15,7 +15,7 @@ REPO_ROOT = os.path.abspath(os.path.join(SCRIPT_DIR, "..", ".."))
 BRANDING_DIR = os.path.join(REPO_ROOT, "data", "branding")
 
 FALLBACK_ICON_SVG = """<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="96" height="96">
   <title>AxisOS icon</title>
   <defs><filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur stdDeviation="38"/>
@@ -79,6 +79,11 @@ def deploy_branding(target_root="/build/chroot"):
             axis_icon_svg = f.read()
     else:
         axis_icon_svg = FALLBACK_ICON_SVG
+
+    # Enforce standard scalable icon dimensions (96x96) so GNOME Settings About panel and desktop icons render at perfect proportions
+    import re
+    axis_icon_svg = re.sub(r'width="\d+"', 'width="96"', axis_icon_svg)
+    axis_icon_svg = re.sub(r'height="\d+"', 'height="96"', axis_icon_svg)
 
     if os.path.exists(logo_svg_path):
         with open(logo_svg_path, "r", encoding="utf-8") as f:
@@ -320,6 +325,27 @@ StartupNotify=true
         write_file(os.path.join(desk_dir, "axis-installer.desktop"), installer_content, 0o755)
 
     print("    [OK] Configured axis-installer.desktop with official AxisOS triangle icon")
+
+    # 7. Configure GTK 4 stylesheet to constrain system logo in GNOME Settings About panel
+    gtk4_css = """/* AxisOS GTK4 Desktop Theme Fixes */
+picture#system_logo,
+#system_logo,
+.about-logo {
+    max-width: 96px;
+    max-height: 96px;
+    min-width: 96px;
+    min-height: 96px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+"""
+    for css_path in [
+        os.path.join(target_root, "etc", "gtk-4.0", "gtk.css"),
+        os.path.join(target_root, "home", "axis", ".config", "gtk-4.0", "gtk.css"),
+        os.path.join(target_root, "etc", "skel", ".config", "gtk-4.0", "gtk.css"),
+    ]:
+        write_file(css_path, gtk4_css)
+    print("    [OK] Deployed GTK4 About-panel logo size constraints")
 
 if __name__ == "__main__":
     chroot_path = sys.argv[1] if len(sys.argv) > 1 else "/build/chroot"

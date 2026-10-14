@@ -11,8 +11,12 @@
 
 int main(int argc, char *argv[])
 {
-    // High-performance GPU pipeline for 144Hz rendering
-    qputenv("QSG_RHI_PREFER_SOFTWARE_RENDERER", "0");
+    // Automatically detect and support hardware acceleration, with graceful
+    // fallback to software rasterizer in VirtualBox / QEMU / VMs.
+    if (qEnvironmentVariableIsEmpty("QSG_RHI_PREFER_SOFTWARE_RENDERER")) {
+        // Allow Qt Quick to fall back to software renderer if GPU initialization fails
+        qputenv("QSG_RHI_PREFER_SOFTWARE_RENDERER", "0");
+    }
     qputenv("QSG_INFO", "1");
 
     QGuiApplication app(argc, argv);

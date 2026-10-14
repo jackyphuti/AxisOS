@@ -127,7 +127,57 @@ def main():
     )
     write_chroot_file("/etc/sudoers.d/axis", sudoers_axis, mode=0o440)
 
-    # 7. Register axis-terminal as default x-terminal-emulator
+    # 7. Deploy resilient AxisOS terminal launcher at /usr/local/bin/axis-terminal
+    installed_axis_bin = os.path.join(CHROOT, "usr", "local", "bin", "axis-terminal")
+    axis_terminal_bin = os.path.join(CHROOT, "usr", "local", "bin", "axis-terminal-bin")
+    if os.path.exists(installed_axis_bin) and not os.path.islink(installed_axis_bin):
+        try:
+            with open(installed_axis_bin, "rb") as f:
+                header = f.read(4)
+            if header == b"\x7fELF":
+                shutil.move(installed_axis_bin, axis_terminal_bin)
+                os.chmod(axis_terminal_bin, 0o755)
+        except Exception:
+            pass
+
+    terminal_launcher_script = """#!/bin/bash
+# AxisOS Terminal Launcher
+# High-performance native Qt6 terminal with graceful fallback to gnome-terminal, foot, or xterm.
+
+export TERM="${TERM:-xterm-256color}"
+export COLORTERM="${COLORTERM:-truecolor}"
+
+# Enable software rasterizer fallback for VirtualBox / QEMU / VMs without 3D acceleration
+if [ -z "$QSG_RHI_BACKEND" ]; then
+    export QSG_RHI_PREFER_SOFTWARE_RENDERER=1
+fi
+
+# Try launching the native AxisOS Qt6 terminal binary
+for bin_candidate in /usr/local/bin/axis-terminal-bin /usr/local/lib/axis/axis-terminal-bin; do
+    if [ -x "$bin_candidate" ]; then
+        "$bin_candidate" "$@" 2>/dev/null &
+        TPID=$!
+        sleep 0.25
+        if kill -0 "$TPID" 2>/dev/null; then
+            exit 0
+        fi
+    fi
+done
+
+# Fallback sequence for standard Linux desktop terminals
+for fallback in gnome-terminal foot kgx xfce4-terminal xterm; do
+    if command -v "$fallback" >/dev/null 2>&1; then
+        exec "$fallback" "$@"
+    fi
+done
+
+if command -v x-terminal-emulator >/dev/null 2>&1; then
+    exec x-terminal-emulator "$@"
+fi
+"""
+    write_chroot_file("/usr/local/bin/axis-terminal", terminal_launcher_script, mode=0o755)
+
+    # Register axis-terminal as default x-terminal-emulator
     run_cmd([
         "update-alternatives", "--install",
         "/usr/bin/x-terminal-emulator", "x-terminal-emulator",
