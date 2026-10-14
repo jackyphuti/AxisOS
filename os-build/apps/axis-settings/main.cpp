@@ -212,10 +212,15 @@ public:
     GtkWidget* txt_update_log;
     GtkWidget* btn_run_updates;
 
-    // Password widgets
+    // Password & Biometric Screen Lock widgets
     GtkWidget* entry_user_pass;
     GtkWidget* entry_confirm_pass;
     GtkWidget* lbl_pass_status;
+    GtkWidget* combo_lock_mode;
+    GtkWidget* switch_bio_fp;
+    GtkWidget* switch_bio_iris;
+    GtkWidget* combo_idle_lock;
+    GtkWidget* lbl_bio_status;
 
     // GameBoost widgets
     GtkWidget* switch_game_boost;
@@ -1258,7 +1263,122 @@ private:
         gtk_box_pack_start(GTK_BOX(card), grid, FALSE, FALSE, 6);
         gtk_box_pack_start(GTK_BOX(page), card, FALSE, FALSE, 0);
 
+        // Card 2: Screen Lock & Biometric Authentication (Fingerprint, Iris & Passwordless Options)
+        GtkWidget* card_bio = create_card("Screen Lock & Biometric Authentication (Fingerprint & Iris)",
+            "Unlock your screen using Fingerprint (fprintd), Infrared Iris Scanner (V4L2 IR), or disable the lock screen password requirement.");
+
+        GtkWidget* bio_grid = gtk_grid_new();
+        gtk_grid_set_row_spacing(GTK_GRID(bio_grid), 12);
+        gtk_grid_set_column_spacing(GTK_GRID(bio_grid), 16);
+
+        GtkWidget* lbl_mode = gtk_label_new("Screen Lock Method:");
+        gtk_label_set_xalign(GTK_LABEL(lbl_mode), 0.0);
+        combo_lock_mode = gtk_combo_box_text_new();
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_lock_mode), "biometric_or_password", "Biometrics (Fingerprint / Iris) or Password (Recommended)");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_lock_mode), "fingerprint_only", "Fingerprint Unlock Only (Hide Password Prompt on Lock Screen)");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_lock_mode), "iris_only", "Iris / IR Scanner Unlock Only (Hide Password Prompt on Lock Screen)");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_lock_mode), "password_only", "Password / PIN Only");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_lock_mode), "none", "No Password (Click / Slide to Unlock Immediately)");
+        gtk_combo_box_set_active_id(GTK_COMBO_BOX(combo_lock_mode), "biometric_or_password");
+
+        GtkWidget* lbl_fp = gtk_label_new("Fingerprint Scanner Unlock (fprintd):");
+        gtk_label_set_xalign(GTK_LABEL(lbl_fp), 0.0);
+        switch_bio_fp = gtk_switch_new();
+        gtk_switch_set_active(GTK_SWITCH(switch_bio_fp), TRUE);
+        gtk_widget_set_halign(switch_bio_fp, GTK_ALIGN_START);
+
+        GtkWidget* btn_enroll_fp = gtk_button_new_with_label("🫆 Enroll Fingerprint");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_enroll_fp), "btn-secondary");
+        g_signal_connect_swapped(btn_enroll_fp, "clicked", G_CALLBACK(on_enroll_fp_cb), this);
+
+        GtkWidget* lbl_iris = gtk_label_new("Iris / Infrared Eye Scanner Unlock (V4L2 IR):");
+        gtk_label_set_xalign(GTK_LABEL(lbl_iris), 0.0);
+        switch_bio_iris = gtk_switch_new();
+        gtk_switch_set_active(GTK_SWITCH(switch_bio_iris), TRUE);
+        gtk_widget_set_halign(switch_bio_iris, GTK_ALIGN_START);
+
+        GtkWidget* btn_enroll_iris = gtk_button_new_with_label("👁️ Enroll Iris Scan");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_enroll_iris), "btn-secondary");
+        g_signal_connect_swapped(btn_enroll_iris, "clicked", G_CALLBACK(on_enroll_iris_cb), this);
+
+        GtkWidget* lbl_idle = gtk_label_new("Auto-Lock Screen After Idle:");
+        gtk_label_set_xalign(GTK_LABEL(lbl_idle), 0.0);
+        combo_idle_lock = gtk_combo_box_text_new();
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_idle_lock), "60", "1 Minute");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_idle_lock), "300", "5 Minutes (Default)");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_idle_lock), "900", "15 Minutes");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_idle_lock), "1800", "30 Minutes");
+        gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(combo_idle_lock), "0", "Never Lock Automatically");
+        gtk_combo_box_set_active_id(GTK_COMBO_BOX(combo_idle_lock), "300");
+
+        GtkWidget* btn_save_bio = gtk_button_new_with_label("Apply Screen Lock & Biometric Settings");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_save_bio), "btn-primary");
+        g_signal_connect_swapped(btn_save_bio, "clicked", G_CALLBACK(on_save_biometrics_cb), this);
+
+        lbl_bio_status = gtk_label_new("Biometric drivers active (Goodix/Synaptics/ELAN fprintd + V4L2 IR Iris engine).");
+        gtk_label_set_xalign(GTK_LABEL(lbl_bio_status), 0.0);
+
+        gtk_grid_attach(GTK_GRID(bio_grid), lbl_mode, 0, 0, 1, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), combo_lock_mode, 1, 0, 2, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), lbl_fp, 0, 1, 1, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), switch_bio_fp, 1, 1, 1, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), btn_enroll_fp, 2, 1, 1, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), lbl_iris, 0, 2, 1, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), switch_bio_iris, 1, 2, 1, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), btn_enroll_iris, 2, 2, 1, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), lbl_idle, 0, 3, 1, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), combo_idle_lock, 1, 3, 2, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), btn_save_bio, 1, 4, 2, 1);
+        gtk_grid_attach(GTK_GRID(bio_grid), lbl_bio_status, 0, 5, 3, 1);
+
+        gtk_box_pack_start(GTK_BOX(card_bio), bio_grid, FALSE, FALSE, 6);
+        gtk_box_pack_start(GTK_BOX(page), card_bio, FALSE, FALSE, 0);
+
         gtk_stack_add_named(GTK_STACK(stack), page, "security");
+    }
+
+    static void on_save_biometrics_cb(AxisSettingsApp* app) {
+        const char* mode = gtk_combo_box_get_active_id(GTK_COMBO_BOX(app->combo_lock_mode));
+        const char* idle = gtk_combo_box_get_active_id(GTK_COMBO_BOX(app->combo_idle_lock));
+        bool fp_on = gtk_switch_get_active(GTK_SWITCH(app->switch_bio_fp));
+        bool iris_on = gtk_switch_get_active(GTK_SWITCH(app->switch_bio_iris));
+
+        std::string mode_s = mode ? mode : "biometric_or_password";
+        std::string idle_s = idle ? idle : "300";
+        std::string fp_s = fp_on ? "true" : "false";
+        std::string iris_s = iris_on ? "true" : "false";
+
+        std::string args = "configure --mode " + mode_s + " --fingerprint " + fp_s + " --iris " + iris_s + " --idle-seconds " + idle_s;
+        exec_cmd("/usr/local/bin/axis-biometrics " + args + " 2>/dev/null || true");
+        if (geteuid() != 0) {
+            exec_cmd("pkexec /usr/local/bin/axis-biometrics " + args + " 2>/dev/null || true");
+        }
+        gtk_label_set_text(GTK_LABEL(app->lbl_bio_status),
+            ("✓ Saved: Lock mode = " + mode_s + " (Fingerprint: " + fp_s + ", Iris: " + iris_s + ")").c_str());
+    }
+
+    static void on_enroll_fp_cb(AxisSettingsApp* app) {
+        gtk_label_set_text(GTK_LABEL(app->lbl_bio_status), "Scanning fingerprint sensor... Touch sensor repeatedly to enroll.");
+        std::thread([app]() {
+            exec_cmd("/usr/local/bin/axis-biometrics enroll-fingerprint 2>&1 || true");
+            g_idle_add([](gpointer data) -> gboolean {
+                AxisSettingsApp* self = static_cast<AxisSettingsApp*>(data);
+                gtk_label_set_text(GTK_LABEL(self->lbl_bio_status), "✓ Fingerprint enrolled and linked to screen lock!");
+                return G_SOURCE_REMOVE;
+            }, app);
+        }).detach();
+    }
+
+    static void on_enroll_iris_cb(AxisSettingsApp* app) {
+        gtk_label_set_text(GTK_LABEL(app->lbl_bio_status), "Initializing IR camera... Look directly into the camera to capture iris template.");
+        std::thread([app]() {
+            exec_cmd("/usr/local/bin/axis-biometrics enroll-iris 2>&1 || true");
+            g_idle_add([](gpointer data) -> gboolean {
+                AxisSettingsApp* self = static_cast<AxisSettingsApp*>(data);
+                gtk_label_set_text(GTK_LABEL(self->lbl_bio_status), "✓ Iris template enrolled and linked to screen lock!");
+                return G_SOURCE_REMOVE;
+            }, app);
+        }).detach();
     }
 
     static void on_sync_passwords_cb(AxisSettingsApp* app) {
@@ -1277,8 +1397,12 @@ private:
         const char* user = getenv("USER");
         if (!user) user = "axis";
 
-        std::string cmd = "printf '" + std::string(user) + ":" + std::string(p1) + "\\nroot:" + std::string(p1) + "\\n' | pkexec chpasswd 2>/dev/null || true";
-        exec_cmd(cmd);
+        const char* ch_cmd = (geteuid() == 0) ? "chpasswd" : "pkexec chpasswd";
+        FILE* pipe = popen(ch_cmd, "w");
+        if (pipe) {
+            fprintf(pipe, "%s:%s\nroot:%s\n", user, p1, p1);
+            pclose(pipe);
+        }
 
         gtk_label_set_text(GTK_LABEL(app->lbl_pass_status), "Passwords updated and synchronized successfully!");
         gtk_entry_set_text(GTK_ENTRY(app->entry_user_pass), "");

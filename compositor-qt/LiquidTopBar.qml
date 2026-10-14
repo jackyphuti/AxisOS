@@ -235,6 +235,10 @@ Rectangle {
                     y: parent.height + 6
 
                     MenuItem {
+                        text: "Lock Screen"
+                        onTriggered: AuthManager.lockSession()
+                    }
+                    MenuItem {
                         text: "Sleep / Suspend"
                         onTriggered: SystemController.suspend()
                     }

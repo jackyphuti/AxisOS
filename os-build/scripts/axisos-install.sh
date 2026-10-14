@@ -1016,6 +1016,21 @@ fi
 # ------------------------------------------------------------------------------
 report 88 "Configuring hardware enablement, GPU autodetection & device drivers..."
 
+# Deploy Biometric Authentication Manager & Udev Rules (Fingerprint & Iris)
+if [[ -f /usr/local/bin/axis-biometrics ]]; then
+    cp -f /usr/local/bin/axis-biometrics /mnt/usr/local/bin/axis-biometrics
+    chmod 755 /mnt/usr/local/bin/axis-biometrics
+fi
+if [[ -f /etc/udev/rules.d/70-axisos-biometrics.rules ]]; then
+    mkdir -p /mnt/etc/udev/rules.d
+    cp -f /etc/udev/rules.d/70-axisos-biometrics.rules /mnt/etc/udev/rules.d/70-axisos-biometrics.rules
+fi
+if [[ -f /etc/pam.d/axis-greeter ]]; then
+    mkdir -p /mnt/etc/pam.d
+    cp -f /etc/pam.d/axis-greeter /mnt/etc/pam.d/axis-greeter
+fi
+chroot /mnt usermod -aG plugdev,video,input "$USERNAME" 2>/dev/null || true
+
 # Copy GPU autodetect script and systemd service
 if [[ -f /usr/local/bin/gpu-autodetect.sh ]]; then
     cp /usr/local/bin/gpu-autodetect.sh /mnt/usr/local/bin/gpu-autodetect.sh

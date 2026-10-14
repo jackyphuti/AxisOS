@@ -433,7 +433,8 @@ class AxisSettingsApp(Gtk.Window):
 
     def _run_check_updates(self):
         try:
-            subprocess.run(["apt-get", "update", "-qq"], stderr=subprocess.DEVNULL)
+            apt_pfx = [] if os.geteuid() == 0 else ["pkexec"]
+            subprocess.run(apt_pfx + ["apt-get", "-o", "DPkg::Lock::Timeout=120", "update", "-qq"], stderr=subprocess.DEVNULL)
             out = subprocess.check_output(["apt-get", "--just-print", "upgrade"], universal_newlines=True, stderr=subprocess.DEVNULL)
             upgradable = []
             for line in out.splitlines():
@@ -480,7 +481,8 @@ class AxisSettingsApp(Gtk.Window):
         try:
             env = os.environ.copy()
             env["DEBIAN_FRONTEND"] = "noninteractive"
-            subprocess.run(["apt-get", "upgrade", "-y", "-qq"], env=env, check=True)
+            apt_pfx = [] if os.geteuid() == 0 else ["pkexec"]
+            subprocess.run(apt_pfx + ["apt-get", "-o", "DPkg::Lock::Timeout=120", "upgrade", "-y", "-qq"], env=env, check=True)
             GLib.idle_add(self._on_install_updates_done)
         except Exception as e:
             GLib.idle_add(self._on_install_updates_error, str(e))
@@ -792,7 +794,82 @@ class AxisSettingsApp(Gtk.Window):
         card.pack_start(btn_save, False, False, 0)
 
         page.pack_start(card, False, False, 0)
+
+        # Card 2: Screen Lock & Biometrics (Fingerprint, Iris & Passwordless Unlock)
+        card_bio = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        card_bio.get_style_context().add_class("card")
+
+        bio_title = Gtk.Label(label="Screen Lock & Biometric Unlock (Fingerprint & Iris)", xalign=0)
+        bio_title.get_style_context().add_class("card-title")
+        bio_sub = Gtk.Label(
+            label="Choose how to unlock your screen: use Fingerprint (fprintd), Infrared Iris scan (V4L2 IR), or disable the lock screen password.",
+            xalign=0
+        )
+        bio_sub.get_style_context().add_class("card-subtitle")
+        card_bio.pack_start(bio_title, False, False, 0)
+        card_bio.pack_start(bio_sub, False, False, 0)
+
+        bio_grid = Gtk.Grid()
+        bio_grid.set_column_spacing(12)
+        bio_grid.set_row_spacing(10)
+
+        lbl_lmode = Gtk.Label(label="Screen Lock Method:", xalign=0)
+        self.combo_lock_mode = Gtk.ComboBoxText()
+        self.combo_lock_mode.append("biometric_or_password", "Biometrics (Fingerprint / Iris) or Password")
+        self.combo_lock_mode.append("fingerprint_only", "Fingerprint Unlock Only (No Password Prompt)")
+        self.combo_lock_mode.append("iris_only", "Iris / IR Scanner Unlock Only (No Password Prompt)")
+        self.combo_lock_mode.append("password_only", "Password / PIN Only")
+        self.combo_lock_mode.append("none", "No Password (Click / Slide to Unlock)")
+        self.combo_lock_mode.set_active_id("biometric_or_password")
+
+        lbl_fp = Gtk.Label(label="Enable Fingerprint Unlock:", xalign=0)
+        self.sw_fp = Gtk.Switch(active=True, halign=Gtk.Align.START)
+        btn_enroll_fp = Gtk.Button(label="🫆 Enroll Fingerprint")
+        btn_enroll_fp.get_style_context().add_class("btn-secondary")
+        btn_enroll_fp.connect("clicked", self.on_enroll_fingerprint_clicked)
+
+        lbl_iris = Gtk.Label(label="Enable Iris / IR Eye Unlock:", xalign=0)
+        self.sw_iris = Gtk.Switch(active=True, halign=Gtk.Align.START)
+        btn_enroll_iris = Gtk.Button(label="👁️ Enroll Iris Scan")
+        btn_enroll_iris.get_style_context().add_class("btn-secondary")
+        btn_enroll_iris.connect("clicked", self.on_enroll_iris_clicked)
+
+        bio_grid.attach(lbl_lmode, 0, 0, 1, 1)
+        bio_grid.attach(self.combo_lock_mode, 1, 0, 2, 1)
+        bio_grid.attach(lbl_fp, 0, 1, 1, 1)
+        bio_grid.attach(self.sw_fp, 1, 1, 1, 1)
+        bio_grid.attach(btn_enroll_fp, 2, 1, 1, 1)
+        bio_grid.attach(lbl_iris, 0, 2, 1, 1)
+        bio_grid.attach(self.sw_iris, 1, 2, 1, 1)
+        bio_grid.attach(btn_enroll_iris, 2, 2, 1, 1)
+
+        card_bio.pack_start(bio_grid, False, False, 0)
+
+        btn_apply_bio = Gtk.Button(label="Apply Screen Lock & Biometric Settings")
+        btn_apply_bio.get_style_context().add_class("btn-primary")
+        btn_apply_bio.connect("clicked", self.on_apply_biometrics_clicked)
+        card_bio.pack_start(btn_apply_bio, False, False, 0)
+
+        page.pack_start(card_bio, False, False, 0)
         self.stack.add_named(page, "security")
+
+    def on_apply_biometrics_clicked(self, btn):
+        mode = self.combo_lock_mode.get_active_id() or "biometric_or_password"
+        fp = "true" if self.sw_fp.get_active() else "false"
+        iris = "true" if self.sw_iris.get_active() else "false"
+        cmd = ["/usr/local/bin/axis-biometrics", "configure", "--mode", mode, "--fingerprint", fp, "--iris", iris]
+        subprocess.run(cmd, check=False)
+        if os.geteuid() != 0:
+            subprocess.run(["pkexec"] + cmd, check=False)
+        self.show_info_dialog("Screen Lock Updated", f"Screen lock authentication set to '{mode}' (Fingerprint: {fp}, Iris: {iris}).")
+
+    def on_enroll_fingerprint_clicked(self, btn):
+        subprocess.Popen(["/usr/local/bin/axis-biometrics", "enroll-fingerprint"])
+        self.show_info_dialog("Fingerprint Enrollment", "Touch your fingerprint sensor repeatedly to complete enrollment.")
+
+    def on_enroll_iris_clicked(self, btn):
+        subprocess.Popen(["/usr/local/bin/axis-biometrics", "enroll-iris"])
+        self.show_info_dialog("Iris Scanner Enrollment", "Look directly at the infrared/camera sensor to register your iris template.")
 
     def on_save_passwords_clicked(self, btn):
         username = self.entry_user.get_text().strip()
@@ -808,7 +885,8 @@ class AxisSettingsApp(Gtk.Window):
 
         try:
             # Set user password and root password to the exact same value
-            p1 = subprocess.Popen(["chpasswd"], stdin=subprocess.PIPE, text=True)
+            ch_cmd = ["chpasswd"] if os.geteuid() == 0 else ["pkexec", "chpasswd"]
+            p1 = subprocess.Popen(ch_cmd, stdin=subprocess.PIPE, text=True)
             p1.communicate(input=f"{username}:{pwd1}\nroot:{pwd1}\n")
             if p1.returncode == 0:
                 self.show_info_dialog(

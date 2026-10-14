@@ -56,6 +56,9 @@ public:
     Q_INVOKABLE void powerOff();
     Q_INVOKABLE void reboot();
     Q_INVOKABLE void suspend();
+    Q_INVOKABLE void shutdownSystem() { powerOff(); }
+    Q_INVOKABLE void rebootSystem() { reboot(); }
+    Q_INVOKABLE void suspendSystem() { suspend(); }
 
 signals:
     void wifiChanged();

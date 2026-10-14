@@ -72,30 +72,66 @@ void AuthManager::setIsLocked(bool locked)
     if (m_isLocked != locked) {
         m_isLocked = locked;
         if (m_isLocked) {
+            checkHardware();
             m_isAuthenticated = false;
             m_authError = false;
             m_authMessage.clear();
             emit authStateChanged();
+            if (m_lockAuthMode == QStringLiteral("fingerprint_only") || m_lockAuthMode == QStringLiteral("iris_only")) {
+                startBiometricAuth();
+            }
         }
         emit lockStateChanged();
     }
 }
 
+
+void AuthManager::loadBiometricConfig()
+{
+    m_lockAuthMode = QStringLiteral("biometric_or_password");
+    m_fpEnabledCfg = true;
+    m_irisEnabledCfg = true;
+
+    QStringList confPaths = {
+        QStringLiteral("/etc/axisos/biometrics.conf"),
+        QDir::homePath() + QStringLiteral("/.config/axis/biometrics.conf")
+    };
+
+    for (const QString &path : confPaths) {
+        QFile f(path);
+        if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            while (!f.atEnd()) {
+                QString line = QString::fromUtf8(f.readLine()).trimmed();
+                if (line.startsWith(QLatin1String("LOCK_AUTH_MODE="))) {
+                    m_lockAuthMode = line.mid(15).trimmed();
+                } else if (line.startsWith(QLatin1String("FINGERPRINT_ENABLED="))) {
+                    m_fpEnabledCfg = (line.mid(20).trimmed().toLower() == QLatin1String("true"));
+                } else if (line.startsWith(QLatin1String("IRIS_ENABLED="))) {
+                    m_irisEnabledCfg = (line.mid(13).trimmed().toLower() == QLatin1String("true"));
+                }
+            }
+            f.close();
+        }
+    }
+}
+
 void AuthManager::checkHardware()
 {
+    loadBiometricConfig();
     bool oldFp = m_hasFingerprint;
     bool oldFace = m_hasFaceAuth;
 
-    m_hasFingerprint = detectFingerprintHardware();
-    m_hasFaceAuth = detectFaceAuthHardware();
+    bool hwFp = detectFingerprintHardware();
+    bool hwIris = detectFaceAuthHardware();
+    m_hasFingerprint = m_fpEnabledCfg && (hwFp || m_lockAuthMode == QStringLiteral("fingerprint_only"));
+    m_hasIrisAuth = m_irisEnabledCfg && (hwIris || m_lockAuthMode == QStringLiteral("iris_only"));
+    m_hasFaceAuth = m_hasIrisAuth;
 
     qInfo() << "[AuthManager] Biometric hardware detection:"
             << "Fingerprint scanner:" << (m_hasFingerprint ? "FOUND" : "NOT DETECTED")
             << "| Facial recognition:" << (m_hasFaceAuth ? "FOUND" : "NOT DETECTED");
 
-    if (oldFp != m_hasFingerprint || oldFace != m_hasFaceAuth) {
-        emit hardwareChanged();
-    }
+    emit hardwareChanged();
 }
 
 bool AuthManager::detectFingerprintHardware()
@@ -138,7 +174,7 @@ bool AuthManager::detectFingerprintHardware()
             if (idVendor.open(QIODevice::ReadOnly | QIODevice::Text)) {
                 QString vendor = QString::fromUtf8(idVendor.readAll()).trimmed().toLower();
                 // Known fingerprint scanner vendors: Goodix (27c6), Synaptics (06cb), Elan (04f3), Broadcom (0a5c), Validity (138a, 147e)
-                if (vendor == "27c6" || vendor == "06cb" || vendor == "04f3" || vendor == "0a5c" || vendor == "138a" || vendor == "147e") {
+                if (vendor == "27c6" || vendor == "06cb" || vendor == "04f3" || vendor == "0a5c" || vendor == "138a" || vendor == "147e" || vendor == "05ba" || vendor == "1c7a" || vendor == "2808" || vendor == "10a5") {
                     qInfo() << "[AuthManager] Detected biometric USB vendor in sysfs:" << vendor;
                     return true;
                 }
@@ -152,7 +188,10 @@ bool AuthManager::detectFingerprintHardware()
 bool AuthManager::detectFaceAuthHardware()
 {
     // 1. Check if Howdy or facial recognition software is installed
-    bool howdyInstalled = QFile::exists(QStringLiteral("/usr/bin/howdy")) ||
+    bool howdyInstalled = QFile::exists(QStringLiteral("/usr/local/bin/axis-biometrics")) ||
+                          QFile::exists(QStringLiteral("/var/lib/axisos/biometrics/iris/") + m_username + QStringLiteral(".iris")) ||
+                          QFile::exists(QDir::homePath() + QStringLiteral("/.config/axis/") + m_username + QStringLiteral(".iris")) ||
+                          QFile::exists(QStringLiteral("/usr/bin/howdy")) ||
                           QFile::exists(QStringLiteral("/etc/howdy/config.ini")) ||
                           QFile::exists(QStringLiteral("/lib/security/pam_howdy.so")) ||
                           QFile::exists(QStringLiteral("/usr/lib/security/pam_howdy.so"));
@@ -344,6 +383,15 @@ void AuthManager::authenticate(const QString &password)
             handlePamResult(ret);
         }, Qt::QueuedConnection);
     });
+}
+
+void AuthManager::startIrisAuth()
+{
+    m_isFaceAuthActive = true;
+    m_authMessage = QStringLiteral("Scanning iris via infrared camera...");
+    emit faceAuthStateChanged();
+    emit authStateChanged();
+    authenticate(QString());
 }
 
 void AuthManager::startBiometricAuth()

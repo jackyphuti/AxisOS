@@ -179,8 +179,8 @@ ApplicationWindow {
                         height: 36
                         Layout.preferredWidth: 170
                         radius: 8
-                        color: parent.currentTab === index ? root.cCardHover : "transparent"
-                        border.color: parent.currentTab === index ? root.cBorderHover : "transparent"
+                        color: navTabs.currentTab === index ? root.cCardHover : "transparent"
+                        border.color: navTabs.currentTab === index ? root.cBorderHover : "transparent"
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -194,14 +194,14 @@ ApplicationWindow {
                             }
                             Text {
                                 text: modelData.name
-                                color: parent.parent.parent.currentTab === index ? root.cTextMain : root.cTextMuted
+                                color: navTabs.currentTab === index ? root.cTextMain : root.cTextMuted
                                 font.pixelSize: 12
-                                font.bold: parent.parent.parent.currentTab === index
+                                font.bold: navTabs.currentTab === index
                             }
                         }
 
                         TapHandler {
-                            onTapped: parent.parent.currentTab = index
+                            onTapped: navTabs.currentTab = index
                         }
                     }
                 }
