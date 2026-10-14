@@ -82,6 +82,12 @@ if [ -f "$APPS_DIR/axis-welcome/CMakeLists.txt" ] && which cmake >/dev/null 2>&1
     chmod 755 "$APPS_DIR/axis-welcome/axis-welcome"
 fi
 
+# 8b. Compile axis-update (Atomic Btrfs/A-B System Update Engine)
+if [ -d "$REPO_ROOT/os-build/updater" ]; then
+    echo "--> Compiling axis-update atomic updater..."
+    make -C "$REPO_ROOT/os-build/updater" clean all
+fi
+
 # 9. Compile axis-oobe (C++ with GTK 3)
 echo "--> Compiling axis-oobe..."
 g++ -O2 -std=c++17 \
@@ -102,6 +108,7 @@ if [ -d "/usr/local/bin" ] && [ "$EUID" -eq 0 ]; then
     [ -f "$APPS_DIR/axis-usb-daemon/axis-usb-daemon" ] && cp -f "$APPS_DIR/axis-usb-daemon/axis-usb-daemon" /usr/local/bin/
     [ -f "$APPS_DIR/axis-task-manager/axis-task-manager" ] && cp -f "$APPS_DIR/axis-task-manager/axis-task-manager" /usr/local/bin/
     [ -f "$APPS_DIR/axis-oobe/axis-oobe" ] && cp -f "$APPS_DIR/axis-oobe/axis-oobe" /usr/local/bin/
+    [ -f "$REPO_ROOT/os-build/updater/axis-update" ] && cp -f "$REPO_ROOT/os-build/updater/axis-update" /usr/bin/axis-update && chmod 755 /usr/bin/axis-update
 fi
 
 echo "=== All AxisOS Native C/C++ Applications Built Successfully! ==="
