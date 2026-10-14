@@ -14,7 +14,7 @@ const os = require('os');
 const { exec, spawn, execFile } = require('child_process');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '127.0.0.1';
 
 // Resolve distribution root
 const DIST_CANDIDATES = [

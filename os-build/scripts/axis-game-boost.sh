@@ -195,8 +195,14 @@ disable_game_boost() {
         fi
     done
 
-    # NVIDIA
-    if [ -n "$DISPLAY" ] && command -v nvidia-settings >/dev/null 2>&1; then
+    # NVIDIA: Restore default power limit wattage and adaptive PowerMizer
+    if command -v nvidia-smi >/dev/null 2>&1; then
+        def_power=$(nvidia-smi -q -d POWER 2>/dev/null | grep -i "Default Power Limit" | head -n1 | awk '{print $5}' | cut -d. -f1 || true)
+        if [ -n "$def_power" ] && [ "$def_power" -gt 0 ] 2>/dev/null; then
+            nvidia-smi -pl "$def_power" 2>/dev/null || true
+        fi
+    fi
+    if [ -n "${DISPLAY:-}" ] && command -v nvidia-settings >/dev/null 2>&1; then
         nvidia-settings -a "[gpu:0]/GPUPowerMizerMode=0" 2>/dev/null || true
     fi
 

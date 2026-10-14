@@ -1,12 +1,12 @@
 [Unit]
-Description=AxisOS A/B Boot Success Confirmation Service
-Documentation=man:axis(8)
+Description=AxisOS Boot Success Confirmation Service
+Documentation=man:axis-update(8)
 After=multi-user.target graphical.target
-ConditionPathExists=/usr/bin/axis
+ConditionPathExists=/usr/bin/axis-update
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/axis mark-successful
+ExecStart=/usr/bin/axis-update mark-successful
 RemainAfterExit=yes
 StandardOutput=journal
 StandardError=journal

@@ -250,7 +250,7 @@ class RemoteRepository:
         if shutil.which("apt-get"):
             log_info("Syncing system upstream Debian package mirrors...")
             try:
-                subprocess.run(["apt-get", "update", "-qq"], check=False)
+                subprocess.run(["apt-get", "-o", "DPkg::Lock::Timeout=120", "update", "-qq"], check=False)
             except Exception:
                 pass
 
@@ -562,7 +562,7 @@ class PackageManager:
             if not pkg_info or (is_remote_http and not local_exists):
                 if shutil.which("apt-get"):
                     log_step(f"Installing {pkg_name} via system package repository ({target_apt})...")
-                    apt_args = ["apt-get", "install", "-y", "--no-install-recommends"] + target_apt.split()
+                    apt_args = ["apt-get", "-o", "DPkg::Lock::Timeout=120", "install", "-y", "--no-install-recommends"] + target_apt.split()
                     res = subprocess.run(apt_args)
                     if res.returncode == 0:
                         self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({target_apt})"}, [f"/usr/bin/{pkg_name}"])
@@ -596,7 +596,7 @@ class PackageManager:
                 # If download fails, attempt apt-get fallback
                 if shutil.which("apt-get"):
                     log_warn(f"Failed to fetch .axis archive: {e}. Falling back to system apt repository...")
-                    apt_args = ["apt-get", "install", "-y", "--no-install-recommends"] + target_apt.split()
+                    apt_args = ["apt-get", "-o", "DPkg::Lock::Timeout=120", "install", "-y", "--no-install-recommends"] + target_apt.split()
                     res = subprocess.run(apt_args)
                     if res.returncode == 0:
                         self.db.add_package(pkg_name, {"version": "system-apt", "description": f"Installed via apt ({target_apt})"}, [f"/usr/bin/{pkg_name}"])
@@ -1081,10 +1081,20 @@ Examples:
     parser.add_argument("--config", default=None, help="Custom configuration file path")
     parser.add_argument("--no-color", action="store_true", help="Disable colored output")
 
+    # Delegate atomic OS slot subcommands to /usr/bin/axis-update if present
+    if len(sys.argv) > 1 and sys.argv[1] in ("mark-successful", "rollback", "status", "system-update"):
+        updater_bin = shutil.which("axis-update") or "/usr/bin/axis-update"
+        if os.path.exists(updater_bin) and os.access(updater_bin, os.X_OK):
+            sub_cmd = "update" if sys.argv[1] == "system-update" else sys.argv[1]
+            os.execv(updater_bin, [updater_bin, sub_cmd] + sys.argv[2:])
+
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
     # update
     subparsers.add_parser("update", help="Update repository package indices")
+    subparsers.add_parser("mark-successful", help="Confirm current boot slot as operational (delegates to axis-update)")
+    subparsers.add_parser("rollback", help="Roll back to standby OS snapshot/slot (delegates to axis-update)")
+    subparsers.add_parser("status", help="Show A/B or Btrfs snapshot slot status (delegates to axis-update)")
 
     # install
     p_install = subparsers.add_parser("install", help="Install packages")
