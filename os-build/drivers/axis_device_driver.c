@@ -425,6 +425,7 @@ static void axis_pci_remove(struct pci_dev *pdev)
 	/* 2. Disable interrupts and quiesce hardware DMA engines */
 	axis_write32(priv, REG_INT_ENABLE, 0x00000000);
 	axis_write32(priv, REG_CTRL_STATUS, 0x00000000);
+	synchronize_irq(priv->irq);
 
 	/* 3. Flush synchronization barriers and release resources */
 	axis_cleanup_dma_rings(priv);
@@ -443,9 +444,8 @@ static void axis_pci_remove(struct pci_dev *pdev)
 #define AXIS_PCI_DEVICE_ID  0x0042  /* Standard AxisOS Accelerator Device */
 
 static const struct pci_device_id axis_pci_ids[] = {
+	/* Only bind to dedicated AxisOS virtual/accelerator PCI device ID */
 	{ PCI_DEVICE(AXIS_PCI_VENDOR_ID, AXIS_PCI_DEVICE_ID) },
-	{ PCI_DEVICE(0x8086, 0x9a14) }, /* Intel Wi-Fi / TigerLake Platform */
-	{ PCI_DEVICE(0x10ec, 0x8168) }, /* Realtek RTL8111/8168/8411 Gigabit */
 	{ 0, }
 };
 MODULE_DEVICE_TABLE(pci, axis_pci_ids);

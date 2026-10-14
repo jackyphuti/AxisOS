@@ -19,7 +19,7 @@ AUTOLOGIN="true"
 LOCALE="en_US.UTF-8"
 KEYMAP="us"
 TIMEZONE="UTC"
-FILESYSTEM="ext4"
+FILESYSTEM="btrfs"
 DRY_RUN="false"
 
 # Helper for progress reporting: PROGRESS:<percent>:<message>
@@ -34,10 +34,26 @@ log() {
     echo "[AxisOS Install] $*" >> /tmp/axisos-installer.log 2>/dev/null || true
 }
 
+cleanup_mounts() {
+    sync
+    umount -l /mnt/sys/firmware/efi/efivars 2>/dev/null || true
+    umount -l /mnt/dev/pts 2>/dev/null || true
+    umount -l /mnt/dev 2>/dev/null || true
+    umount -l /mnt/proc 2>/dev/null || true
+    umount -l /mnt/sys 2>/dev/null || true
+    umount -l /mnt/run 2>/dev/null || true
+    umount -l /mnt/boot/efi 2>/dev/null || true
+    umount -l /mnt/home 2>/dev/null || true
+    umount -l /mnt/var/log 2>/dev/null || true
+    umount -l /mnt/.snapshots 2>/dev/null || true
+    umount -R /mnt 2>/dev/null || umount -l /mnt 2>/dev/null || true
+}
+
 error_exit() {
     local message="$1"
     echo "ERROR: ${message}" >&2
     echo "[AxisOS Install ERROR] ${message}" >> /tmp/axisos-installer.log 2>/dev/null || true
+    cleanup_mounts
     report 0 "Error: ${message}"
     exit 1
 }
@@ -685,9 +701,12 @@ while kill -0 $RSYNC_PID 2>/dev/null; do
     report "$PCT" "Copying system files (${CUR_USED_MB} MB transferred)..."
 done
 
-wait $RSYNC_PID || {
-    log "Notice: rsync finished with minor exclusions."
-}
+RSYNC_EXIT=0
+wait $RSYNC_PID || RSYNC_EXIT=$?
+if [ "$RSYNC_EXIT" -ne 0 ] && [ "$RSYNC_EXIT" -ne 24 ]; then
+    error_exit "Root filesystem copy (rsync) failed with exit code ${RSYNC_EXIT}. Check target disk health and free space."
+fi
+log "rsync completed cleanly (exit code ${RSYNC_EXIT})." 
 
 report 76 "System file transfer complete."
 
@@ -981,8 +1000,16 @@ Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
 Unattended-Upgrade::Automatic-Reboot "false";
 EOF
 
-# Ensure native Axis package manager is executable in installed system
+# Ensure native Axis package manager (/usr/bin/axis) and atomic updater (/usr/bin/axis-update) are deployed
 [ -f /mnt/usr/bin/axis ] && chmod +x /mnt/usr/bin/axis
+if [ -f /usr/bin/axis-update ]; then
+    cp -f /usr/bin/axis-update /mnt/usr/bin/axis-update
+    chmod 755 /mnt/usr/bin/axis-update
+fi
+if [ -f /etc/systemd/system/axis-mark-good.service ]; then
+    cp -f /etc/systemd/system/axis-mark-good.service /mnt/etc/systemd/system/axis-mark-good.service
+    chroot /mnt systemctl enable axis-mark-good.service 2>/dev/null || true
+fi
 
 # ------------------------------------------------------------------------------
 # Hardware Enablement, GPU Autodetect & Developer Runtimes
@@ -1140,6 +1167,11 @@ GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=0 vt.global_cursor_default=0 s
 GRUB_CMDLINE_LINUX=""
 GRUB_DISABLE_OS_PROBER=false
 EOF
+
+# Purge live-session boot hooks so installed OS boots directly from root UUID/subvolume
+report 94 "Removing live-boot hooks and regenerating initramfs for installed storage..."
+DEBIAN_FRONTEND=noninteractive chroot /mnt apt-get -o DPkg::Lock::Timeout=60 remove --purge -y     live-boot live-boot-initramfs-tools live-config live-config-systemd 2>/dev/null || true
+chroot /mnt update-initramfs -u -k all 2>/dev/null || chroot /mnt update-initramfs -c -k all 2>/dev/null || true
 
 # Generate grub.cfg
 chroot /mnt update-grub 2>/dev/null || chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg

@@ -13,7 +13,13 @@ RestartSec=2
 StandardOutput=journal
 StandardError=journal
 Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
 Environment=PORT=3000
+ProtectKernelModules=yes
+ProtectKernelTunables=no
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+IPAddressAllow=localhost
+IPAddressDeny=any
 
 [Install]
 WantedBy=multi-user.target

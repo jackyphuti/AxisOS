@@ -45,6 +45,25 @@ if os.path.exists(pkg_axis_src):
         shutil.copyfile(pkg_axis_src, dst)
         os.chmod(dst, 0o755)
 
+# Deploy compiled C Atomic Update Engine (/usr/bin/axis-update) and boot confirmation service
+updater_bin_src = os.path.join(workspace_dir, "os-build", "updater", "axis-update")
+if os.path.exists(updater_bin_src):
+    dst_upd = os.path.join(chroot_dir, "usr", "bin", "axis-update")
+    os.makedirs(os.path.dirname(dst_upd), exist_ok=True)
+    shutil.copyfile(updater_bin_src, dst_upd)
+    os.chmod(dst_upd, 0o755)
+
+mark_good_src = os.path.join(workspace_dir, "os-build", "updater", "axis-mark-good.service")
+if os.path.exists(mark_good_src):
+    dst_mg = os.path.join(chroot_dir, "etc", "systemd", "system", "axis-mark-good.service")
+    os.makedirs(os.path.dirname(dst_mg), exist_ok=True)
+    shutil.copyfile(mark_good_src, dst_mg)
+    wants_dir = os.path.join(chroot_dir, "etc", "systemd", "system", "multi-user.target.wants")
+    os.makedirs(wants_dir, exist_ok=True)
+    mg_link = os.path.join(wants_dir, "axis-mark-good.service")
+    if not os.path.lexists(mg_link):
+        os.symlink("/etc/systemd/system/axis-mark-good.service", mg_link)
+
 axis_conf_src = os.path.join(workspace_dir, "pkg-mgr", "configs", "axis.conf")
 if os.path.exists(axis_conf_src):
     dst = os.path.join(chroot_dir, "etc", "axis", "axis.conf")
@@ -120,6 +139,11 @@ if os.path.exists(gpu_svc_src):
     dst = os.path.join(chroot_dir, "etc", "systemd", "system", "gpu-autodetect.service")
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(gpu_svc_src, dst)
+    wants_dir = os.path.join(chroot_dir, "etc", "systemd", "system", "multi-user.target.wants")
+    os.makedirs(wants_dir, exist_ok=True)
+    gpu_link = os.path.join(wants_dir, "gpu-autodetect.service")
+    if not os.path.lexists(gpu_link):
+        os.symlink("/etc/systemd/system/gpu-autodetect.service", gpu_link)
 
 game_boost_src = os.path.join(workspace_dir, "os-build", "scripts", "axis-game-boost.sh")
 if os.path.exists(game_boost_src):

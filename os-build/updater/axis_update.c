@@ -124,7 +124,10 @@ int run_child_process(char *const argv[], char *output_buf, size_t buf_size) {
     close(pipefd[0]);
 
     int status = 0;
-    pid_t wait_res = waitpid(pid, &status, 0);
+    pid_t wait_res;
+    do {
+        wait_res = waitpid(pid, &status, 0);
+    } while (wait_res < 0 && errno == EINTR);
     if (wait_res < 0) {
         log_error("waitpid() failed on child PID %d: %s", (int)pid, strerror(errno));
         return -1;
@@ -184,6 +187,13 @@ void rollback_transaction(int exit_code, const char *reason) {
             run_child_process(umount_cmd, NULL, 0);
         }
         g_tx.mount_active = false;
+    }
+
+    if (g_tx.btrfs_snapshot_created && strlen(g_tx.btrfs_snapshot_path) > 0) {
+        log_info("Removing incomplete Btrfs snapshot '%s'...", g_tx.btrfs_snapshot_path);
+        char *const btrfs_del[] = {"btrfs", "subvolume", "delete", g_tx.btrfs_snapshot_path, NULL};
+        run_child_process(btrfs_del, NULL, 0);
+        g_tx.btrfs_snapshot_created = false;
     }
 
     /* 2. Remove temporary /boot artifacts */
@@ -260,6 +270,7 @@ int detect_system_slots(slot_info_t *slots) {
         while (fscanf(f_mounts, "%127s %127s %63s %*s %*d %*d\n", dev, mnt, fstype) == 3) {
             if (strcmp(mnt, "/") == 0) {
                 snprintf(root_dev, sizeof(root_dev), "%s", dev);
+                slots->is_btrfs = (strcmp(fstype, "btrfs") == 0);
                 break;
             }
         }
@@ -374,6 +385,26 @@ int stage_passive_rootfs(const slot_info_t *slots, const char *payload_path) {
     log_info("Preparing passive standby partition " ANSI_YELLOW "Slot %c" ANSI_RESET " (%s)...",
              slots->passive_slot == SLOT_A ? 'A' : 'B', slots->passive_dev);
 
+    /* Mode A: Native Btrfs Atomic Subvolume Snapshot (matches 3-partition Btrfs installer) */
+    if (slots->is_btrfs) {
+        mkdir(BTRFS_SNAPSHOT_DIR, 0755);
+        snprintf(g_tx.btrfs_snapshot_path, sizeof(g_tx.btrfs_snapshot_path), "%s/axisos-slot-%c",
+                 BTRFS_SNAPSHOT_DIR, slots->passive_slot == SLOT_A ? 'A' : 'B');
+        if (access(g_tx.btrfs_snapshot_path, F_OK) == 0) {
+            char *const del_cmd[] = {"btrfs", "subvolume", "delete", g_tx.btrfs_snapshot_path, NULL};
+            run_child_process(del_cmd, NULL, 0);
+        }
+        char *const snap_cmd[] = {"btrfs", "subvolume", "snapshot", "/", g_tx.btrfs_snapshot_path, NULL};
+        if (run_child_process(snap_cmd, NULL, 0) != 0) {
+            log_error("btrfs subvolume snapshot failed on %s", g_tx.btrfs_snapshot_path);
+            return EXIT_ERR_PARTITION_MOUNT;
+        }
+        g_tx.btrfs_snapshot_created = true;
+        sync();
+        log_success("Atomic Btrfs snapshot staged at %s.", g_tx.btrfs_snapshot_path);
+        return EXIT_SUCCESS_UPDATE;
+    }
+
     /* 1. Create Staging Mount Directory */
     mkdir(STAGING_MOUNT_POINT, 0755);
 
@@ -418,7 +449,11 @@ int stage_passive_rootfs(const slot_info_t *slots, const char *payload_path) {
         char dest[512];
         snprintf(dest, sizeof(dest), "%s%s", STAGING_MOUNT_POINT, rsync_dirs[i]);
         char *const cp_cmd[] = {"rsync", "-aHAX", "--delete", rsync_dirs[i], STAGING_MOUNT_POINT, NULL};
-        run_child_process(cp_cmd, NULL, 0);
+        int r_code = run_child_process(cp_cmd, NULL, 0);
+        if (r_code != 0 && r_code != 24) {
+            log_error("rsync failed on %s (code %d)", rsync_dirs[i], r_code);
+            return EXIT_ERR_PARTITION_MOUNT;
+        }
     }
 
     /* 5. Synchronize Non-Volatile Host Identity & User Accounts */
@@ -567,8 +602,8 @@ int configure_bootloader_fallback(const slot_info_t *slots) {
  * Directive 4: No-Hardware-Reboot Execution (kexec)
  * Uses kexec_file_load system call to load kernel and jump directly into it.
  */
-int execute_kexec_reboot(const char *vmlinuz_path, const char *initrd_path, axis_slot_t target_slot) {
-    char slot_char = (target_slot == SLOT_A) ? 'A' : 'B';
+int execute_kexec_reboot(const char *vmlinuz_path, const char *initrd_path, const slot_info_t *slots) {
+    char slot_char = (slots->passive_slot == SLOT_A) ? 'A' : 'B';
     log_info(ANSI_CYAN "Fast-Boot requested! Preparing kexec in-memory kernel jump..." ANSI_RESET);
 
     /* Build command line for target rootfs */
@@ -861,7 +896,7 @@ int main(int argc, char *argv[]) {
 
     /* 7. Fast-Boot Execution via kexec if requested */
     if (config.fast_boot) {
-        ret = execute_kexec_reboot(vmlinuz_path, initrd_path, g_tx.slots.passive_slot);
+        ret = execute_kexec_reboot(vmlinuz_path, initrd_path, &g_tx.slots);
         if (ret != EXIT_SUCCESS_UPDATE) {
             log_warn("Fast-boot failed, please restart machine manually.");
             return ret;

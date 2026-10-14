@@ -1,12 +1,13 @@
 [Unit]
-Description=AxisOS Nobara Automated NVIDIA Driver Installation
-After=network-online.target
+Description=AxisOS Automated NVIDIA Driver Installation (Unified Wrapper)
+After=network-online.target gpu-autodetect.service
 Wants=network-online.target
+ConditionPathExists=!/var/lib/axis/gpu-autodetect.done
 ConditionPathExists=!/var/lib/nvidia-first-boot.flag
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/nvidia-auto-install.sh
+ExecStart=/usr/local/bin/gpu-autodetect.sh
 RemainAfterExit=yes
 TimeoutStartSec=600
 

@@ -2,14 +2,15 @@
 # ==============================================================================
 # AxisOS Dynamic GPU Autodetection & Hardware Provisioning
 # Detects NVIDIA, AMD, and Intel GPUs.
-# AMD & Intel run plug-and-play with pre-installed kernel drivers & Mesa.
-# NVIDIA triggers dynamic installation of proprietary drivers + PRIME offload.
+# Uses DPkg::Lock::Timeout=120 to prevent first-boot APT lock races and only
+# writes the completion marker when driver provisioning succeeds.
 # ==============================================================================
 
-set -e
+set -uo pipefail
 
 LOG_FILE="/var/log/axisos-gpu-autodetect.log"
 MARKER_FILE="/var/lib/axis/gpu-autodetect.done"
+LEGACY_FLAG="/var/lib/nvidia-first-boot.flag"
 
 mkdir -p /var/lib/axis /var/log
 
@@ -19,7 +20,7 @@ log() {
 
 log "Starting AxisOS GPU autodetect..."
 
-# Always ensure prime-run helper is installed
+# Ensure prime-run helper is installed
 cat << 'EOF' > /usr/local/bin/prime-run
 #!/usr/bin/env bash
 # AxisOS NVIDIA PRIME Render Offload Runner
@@ -30,8 +31,7 @@ exec "$@"
 EOF
 chmod 755 /usr/local/bin/prime-run
 
-# Scan PCI bus for GPU/display controllers
-PCI_DISPLAY=$(lspci -nn | grep -iE 'vga|3d|display' || true)
+PCI_DISPLAY=$(lspci -nn 2>/dev/null | grep -iE 'vga|3d|display' || true)
 log "Detected display controllers:"
 log "$PCI_DISPLAY"
 
@@ -51,47 +51,69 @@ fi
 
 log "Hardware Summary: NVIDIA=$HAS_NVIDIA, AMD=$HAS_AMD, Intel=$HAS_INTEL"
 
+PROVISION_SUCCESS=true
+
 if [ "$HAS_NVIDIA" = true ]; then
+    PROVISION_SUCCESS=false
     log "NVIDIA graphics hardware detected. Checking driver status..."
 
-    # Check if driver is already functioning
-    if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1; then
-        log "NVIDIA driver is already installed and operating."
+    if lsmod 2>/dev/null | grep -iq '^nvidia' || (command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi >/dev/null 2>&1); then
+        log "NVIDIA proprietary driver is already loaded and operational."
+        PROVISION_SUCCESS=true
     else
         log "Attempting proprietary NVIDIA driver installation..."
-        # Ensure 32-bit architecture is present
-        dpkg --add-architecture i386 || true
-        
-        # Verify network connectivity before apt-get
-        if ping -c 1 -W 2 deb.debian.org >/dev/null 2>&1 || ping -c 1 -W 2 1.1.1.1 >/dev/null 2>&1; then
-            log "Network connection confirmed. Updating package index..."
-            apt-get update -qq || true
-            
-            PKGS="nvidia-driver firmware-misc-nonfree x11-xserver-utils nvidia-prime"
-            if dpkg --print-foreign-architectures | grep -q i386; then
-                PKGS="$PKGS libgl1-nvidia-glvnd-glx:i386"
-            fi
+        dpkg --add-architecture i386 2>/dev/null || true
 
-            log "Installing: $PKGS"
-            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends $PKGS || {
-                log "Warning: Full nvidia-driver install encountered issues; will retry on next online boot."
-            }
+        if ping -c 1 -W 3 deb.debian.org >/dev/null 2>&1 || ping -c 1 -W 3 1.1.1.1 >/dev/null 2>&1; then
+            log "Network connection confirmed. Acquiring APT lock (up to 120s timeout)..."
+            export DEBIAN_FRONTEND=noninteractive
+            APT_OPTS=(-o DPkg::Lock::Timeout=120 -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold")
+
+            if apt-get "${APT_OPTS[@]}" update -qq; then
+                PKG_TARGET="nvidia-driver"
+                if command -v nvidia-detect >/dev/null 2>&1; then
+                    CANDIDATE=$(nvidia-detect 2>/dev/null | grep -oE 'nvidia-[a-z0-9-]+driver' | head -n1 || true)
+                    if [ -n "$CANDIDATE" ]; then
+                        PKG_TARGET="$CANDIDATE"
+                    fi
+                fi
+
+                PKGS=("$PKG_TARGET" "firmware-misc-nonfree" "x11-xserver-utils" "nvidia-prime" "nvidia-smi")
+                if dpkg --print-foreign-architectures 2>/dev/null | grep -q '^i386$'; then
+                    PKGS+=("libgl1-nvidia-glvnd-glx:i386")
+                fi
+
+                log "Installing packages: ${PKGS[*]}"
+                if apt-get "${APT_OPTS[@]}" install -y --no-install-recommends "${PKGS[@]}"; then
+                    log "NVIDIA driver installation completed successfully."
+                    PROVISION_SUCCESS=true
+                else
+                    log "Warning: NVIDIA driver installation failed; will retry on next online boot."
+                fi
+            else
+                log "Warning: apt-get update failed; will retry on next online boot."
+            fi
         else
-            log "Network offline or unreachable. Skipping online driver fetch. Will run when connection is active."
+            log "Network offline or unreachable. Deferring NVIDIA driver installation to next online boot."
         fi
     fi
 fi
 
 if [ "$HAS_AMD" = true ]; then
-    log "AMD Radeon GPU detected: Native amdgpu kernel driver and Mesa Vulkan (radv) are active (Plug-and-Play)."
+    log "AMD Radeon GPU detected: Native amdgpu kernel driver and Mesa Vulkan (radv) active."
 fi
 
 if [ "$HAS_INTEL" = true ]; then
-    log "Intel Graphics detected: Native i915/xe kernel driver and Mesa Vulkan (anv) are active (Plug-and-Play)."
+    log "Intel Graphics detected: Native i915/xe kernel driver and Mesa Vulkan (anv) active."
 fi
 
-# Touch marker and disable service on success
-touch "$MARKER_FILE"
-systemctl disable gpu-autodetect.service 2>/dev/null || true
-log "GPU autodetect complete."
-exit 0
+if [ "$PROVISION_SUCCESS" = true ]; then
+    touch "$MARKER_FILE" "$LEGACY_FLAG"
+    systemctl disable gpu-autodetect.service 2>/dev/null || true
+    systemctl disable nvidia-first-boot.service 2>/dev/null || true
+    log "GPU autodetect finalized and marked complete."
+    exit 0
+else
+    log "GPU provisioning incomplete; leaving service enabled for next boot retry."
+    exit 0
+fi

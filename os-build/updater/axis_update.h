@@ -1,7 +1,7 @@
 /*
  * AxisOS System Update Engine (axis-update)
- * Header Definitions: A/B Partition Staging, Bootloader Fallback,
- * Kexec Instant Reboot, Transactional Rollbacks, and Process Exit Codes
+ * Header Definitions: Btrfs Atomic Snapshots + A/B Partition Staging,
+ * Bootloader Fallback, Kexec Instant Reboot, Transactional Rollbacks
  *
  * Copyright (c) 2026 AxisOS Architecture Team
  */
@@ -30,9 +30,10 @@
 #include <sys/statvfs.h>
 #include <sys/syscall.h>
 
-#define AXIS_VERSION_STRING "2.0.0-horizon"
+#define AXIS_VERSION_STRING "2.0.1-horizon-reliable"
 #define DEFAULT_UPDATE_CHANNEL "stable"
 #define STAGING_MOUNT_POINT "/mnt/axis_staging_rootfs"
+#define BTRFS_SNAPSHOT_DIR "/.snapshots"
 #define BOOT_DIR "/boot"
 #define GRUBENV_PATH "/boot/grub/grubenv"
 #define GRUBENV_BACKUP_PATH "/boot/grub/grubenv.bak"
@@ -44,13 +45,13 @@
 #define EXIT_ERR_DISK_SPACE       2   /* Insufficient storage space on target/boot */
 #define EXIT_ERR_NETWORK          3   /* Network failure / payload unreachable */
 #define EXIT_ERR_SIGNATURE        4   /* Cryptographic signature or hash mismatch */
-#define EXIT_ERR_PARTITION_MOUNT  5   /* Block device format/mount error */
+#define EXIT_ERR_PARTITION_MOUNT  5   /* Block device / Btrfs snapshot error */
 #define EXIT_ERR_KERNEL_STAGE     6   /* Kernel / initramfs generation failure */
 #define EXIT_ERR_BOOTLOADER       7   /* GRUB / bootloader configuration failure */
 #define EXIT_ERR_KEXEC            8   /* Kexec load or execution failure */
 #define EXIT_ERR_ABORTED          130 /* Aborted by SIGINT / Ctrl+C */
 
-/* Partition Slot Identifiers */
+/* Partition / Snapshot Slot Identifiers */
 typedef enum {
     SLOT_UNKNOWN = 0,
     SLOT_A = 1,
@@ -84,6 +85,7 @@ typedef struct {
 typedef struct {
     axis_slot_t active_slot;
     axis_slot_t passive_slot;
+    bool is_btrfs;           /* True when rootfs is Btrfs (uses atomic snapshots) */
     char active_dev[128];
     char passive_dev[128];
     char root_uuid[64];
@@ -97,7 +99,9 @@ typedef struct {
     update_config_t config;
     char staged_vmlinuz[256];
     char staged_initrd[256];
+    char btrfs_snapshot_path[256];
     bool mount_active;
+    bool btrfs_snapshot_created;
     bool grubenv_modified;
 } transaction_context_t;
 
@@ -108,11 +112,10 @@ void init_signal_handlers(void);
 void rollback_transaction(int exit_code, const char *reason);
 int detect_system_slots(slot_info_t *slots);
 int check_preflight_requirements(const slot_info_t *slots, const update_config_t *cfg);
-int download_and_verify_payload(const char *url, const char *dest_path, const char *expected_hash);
 int stage_passive_rootfs(const slot_info_t *slots, const char *payload_path);
 int stage_kernel_and_initramfs(const slot_info_t *slots, char *out_vmlinuz, char *out_initrd);
 int configure_bootloader_fallback(const slot_info_t *slots);
-int execute_kexec_reboot(const char *vmlinuz_path, const char *initrd_path, axis_slot_t target_slot);
+int execute_kexec_reboot(const char *vmlinuz_path, const char *initrd_path, const slot_info_t *slots);
 int mark_current_slot_successful(void);
 int rollback_to_previous_slot(void);
 void print_slot_status(void);
