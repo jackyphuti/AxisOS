@@ -20,6 +20,7 @@ if not workspace_dir:
             break
 if not workspace_dir:
     workspace_dir = "/build"
+os.environ["WORKSPACE_DIR"] = workspace_dir
 
 print("==================================================")
 print("  AxisOS Dual-Boot UEFI + Legacy BIOS ISO Engine  ")
@@ -46,7 +47,13 @@ if os.path.exists(pkg_axis_src):
         os.chmod(dst, 0o755)
 
 # Deploy compiled C Atomic Update Engine (/usr/bin/axis-update) and boot confirmation service
-updater_bin_src = os.path.join(workspace_dir, "os-build", "updater", "axis-update")
+updater_dir = os.path.join(workspace_dir, "os-build", "updater")
+updater_bin_src = os.path.join(updater_dir, "axis-update")
+if not os.path.exists(updater_bin_src) and os.path.exists(os.path.join(updater_dir, "Makefile")):
+    try:
+        subprocess.run(["make", "-C", updater_dir], check=False)
+    except Exception:
+        pass
 if os.path.exists(updater_bin_src):
     dst_upd = os.path.join(chroot_dir, "usr", "bin", "axis-update")
     os.makedirs(os.path.dirname(dst_upd), exist_ok=True)
@@ -370,11 +377,14 @@ DesktopNames=Nobara-Axis
 liquid_src = os.path.join(chroot_dir, "usr", "local", "bin", "LiquidNodesOS")
 if os.path.exists(liquid_src):
     print("    Detected Qt6 LiquidNodes Compositor -> /usr/local/bin/LiquidNodesOS")
-    qml_src = os.path.join(workspace_dir, "compositor-qt", "Main.qml")
-    if os.path.exists(qml_src):
-        dst_qml = os.path.join(chroot_dir, "usr", "share", "axis-compositor-qt", "Main.qml")
-        os.makedirs(os.path.dirname(dst_qml), exist_ok=True)
-        copy_text_lf(qml_src, dst_qml)
+    qml_dir = os.path.join(workspace_dir, "compositor-qt")
+    if os.path.exists(qml_dir):
+        dst_qml_dir = os.path.join(chroot_dir, "usr", "share", "axis-compositor-qt")
+        os.makedirs(dst_qml_dir, exist_ok=True)
+        for item in os.listdir(qml_dir):
+            if item.endswith(".qml") or item.endswith(".js"):
+                copy_text_lf(os.path.join(qml_dir, item), os.path.join(dst_qml_dir, item))
+        print("    Synced Qt 6 QML desktop files -> /usr/share/axis-compositor-qt/")
     liquid_sess_dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "liquidnodes.desktop")
     write_text_lf(liquid_sess_dst, """[Desktop Entry]
 Name=AxisOS LiquidNodes (Qt 6 QML)

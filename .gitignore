@@ -26,6 +26,8 @@ chroot/
 *.symvers
 compositor/axis-compositor
 axis-compositor
+os-build/updater/axis-update
+os-build/updater/axis
 
 # Logs
 npm-debug.log*

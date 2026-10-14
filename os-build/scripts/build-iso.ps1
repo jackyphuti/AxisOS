@@ -15,7 +15,7 @@ Write-Host "       AxisOS Windows ISO Build Orchestrator" -ForegroundColor Cyan
 Write-Host "==================================================" -ForegroundColor Cyan
 
 # 1. Build Shell
-if (-not $SkipShellBuild) {
+if (-not $SkipShellBuild -and (Test-Path $ShellDir)) {
     Write-Host "[1/3] Building AxisOS Shell bundle..." -ForegroundColor Yellow
     Push-Location $ShellDir
     try {
@@ -24,7 +24,7 @@ if (-not $SkipShellBuild) {
         Pop-Location
     }
 } else {
-    Write-Host "[1/3] Skipping Shell build as requested." -ForegroundColor DarkGray
+    Write-Host "[1/3] Skipping Shell build (native Qt6/GTK desktop active)." -ForegroundColor DarkGray
 }
 
 # 2. Check for Docker, Podman, or WSL
