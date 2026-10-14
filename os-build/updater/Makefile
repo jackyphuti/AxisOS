@@ -6,6 +6,7 @@ DESTDIR ?=
 PREFIX ?= /usr
 
 all: $(TARGET)
+	@ln -sf $(TARGET) axis
 
 $(TARGET): axis_update.c axis_update.h
 	$(CC) $(CFLAGS) axis_update.c -o $(TARGET)

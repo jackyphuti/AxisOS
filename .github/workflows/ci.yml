@@ -22,5 +22,6 @@ jobs:
         working-directory: os-build/updater
         run: |
           make
+          ./axis-update --help
           ./axis --help
           make clean
