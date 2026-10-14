@@ -572,6 +572,12 @@ if os.path.exists(disk_info_sh):
     copy_text_lf(disk_info_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axis-disk-info.sh"), 0o755)
     print("    Deployed AxisOS Disk Information Script -> /usr/local/bin/axis-disk-info.sh")
 
+# Deploy Biometric Authentication Manager (Fingerprint & Iris)
+bio_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-biometrics.sh")
+if os.path.exists(bio_sh):
+    copy_text_lf(bio_sh, os.path.join(chroot_dir, "usr", "local", "bin", "axis-biometrics"), 0o755)
+    print("    Deployed AxisOS Biometric Manager -> /usr/local/bin/axis-biometrics")
+
 # Deploy Game Boost Script & Service
 game_boost_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-game-boost.sh")
 if os.path.exists(game_boost_sh):

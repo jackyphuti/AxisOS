@@ -1,0 +1,43 @@
+# ==============================================================================
+# AxisOS Biometric Hardware Driver & Power Management Rules
+# Supports USB/SPI/PCIe Fingerprint Sensors & Infrared (IR) Iris/Facial Cameras
+# ==============================================================================
+
+# --- Fingerprint Readers (libfprint-2 / fprintd / TOD drivers) ---
+# Goodix Fingerprint Sensors (Dell, Lenovo, Huawei, Asus, Framework)
+SUBSYSTEM=="usb", ATTR{idVendor}=="27c6", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+# Synaptics Metallica / Prometheus Fingerprint Sensors (ThinkPad, HP EliteBook)
+SUBSYSTEM=="usb", ATTR{idVendor}=="06cb", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+# ELAN Microelectronics Fingerprint Readers
+SUBSYSTEM=="usb", ATTR{idVendor}=="04f3", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+# Validity Sensors / Synaptics Legacy
+SUBSYSTEM=="usb", ATTR{idVendor}=="138a", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+# Upek / AuthenTec Biometric Coprocessors
+SUBSYSTEM=="usb", ATTR{idVendor}=="147e", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+# Broadcom Ush / Security Fingerprint Sensors (Dell Latitude/Precision)
+SUBSYSTEM=="usb", ATTR{idVendor}=="0a5c", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+# DigitalPersona / Crossmatch U.are.U Fingerprint Readers
+SUBSYSTEM=="usb", ATTR{idVendor}=="05ba", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+# EgisTec / LighTuning Fingerprint Sensors (Acer, Asus, MSI)
+SUBSYSTEM=="usb", ATTR{idVendor}=="1c7a", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+# FocalTech Fingerprint Sensors
+SUBSYSTEM=="usb", ATTR{idVendor}=="2808", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+# FPC (Fingerprint Cards AB) Sensors
+SUBSYSTEM=="usb", ATTR{idVendor}=="10a5", MODE="0660", GROUP="plugdev", TAG+="uaccess", ATTR{power/control}="auto", ATTR{power/wakeup}="enabled"
+
+# SPI & HID Sensor Hubs for Embedded Fingerprint / Biometric Modules
+SUBSYSTEM=="hidraw", KERNEL=="hidraw*", ATTRS{idVendor}=="27c6|06cb|04f3|10a5", MODE="0660", GROUP="plugdev", TAG+="uaccess"
+
+# --- Infrared (IR) Iris & Facial Recognition Cameras (V4L2 / UVC) ---
+# Grant video & plugdev access to V4L2 video nodes and media controllers
+SUBSYSTEM=="video4linux", KERNEL=="video[0-9]*", MODE="0660", GROUP="video", TAG+="uaccess"
+SUBSYSTEM=="media", KERNEL=="media[0-9]*", MODE="0660", GROUP="video", TAG+="uaccess"
+
+# Intel RealSense Depth/IR & Iris Cameras
+SUBSYSTEM=="usb", ATTR{idVendor}=="8086", ATTR{idProduct}=="0ad*|0b0*|0b3*|0b4*|0b5*", MODE="0660", GROUP="video", TAG+="uaccess"
+# Chicony / SunplusIT / Azurewave / Quanta / Realtek IR Cameras (Windows Hello / Iris Compatible)
+SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", MODE="0660", GROUP="video", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="5986", MODE="0660", GROUP="video", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="13d3", MODE="0660", GROUP="video", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0408", MODE="0660", GROUP="video", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTR{idVendor}=="0bda", ATTR{idProduct}=="58*|56*", MODE="0660", GROUP="video", TAG+="uaccess"

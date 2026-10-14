@@ -181,4 +181,12 @@ python3-gi
 gir1.2-gtk-3.0
 libnotify-bin
 
-
+# ==============================================================================
+# AxisOS Biometric Authentication Stack (Fingerprint, Iris & IR Cameras)
+# ==============================================================================
+fprintd
+libpam-fprintd
+libfprint-2-2
+v4l-utils
+ir-keytable
+python3-opencv

@@ -1,11 +1,12 @@
 #%PAM-1.0
-# AxisOS LiquidNodes Greeter PAM Configuration
-# Dynamic biometrics (facial recognition via Howdy, fingerprint via fprintd)
-# with automatic fallback to standard password authentication.
+# AxisOS LiquidNodes Greeter & Lock Screen PAM Configuration
+# Dynamic biometrics (Infrared Iris scan via axis-biometrics/Howdy, Fingerprint via fprintd)
+# with optional passwordless screen unlock and standard password fallback.
 
 auth      requisite pam_nologin.so
 
-# Optional biometric authentication
+# Optional Iris / Facial / Fingerprint biometric authentication
+-auth     [success=done default=ignore] pam_exec.so quiet /usr/local/bin/axis-biometrics pam-verify-iris
 -auth     [success=done default=ignore] pam_howdy.so
 -auth     [success=done default=ignore] pam_fprintd.so
 

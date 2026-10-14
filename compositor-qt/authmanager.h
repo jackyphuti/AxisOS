@@ -19,6 +19,9 @@ class AuthManager : public QObject
     // Dynamic Hardware Capability Properties
     Q_PROPERTY(bool hasFingerprint READ hasFingerprint NOTIFY hardwareChanged)
     Q_PROPERTY(bool hasFaceAuth READ hasFaceAuth NOTIFY hardwareChanged)
+    Q_PROPERTY(bool hasIrisAuth READ hasIrisAuth NOTIFY hardwareChanged)
+    Q_PROPERTY(QString lockAuthMode READ lockAuthMode NOTIFY hardwareChanged)
+    Q_PROPERTY(bool passwordlessUnlock READ passwordlessUnlock NOTIFY hardwareChanged)
 
     // Live Authentication State
     Q_PROPERTY(bool isAuthenticating READ isAuthenticating NOTIFY authStateChanged)
@@ -40,6 +43,9 @@ public:
     // Property getters
     bool hasFingerprint() const { return m_hasFingerprint; }
     bool hasFaceAuth() const { return m_hasFaceAuth; }
+    bool hasIrisAuth() const { return m_hasIrisAuth; }
+    QString lockAuthMode() const { return m_lockAuthMode; }
+    bool passwordlessUnlock() const { return m_lockAuthMode == QStringLiteral("none"); }
     bool isAuthenticating() const { return m_isAuthenticating; }
     bool isFingerprintActive() const { return m_isFingerprintActive; }
     bool isFaceAuthActive() const { return m_isFaceAuthActive; }
@@ -58,6 +64,7 @@ public Q_SLOTS:
     void checkHardware();
     void authenticate(const QString &password);
     void startBiometricAuth();
+    void startIrisAuth();
     void cancelAuthentication();
     void lockSession();
     void unlockSession();
@@ -78,6 +85,7 @@ private:
     // Internal hardware probes
     bool detectFingerprintHardware();
     bool detectFaceAuthHardware();
+    void loadBiometricConfig();
 
     // Internal PAM lifecycle handlers called on GUI thread
     void handlePamTextInfo(const QString &msg);
@@ -87,6 +95,10 @@ private:
     // Dynamic Hardware State
     bool m_hasFingerprint{false};
     bool m_hasFaceAuth{false};
+    bool m_hasIrisAuth{false};
+    bool m_fpEnabledCfg{true};
+    bool m_irisEnabledCfg{true};
+    QString m_lockAuthMode{QStringLiteral("biometric_or_password")};
 
     // Live Authentication & Greeter State
     bool m_isAuthenticating{false};

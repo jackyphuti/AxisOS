@@ -276,6 +276,13 @@ static ssize_t chip_revision_show(struct device *dev, struct device_attribute *a
 }
 static DEVICE_ATTR_RO(chip_revision);
 
+static ssize_t biometric_capabilities_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	(void)dev; (void)attr;
+	return sysfs_emit(buf, "fingerprint,iris,ir-camera\n");
+}
+static DEVICE_ATTR_RO(biometric_capabilities);
+
 static ssize_t rx_packets_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct axis_hw_device *priv = dev_get_drvdata(dev);
@@ -310,6 +317,7 @@ static DEVICE_ATTR_RW(hw_online);
 
 static struct attribute *axis_hw_attrs[] = {
 	&dev_attr_chip_revision.attr,
+	&dev_attr_biometric_capabilities.attr,
 	&dev_attr_rx_packets.attr,
 	&dev_attr_hw_online.attr,
 	NULL,
@@ -454,6 +462,8 @@ MODULE_DEVICE_TABLE(pci, axis_pci_ids);
 static const struct acpi_device_id axis_acpi_ids[] = {
 	{ "AXIS0001", 0 },
 	{ "AXIS0002", 0 },
+	{ "AXISB001", 0 }, /* AxisOS SPI/USB Fingerprint Sensor */
+	{ "AXISB002", 0 }, /* AxisOS Infrared Iris Scanner */
 	{ "", 0 }
 };
 MODULE_DEVICE_TABLE(acpi, axis_acpi_ids);

@@ -97,7 +97,57 @@ class SettingsWindow(Adw.PreferencesWindow):
         group_dock.add(row_blur)
 
         # ---------------------------------------------------------------------
-        # Page 2: About System
+        # Page 2: Screen Lock & Biometrics (Fingerprint, Iris & Passwordless)
+        # ---------------------------------------------------------------------
+        page_security = Adw.PreferencesPage(
+            title="Security & Lock",
+            icon_name="emblem-ok-symbolic"
+        )
+        self.add(page_security)
+
+        group_lock = Adw.PreferencesGroup(
+            title="Screen Lock &amp; Biometric Unlock",
+            description="Unlock with Fingerprint (fprintd), Infrared Iris scan (V4L2 IR), or disable the lock screen password."
+        )
+        page_security.add(group_lock)
+
+        self.lock_mode_row = Adw.ComboRow(title="Screen Lock Method")
+        lock_modes = [
+            "Biometrics (Fingerprint / Iris) or Password",
+            "Fingerprint Unlock Only (No Password Prompt)",
+            "Iris / IR Scanner Unlock Only (No Password Prompt)",
+            "Password / PIN Only",
+            "No Password (Click / Slide to Unlock)"
+        ]
+        self.lock_mode_row.set_model(Gtk.StringList.new(lock_modes))
+        self.lock_mode_row.set_selected(0)
+        self.lock_mode_row.connect("notify::selected", self.on_lock_mode_changed)
+        group_lock.add(self.lock_mode_row)
+
+        row_fp = Adw.ActionRow(
+            title="Fingerprint Recognition (fprintd)",
+            subtitle="Goodix, Synaptics, ELAN, Validity &amp; Broadcom sensors"
+        )
+        self.sw_fp = Gtk.Switch(active=True, valign=Gtk.Align.CENTER)
+        btn_enroll_fp = Gtk.Button(label="Enroll Fingerprint", valign=Gtk.Align.CENTER)
+        btn_enroll_fp.connect("clicked", self.on_enroll_fingerprint)
+        row_fp.add_suffix(self.sw_fp)
+        row_fp.add_suffix(btn_enroll_fp)
+        group_lock.add(row_fp)
+
+        row_iris = Adw.ActionRow(
+            title="Iris &amp; Infrared Eye Recognition (V4L2 IR)",
+            subtitle="Unlock hands-free using infrared iris or camera scan"
+        )
+        self.sw_iris = Gtk.Switch(active=True, valign=Gtk.Align.CENTER)
+        btn_enroll_iris = Gtk.Button(label="Enroll Iris", valign=Gtk.Align.CENTER)
+        btn_enroll_iris.connect("clicked", self.on_enroll_iris)
+        row_iris.add_suffix(self.sw_iris)
+        row_iris.add_suffix(btn_enroll_iris)
+        group_lock.add(row_iris)
+
+        # ---------------------------------------------------------------------
+        # Page 3: About System
         # ---------------------------------------------------------------------
         page_about = Adw.PreferencesPage(
             title="About",
@@ -149,6 +199,29 @@ class SettingsWindow(Adw.PreferencesWindow):
         choice = mode_map.get(idx, "system")
         print(f"[Settings] Color scheme selected: {choice}")
         self.theme_mgr.set_user_color_scheme(choice)
+
+    def on_lock_mode_changed(self, row, pspec):
+        import subprocess
+        idx = row.get_selected()
+        mode_ids = {
+            0: "biometric_or_password",
+            1: "fingerprint_only",
+            2: "iris_only",
+            3: "password_only",
+            4: "none"
+        }
+        mode = mode_ids.get(idx, "biometric_or_password")
+        fp = "true" if self.sw_fp.get_active() else "false"
+        iris = "true" if self.sw_iris.get_active() else "false"
+        subprocess.Popen(["/usr/local/bin/axis-biometrics", "configure", "--mode", mode, "--fingerprint", fp, "--iris", iris])
+
+    def on_enroll_fingerprint(self, btn):
+        import subprocess
+        subprocess.Popen(["/usr/local/bin/axis-biometrics", "enroll-fingerprint"])
+
+    def on_enroll_iris(self, btn):
+        import subprocess
+        subprocess.Popen(["/usr/local/bin/axis-biometrics", "enroll-iris"])
 
 
 class AxisSettingsApp(Adw.Application):

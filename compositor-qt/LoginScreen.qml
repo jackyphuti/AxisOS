@@ -10,6 +10,7 @@ Item {
 
     // Track shake offset for authentication errors
     property real shakeOffset: 0
+    property bool showPasswordOverride: false
 
     // Background base layer: Deep Obsidian with subtle neon vignette
     Rectangle {
@@ -295,7 +296,7 @@ Item {
                     }
                 }
 
-                // --- B. Facial Recognition (Howdy / IR) Indicator ---
+                // --- B. Infrared Iris & Facial Scanner Indicator ---
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter
                     spacing: 8
@@ -304,16 +305,24 @@ Item {
 
                     // Rotating Cyber-Cyan Scanning Iris
                     Item {
-                        width: 22
-                        height: 22
+                        width: 26
+                        height: 26
 
                         Rectangle {
                             id: irisScan
                             anchors.fill: parent
-                            radius: 11
-                            color: "transparent"
+                            radius: 13
+                            color: "#151C28"
                             border.width: 2
-                            border.color: "#2EC4B6"
+                            border.color: AuthManager.isFaceAuthActive ? "#00F2FE" : "#2EC4B6"
+
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: 10
+                                height: 10
+                                radius: 5
+                                color: AuthManager.isFaceAuthActive ? "#00F2FE" : "#2EC4B6"
+                            }
 
                             RotationAnimation on rotation {
                                 running: AuthManager.isFaceAuthActive
@@ -321,12 +330,45 @@ Item {
                                 from: 0; to: 360; duration: 1200
                             }
                         }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: AuthManager.startIrisAuth()
+                        }
                     }
 
                     Text {
-                        text: AuthManager.isFaceAuthActive ? "Looking for face..." : "Face recognition ready"
+                        text: AuthManager.isFaceAuthActive ? "Scanning iris via IR sensor..." : "Iris / IR scanner ready (click to scan)"
                         font.pixelSize: 12
-                        color: AuthManager.isFaceAuthActive ? "#2EC4B6" : "#8A9A92"
+                        color: AuthManager.isFaceAuthActive ? "#00F2FE" : "#8A9A92"
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: AuthManager.startIrisAuth()
+                        }
+                    }
+                }
+
+                // --- C. Passwordless Quick Unlock Button (when LOCK_AUTH_MODE=none) ---
+                Rectangle {
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.fillWidth: true
+                    height: 44
+                    radius: 14
+                    visible: AuthManager.passwordlessUnlock
+                    color: "#00F2FE"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Click to Unlock Session (No Password Required)"
+                        color: "#06070A"
+                        font.pixelSize: 13
+                        font.weight: Font.Bold
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: AuthManager.unlockSession()
                     }
                 }
             }
@@ -341,6 +383,7 @@ Item {
                 Rectangle {
                     id: inputContainer
                     Layout.fillWidth: true
+                    visible: !AuthManager.passwordlessUnlock && (loginRoot.showPasswordOverride || (AuthManager.lockAuthMode !== "fingerprint_only" && AuthManager.lockAuthMode !== "iris_only"))
                     height: 48
                     radius: 14
                     color: "#18211D"
@@ -432,6 +475,20 @@ Item {
                                 }
                             }
                         }
+                    }
+                }
+
+                // Biometric-only fallback link to show password field if needed
+                Text {
+                    Layout.alignment: Qt.AlignHCenter
+                    visible: !AuthManager.passwordlessUnlock && !inputContainer.visible
+                    text: "Use Password or PIN instead"
+                    font.pixelSize: 11
+                    color: "#94A3B8"
+                    MouseArea {
+                        anchors.fill: parent
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: loginRoot.showPasswordOverride = true
                     }
                 }
 
