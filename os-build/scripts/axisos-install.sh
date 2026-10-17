@@ -83,6 +83,7 @@ while [[ $# -gt 0 ]]; do
         --disk) TARGET_DISK="$2"; shift 2 ;;
         --user|--username) USERNAME="$2"; shift 2 ;;
         --pass|--password) PASSWORD="$2"; shift 2 ;;
+        --password-stdin) IFS= read -r PASSWORD; shift 1 ;;
         --name|--fullname) USER_FULLNAME="$2"; shift 2 ;;
         --host|--hostname) HOSTNAME="$2"; shift 2 ;;
         --autologin) AUTOLOGIN="$2"; shift 2 ;;

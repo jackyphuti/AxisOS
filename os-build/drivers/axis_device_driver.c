@@ -435,7 +435,10 @@ static void axis_pci_remove(struct pci_dev *pdev)
 	axis_write32(priv, REG_CTRL_STATUS, 0x00000000);
 	synchronize_irq(priv->irq);
 
-	/* 3. Flush synchronization barriers and release resources */
+	/* 3. Unregister shared IRQ handler before unmapping MMIO and freeing DMA rings */
+	devm_free_irq(&pdev->dev, priv->irq, priv);
+
+	/* 4. Flush synchronization barriers and release resources */
 	axis_cleanup_dma_rings(priv);
 	pci_iounmap(pdev, priv->mmio_base);
 	pci_release_regions(pdev);

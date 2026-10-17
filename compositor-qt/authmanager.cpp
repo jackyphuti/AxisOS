@@ -69,6 +69,12 @@ void AuthManager::setUsername(const QString &user)
 
 void AuthManager::setIsLocked(bool locked)
 {
+    // Prevent unlocking if the session is locked and the user has not authenticated,
+    // unless passwordless unlock is explicitly configured.
+    if (!locked && m_isLocked && !m_isAuthenticated && !passwordlessUnlock()) {
+        return;
+    }
+
     if (m_isLocked != locked) {
         m_isLocked = locked;
         if (m_isLocked) {
@@ -426,6 +432,9 @@ void AuthManager::lockSession()
 
 void AuthManager::unlockSession()
 {
+    if (!m_isAuthenticated && !passwordlessUnlock()) {
+        return;
+    }
     setIsLocked(false);
 }
 

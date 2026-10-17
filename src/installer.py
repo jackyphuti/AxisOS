@@ -266,24 +266,39 @@ class InstallerWindow(Adw.ApplicationWindow):
             row.set_subtitle(value)
 
     def start_install(self):
-        import subprocess, threading
+        import subprocess, threading, shutil
         self.progress_value = 0.0
         self.progress.set_fraction(0.0)
         installer_bin = "/usr/local/bin/axisos-installer.sh"
         if not os.path.exists(installer_bin):
             installer_bin = "/usr/local/bin/axisos-install.sh"
 
+        if not os.path.exists(installer_bin):
+            self.status.set_text("Installation failed: Root privileges required or installer script missing.")
+            return
+
+        if os.geteuid() != 0 and not shutil.which("pkexec"):
+            self.status.set_text("Installation failed: Root privileges required or installer script missing.")
+            return
+
         raw_disk = (self.config.get("disk") or "/dev/sda").split("·")[0].strip()
-        if os.path.exists(installer_bin) and os.geteuid() == 0:
-            def worker():
-                cmd = [
-                    installer_bin,
-                    "--disk", raw_disk,
-                    "--username", self.config.get("username") or "axis",
-                    "--password", self.pass_row.get_text() or "axis",
-                    "--hostname", self.config.get("hostname") or "axisos",
-                ]
-                proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+        prefix = [] if os.geteuid() == 0 else ["pkexec"]
+        password_val = self.pass_row.get_text() or "axis"
+
+        def worker():
+            cmd = prefix + [
+                installer_bin,
+                "--disk", raw_disk,
+                "--username", self.config.get("username") or "axis",
+                "--password-stdin",
+                "--hostname", self.config.get("hostname") or "axisos",
+            ]
+            try:
+                proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                if proc.stdin:
+                    proc.stdin.write(f"{password_val}\n")
+                    proc.stdin.flush()
+                    proc.stdin.close()
                 for line in proc.stdout:
                     line = line.strip()
                     if line.startswith("PROGRESS:"):
@@ -294,9 +309,10 @@ class InstallerWindow(Adw.ApplicationWindow):
                             GLib.idle_add(self._update_real_progress, pct, msg)
                 proc.wait()
                 GLib.idle_add(self._finish_real_install, proc.returncode == 0)
-            threading.Thread(target=worker, daemon=True).start()
-        else:
-            GLib.timeout_add(70, self.tick_install)
+            except Exception as e:
+                GLib.idle_add(self._update_real_progress, 0.0, f"Error starting installer: {e}")
+
+        threading.Thread(target=worker, daemon=True).start()
 
     def _update_real_progress(self, pct, msg):
         self.progress_value = pct
@@ -312,23 +328,6 @@ class InstallerWindow(Adw.ApplicationWindow):
         else:
             self.status.set_text("Installation encountered an error. Check /tmp/axisos-installer.log.")
         return False
-
-    def tick_install(self):
-        self.progress_value = min(1.0, self.progress_value + 0.015)
-        self.progress.set_fraction(self.progress_value)
-
-        step_idx = min(
-            int(self.progress_value * len(self.INSTALL_STEPS)),
-            len(self.INSTALL_STEPS) - 1
-        )
-        self.status.set_text(self.INSTALL_STEPS[step_idx] + "…")
-
-        if self.progress_value >= 1.0:
-            self.index = self.PAGES.index("done")
-            self.stack.set_visible_child_name("done")
-            self.refresh()
-            return False
-        return True
 
 
 class AxisInstallerApp(Adw.Application):
