@@ -20,6 +20,7 @@ import urllib.request
 import urllib.error
 import argparse
 import subprocess
+import stat
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Set, Any, Optional, Tuple
@@ -644,24 +645,39 @@ class PackageManager:
                     log_warn(f"Skipping dangerous member in archive: {member.name}")
                     continue
 
-                target_dest = os.path.join(self.config.root, rel_path)
+                target_dest = os.path.abspath(os.path.join(self.config.root, rel_path))
+                root_real = os.path.realpath(self.config.root)
+                if not (target_dest == root_real or target_dest.startswith(root_real + os.sep)):
+                    log_warn(f"Skipping dangerous member in archive: {member.name}")
+                    continue
 
                 if member.isdir():
                     os.makedirs(target_dest, exist_ok=True)
-                elif member.isfile() or member.issym():
+                elif member.isfile() or member.issym() or member.islnk():
                     parent_dir = os.path.dirname(target_dest)
                     os.makedirs(parent_dir, exist_ok=True)
 
-                    # Extract file
-                    if member.issym():
+                    # Extract file or symlink
+                    if member.issym() or member.islnk():
+                        # Prevent symlink traversal outside destination root
+                        link_target = member.linkname
+                        if os.path.isabs(link_target):
+                            resolved_link = os.path.abspath(os.path.join(root_real, link_target.lstrip("/")))
+                        else:
+                            resolved_link = os.path.abspath(os.path.join(parent_dir, link_target))
+                        if not (resolved_link == root_real or resolved_link.startswith(root_real + os.sep)):
+                            log_warn(f"Skipping dangerous symlink pointing outside root: {member.name} -> {member.linkname}")
+                            continue
+
                         if os.path.exists(target_dest) or os.path.islink(target_dest):
                             os.remove(target_dest)
                         os.symlink(member.linkname, target_dest)
                     else:
                         with tar.extractfile(member) as src_file, open(target_dest, "wb") as dst_file:
                             shutil.copyfileobj(src_file, dst_file)
-                        # Set permissions
-                        os.chmod(target_dest, member.mode)
+                        # Strip dangerous setuid and setgid bits from extracted files
+                        safe_mode = member.mode & ~(stat.S_ISUID | stat.S_ISGID)
+                        os.chmod(target_dest, safe_mode)
 
                     system_path = "/" + rel_path
                     if system_path not in installed_files:
@@ -904,9 +920,18 @@ class PackageManager:
             if "xanmod" in target:
                 log_step("Configuring official XanMod Linux Gaming Kernel repository...")
                 os.makedirs("/etc/apt/keyrings", exist_ok=True)
-                key_cmd = "wget -qO - https://dl.xanmod.org/archive.key | gpg --dearmor -o /etc/apt/keyrings/xanmod-archive-keyring.gpg"
+                keyring_path = "/etc/apt/keyrings/xanmod-archive-keyring.gpg"
+                # Download XanMod GPG key securely and dearmor
+                try:
+                    req = urllib.request.Request("https://dl.xanmod.org/archive.key", headers={"User-Agent": "AxisOS-PkgMgr/2.0"})
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        key_data = resp.read()
+                    proc = subprocess.run(["gpg", "--dearmor", "--yes", "-o", keyring_path], input=key_data, check=True)
+                except Exception as e:
+                    log_error(f"Failed to download or import XanMod keyring: {e}")
+                    return 1
+
                 repo_line = "deb [signed-by=/etc/apt/keyrings/xanmod-archive-keyring.gpg] http://deb.xanmod.org releases main\n"
-                subprocess.run(key_cmd, shell=True, check=False)
                 with open("/etc/apt/sources.list.d/xanmod-release.list", "w") as f:
                     f.write(repo_line)
                 log_step("Updating package indices with XanMod repository...")
@@ -922,9 +947,25 @@ class PackageManager:
                 return 1
 
             elif "liquorix" in target:
-                log_step("Setting up official Liquorix Linux Kernel repository...")
-                curl_cmd = "curl -s 'https://liquorix.net/install-liquorix.sh' | bash"
-                res = subprocess.run(curl_cmd, shell=True)
+                log_step("Configuring official Liquorix Linux Kernel repository...")
+                os.makedirs("/etc/apt/keyrings", exist_ok=True)
+                keyring_path = "/etc/apt/keyrings/liquorix-keyring.gpg"
+                # Download Liquorix GPG signing keyring securely without curl-to-bash
+                try:
+                    req = urllib.request.Request("https://liquorix.net/liquorix-keyring.gpg", headers={"User-Agent": "AxisOS-PkgMgr/2.0"})
+                    with urllib.request.urlopen(req, timeout=15) as resp, open(keyring_path, "wb") as f:
+                        f.write(resp.read())
+                except Exception as e:
+                    log_error(f"Failed to download Liquorix GPG keyring: {e}")
+                    return 1
+
+                repo_line = "deb [signed-by=/etc/apt/keyrings/liquorix-keyring.gpg] https://liquorix.net/debian bookworm main\n"
+                with open("/etc/apt/sources.list.d/liquorix.list", "w") as f:
+                    f.write(repo_line)
+                log_step("Updating package indices with Liquorix repository...")
+                subprocess.run(["apt-get", "update"])
+                log_step("Installing Liquorix performance kernel...")
+                res = subprocess.run(["apt-get", "install", "-y", "--no-install-recommends", "linux-image-liquorix-amd64", "linux-headers-liquorix-amd64"])
                 if res.returncode == 0:
                     log_success("Liquorix Gaming Kernel successfully installed! Reboot to activate.")
                     return 0

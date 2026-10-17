@@ -44,6 +44,45 @@ EOF
     fi
 }
 
+safe_load_file() {
+    local file="$1"
+    [ ! -f "$file" ] && return
+    while IFS='=' read -r key val || [ -n "$key" ]; do
+        key="$(echo "$key" | tr -d ' \t\r\n')"
+        val="$(echo "$val" | tr -d ' \t\r\n"\'')"
+        [[ "$key" =~ ^# ]] && continue
+        [ -z "$key" ] && continue
+        case "$key" in
+            LOCK_AUTH_MODE)
+                case "$val" in
+                    biometric_or_password|fingerprint_only|iris_only|password_only|none)
+                        LOCK_AUTH_MODE="$val" ;;
+                esac
+                ;;
+            FINGERPRINT_ENABLED)
+                case "$val" in
+                    true|false) FINGERPRINT_ENABLED="$val" ;;
+                esac
+                ;;
+            IRIS_ENABLED)
+                case "$val" in
+                    true|false) IRIS_ENABLED="$val" ;;
+                esac
+                ;;
+            LOCK_ON_SLEEP)
+                case "$val" in
+                    true|false) LOCK_ON_SLEEP="$val" ;;
+                esac
+                ;;
+            IDLE_LOCK_SECONDS)
+                if [[ "$val" =~ ^[0-9]+$ ]]; then
+                    IDLE_LOCK_SECONDS="$val"
+                fi
+                ;;
+        esac
+    done < "$file"
+}
+
 load_conf() {
     ensure_defaults
     LOCK_AUTH_MODE="biometric_or_password"
@@ -51,8 +90,12 @@ load_conf() {
     IRIS_ENABLED="true"
     LOCK_ON_SLEEP="true"
     IDLE_LOCK_SECONDS="300"
-    [ -f "$CONF_FILE" ] && source "$CONF_FILE" 2>/dev/null || true
-    [ -f "$USER_CONF_FILE" ] && source "$USER_CONF_FILE" 2>/dev/null || true
+    # Load system-wide config
+    [ -f "$CONF_FILE" ] && safe_load_file "$CONF_FILE"
+    # Only load user-specific config when running as a non-root regular user and not in PAM
+    if [ -z "${PAM_USER:-}" ] && [ "$(id -u)" -ne 0 ] && [ -f "$USER_CONF_FILE" ]; then
+        safe_load_file "$USER_CONF_FILE"
+    fi
 }
 
 detect_fingerprint_hw() {
@@ -125,7 +168,6 @@ EOF
             echo "auth      sufficient pam_permit.so" >> "$PAM_GREETER"
         fi
         if [ "$IRIS_ENABLED" = "true" ] && [ "$LOCK_AUTH_MODE" != "password_only" ] && [ "$LOCK_AUTH_MODE" != "fingerprint_only" ]; then
-            echo "-auth     [success=done default=ignore] pam_exec.so quiet /usr/local/bin/axis-biometrics pam-verify-iris" >> "$PAM_GREETER"
             echo "-auth     [success=done default=ignore] pam_howdy.so" >> "$PAM_GREETER"
         fi
         if [ "$FINGERPRINT_ENABLED" = "true" ] && [ "$LOCK_AUTH_MODE" != "password_only" ] && [ "$LOCK_AUTH_MODE" != "iris_only" ]; then
@@ -237,12 +279,13 @@ cmd_pam_verify_iris() {
     load_conf
     [ "$IRIS_ENABLED" != "true" ] && exit 1
     local target_user="${PAM_USER:-${USER:-axis}}"
-    if [ -f "$IRIS_STORE/${target_user}.iris" ] || [ -f "/home/${target_user}/.config/axis/${target_user}.iris" ]; then
-        # Verify IR camera presence
-        if ls /dev/video* >/dev/null 2>&1; then
-            exit 0
-        fi
+    # Only verify root-owned secure template store, never unprivileged user path
+    local template_file="$IRIS_STORE/${target_user}.iris"
+    if [ ! -f "$template_file" ]; then
+        exit 1
     fi
+    # If howdy is installed, verification is handled by pam_howdy.so.
+    # Fail closed by default so PAM falls through to password verification.
     exit 1
 }
 

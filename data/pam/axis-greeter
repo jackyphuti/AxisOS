@@ -6,7 +6,6 @@
 auth      requisite pam_nologin.so
 
 # Optional Iris / Facial / Fingerprint biometric authentication
--auth     [success=done default=ignore] pam_exec.so quiet /usr/local/bin/axis-biometrics pam-verify-iris
 -auth     [success=done default=ignore] pam_howdy.so
 -auth     [success=done default=ignore] pam_fprintd.so
 

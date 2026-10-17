@@ -14,6 +14,10 @@
 #include <thread>
 #include <chrono>
 #include <cstdlib>
+#include <cstring>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 static const char* AXIS_CSS = R"(
 * {
@@ -1484,20 +1488,74 @@ public:
 
     void start_installer_worker() {
         std::thread([this]() {
-            std::string sudo_prefix = (geteuid() == 0) ? "" : "pkexec ";
-            std::string cmd = sudo_prefix + "/usr/local/bin/axisos-installer.sh"
-                              " --disk " + selected_disk +
-                              " --fs " + selected_fs +
-                              " --username " + username +
-                              " --password '" + password + "'" +
-                              " --fullname '" + fullname + "'" +
-                              " --hostname " + hostname +
-                              " --locale " + selected_locale +
-                              " --timezone " + selected_timezone +
-                              " --keymap " + selected_keymap +
-                              " 2>&1";
+            int in_pipe[2];
+            int out_pipe[2];
+            if (pipe(in_pipe) != 0 || pipe(out_pipe) != 0) {
+                return;
+            }
 
-            FILE* fp = popen(cmd.c_str(), "r");
+            pid_t pid = fork();
+            if (pid < 0) {
+                close(in_pipe[0]); close(in_pipe[1]);
+                close(out_pipe[0]); close(out_pipe[1]);
+                return;
+            }
+
+            if (pid == 0) {
+                // Child process
+                close(in_pipe[1]);
+                dup2(in_pipe[0], STDIN_FILENO);
+                close(in_pipe[0]);
+
+                close(out_pipe[0]);
+                dup2(out_pipe[1], STDOUT_FILENO);
+                dup2(out_pipe[1], STDERR_FILENO);
+                close(out_pipe[1]);
+
+                std::vector<std::string> args_storage;
+                std::vector<char*> argv;
+
+                if (geteuid() != 0) {
+                    args_storage.push_back("pkexec");
+                }
+                args_storage.push_back("/usr/local/bin/axisos-installer.sh");
+                args_storage.push_back("--disk");
+                args_storage.push_back(selected_disk);
+                args_storage.push_back("--fs");
+                args_storage.push_back(selected_fs);
+                args_storage.push_back("--username");
+                args_storage.push_back(username);
+                args_storage.push_back("--password-stdin");
+                args_storage.push_back("--fullname");
+                args_storage.push_back(fullname);
+                args_storage.push_back("--hostname");
+                args_storage.push_back(hostname);
+                args_storage.push_back("--locale");
+                args_storage.push_back(selected_locale);
+                args_storage.push_back("--timezone");
+                args_storage.push_back(selected_timezone);
+                args_storage.push_back("--keymap");
+                args_storage.push_back(selected_keymap);
+
+                for (auto& s : args_storage) {
+                    argv.push_back(&s[0]);
+                }
+                argv.push_back(nullptr);
+
+                execvp(argv[0], argv.data());
+                _exit(127);
+            }
+
+            // Parent process
+            close(in_pipe[0]);
+            close(out_pipe[1]);
+
+            // Write password safely over stdin pipe to prevent exposing it in /proc/cmdline
+            std::string pass_line = password + "\n";
+            write(in_pipe[1], pass_line.c_str(), pass_line.size());
+            close(in_pipe[1]);
+
+            FILE* fp = fdopen(out_pipe[0], "r");
             std::string last_error_line = "Unexpected installation error.";
             if (fp) {
                 char buf[512];
@@ -1559,39 +1617,45 @@ public:
                         }
                     }
                 }
-                int status = pclose(fp);
-                if (status == 0) {
-                    g_idle_add(+[](gpointer data) -> gboolean {
-                        AxisInstallerApp* app = static_cast<AxisInstallerApp*>(data);
-                        app->current_step = 5;
-                        app->update_navigation_state();
-                        return G_SOURCE_REMOVE;
-                    }, this);
-                } else {
-                    g_idle_add(+[](gpointer data) -> gboolean {
-                        auto pair = static_cast<std::pair<AxisInstallerApp*, std::string>*>(data);
-                        AxisInstallerApp* app = pair->first;
-                        std::string err = pair->second;
+                fclose(fp);
+            } else {
+                close(out_pipe[0]);
+            }
 
-                        std::string err_text = "Installation stopped: " + err;
-                        gtk_label_set_text(GTK_LABEL(app->lbl_progress_percent), err_text.c_str());
+            int wstatus = 0;
+            waitpid(pid, &wstatus, 0);
+            int exit_code = WIFEXITED(wstatus) ? WEXITSTATUS(wstatus) : -1;
+            if (exit_code == 0) {
+                g_idle_add(+[](gpointer data) -> gboolean {
+                    AxisInstallerApp* app = static_cast<AxisInstallerApp*>(data);
+                    app->current_step = 5;
+                    app->update_navigation_state();
+                    return G_SOURCE_REMOVE;
+                }, this);
+            } else {
+                g_idle_add(+[](gpointer data) -> gboolean {
+                    auto pair = static_cast<std::pair<AxisInstallerApp*, std::string>*>(data);
+                    AxisInstallerApp* app = pair->first;
+                    std::string err = pair->second;
 
-                        // Enable Back button for user recovery
-                        gtk_widget_set_visible(app->btn_back, TRUE);
-                        gtk_widget_set_sensitive(app->btn_back, TRUE);
-                        gtk_button_set_label(GTK_BUTTON(app->btn_back), "Back to Drive Selection");
+                    std::string err_text = "Installation stopped: " + err;
+                    gtk_label_set_text(GTK_LABEL(app->lbl_progress_percent), err_text.c_str());
 
-                        GtkWidget* d = gtk_message_dialog_new(GTK_WINDOW(app->window),
-                            GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
-                            "An issue occurred during installation:\n\n%s\n\nPlease select 'Back to Drive Selection' to choose another drive or verify disk health.",
-                            err.c_str());
-                        gtk_dialog_run(GTK_DIALOG(d));
-                        gtk_widget_destroy(d);
+                    // Enable Back button for user recovery
+                    gtk_widget_set_visible(app->btn_back, TRUE);
+                    gtk_widget_set_sensitive(app->btn_back, TRUE);
+                    gtk_button_set_label(GTK_BUTTON(app->btn_back), "Back to Drive Selection");
 
-                        delete pair;
-                        return G_SOURCE_REMOVE;
-                    }, new std::pair<AxisInstallerApp*, std::string>(this, last_error_line));
-                }
+                    GtkWidget* d = gtk_message_dialog_new(GTK_WINDOW(app->window),
+                        GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
+                        "An issue occurred during installation:\n\n%s\n\nPlease select 'Back to Drive Selection' to choose another drive or verify disk health.",
+                        err.c_str());
+                    gtk_dialog_run(GTK_DIALOG(d));
+                    gtk_widget_destroy(d);
+
+                    delete pair;
+                    return G_SOURCE_REMOVE;
+                }, new std::pair<AxisInstallerApp*, std::string>(this, last_error_line));
             }
         }).detach();
     }

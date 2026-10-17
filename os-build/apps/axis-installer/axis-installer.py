@@ -584,13 +584,17 @@ class AxisFriendlyInstaller(Gtk.Window):
             script_path,
             "--disk", str(self.selected_disk or "/dev/sda"),
             "--username", str(self.username),
-            "--password", str(self.password),
+            "--password-stdin",
             "--fullname", str(self.user_fullname),
             "--hostname", str(self.hostname)
         ]
 
         try:
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            proc = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+            if proc.stdin:
+                proc.stdin.write(f"{self.password}\n")
+                proc.stdin.flush()
+                proc.stdin.close()
             for line in proc.stdout:
                 line = line.strip()
                 if line.startswith("PROGRESS:"):

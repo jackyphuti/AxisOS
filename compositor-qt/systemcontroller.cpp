@@ -84,9 +84,9 @@ void SystemController::initDBusSubscribers()
 void SystemController::updateNetworkManager()
 {
     if (!m_nmInterface || !m_nmInterface->isValid()) {
-        m_wifiConnected = true; // Fallback for containerized/virtual runs
-        m_wifiSsid = QStringLiteral("Axis-UltraNet");
-        m_wifiStrength = 95;
+        m_wifiConnected = false;
+        m_wifiSsid = QStringLiteral("Disconnected");
+        m_wifiStrength = 0;
         emit wifiChanged();
         return;
     }
@@ -108,9 +108,9 @@ void SystemController::updateNetworkManager()
 void SystemController::updateUPower()
 {
     if (!m_upowerInterface || !m_upowerInterface->isValid()) {
-        m_batteryPercent = 100;
+        m_batteryPercent = 0;
         m_batteryCharging = false;
-        m_hasBattery = true;
+        m_hasBattery = false;
         emit batteryChanged();
         return;
     }

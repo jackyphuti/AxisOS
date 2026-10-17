@@ -1400,11 +1400,11 @@ private:
         const char* ch_cmd = (geteuid() == 0) ? "chpasswd" : "pkexec chpasswd";
         FILE* pipe = popen(ch_cmd, "w");
         if (pipe) {
-            fprintf(pipe, "%s:%s\nroot:%s\n", user, p1, p1);
+            fprintf(pipe, "%s:%s\n", user, p1);
             pclose(pipe);
         }
 
-        gtk_label_set_text(GTK_LABEL(app->lbl_pass_status), "Passwords updated and synchronized successfully!");
+        gtk_label_set_text(GTK_LABEL(app->lbl_pass_status), "Password updated successfully!");
         gtk_entry_set_text(GTK_ENTRY(app->entry_user_pass), "");
         gtk_entry_set_text(GTK_ENTRY(app->entry_confirm_pass), "");
     }

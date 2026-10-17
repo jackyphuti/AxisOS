@@ -888,15 +888,13 @@ class AxisSettingsApp(Gtk.Window):
             return
 
         try:
-            # Set user password and root password to the exact same value
             ch_cmd = ["chpasswd"] if os.geteuid() == 0 else ["pkexec", "chpasswd"]
             p1 = subprocess.Popen(ch_cmd, stdin=subprocess.PIPE, text=True)
-            p1.communicate(input=f"{username}:{pwd1}\nroot:{pwd1}\n")
+            p1.communicate(input=f"{username}:{pwd1}\n")
             if p1.returncode == 0:
                 self.show_info_dialog(
-                    "Password Synchronized",
-                    f"Password updated successfully!\nBoth account '{username}' and administrator 'root' now share this password.\n"
-                    "Terminal operations will strictly require this password."
+                    "Password Updated",
+                    f"Password updated successfully for account '{username}'!"
                 )
                 self.entry_pwd1.set_text("")
                 self.entry_pwd2.set_text("")
