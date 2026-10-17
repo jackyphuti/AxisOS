@@ -276,6 +276,7 @@ if os.path.exists(apps_dir):
         "axis-package-installer",
         "axis-scheduler-manager",
         "axis-welcome",
+        "nobara-welcome",
         "axis-software-manager",
         "axis-update-manager",
         "axis-task-manager",
@@ -289,7 +290,7 @@ if os.path.exists(apps_dir):
         app_desktop = os.path.join(apps_dir, app_name, f"{app_name}.desktop")
         # Prefer .py implementation for GTK3 apps so stale Qt6 binaries never break launch
         py_candidate = os.path.join(apps_dir, app_name, f"{app_name}.py")
-        if app_name in ["axis-terminal", "axis-welcome", "axis-settings", "axis-package-installer", "axis-scheduler-manager"] and os.path.exists(py_candidate):
+        if app_name in ["axis-terminal", "axis-welcome", "nobara-welcome", "axis-settings", "axis-package-installer", "axis-scheduler-manager", "axis-oobe"] and os.path.exists(py_candidate):
             app_bin = py_candidate
         if os.path.exists(app_bin):
             for bin_sub in [("usr", "local", "bin"), ("usr", "bin")]:
@@ -450,6 +451,23 @@ if os.path.exists(code_desktop_src):
         os.makedirs(desk_dir, exist_ok=True)
         copy_text_lf(code_desktop_src, os.path.join(desk_dir, "code.desktop"), 0o755)
     print("    Deployed Visual Studio Code desktop entry -> /usr/share/applications/code.desktop")
+
+# Deploy Visual Studio Code Unified Launcher (/usr/local/bin/code)
+vscode_wrapper_dst = os.path.join(chroot_dir, "usr", "local", "bin", "code")
+write_text_lf(vscode_wrapper_dst, """#!/usr/bin/env bash
+# AxisOS Visual Studio Code Smart Launcher & Auto-Installer
+if [ -x "/usr/share/code/code" ]; then
+    exec /usr/share/code/code --no-sandbox "$@"
+elif [ -x "/usr/bin/code" ] && [ "$(readlink -f /usr/bin/code)" != "/usr/local/bin/code" ]; then
+    exec /usr/bin/code --no-sandbox "$@"
+elif command -v codium >/dev/null 2>&1; then
+    exec codium --no-sandbox "$@"
+elif command -v flatpak >/dev/null 2>&1 && flatpak info com.visualstudio.code >/dev/null 2>&1; then
+    exec flatpak run com.visualstudio.code "$@"
+else
+    exec /usr/local/bin/axis-terminal -e "echo 'Installing Visual Studio Code...'; sudo apt-get update && sudo apt-get install -y code || sudo flatpak install -y flathub com.visualstudio.code"
+fi
+""", 0o755)
 
 steam_wrapper_dst = os.path.join(chroot_dir, "usr", "local", "bin", "steam")
 write_text_lf(steam_wrapper_dst, """#!/usr/bin/env bash

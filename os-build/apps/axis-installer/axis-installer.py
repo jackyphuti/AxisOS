@@ -8,6 +8,7 @@ import os
 import sys
 import subprocess
 import threading
+import shutil
 import time
 import gi
 
@@ -170,57 +171,6 @@ progressbar trough {
     padding: 6px 12px;
     border-radius: 6px;
 }
-
-combobox,
-combobox.combo,
-combobox button,
-combobox button.combo,
-combobox > box > button,
-combobox > box > button.combo {
-    background-color: #161e2e;
-    background-image: none;
-    box-shadow: none;
-    text-shadow: none;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    padding: 8px 12px;
-}
-
-combobox:hover,
-combobox button:hover,
-combobox button.combo:hover {
-    background-color: #1e293b;
-    border-color: #2563eb;
-    color: #ffffff;
-}
-
-combobox cellview,
-combobox cellview text,
-combobox cellview label {
-    color: #ffffff;
-    background-color: transparent;
-}
-
-combobox menu,
-combobox window menu,
-menu {
-    background-color: #0f141c;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-combobox menu menuitem,
-menu menuitem {
-    color: #ffffff;
-    padding: 8px 14px;
-}
-
-combobox menu menuitem:hover,
-menu menuitem:hover {
-    background-color: #2563eb;
-    color: #ffffff;
-}
 """
 
 class AxisFriendlyInstaller(Gtk.Window):
@@ -241,14 +191,10 @@ class AxisFriendlyInstaller(Gtk.Window):
         self.init_ui()
 
     def apply_css(self):
-        settings = Gtk.Settings.get_default()
-        if settings:
-            settings.set_property("gtk-application-prefer-dark-theme", True)
-            settings.set_property("gtk-theme-name", "Adwaita-dark")
         provider = Gtk.CssProvider()
         provider.load_from_data(CSS_STYLING)
         Gtk.StyleContext.add_provider_for_screen(
-            Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
+            Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
     def init_headerbar(self):
@@ -630,17 +576,18 @@ class AxisFriendlyInstaller(Gtk.Window):
         threading.Thread(target=self._run_installer_script, daemon=True).start()
 
     def _run_installer_script(self):
-        cmd = [
-            "/usr/local/bin/axisos-installer.sh",
+        script_path = "/usr/local/bin/axisos-installer.sh"
+        if not os.path.exists(script_path):
+            script_path = "/usr/local/bin/axisos-install.sh"
+        prefix = [] if os.geteuid() == 0 else (["pkexec"] if shutil.which("pkexec") else ["sudo", "-n"])
+        cmd = prefix + [
+            script_path,
             "--disk", str(self.selected_disk or "/dev/sda"),
-            "--user", str(self.username),
-            "--pass", str(self.password),
-            "--name", str(self.user_fullname),
-            "--host", str(self.hostname)
+            "--username", str(self.username),
+            "--password", str(self.password),
+            "--fullname", str(self.user_fullname),
+            "--hostname", str(self.hostname)
         ]
-
-        if not os.path.exists(cmd[0]):
-            cmd[0] = "/usr/local/bin/axisos-install.sh"
 
         try:
             proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)

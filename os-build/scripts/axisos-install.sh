@@ -937,7 +937,22 @@ if [ -f /mnt/etc/dconf/db/local.d/00-axisos-gnome ]; then
     sed -i "s/'axis-installer.desktop',[ ]*//g" /mnt/etc/dconf/db/local.d/00-axisos-gnome
     sed -i "s/,[ ]*'axis-installer.desktop'//g" /mnt/etc/dconf/db/local.d/00-axisos-gnome
 fi
+# Clear live user dconf override so installed dock reflects updated system defaults without ghost installer icon
+rm -rf "/mnt/home/${USERNAME}/.config/dconf" 2>/dev/null || true
 chroot /mnt dconf update 2>/dev/null || true
+
+# Create First-Boot OOBE autostart desktop entry for GNOME/Cinnamon sessions
+mkdir -p "/mnt/home/${USERNAME}/.config/autostart"
+cat << 'OOBE_EOF' > "/mnt/home/${USERNAME}/.config/autostart/axis-oobe-firstboot.desktop"
+[Desktop Entry]
+Name=AxisOS First-Boot Setup
+Comment=Out-of-Box Experience Setup Wizard
+Exec=/bin/sh -c 'if [ -f /var/lib/axisos/first-boot-pending ]; then /usr/local/bin/axis-oobe; fi'
+Icon=preferences-system
+Terminal=false
+Type=Application
+X-GNOME-Autostart-enabled=true
+OOBE_EOF
 
 # Replace installer binary with no-op script so it cannot be invoked
 cat << 'EOF' > /mnt/usr/local/bin/axis-installer
@@ -1031,7 +1046,7 @@ if [[ -f /etc/pam.d/axis-greeter ]]; then
 fi
 chroot /mnt usermod -aG plugdev,video,input "$USERNAME" 2>/dev/null || true
 
-# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield)
+# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault)
 for util_bin in axis-rewind axis-neural-pulse axis-usb-vault axis-gaze-shield; do
     if [[ -f "/usr/local/bin/$util_bin" ]]; then
         cp -f "/usr/local/bin/$util_bin" "/mnt/usr/local/bin/$util_bin"
