@@ -133,6 +133,9 @@ public:
         gtk_style_context_add_class(gtk_widget_get_style_context(btn_run), "btn-primary");
         g_signal_connect_swapped(btn_run, "clicked", G_CALLBACK(on_run_task_cb), this);
         gtk_header_bar_pack_start(GTK_HEADER_BAR(hb), btn_run);
+        GtkWidget* btn_refresh = gtk_button_new_with_label("Refresh");
+        g_signal_connect_swapped(btn_refresh, "clicked", G_CALLBACK(+[](AxisTaskManager* a){ a->refresh_processes(); }), this);
+        gtk_header_bar_pack_end(GTK_HEADER_BAR(hb), btn_refresh);
 
         GtkWidget* vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
         gtk_container_add(GTK_CONTAINER(window), vbox);
@@ -391,10 +394,14 @@ private:
             gtk_tree_model_get(m, &iter, COL_PID, &pid, COL_NAME, &name, -1);
 
             if (pid > 0) {
-                kill(pid, SIGTERM);
-                usleep(50000);
-                if (kill(pid, 0) == 0) {
-                    kill(pid, SIGKILL);
+                if (kill(pid, SIGTERM) != 0) {
+                    std::string pk_cmd = "pkexec kill -15 " + std::to_string(pid) + " 2>/dev/null || pkexec kill -9 " + std::to_string(pid);
+                    system(pk_cmd.c_str());
+                } else {
+                    usleep(50000);
+                    if (kill(pid, 0) == 0) {
+                        kill(pid, SIGKILL);
+                    }
                 }
             }
             if (name) g_free(name);

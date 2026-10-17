@@ -190,3 +190,21 @@ libfprint-2-2
 v4l-utils
 ir-keytable
 python3-opencv
+
+# ==============================================================================
+# AxisOS Desktop GUI & Terminal Runtimes (GTK3 VTE + Qt6 QML Wayland Support)
+# ==============================================================================
+gir1.2-vte-2.91
+libvte-2.91-0
+libvterm0
+libqt6core6
+libqt6gui6
+libqt6qml6
+libqt6quick6
+libqt6dbus6
+qt6-wayland
+qml6-module-qtquick
+qml6-module-qtquick-controls
+qml6-module-qtquick-layouts
+qml6-module-qtquick-window
+qml6-module-qtquick-templates

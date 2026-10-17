@@ -218,9 +218,9 @@ class NobaraWelcomeWindow(Gtk.Window):
         btn_steam.get_style_context().add_class("action-btn-primary")
         btn_steam.connect("clicked", lambda _: subprocess.Popen(["steam"]))
 
-        btn_term = Gtk.Button(label="Open Foot Terminal")
+        btn_term = Gtk.Button(label="Open AxisOS Terminal")
         btn_term.get_style_context().add_class("action-btn-secondary")
-        btn_term.connect("clicked", lambda _: subprocess.Popen(["foot"]))
+        btn_term.connect("clicked", lambda _: subprocess.Popen(["/usr/local/bin/axis-terminal"]))
 
         btn_browser = Gtk.Button(label="Launch Web Browser")
         btn_browser.get_style_context().add_class("action-btn-secondary")
