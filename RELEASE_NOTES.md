@@ -7,7 +7,7 @@ Welcome to **AxisOS 2.0 Beta**! This release introduces major performance, stabi
 ## ⚡ Key Highlights & What's New in AxisOS 2.0 Beta
 
 ### 1. 🚀 GameBoost Extreme Performance & Hardware Overclocking Engine
-- **One-Click Performance Mode in Settings**: Switch between **Balanced Standard Mode** and **Extreme Overclock Mode** via the new *⚡ Gaming Boost & Performance* panel in Settings (`axis-settings`).
+- **One-Click Performance Mode in Settings**: Switch between **Balanced Standard Mode** and **Extreme Overclock Mode** via the new *⚡ Gaming Boost & Performance* panel integrated into Settings (`gnome-control-center` / `axisos-settings-panel`).
 - **CPU Overclocking & Unconstrained Governors**: Pins CPU scaling governor to `performance`, sets Energy Performance Preference (EPP) to maximum throughput, unthrottles Intel P-state and AMD Core Performance Boost, and fixes minimum core clocks to maximum turbo frequencies.
 - **GPU Overclocking & Power Unleashed**:
   - **NVIDIA**: Sets PowerMizer to Maximum Performance (Level 1) and raises board power limits to maximum factory wattage via `nvidia-smi`.

@@ -7,7 +7,7 @@ panels-enabled=['1:0:bottom']
 panels-height=['1:40']
 panel-zone-icon-sizes='[{"panelId": 1, "left": 0, "center": 0, "right": 24}]'
 enabled-applets=['panel1:left:0:menu@cinnamon.org:0', 'panel1:left:1:show-desktop@cinnamon.org:1', 'panel1:left:2:grouped-window-list@cinnamon.org:2', 'panel1:right:0:systray@cinnamon.org:3', 'panel1:right:1:sound@cinnamon.org:4', 'panel1:right:2:network@cinnamon.org:5', 'panel1:right:3:power@cinnamon.org:6', 'panel1:right:4:calendar@cinnamon.org:7']
-favorite-apps=['axis-terminal.desktop', 'axis-welcome.desktop', 'axis-installer.desktop', 'nemo.desktop', 'axis-software-manager.desktop', 'axis-update-manager.desktop', 'axis-task-manager.desktop', 'axis-settings.desktop']
+favorite-apps=['axis-terminal.desktop', 'axis-welcome.desktop', 'axis-installer.desktop', 'nemo.desktop', 'axis-software-manager.desktop', 'axis-update-manager.desktop', 'axis-task-manager.desktop', 'org.gnome.Settings.desktop']
 workspace-expo-corner='top-left:true'
 alttab-switcher-style='timeline'
 

@@ -23,12 +23,21 @@ elif [ -f "$APPS_DIR/axis-installer/axis-installer.py" ]; then
 fi
 chmod 755 "$APPS_DIR/axis-installer/axis-installer"
 
-# 3. Deploy unified GTK3 axis-settings (includes Biometrics, Lock Screen, Game Boost & Signature Features)
-echo "--> Configuring unified axis-settings..."
+# 3. Deploy unified axisos-settings-panel and axis-settings forwarder
+echo "--> Configuring axisos-settings-panel..."
 if [ -f "$APPS_DIR/axis-settings/axis-settings.py" ]; then
-    cp -f "$APPS_DIR/axis-settings/axis-settings.py" "$APPS_DIR/axis-settings/axis-settings"
+    cp -f "$APPS_DIR/axis-settings/axis-settings.py" "$APPS_DIR/axis-settings/axisos-settings-panel"
+    chmod 755 "$APPS_DIR/axis-settings/axisos-settings-panel"
+    cat << 'EOF' > "$APPS_DIR/axis-settings/axis-settings"
+#!/bin/sh
+if [ $# -eq 0 ]; then
+    exec gnome-control-center "$@"
+else
+    exec /usr/local/bin/axisos-settings-panel "$@"
 fi
-chmod 755 "$APPS_DIR/axis-settings/axis-settings"
+EOF
+    chmod 755 "$APPS_DIR/axis-settings/axis-settings"
+fi
 
 # 4. Compile axis-usb-daemon (C with libudev)
 echo "--> Building axis-usb-daemon..."
@@ -69,6 +78,11 @@ if [ -d "/usr/local/bin" ] && [ "${EUID:-$(id -u)}" -eq 0 ]; then
             ln -sfn "/usr/local/bin/$app" "/usr/bin/$app"
         fi
     done
+    if [ -f "$APPS_DIR/axis-settings/axisos-settings-panel" ]; then
+        cp -f "$APPS_DIR/axis-settings/axisos-settings-panel" "/usr/local/bin/axisos-settings-panel"
+        chmod 755 "/usr/local/bin/axisos-settings-panel"
+        ln -sfn "/usr/local/bin/axisos-settings-panel" "/usr/bin/axisos-settings-panel"
+    fi
     ln -sfn /usr/local/bin/axis-terminal /usr/local/bin/gnome-terminal
 fi
 

@@ -33,8 +33,8 @@
     },
     "custom/settings": {
         "format": " Settings",
-        "tooltip": "Open System Settings & Appearance",
-        "on-click": "axis-settings"
+        "tooltip": "Open System Settings",
+        "on-click": "gnome-control-center"
     },
     "custom/welcome": {
         "format": "󰌆 Drivers & Codecs",

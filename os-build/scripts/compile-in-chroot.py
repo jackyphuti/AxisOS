@@ -44,5 +44,12 @@ for app in apps:
         print(f"  [OK] {app} -> {repo_bin}")
     else:
         print(f"  [WARN] {app} not found at {built_bin}")
+    if app == "axis-settings":
+        panel_bin = os.path.join(target_apps, app, "axisos-settings-panel")
+        repo_panel = os.path.join(SRC_APPS, app, "axisos-settings-panel")
+        if os.path.exists(panel_bin):
+            shutil.copyfile(panel_bin, repo_panel)
+            os.chmod(repo_panel, 0o755)
+            print(f"  [OK] axisos-settings-panel -> {repo_panel}")
 
 print("=== All C/C++ applications successfully compiled! ===")

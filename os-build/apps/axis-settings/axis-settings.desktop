@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=Settings
-Comment=Configure appearance, taskbar presets, updates, network, and security
-Exec=/usr/local/bin/axis-settings
+Name=AxisOS Features
+Comment=AxisOS custom feature panels (use Settings for the full experience)
+Exec=/usr/local/bin/axisos-settings-panel
 Icon=preferences-system
 Terminal=false
 Type=Application
-Categories=Settings;HardwareSettings;DesktopSettings;
-Keywords=Appearance;Theme;Display;Taskbar;Update;WiFi;Password;Time;
+Categories=Settings;
+NoDisplay=true

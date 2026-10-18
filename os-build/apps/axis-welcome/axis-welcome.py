@@ -204,7 +204,7 @@ class AxisWelcomeWindow(Gtk.Window):
         btn_row = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         for label, cmd, primary in [
             ("💿 Install AxisOS to Disk", "/usr/local/bin/axis-installer", True),
-            ("⚙️ Open AxisOS Settings", "/usr/local/bin/axis-settings", False),
+            ("⚙️ Open Settings", "gnome-control-center", False),
             ("💻 Open AxisOS Terminal", "/usr/local/bin/axis-terminal", False),
         ]:
             b = Gtk.Button(label=label)
@@ -266,7 +266,7 @@ class AxisWelcomeWindow(Gtk.Window):
             "Features engineered specifically for AxisOS 2.0 that set it apart from every other Linux distribution."
         )
         features = [
-            ("1. Liquid Nodes Window Piping", "Connect windows with live Bezier pipes in the Qt6 compositor to stream stdout/PipeWire audio between apps.", "/usr/local/bin/axis-settings"),
+            ("1. Liquid Nodes Window Piping", "Connect windows with live Bezier pipes in the Qt6 compositor to stream stdout/PipeWire audio between apps.", "/usr/local/bin/axisos-settings-panel signature"),
             ("2. Axis Rewind (CoW Time-Travel)", "Create instant Copy-on-Write checkpoints of app configs/state and roll back in <10ms.", "/usr/local/bin/axis-rewind checkpoint axis-welcome"),
             ("3. NeuralPulse Focus Priority", "Automatically boosts the focused window's CPU nice (-10), I/O priority, and cgroup v2 weight.", "/usr/local/bin/axis-neural-pulse status"),
             ("4. Shoulder-Surfing & Gaze Privacy Shield", "Detects onlookers via V4L2 camera and blurs protected windows automatically.", "/usr/local/bin/axis-gaze-shield scan-once"),

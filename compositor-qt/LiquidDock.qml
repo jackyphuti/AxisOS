@@ -90,7 +90,7 @@ Rectangle {
                 {
                     id: "settings",
                     name: "System Settings",
-                    cmd: "axis-settings",
+                    cmd: "gnome-control-center",
                     icon: "file:///usr/share/icons/Papirus/48x48/apps/preferences-system.svg",
                     accent: "#94A3B8"
                 },
