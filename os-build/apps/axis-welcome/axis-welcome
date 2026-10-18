@@ -47,15 +47,23 @@ headerbar {
     font-size: 11pt;
     color: #94A3B8;
 }
-button.primary-btn {
+button.primary-btn,
+button.primary-btn:hover,
+button.primary-btn:active,
+button.primary-btn:checked {
     background: #00F2FE;
+    background-image: none;
     color: #0A0D14;
     font-weight: bold;
     border-radius: 8px;
     padding: 8px 16px;
 }
-button.secondary-btn {
+button.secondary-btn,
+button.secondary-btn:hover,
+button.secondary-btn:active,
+button.secondary-btn:checked {
     background-color: #1E293B;
+    background-image: none;
     color: #F8FAFC;
     border: 1px solid #334155;
     border-radius: 8px;

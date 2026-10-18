@@ -108,8 +108,12 @@ headerbar .title {
     border-color: #2563eb;
 }
 
-.btn-primary {
+button.btn-primary,
+button.btn-primary:hover,
+button.btn-primary:active,
+button.btn-primary:checked {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background-image: none;
     color: #ffffff;
     font-weight: 700;
     font-size: 14px;
@@ -119,12 +123,17 @@ headerbar .title {
     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
 }
 
-.btn-primary:hover {
+button.btn-primary:hover {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
 }
 
-.btn-secondary {
+button.btn-secondary,
+button.btn-secondary:hover,
+button.btn-secondary:active,
+button.btn-secondary:checked {
     background: #1f2937;
+    background-image: none;
     color: #e2e8f0;
     font-weight: 600;
     font-size: 13px;
@@ -133,7 +142,7 @@ headerbar .title {
     padding: 9px 20px;
 }
 
-.btn-secondary:hover {
+button.btn-secondary:hover {
     background: #374151;
     color: #ffffff;
     border-color: #2563eb;
