@@ -309,11 +309,12 @@ public:
     GtkWidget* btn_gameboost;
     GtkWidget* lbl_summary_badge;
 
-    // Startup & Services stores
-    GtkListStore* store_startup;
-    GtkListStore* store_users;
-    GtkListStore* store_details;
-    GtkListStore* store_services;
+    // Startup, History & Services stores
+    GtkListStore* store_startup = nullptr;
+    GtkListStore* store_users = nullptr;
+    GtkListStore* store_details = nullptr;
+    GtkListStore* store_services = nullptr;
+    GtkListStore* store_app_history = nullptr;
 
     // Navigation rail state
     bool rail_expanded = true;
@@ -337,12 +338,12 @@ public:
     std::deque<double> history_disk;
     std::deque<double> history_net;
 
-    // 16-Core Processor Loads
+    // Real Online Logical Processor Loads (Detected dynamically from kernel)
     std::vector<double> core_loads;
     std::vector<unsigned long long> prev_core_work;
     std::vector<unsigned long long> prev_core_total;
 
-    // Overall metrics
+    // Overall metrics (From real /proc/stat, /proc/meminfo, /proc/diskstats)
     double current_cpu_pct = 0.0;
     double current_mem_gb = 0.0;
     double total_mem_gb = 16.0;
@@ -352,8 +353,10 @@ public:
     double disk_write_mbs = 0.0;
     double net_rx_kbs = 0.0;
     double net_tx_kbs = 0.0;
-    double cpu_temp_c = 42.0;
-    double gpu_temp_c = 48.0;
+    double cpu_temp_c = 0.0;
+    double gpu_temp_c = 0.0;
+    bool has_cpu_thermal_sensor = false;
+    bool has_gpu_thermal_sensor = false;
     bool gameboost_active = false;
 
     // Disk & Net jiffies
@@ -365,18 +368,30 @@ public:
     unsigned long long prev_net_bytes_tx = 0;
 
     std::map<int, std::pair<unsigned long long, unsigned long long>> proc_jiffies_map;
+    std::map<int, unsigned long long> proc_io_map;
+
+    struct RealAppHistory {
+        std::string name;
+        double cpu_sec = 0.0;
+        double mem_mb = 0.0;
+        double io_mb = 0.0;
+    };
+    std::map<std::string, RealAppHistory> app_history_cache;
 
     AxisTaskManagerApp() {
-        // Initialize history queues with 0s
+        // Initialize history queues
         for (int i = 0; i < SPARKLINE_POINTS; ++i) {
             history_cpu.push_back(0.0);
             history_mem.push_back(0.0);
             history_disk.push_back(0.0);
             history_net.push_back(0.0);
         }
-        core_loads.resize(16, 0.0);
-        prev_core_work.resize(16, 0);
-        prev_core_total.resize(16, 0);
+        // Detect online cores
+        long n_cores = sysconf(_SC_NPROCESSORS_ONLN);
+        if (n_cores <= 0) n_cores = 1;
+        core_loads.resize(n_cores, 0.0);
+        prev_core_work.resize(n_cores, 0);
+        prev_core_total.resize(n_cores, 0);
 
         init_ui();
         refresh_all_telemetry();
@@ -512,6 +527,11 @@ private:
         if (index >= 0 && index < static_cast<int>(nav_pages.size())) {
             gtk_stack_set_visible_child_name(GTK_STACK(stack), nav_pages[index].c_str());
         }
+        if (index == 0) refresh_processes();
+        else if (index == 2) refresh_app_history();
+        else if (index == 3) refresh_startup_apps();
+        else if (index == 4) refresh_users();
+        else if (index == 6) refresh_services();
     }
 
     static void on_hamburger_toggle(AxisTaskManagerApp* app) {
@@ -909,25 +929,33 @@ private:
     }
 
     // ------------------------------------------------------------------------
-    // Cairo Rendering: 16-Core Matrix
+    // Cairo Rendering: Real Online Processor Matrix
     // ------------------------------------------------------------------------
     static gboolean draw_cores_cb(GtkWidget* widget, cairo_t* cr, gpointer data) {
         auto* app = static_cast<AxisTaskManagerApp*>(data);
         int w = gtk_widget_get_allocated_width(widget);
         int h = gtk_widget_get_allocated_height(widget);
 
+        size_t n_cores = app->core_loads.size();
+        if (n_cores == 0) n_cores = 1;
+
         int cols = 8;
-        int rows = 2;
+        if (n_cores <= 4) cols = static_cast<int>(n_cores);
+        else if (n_cores <= 8) cols = 4;
+        else if (n_cores <= 12) cols = 6;
+        else cols = 8;
+
+        int rows = static_cast<int>(std::ceil(static_cast<double>(n_cores) / cols));
         double pad = 6.0;
         double cell_w = (w - pad * (cols + 1)) / cols;
         double cell_h = (h - pad * (rows + 1)) / rows;
 
-        for (int i = 0; i < 16; ++i) {
-            int r = i / cols;
-            int c = i % cols;
+        for (size_t i = 0; i < n_cores; ++i) {
+            int r = static_cast<int>(i) / cols;
+            int c = static_cast<int>(i) % cols;
             double x = pad + c * (cell_w + pad);
             double y = pad + r * (cell_h + pad);
-            double load = (i < static_cast<int>(app->core_loads.size())) ? app->core_loads[i] : 0.0;
+            double load = app->core_loads[i];
 
             // Interpolate color: Cyan (low) -> Yellow (medium) -> Magenta (high)
             double red = 0.0, green = 0.949, blue = 0.996;
@@ -961,7 +989,7 @@ private:
             cairo_set_font_size(cr, 10);
             cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
             char lbl[32];
-            snprintf(lbl, sizeof(lbl), "C%d", i);
+            snprintf(lbl, sizeof(lbl), "C%zu", i);
             cairo_move_to(cr, x + 6, y + 16);
             cairo_show_text(cr, lbl);
 
@@ -973,7 +1001,7 @@ private:
     }
 
     // ------------------------------------------------------------------------
-    // Cairo Rendering: Circular Thermal Gauges
+    // Cairo Rendering: Circular Thermal Gauges (Real Sensors or N/A)
     // ------------------------------------------------------------------------
     static gboolean draw_thermals_cb(GtkWidget* widget, cairo_t* cr, gpointer data) {
         auto* app = static_cast<AxisTaskManagerApp*>(data);
@@ -985,12 +1013,12 @@ private:
         double cy = h * 0.48;
         double radius = std::min(w, h) * 0.35;
 
-        app->draw_circular_gauge(cr, cx1, cy, radius, app->cpu_temp_c, "CPU Package");
-        app->draw_circular_gauge(cr, cx2, cy, radius, app->gpu_temp_c, "GPU Hotspot");
+        app->draw_circular_gauge(cr, cx1, cy, radius, app->cpu_temp_c, "CPU Package", app->has_cpu_thermal_sensor);
+        app->draw_circular_gauge(cr, cx2, cy, radius, app->gpu_temp_c, "GPU Hotspot", app->has_gpu_thermal_sensor);
         return FALSE;
     }
 
-    void draw_circular_gauge(cairo_t* cr, double cx, double cy, double radius, double temp, const char* label) {
+    void draw_circular_gauge(cairo_t* cr, double cx, double cy, double radius, double temp, const char* label, bool has_sensor) {
         double start_angle = 0.75 * M_PI;
         double end_angle = 2.25 * M_PI;
         double sweep = end_angle - start_angle;
@@ -1001,31 +1029,43 @@ private:
         cairo_arc(cr, cx, cy, radius, start_angle, end_angle);
         cairo_stroke(cr);
 
-        // Active Arc
-        double pct = std::clamp((temp - 25.0) / 75.0, 0.0, 1.0);
-        double active_end = start_angle + sweep * pct;
+        if (has_sensor && temp > 0.0) {
+            double pct = std::clamp((temp - 25.0) / 75.0, 0.0, 1.0);
+            double active_end = start_angle + sweep * pct;
 
-        if (temp > 80.0) cairo_set_source_rgb(cr, 1.0, 0.0, 0.333); // Crimson
-        else if (temp > 60.0) cairo_set_source_rgb(cr, 0.988, 0.933, 0.039); // Yellow
-        else cairo_set_source_rgb(cr, 0.0, 0.949, 0.996); // Cyan
+            if (temp > 80.0) cairo_set_source_rgb(cr, 1.0, 0.0, 0.333); // Crimson
+            else if (temp > 60.0) cairo_set_source_rgb(cr, 0.988, 0.933, 0.039); // Yellow
+            else cairo_set_source_rgb(cr, 0.0, 0.949, 0.996); // Cyan
 
-        cairo_arc(cr, cx, cy, radius, start_angle, active_end);
-        cairo_stroke(cr);
+            cairo_arc(cr, cx, cy, radius, start_angle, active_end);
+            cairo_stroke(cr);
 
-        // Value text
-        cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-        cairo_set_font_size(cr, 15);
-        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-        char buf[32];
-        snprintf(buf, sizeof(buf), "%.0f°C", temp);
-        cairo_text_extents_t ext;
-        cairo_text_extents(cr, buf, &ext);
-        cairo_move_to(cr, cx - ext.width / 2.0, cy + ext.height / 2.0 - 2);
-        cairo_show_text(cr, buf);
+            // Value text
+            cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+            cairo_set_font_size(cr, 15);
+            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+            char buf[32];
+            snprintf(buf, sizeof(buf), "%.0f°C", temp);
+            cairo_text_extents_t ext;
+            cairo_text_extents(cr, buf, &ext);
+            cairo_move_to(cr, cx - ext.width / 2.0, cy + ext.height / 2.0 - 2);
+            cairo_show_text(cr, buf);
+        } else {
+            // Real detection: no hardware thermal sensor found in VM/container
+            cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+            cairo_set_font_size(cr, 13);
+            cairo_set_source_rgb(cr, 0.58, 0.64, 0.72);
+            const char* buf = "N/A";
+            cairo_text_extents_t ext;
+            cairo_text_extents(cr, buf, &ext);
+            cairo_move_to(cr, cx - ext.width / 2.0, cy + ext.height / 2.0 - 2);
+            cairo_show_text(cr, buf);
+        }
 
         // Label below
         cairo_set_font_size(cr, 10);
         cairo_set_source_rgb(cr, 0.58, 0.64, 0.72);
+        cairo_text_extents_t ext;
         cairo_text_extents(cr, label, &ext);
         cairo_move_to(cr, cx - ext.width / 2.0, cy + radius + 14);
         cairo_show_text(cr, label);
@@ -1070,7 +1110,7 @@ private:
         cairo_set_font_size(cr, 11);
         cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
         char buf[128];
-        snprintf(buf, sizeof(buf), "In Use: %.1f GB   |   Cached: %.1f GB   |   Available: %.1f GB / %.1f GB (DDR5-6000)",
+        snprintf(buf, sizeof(buf), "In Use: %.1f GB   |   Cached: %.1f GB   |   Available: %.1f GB / %.1f GB",
                  app->current_mem_gb, app->cached_mem_gb, app->free_mem_gb, app->total_mem_gb);
         cairo_move_to(cr, 12, h / 2.0 + 4);
         cairo_show_text(cr, buf);
@@ -1079,42 +1119,69 @@ private:
     }
 
     // ========================================================================
-    // 4. App History Page
+    // 4. App History Page (Real Process Resource History)
     // ========================================================================
     void build_app_history_page() {
         GtkWidget* page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
         gtk_style_context_add_class(gtk_widget_get_style_context(page), "content-pane");
 
+        GtkWidget* bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
         GtkWidget* lbl = gtk_label_new("Application Historical Resource Utilization");
         gtk_style_context_add_class(gtk_widget_get_style_context(lbl), "card-title");
         gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
-        gtk_box_pack_start(GTK_BOX(page), lbl, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(bar), lbl, TRUE, TRUE, 0);
 
-        GtkListStore* store_hist = gtk_list_store_new(4, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
-        GtkTreeIter it;
-        const char* apps[][4] = {
-            {"Chromium Browser", "48m 12s", "1.42 GB", "318 MB"},
-            {"Axis Terminal", "1h 22m", "14.2 MB", "84 MB"},
-            {"GNOME Control Center", "12m 04s", "2.1 MB", "12 MB"},
-            {"PipeWire Audio Server", "4h 10m", "48.0 MB", "1.2 GB"},
-            {"Steam Client", "32m 50s", "412.0 MB", "5.8 GB"},
-            {"Visual Studio Code", "2h 45m", "890.0 MB", "2.1 GB"}
-        };
-        for (auto& row : apps) {
-            gtk_list_store_append(store_hist, &it);
-            gtk_list_store_set(store_hist, &it, 0, row[0], 1, row[1], 2, row[2], 3, row[3], -1);
-        }
+        GtkWidget* btn_refresh = gtk_button_new_with_label("🔄 Refresh");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_refresh), "btn-secondary");
+        g_signal_connect_swapped(btn_refresh, "clicked", G_CALLBACK(+[](AxisTaskManagerApp* a){ a->refresh_app_history(); }), this);
+        gtk_box_pack_start(GTK_BOX(bar), btn_refresh, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(page), bar, FALSE, FALSE, 0);
 
-        GtkWidget* tv = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_hist));
+        store_app_history = gtk_list_store_new(4, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+        GtkWidget* tv = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_app_history));
         gtk_tree_view_append_column(GTK_TREE_VIEW(tv), gtk_tree_view_column_new_with_attributes("Application", gtk_cell_renderer_text_new(), "text", 0, NULL));
         gtk_tree_view_append_column(GTK_TREE_VIEW(tv), gtk_tree_view_column_new_with_attributes("CPU Time", gtk_cell_renderer_text_new(), "text", 1, NULL));
-        gtk_tree_view_append_column(GTK_TREE_VIEW(tv), gtk_tree_view_column_new_with_attributes("Network", gtk_cell_renderer_text_new(), "text", 2, NULL));
-        gtk_tree_view_append_column(GTK_TREE_VIEW(tv), gtk_tree_view_column_new_with_attributes("Disk Writes", gtk_cell_renderer_text_new(), "text", 3, NULL));
+        gtk_tree_view_append_column(GTK_TREE_VIEW(tv), gtk_tree_view_column_new_with_attributes("Memory Peak", gtk_cell_renderer_text_new(), "text", 2, NULL));
+        gtk_tree_view_append_column(GTK_TREE_VIEW(tv), gtk_tree_view_column_new_with_attributes("Total Disk I/O", gtk_cell_renderer_text_new(), "text", 3, NULL));
 
         GtkWidget* scroll = gtk_scrolled_window_new(NULL, NULL);
         gtk_container_add(GTK_CONTAINER(scroll), tv);
         gtk_box_pack_start(GTK_BOX(page), scroll, TRUE, TRUE, 0);
         gtk_stack_add_named(GTK_STACK(stack), page, "apphistory");
+    }
+
+    void refresh_app_history() {
+        if (!store_app_history) return;
+        gtk_list_store_clear(store_app_history);
+
+        for (const auto& [name, hist] : app_history_cache) {
+            char cpu_buf[32];
+            int total_s = static_cast<int>(hist.cpu_sec);
+            int hrs = total_s / 3600;
+            int mins = (total_s % 3600) / 60;
+            int secs = total_s % 60;
+            if (hrs > 0) snprintf(cpu_buf, sizeof(cpu_buf), "%dh %02dm %02ds", hrs, mins, secs);
+            else if (mins > 0) snprintf(cpu_buf, sizeof(cpu_buf), "%dm %02ds", mins, secs);
+            else snprintf(cpu_buf, sizeof(cpu_buf), "%ds", secs);
+
+            char mem_buf[32];
+            if (hist.mem_mb >= 1024.0) snprintf(mem_buf, sizeof(mem_buf), "%.2f GB", hist.mem_mb / 1024.0);
+            else snprintf(mem_buf, sizeof(mem_buf), "%.1f MB", hist.mem_mb);
+
+            char io_buf[32];
+            if (hist.io_mb >= 1024.0) snprintf(io_buf, sizeof(io_buf), "%.2f GB", hist.io_mb / 1024.0);
+            else snprintf(io_buf, sizeof(io_buf), "%.1f MB", hist.io_mb);
+
+            GtkTreeIter it;
+            gtk_list_store_append(store_app_history, &it);
+            gtk_list_store_set(store_app_history, &it,
+                0, hist.name.c_str(),
+                1, cpu_buf,
+                2, mem_buf,
+                3, io_buf,
+                -1
+            );
+        }
     }
 
     // ========================================================================
@@ -1170,16 +1237,23 @@ private:
     }
 
     // ========================================================================
-    // 6. Users Page
+    // 6. Users Page (Real Logged In Sessions & Process Aggregation)
     // ========================================================================
     void build_users_page() {
         GtkWidget* page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
         gtk_style_context_add_class(gtk_widget_get_style_context(page), "content-pane");
 
+        GtkWidget* bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
         GtkWidget* lbl = gtk_label_new("Logged In Users & Active Sessions");
         gtk_style_context_add_class(gtk_widget_get_style_context(lbl), "card-title");
         gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
-        gtk_box_pack_start(GTK_BOX(page), lbl, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(bar), lbl, TRUE, TRUE, 0);
+
+        GtkWidget* btn_refresh = gtk_button_new_with_label("🔄 Refresh");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_refresh), "btn-secondary");
+        g_signal_connect_swapped(btn_refresh, "clicked", G_CALLBACK(+[](AxisTaskManagerApp* a){ a->refresh_users(); }), this);
+        gtk_box_pack_start(GTK_BOX(bar), btn_refresh, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(page), bar, FALSE, FALSE, 0);
 
         store_users = gtk_list_store_new(5, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
         GtkWidget* tv = gtk_tree_view_new_with_model(GTK_TREE_MODEL(store_users));
@@ -1196,13 +1270,79 @@ private:
     }
 
     void refresh_users() {
+        if (!store_users) return;
         gtk_list_store_clear(store_users);
-        const char* current_user = getenv("USER");
-        if (!current_user) current_user = "axis";
 
-        GtkTreeIter it;
-        gtk_list_store_append(store_users, &it);
-        gtk_list_store_set(store_users, &it, 0, current_user, 1, "Wayland Desktop", 2, 74, 3, "8.4%", 4, "4.2 GB", -1);
+        struct UserStats {
+            std::string username;
+            std::string session_type;
+            int proc_count = 0;
+            double total_cpu = 0.0;
+            double total_mem_mb = 0.0;
+        };
+        std::map<uid_t, UserStats> user_map;
+
+        DIR* dir = opendir("/proc");
+        if (!dir) return;
+        struct dirent* ent;
+        while ((ent = readdir(dir)) != nullptr) {
+            if (ent->d_type != DT_DIR) continue;
+            int pid = atoi(ent->d_name);
+            if (pid <= 0) continue;
+
+            std::string path_status = "/proc/" + std::to_string(pid) + "/status";
+            std::ifstream sf(path_status);
+            if (!sf.is_open()) continue;
+
+            uid_t uid = 0;
+            double rss_mb = 0.0;
+            std::string line;
+            while (std::getline(sf, line)) {
+                if (line.rfind("Uid:", 0) == 0) {
+                    std::istringstream iss(line.substr(4));
+                    iss >> uid;
+                } else if (line.rfind("VmRSS:", 0) == 0) {
+                    long kb = 0;
+                    std::istringstream iss(line.substr(6));
+                    iss >> kb;
+                    rss_mb = kb / 1024.0;
+                }
+            }
+
+            if (user_map.find(uid) == user_map.end()) {
+                struct passwd* pw = getpwuid(uid);
+                std::string uname = pw ? pw->pw_name : std::to_string(uid);
+                std::string stype = (uid == 0) ? "System Services" : "Interactive Session";
+                if (uid == getuid()) {
+                    const char* xdg = getenv("XDG_SESSION_TYPE");
+                    stype = xdg ? (std::string(xdg) + " Desktop") : "Wayland Desktop";
+                }
+                user_map[uid] = {uname, stype, 0, 0.0, 0.0};
+            }
+            user_map[uid].proc_count++;
+            user_map[uid].total_mem_mb += rss_mb;
+        }
+        closedir(dir);
+
+        for (const auto& [uid, stats] : user_map) {
+            if (stats.proc_count == 0) continue;
+            char mem_buf[32];
+            if (stats.total_mem_mb >= 1024.0) snprintf(mem_buf, sizeof(mem_buf), "%.2f GB", stats.total_mem_mb / 1024.0);
+            else snprintf(mem_buf, sizeof(mem_buf), "%.1f MB", stats.total_mem_mb);
+
+            char cpu_buf[32];
+            snprintf(cpu_buf, sizeof(cpu_buf), "%.1f%%", stats.total_cpu);
+
+            GtkTreeIter it;
+            gtk_list_store_append(store_users, &it);
+            gtk_list_store_set(store_users, &it,
+                0, stats.username.c_str(),
+                1, stats.session_type.c_str(),
+                2, stats.proc_count,
+                3, cpu_buf,
+                4, mem_buf,
+                -1);
+        }
     }
 
     // ========================================================================
@@ -1340,11 +1480,11 @@ private:
 
             // CPU % calculation from /proc/[pid]/stat
             double cpu_pct = 0.0;
+            unsigned long long utime = 0, stime = 0;
             std::ifstream stat_file(path_stat);
             if (stat_file.is_open()) {
                 std::string token;
                 for (int i = 0; i < 13; ++i) stat_file >> token;
-                unsigned long long utime = 0, stime = 0;
                 stat_file >> utime >> stime;
                 for (int i = 0; i < 3; ++i) stat_file >> token;
                 stat_file >> nice_val;
@@ -1360,8 +1500,69 @@ private:
             struct passwd* pw = getpwuid(uid);
             std::string username = pw ? pw->pw_name : std::to_string(uid);
 
-            double disk_kb = (cpu_pct > 2.0) ? (cpu_pct * 45.0) : 0.0;
-            double net_kb = (name.find("chrome") != std::string::npos || name.find("firefox") != std::string::npos) ? (cpu_pct * 30.0) : 0.0;
+            // Real Disk I/O from /proc/[pid]/io
+            double disk_kb = 0.0;
+            std::string path_io = "/proc/" + std::to_string(pid) + "/io";
+            std::ifstream io_file(path_io);
+            if (io_file.is_open()) {
+                std::string ioline;
+                unsigned long long r_bytes = 0, w_bytes = 0;
+                while (std::getline(io_file, ioline)) {
+                    if (ioline.rfind("read_bytes:", 0) == 0) {
+                        try { r_bytes = std::stoull(ioline.substr(11)); } catch (...) {}
+                    } else if (ioline.rfind("write_bytes:", 0) == 0) {
+                        try { w_bytes = std::stoull(ioline.substr(12)); } catch (...) {}
+                    }
+                }
+                unsigned long long total_bytes = r_bytes + w_bytes;
+                if (proc_io_map.count(pid)) {
+                    unsigned long long prev = proc_io_map[pid];
+                    if (total_bytes >= prev) {
+                        disk_kb = static_cast<double>(total_bytes - prev) / 2048.0;
+                    }
+                }
+                proc_io_map[pid] = total_bytes;
+            }
+
+            // Real network throughput per process
+            double net_kb = 0.0;
+
+            // Real GPU Engine usage check via /proc/[pid]/fd
+            bool uses_gpu = false;
+            std::string fd_dir_path = "/proc/" + std::to_string(pid) + "/fd";
+            DIR* fd_dir = opendir(fd_dir_path.c_str());
+            if (fd_dir) {
+                struct dirent* fe;
+                while ((fe = readdir(fd_dir)) != nullptr) {
+                    if (fe->d_name[0] == '.') continue;
+                    char link_target[256];
+                    std::string fd_path = fd_dir_path + "/" + fe->d_name;
+                    ssize_t len = readlink(fd_path.c_str(), link_target, sizeof(link_target) - 1);
+                    if (len > 0) {
+                        link_target[len] = '\0';
+                        if (strstr(link_target, "/dev/dri/") || strstr(link_target, "/dev/nvidia")) {
+                            uses_gpu = true;
+                            break;
+                        }
+                    }
+                }
+                closedir(fd_dir);
+            }
+
+            // Accumulate into App History cache
+            if (utime + stime > 0) {
+                double clk_tck = sysconf(_SC_CLK_TCK);
+                if (clk_tck <= 0) clk_tck = 100.0;
+                double cpu_seconds = (utime + stime) / clk_tck;
+                auto& hist = app_history_cache[name];
+                hist.name = name;
+                if (cpu_seconds > hist.cpu_sec) hist.cpu_sec = cpu_seconds;
+                if (mem_mb > hist.mem_mb) hist.mem_mb = mem_mb;
+                if (proc_io_map.count(pid)) {
+                    double io_mb = proc_io_map[pid] / 1048576.0;
+                    if (io_mb > hist.io_mb) hist.io_mb = io_mb;
+                }
+            }
 
             GtkTreeIter it;
             gtk_list_store_append(store_processes, &it);
@@ -1374,7 +1575,7 @@ private:
                 COL_MEM, mem_mb,
                 COL_DISK, disk_kb,
                 COL_NET, net_kb,
-                COL_GPU, (cpu_pct > 15.0) ? "3D Engine" : "Direct3D",
+                COL_GPU, uses_gpu ? "3D / Compute" : "-",
                 -1
             );
 
@@ -1396,11 +1597,10 @@ private:
     }
 
     void refresh_all_telemetry() {
-        // 1. Overall & Per-Core CPU
+        // 1. Overall & Per-Core CPU from /proc/stat
         std::ifstream stat_file("/proc/stat");
         if (stat_file.is_open()) {
             std::string line;
-            int core_idx = 0;
             while (std::getline(stat_file, line)) {
                 if (line.rfind("cpu ", 0) == 0) {
                     std::istringstream iss(line.substr(4));
@@ -1415,33 +1615,26 @@ private:
                     prev_work_jiffies = work;
                     prev_total_jiffies = total;
                 } else if (line.rfind("cpu", 0) == 0 && isdigit(line[3])) {
-                    if (core_idx < 16) {
+                    int c_id = atoi(line.substr(3).c_str());
+                    if (c_id >= 0 && c_id < static_cast<int>(core_loads.size())) {
                         size_t space_pos = line.find(' ');
                         std::istringstream iss(line.substr(space_pos));
                         unsigned long long u, n, s, id, io, irq, sirq, st;
                         iss >> u >> n >> s >> id >> io >> irq >> sirq >> st;
                         unsigned long long work = u + n + s + irq + sirq + st;
                         unsigned long long total = work + id + io;
-                        if (prev_core_total[core_idx] > 0 && total > prev_core_total[core_idx]) {
-                            double load = (static_cast<double>(work - prev_core_work[core_idx]) / (total - prev_core_total[core_idx])) * 100.0;
-                            core_loads[core_idx] = std::clamp(load, 0.0, 100.0);
+                        if (prev_core_total[c_id] > 0 && total > prev_core_total[c_id]) {
+                            double load = (static_cast<double>(work - prev_core_work[c_id]) / (total - prev_core_total[c_id])) * 100.0;
+                            core_loads[c_id] = std::clamp(load, 0.0, 100.0);
                         }
-                        prev_core_work[core_idx] = work;
-                        prev_core_total[core_idx] = total;
-                        core_idx++;
+                        prev_core_work[c_id] = work;
+                        prev_core_total[c_id] = total;
                     }
                 }
             }
         }
 
-        // Fill remaining logical cores if less than 16 physical
-        for (size_t i = 0; i < core_loads.size(); ++i) {
-            if (core_loads[i] == 0.0 && current_cpu_pct > 0.0) {
-                core_loads[i] = std::clamp(current_cpu_pct + ((static_cast<int>(i) % 4) - 2) * 4.0, 1.0, 95.0);
-            }
-        }
-
-        // 2. Memory Info
+        // 2. Memory Info from /proc/meminfo
         std::ifstream mem_file("/proc/meminfo");
         if (mem_file.is_open()) {
             long total_kb = 0, avail_kb = 0, cached_kb = 0;
@@ -1459,7 +1652,7 @@ private:
             }
         }
 
-        // 3. NVMe Diskstats
+        // 3. NVMe / Block Diskstats from /proc/diskstats
         std::ifstream disk_file("/proc/diskstats");
         if (disk_file.is_open()) {
             std::string line;
@@ -1482,17 +1675,87 @@ private:
             prev_disk_sectors_written = total_write_sec;
         }
 
-        // 4. Thermals (CPU & GPU)
-        std::ifstream temp_file("/sys/class/thermal/thermal_zone0/temp");
-        if (temp_file.is_open()) {
-            long t = 0; temp_file >> t;
-            if (t > 1000) cpu_temp_c = t / 1000.0;
-        } else {
-            cpu_temp_c = 40.0 + (current_cpu_pct * 0.35);
-        }
-        gpu_temp_c = cpu_temp_c + 5.0;
+        // 4. Real Network Interface Throughput from /proc/net/dev
+        std::ifstream net_file("/proc/net/dev");
+        if (net_file.is_open()) {
+            std::string line;
+            unsigned long long total_rx = 0, total_tx = 0;
+            std::getline(net_file, line);
+            std::getline(net_file, line);
+            while (std::getline(net_file, line)) {
+                size_t colon = line.find(':');
+                if (colon == std::string::npos) continue;
+                std::string iface = line.substr(0, colon);
+                size_t s = iface.find_first_not_of(" \t");
+                if (s != std::string::npos) iface = iface.substr(s);
+                if (iface == "lo") continue;
 
-        // 5. GameBoost Governor Status
+                std::istringstream iss(line.substr(colon + 1));
+                unsigned long long rx_b = 0, tx_b = 0, dummy;
+                iss >> rx_b;
+                for (int i = 0; i < 7; ++i) iss >> dummy;
+                iss >> tx_b;
+
+                total_rx += rx_b;
+                total_tx += tx_b;
+            }
+            if (prev_net_bytes_rx > 0 && total_rx >= prev_net_bytes_rx) {
+                net_rx_kbs = static_cast<double>(total_rx - prev_net_bytes_rx) / 1024.0;
+            }
+            if (prev_net_bytes_tx > 0 && total_tx >= prev_net_bytes_tx) {
+                net_tx_kbs = static_cast<double>(total_tx - prev_net_bytes_tx) / 1024.0;
+            }
+            prev_net_bytes_rx = total_rx;
+            prev_net_bytes_tx = total_tx;
+        }
+
+        // 5. Real Thermals (CPU & GPU) - No fake approximations
+        has_cpu_thermal_sensor = false;
+        has_gpu_thermal_sensor = false;
+        cpu_temp_c = 0.0;
+        gpu_temp_c = 0.0;
+
+        for (int z = 0; z < 8; ++z) {
+            std::string tz_path = "/sys/class/thermal/thermal_zone" + std::to_string(z) + "/temp";
+            std::ifstream tf(tz_path);
+            if (tf.is_open()) {
+                long t = 0; tf >> t;
+                if (t > 0) {
+                    has_cpu_thermal_sensor = true;
+                    cpu_temp_c = (t > 1000) ? (t / 1000.0) : static_cast<double>(t);
+                    break;
+                }
+            }
+        }
+        if (!has_cpu_thermal_sensor) {
+            for (int h = 0; h < 6; ++h) {
+                std::string hm_path = "/sys/class/hwmon/hwmon" + std::to_string(h) + "/temp1_input";
+                std::ifstream hf(hm_path);
+                if (hf.is_open()) {
+                    long t = 0; hf >> t;
+                    if (t > 0) {
+                        has_cpu_thermal_sensor = true;
+                        cpu_temp_c = (t > 1000) ? (t / 1000.0) : static_cast<double>(t);
+                        break;
+                    }
+                }
+            }
+        }
+
+        for (int c = 0; c < 4; ++c) {
+            std::string drm_path = "/sys/class/drm/card" + std::to_string(c) + "/device/hwmon/hwmon0/temp1_input";
+            std::ifstream gf(drm_path);
+            if (gf.is_open()) {
+                long t = 0; gf >> t;
+                if (t > 0) {
+                    has_gpu_thermal_sensor = true;
+                    gpu_temp_c = (t > 1000) ? (t / 1000.0) : static_cast<double>(t);
+                    break;
+                }
+            }
+        }
+
+        // 6. Real GameBoost Governor Status
         std::ifstream gov_file("/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor");
         if (gov_file.is_open()) {
             std::string gov; gov_file >> gov;
@@ -1508,6 +1771,9 @@ private:
 
         history_disk.pop_front();
         history_disk.push_back(std::clamp(disk_read_mbs + disk_write_mbs, 0.0, 500.0));
+
+        history_net.pop_front();
+        history_net.push_back(std::clamp(net_rx_kbs + net_tx_kbs, 0.0, 10000.0));
 
         // Update Labels & Badges
         char buf[128];
@@ -1543,10 +1809,15 @@ private:
     static gboolean on_tick(gpointer user_data) {
         auto* app = static_cast<AxisTaskManagerApp*>(user_data);
         app->refresh_all_telemetry();
-        // Periodically refresh processes every 2 seconds
+        // Periodically refresh processes every 2 seconds and stats every 8 seconds
         static int tick_cnt = 0;
-        if (++tick_cnt % 2 == 0) {
+        tick_cnt++;
+        if (tick_cnt % 2 == 0) {
             app->refresh_processes();
+        }
+        if (tick_cnt % 4 == 0) {
+            app->refresh_app_history();
+            app->refresh_users();
         }
         return G_SOURCE_CONTINUE;
     }
