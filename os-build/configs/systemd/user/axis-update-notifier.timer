@@ -1,0 +1,11 @@
+[Unit]
+Description=AxisOS Periodic Remote OTA Update Check Timer
+Documentation=https://github.com/jackyphuti/AxisOS
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
