@@ -21,10 +21,10 @@ mkdir -p "${DEB_DIR}/etc/apt/sources.list.d"
 mkdir -p "${DEB_DIR}/etc/apt/apt.conf.d"
 chmod 755 /tmp/deb-build "${DEB_DIR}" "${DEB_DIR}/DEBIAN"
 
-# Generate control file
-cat << 'EOF' > "${DEB_DIR}/DEBIAN/control"
+# Generate control file with dynamic versioning
+cat << EOF > "${DEB_DIR}/DEBIAN/control"
 Package: axisos-desktop-suite
-Version: 2.1.0
+Version: ${VERSION}
 Section: x11
 Priority: optional
 Architecture: amd64
@@ -34,6 +34,17 @@ Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
  Terminal, Rewind CoW Engine, and Remote OTA Updates with snapshot protection.
 EOF
 chmod 644 "${DEB_DIR}/DEBIAN/control"
+
+# Generate post-installation hook to enable periodic update checking
+cat << 'EOF' > "${DEB_DIR}/DEBIAN/postinst"
+#!/bin/sh
+set -e
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --global enable axis-update-notifier.timer 2>/dev/null || true
+fi
+exit 0
+EOF
+chmod 755 "${DEB_DIR}/DEBIAN/postinst"
 
 # Copy binaries and desktop files
 for app in axis-task-manager axis-terminal axis-installer axis-settings axis-usb-daemon axis-welcome axis-package-installer axis-scheduler-manager nobara-welcome; do
@@ -52,7 +63,7 @@ if [ -f "os-build/apps/axis-settings/axisos-settings-panel" ]; then
     chmod 755 "${DEB_DIR}/usr/local/bin/axisos-settings-panel"
 fi
 
-for s in axis-rewind.sh axis-sysupgrade.sh axis-game-boost.sh axis-neural-pulse.sh axis-usb-vault.sh axis-gaze-shield.sh axis-disk-info.sh axis-biometrics.sh; do
+for s in axis-rewind.sh axis-sysupgrade.sh axis-update-notifier.sh axis-game-boost.sh axis-neural-pulse.sh axis-usb-vault.sh axis-gaze-shield.sh axis-disk-info.sh axis-biometrics.sh; do
     if [ -f "os-build/scripts/$s" ]; then
         out_name="$(echo "$s" | sed 's/\.sh$//')"
         cp -f "os-build/scripts/$s" "${DEB_DIR}/usr/local/bin/$out_name"
@@ -65,6 +76,27 @@ if [ -f "os-build/configs/apt/sources.list.d/axisos.list" ]; then
 fi
 if [ -f "os-build/configs/apt/apt.conf.d/80-axisos-btrfs-snapshot" ]; then
     cp -f os-build/configs/apt/apt.conf.d/80-axisos-btrfs-snapshot "${DEB_DIR}/etc/apt/apt.conf.d/80-axisos-btrfs-snapshot"
+fi
+
+# Deploy Background Update Notifier systemd timer and XDG autostart
+mkdir -p "${DEB_DIR}/etc/systemd/user/timers.target.wants"
+if [ -f "os-build/configs/systemd/user/axis-update-notifier.service" ]; then
+    cp -f "os-build/configs/systemd/user/axis-update-notifier.service" "${DEB_DIR}/etc/systemd/user/axis-update-notifier.service"
+    chmod 644 "${DEB_DIR}/etc/systemd/user/axis-update-notifier.service"
+fi
+if [ -f "os-build/configs/systemd/user/axis-update-notifier.timer" ]; then
+    cp -f "os-build/configs/systemd/user/axis-update-notifier.timer" "${DEB_DIR}/etc/systemd/user/axis-update-notifier.timer"
+    chmod 644 "${DEB_DIR}/etc/systemd/user/axis-update-notifier.timer"
+    ln -sf "/etc/systemd/user/axis-update-notifier.timer" "${DEB_DIR}/etc/systemd/user/timers.target.wants/axis-update-notifier.timer"
+fi
+mkdir -p "${DEB_DIR}/etc/xdg/autostart"
+if [ -f "os-build/configs/autostart/axis-update-notifier.desktop" ]; then
+    cp -f "os-build/configs/autostart/axis-update-notifier.desktop" "${DEB_DIR}/etc/xdg/autostart/axis-update-notifier.desktop"
+    chmod 644 "${DEB_DIR}/etc/xdg/autostart/axis-update-notifier.desktop"
+fi
+if [ -f "os-build/configs/desktop/axis-sysupgrade.desktop" ]; then
+    cp -f "os-build/configs/desktop/axis-sysupgrade.desktop" "${DEB_DIR}/usr/share/applications/axis-sysupgrade.desktop"
+    chmod 644 "${DEB_DIR}/usr/share/applications/axis-sysupgrade.desktop"
 fi
 
 mkdir -p public_apt/apt

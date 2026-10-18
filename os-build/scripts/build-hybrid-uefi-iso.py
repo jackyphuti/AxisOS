@@ -659,11 +659,42 @@ for util_name, script_name in [
     ("axis-usb-vault", "axis-usb-vault.sh"),
     ("axis-gaze-shield", "axis-gaze-shield.sh"),
     ("axis-sysupgrade", "axis-sysupgrade.sh"),
+    ("axis-update-notifier", "axis-update-notifier.sh"),
 ]:
     u_src = os.path.join(workspace_dir, "os-build", "scripts", script_name)
     if os.path.exists(u_src):
         copy_text_lf(u_src, os.path.join(chroot_dir, "usr", "local", "bin", util_name), 0o755)
         print(f"    Deployed AxisOS {util_name} -> /usr/local/bin/{util_name}")
+
+# Deploy Remote OTA Update Notifier systemd timer, XDG autostart, and menu launcher
+notifier_svc = os.path.join(workspace_dir, "os-build", "configs", "systemd", "user", "axis-update-notifier.service")
+notifier_tmr = os.path.join(workspace_dir, "os-build", "configs", "systemd", "user", "axis-update-notifier.timer")
+user_systemd_dir = os.path.join(chroot_dir, "etc", "systemd", "user")
+user_timers_dir = os.path.join(user_systemd_dir, "timers.target.wants")
+os.makedirs(user_timers_dir, exist_ok=True)
+if os.path.exists(notifier_svc):
+    copy_text_lf(notifier_svc, os.path.join(user_systemd_dir, "axis-update-notifier.service"), 0o644)
+if os.path.exists(notifier_tmr):
+    dst_tmr = os.path.join(user_systemd_dir, "axis-update-notifier.timer")
+    copy_text_lf(notifier_tmr, dst_tmr, 0o644)
+    symlink_tmr = os.path.join(user_timers_dir, "axis-update-notifier.timer")
+    if not os.path.exists(symlink_tmr):
+        try:
+            os.symlink("/etc/systemd/user/axis-update-notifier.timer", symlink_tmr)
+        except Exception:
+            shutil.copyfile(dst_tmr, symlink_tmr)
+
+autostart_src = os.path.join(workspace_dir, "os-build", "configs", "autostart", "axis-update-notifier.desktop")
+if os.path.exists(autostart_src):
+    autostart_dst_dir = os.path.join(chroot_dir, "etc", "xdg", "autostart")
+    os.makedirs(autostart_dst_dir, exist_ok=True)
+    copy_text_lf(autostart_src, os.path.join(autostart_dst_dir, "axis-update-notifier.desktop"), 0o644)
+
+sysup_desktop_src = os.path.join(workspace_dir, "os-build", "configs", "desktop", "axis-sysupgrade.desktop")
+if os.path.exists(sysup_desktop_src):
+    copy_text_lf(sysup_desktop_src, os.path.join(apps_menu_dir, "axis-sysupgrade.desktop"), 0o644)
+print("    Deployed Background Remote OTA Update Notifier and System Update desktop entry")
+
 
 # Hide duplicate UXTerm and XTerm menu entries so only AxisOS Terminal appears
 apps_menu_dir = os.path.join(chroot_dir, "usr", "share", "applications")

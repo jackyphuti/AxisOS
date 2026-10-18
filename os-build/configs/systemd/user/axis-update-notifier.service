@@ -1,0 +1,14 @@
+[Unit]
+Description=AxisOS Remote OTA Update Checker
+Documentation=https://github.com/jackyphuti/AxisOS
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/axis-update-notifier
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

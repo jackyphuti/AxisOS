@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=AxisOS System Update
+GenericName=System Updater
+Comment=Upgrade system packages and features over-the-air with snapshot protection
+Exec=sh -c "pkexec /usr/local/bin/axis-sysupgrade; echo ''; echo 'Press Enter to exit...'; read -r"
+Icon=system-software-update
+Terminal=true
+Categories=System;Settings;PackageManager;
+Keywords=update;upgrade;system;packages;patch;
+StartupNotify=true

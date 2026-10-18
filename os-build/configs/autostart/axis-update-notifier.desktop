@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=AxisOS Update Notifier
+Comment=Checks for AxisOS remote updates and alerts the user
+Exec=/usr/local/bin/axis-update-notifier
+Hidden=false
+NoDisplay=true
+X-GNOME-Autostart-enabled=true
+X-GNOME-Autostart-Delay=45
+Terminal=false
+Categories=Utility;

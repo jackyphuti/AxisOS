@@ -37,3 +37,17 @@ apt-get clean || true
 echo "========================================================"
 echo "    AxisOS Remote System Upgrade Completed Successfully! "
 echo "========================================================"
+
+# Reset notification state cache
+rm -f "${XDG_CACHE_HOME:-$HOME/.cache}/axisos/last-update-notified" 2>/dev/null || true
+
+if command -v notify-send >/dev/null 2>&1; then
+    ICON="/usr/share/pixmaps/axisos-logo.png"
+    [ -f "$ICON" ] || ICON="system-software-update"
+    notify-send \
+        --app-name="AxisOS Software" \
+        --icon="$ICON" \
+        --urgency=normal \
+        "AxisOS Upgraded Successfully" \
+        "Your system is now up to date with the latest features and security updates." 2>/dev/null || true
+fi
