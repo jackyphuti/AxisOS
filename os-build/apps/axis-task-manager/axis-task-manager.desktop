@@ -1,10 +1,12 @@
 [Desktop Entry]
 Name=Task Manager
-Comment=Monitor CPU, Memory, Disk, Network, and running system processes
+GenericName=System Resource Monitor & Task Manager
+Comment=Real-time multi-rail sparklines, 16-core matrix, DDR5 telemetry, and heatmapped process manager
 Exec=/usr/local/bin/axis-task-manager
 Icon=utilities-system-monitor
 Terminal=false
 Type=Application
-Categories=System;Monitor;
-Keywords=task;manager;process;kill;cpu;ram;system;monitor;performance;
+Categories=System;Monitor;GTK;
+Keywords=task;manager;process;kill;cpu;ram;system;monitor;performance;hud;telemetry;gameboost;sparklines;cores;ddr5;nvme;
+StartupNotify=true
 X-Cinnamon-Settings-Category=admin
