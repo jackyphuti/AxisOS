@@ -69,8 +69,9 @@ if [ -f "$FIRST_BOOT_FLAG" ] && command -v axis-oobe >/dev/null 2>&1; then
     echo "[AxisOS] First-boot pending: launching Out-of-Box Experience (OOBE)..." >> "$HOME/.axis-session.log"
     STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & axis-oobe"
 else
-    # Define standard AxisOS Liquid Nodes desktop startup suite
-    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & axis-welcome &"
+    # Show the Welcome Center once for each newly installed user.
+    WELCOME_SHOWN_FLAG="$HOME/.config/axisos/welcome-shown"
+    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & if [ ! -f '$WELCOME_SHOWN_FLAG' ]; then mkdir -p '$(dirname "$WELCOME_SHOWN_FLAG")'; touch '$WELCOME_SHOWN_FLAG'; axis-welcome; fi &"
 fi
 
 if [ -x "/usr/local/bin/LiquidNodesOS" ]; then

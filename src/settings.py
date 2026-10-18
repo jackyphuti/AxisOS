@@ -10,6 +10,8 @@ import sys
 import subprocess
 import threading
 import json
+import shutil
+import urllib.error
 import urllib.request
 import gi
 
@@ -82,8 +84,12 @@ headerbar .title {
     margin-bottom: 12px;
 }
 
-.btn-primary {
+button.btn-primary,
+button.btn-primary:hover,
+button.btn-primary:active,
+button.btn-primary:checked {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background-image: none;
     color: #ffffff;
     font-weight: 700;
     border-radius: 6px;
@@ -92,12 +98,17 @@ headerbar .title {
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
 }
 
-.btn-primary:hover {
+button.btn-primary:hover {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: #ffffff;
 }
 
-.btn-secondary {
+button.btn-secondary,
+button.btn-secondary:hover,
+button.btn-secondary:active,
+button.btn-secondary:checked {
     background: #1f2937;
+    background-image: none;
     color: #e2e8f0;
     border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: 6px;
@@ -105,7 +116,7 @@ headerbar .title {
     font-weight: 600;
 }
 
-.btn-secondary:hover {
+button.btn-secondary:hover {
     background: #374151;
     color: #ffffff;
     border-color: #2563eb;
@@ -191,6 +202,7 @@ class AxisSettingsApp(Gtk.Window):
         self.listbox.connect("row-selected", self.on_category_selected)
 
         categories = [
+            ("🩺 System Health", "health"),
             ("🎨 Appearance & Desktop", "appearance"),
             ("⚡ Gaming, Display & Audio", "gaming"),
             ("🔐 Biometrics & Screen Lock", "security"),
@@ -227,6 +239,7 @@ class AxisSettingsApp(Gtk.Window):
         main_box.pack_start(content_container, True, True, 0)
 
         # Build pages
+        self.build_health_page()
         self.build_appearance_page()
         self.build_gaming_hardware_page()
         self.build_security_page()
@@ -247,7 +260,169 @@ class AxisSettingsApp(Gtk.Window):
                 self.stack.set_visible_child_name(lbl.cat_id)
 
     # =========================================================================
-    # 1. Appearance & Desktop Page
+    # 1. System Health Page
+    # =========================================================================
+    def build_health_page(self):
+        page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
+
+        card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        card.get_style_context().add_class("card")
+
+        title = Gtk.Label(label="System Health", xalign=0)
+        title.get_style_context().add_class("card-title")
+        sub = Gtk.Label(
+            label="Quickly check the most important parts of your AxisOS installation.",
+            xalign=0,
+        )
+        sub.get_style_context().add_class("card-subtitle")
+        card.pack_start(title, False, False, 0)
+        card.pack_start(sub, False, False, 0)
+
+        self.lbl_health_summary = Gtk.Label(
+            label="Run a check to see whether your system needs attention.",
+            xalign=0,
+        )
+        card.pack_start(self.lbl_health_summary, False, False, 0)
+
+        self.health_listbox = Gtk.ListBox()
+        self.health_listbox.set_selection_mode(Gtk.SelectionMode.NONE)
+        card.pack_start(self.health_listbox, False, False, 0)
+
+        self.btn_health_check = Gtk.Button(label="🩺 Run Health Check")
+        self.btn_health_check.get_style_context().add_class("btn-primary")
+        self.btn_health_check.connect("clicked", self.on_health_check_clicked)
+        card.pack_start(self.btn_health_check, False, False, 0)
+
+        page.pack_start(card, False, False, 0)
+        self.stack.add_named(page, "health")
+
+    def on_health_check_clicked(self, btn):
+        self.btn_health_check.set_sensitive(False)
+        self.lbl_health_summary.set_text("Checking system health...")
+        for child in self.health_listbox.get_children():
+            self.health_listbox.remove(child)
+        threading.Thread(target=self._run_health_check, daemon=True).start()
+
+    def _run_health_check(self):
+        checks = [
+            self._health_check_storage(),
+            self._health_check_memory(),
+            self._health_check_network(),
+            self._health_check_services(),
+            self._health_check_updates(),
+        ]
+        GLib.idle_add(self._on_health_check_done, checks)
+
+    @staticmethod
+    def _health_check_storage():
+        try:
+            usage = shutil.disk_usage("/")
+            free_percent = (usage.free / usage.total) * 100
+            free_gb = usage.free / (1024 ** 3)
+            if free_percent < 10:
+                return ("⚠", "Storage space", f"{free_gb:.1f} GB available", "warn")
+            return ("✓", "Storage space", f"{free_gb:.1f} GB available", "ok")
+        except OSError as error:
+            return ("!", "Storage space", f"Unable to read disk usage: {error}", "warn")
+
+    @staticmethod
+    def _health_check_memory():
+        try:
+            values = {}
+            with open("/proc/meminfo", "r", encoding="utf-8") as memory_file:
+                for line in memory_file:
+                    key, _, value = line.partition(":")
+                    if key in ("MemTotal", "MemAvailable"):
+                        values[key] = int(value.split()[0])
+            total = values["MemTotal"]
+            available = values["MemAvailable"]
+            available_percent = (available / total) * 100
+            available_gb = available / (1024 ** 2)
+            if available_percent < 10:
+                return ("⚠", "Memory", f"{available_gb:.1f} GB available", "warn")
+            return ("✓", "Memory", f"{available_gb:.1f} GB available", "ok")
+        except (OSError, KeyError, ValueError) as error:
+            return ("!", "Memory", f"Unable to read memory usage: {error}", "warn")
+
+    @staticmethod
+    def _health_check_network():
+        try:
+            with urllib.request.urlopen("https://connectivity-check.ubuntu.com/", timeout=4):
+                return ("✓", "Internet connection", "Connection is available", "ok")
+        except (OSError, urllib.error.URLError):
+            return ("⚠", "Internet connection", "No internet connection detected", "warn")
+
+    @staticmethod
+    def _health_check_services():
+        try:
+            result = subprocess.run(
+                ["systemctl", "--failed", "--no-legend", "--plain"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            failed_services = [line for line in result.stdout.splitlines() if line.strip()]
+            if failed_services:
+                names = ", ".join(line.split()[0] for line in failed_services[:3])
+                extra = f" (+{len(failed_services) - 3} more)" if len(failed_services) > 3 else ""
+                return ("⚠", "System services", f"Failed: {names}{extra}", "warn")
+            return ("✓", "System services", "No failed services", "ok")
+        except (OSError, subprocess.SubprocessError) as error:
+            return ("!", "System services", f"Unable to check services: {error}", "warn")
+
+    @staticmethod
+    def _health_check_updates():
+        try:
+            result = subprocess.run(
+                ["apt-get", "--just-print", "upgrade"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+                check=False,
+            )
+            updates = [
+                line for line in result.stdout.splitlines() if line.startswith("Inst ")
+            ]
+            if updates:
+                return ("⚠", "Software updates", f"{len(updates)} update(s) available", "warn")
+            if result.returncode == 0:
+                return ("✓", "Software updates", "System is up to date", "ok")
+            return ("!", "Software updates", "Unable to check for updates", "warn")
+        except (OSError, subprocess.SubprocessError) as error:
+            return ("!", "Software updates", f"Unable to check updates: {error}", "warn")
+
+    def _on_health_check_done(self, checks):
+        for icon, name, detail, status in checks:
+            row = Gtk.ListBoxRow()
+            row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            indicator = Gtk.Label(label=icon, xalign=0)
+            indicator.get_style_context().add_class(
+                "status-badge-ok" if status == "ok" else "status-badge-warn"
+            )
+            label_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+            name_label = Gtk.Label(label=name, xalign=0)
+            name_label.get_style_context().add_class("card-title")
+            detail_label = Gtk.Label(label=detail, xalign=0)
+            detail_label.get_style_context().add_class("card-subtitle")
+            label_box.pack_start(name_label, False, False, 0)
+            label_box.pack_start(detail_label, False, False, 0)
+            row_box.pack_start(indicator, False, False, 0)
+            row_box.pack_start(label_box, True, True, 0)
+            row.add(row_box)
+            self.health_listbox.add(row)
+
+        warnings = sum(1 for _, _, _, status in checks if status != "ok")
+        summary = "System health looks good." if warnings == 0 else (
+            f"{warnings} item(s) need attention."
+        )
+        self.lbl_health_summary.set_text(summary)
+        self.btn_health_check.set_sensitive(True)
+        self.health_listbox.show_all()
+        return False
+
+    # =========================================================================
+    # 2. Appearance & Desktop Page
     # =========================================================================
     def build_appearance_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
@@ -926,7 +1101,7 @@ class AxisSettingsApp(Gtk.Window):
             ("Open Scheduler Manager", "/usr/local/bin/axis-scheduler-manager &"),
         ]:
             b = Gtk.Button(label=lbl)
-            b.get_style_context().add_class("primary-btn" if "Enable" in lbl else "secondary-btn")
+            b.get_style_context().add_class("btn-primary" if "Enable" in lbl else "btn-secondary")
             b.connect("clicked", lambda _, c=cmd: subprocess.Popen(c, shell=True))
             row_gb.pack_start(b, False, False, 0)
         card_gb.pack_start(row_gb, False, False, 4)
@@ -951,7 +1126,7 @@ class AxisSettingsApp(Gtk.Window):
             ("🌙 Brightness -10%", "brightnessctl -q set 10%-"),
         ]:
             b = Gtk.Button(label=lbl)
-            b.get_style_context().add_class("secondary-btn")
+            b.get_style_context().add_class("btn-secondary")
             b.connect("clicked", lambda _, c=cmd: subprocess.Popen(c, shell=True))
             row_av.pack_start(b, False, False, 0)
         card_av.pack_start(row_av, False, False, 4)
@@ -1014,7 +1189,7 @@ class AxisSettingsApp(Gtk.Window):
             r = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
             for b_lbl, b_cmd in btns:
                 btn = Gtk.Button(label=b_lbl)
-                btn.get_style_context().add_class("secondary-btn")
+                btn.get_style_context().add_class("btn-secondary")
                 btn.connect("clicked", lambda _, c=b_cmd, tl=title_txt: self._run_sig_action(tl, c))
                 r.pack_start(btn, False, False, 0)
             card.pack_start(r, False, False, 4)
