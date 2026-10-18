@@ -77,8 +77,26 @@ case "$ACTION" in
         ls -1dt "${REWIND_ROOT}"/20* 2>/dev/null || true
         ;;
 
+    checkpoint-system)
+        STAMP="$(date +%Y%m%d-%H%M%S)"
+        LABEL="${APP_ID:-pre-upgrade}"
+        # If running on Btrfs root filesystem
+        if command -v btrfs >/dev/null 2>&1 && [ "$(stat -f -c %T / 2>/dev/null)" = "btrfs" ]; then
+            SNAP_DIR="/.snapshots/${LABEL}-${STAMP}"
+            mkdir -p "/.snapshots"
+            if btrfs subvolume snapshot -r / "$SNAP_DIR" 2>/dev/null; then
+                echo "[Axis Rewind] Rootfs Btrfs snapshot created: $SNAP_DIR"
+            fi
+        else
+            SYS_SNAP_DIR="/var/backups/axis-rewind/${LABEL}-${STAMP}"
+            mkdir -p "$SYS_SNAP_DIR"
+            cp -a --reflink=auto /etc "$SYS_SNAP_DIR/etc" 2>/dev/null || cp -a /etc "$SYS_SNAP_DIR/etc" 2>/dev/null || true
+            echo "[Axis Rewind] System configuration checkpoint created: $SYS_SNAP_DIR"
+        fi
+        ;;
+
     *)
-        echo "Usage: $0 {checkpoint|rewind|list} <app-id> [pid]"
+        echo "Usage: $0 {checkpoint|rewind|list|checkpoint-system} <app-id> [pid]"
         exit 1
         ;;
 esac

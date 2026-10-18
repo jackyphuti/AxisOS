@@ -1,0 +1,2 @@
+// AxisOS Atomic OTA Protection: Create Btrfs/Reflink snapshot before upgrades
+DPkg::Pre-Invoke { "if [ -x /usr/local/bin/axis-rewind ]; then /usr/local/bin/axis-rewind checkpoint-system apt-pre-upgrade 2>/dev/null || true; elif [ -x /usr/bin/axis-rewind ]; then /usr/bin/axis-rewind checkpoint-system apt-pre-upgrade 2>/dev/null || true; fi"; };

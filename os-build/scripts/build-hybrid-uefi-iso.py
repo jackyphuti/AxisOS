@@ -163,12 +163,13 @@ if os.path.exists(game_boost_svc_src):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(game_boost_svc_src, dst)
 
-# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield)
+# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield, OTA Sysupgrade)
 for util_name, script_name in [
     ("axis-rewind", "axis-rewind.sh"),
     ("axis-neural-pulse", "axis-neural-pulse.sh"),
     ("axis-usb-vault", "axis-usb-vault.sh"),
     ("axis-gaze-shield", "axis-gaze-shield.sh"),
+    ("axis-sysupgrade", "axis-sysupgrade.sh"),
 ]:
     u_src = os.path.join(workspace_dir, "os-build", "scripts", script_name)
     if os.path.exists(u_src):
@@ -597,6 +598,21 @@ if os.path.exists(xanmod_list):
     copy_text_lf(xanmod_list, dst_list, 0o644)
     print("    Deployed XanMod Kernel Apt Repository")
 
+# Deploy Official AxisOS OTA Apt Repository & Snapshot Hook
+axis_list = os.path.join(workspace_dir, "os-build", "configs", "apt", "sources.list.d", "axisos.list")
+if os.path.exists(axis_list):
+    dst_list = os.path.join(chroot_dir, "etc", "apt", "sources.list.d", "axisos.list")
+    os.makedirs(os.path.dirname(dst_list), exist_ok=True)
+    copy_text_lf(axis_list, dst_list, 0o644)
+    print("    Deployed AxisOS OTA Apt Repository -> /etc/apt/sources.list.d/axisos.list")
+
+snap_hook = os.path.join(workspace_dir, "os-build", "configs", "apt", "apt.conf.d", "80-axisos-btrfs-snapshot")
+if os.path.exists(snap_hook):
+    dst_hook = os.path.join(chroot_dir, "etc", "apt", "apt.conf.d", "80-axisos-btrfs-snapshot")
+    os.makedirs(os.path.dirname(dst_hook), exist_ok=True)
+    copy_text_lf(snap_hook, dst_hook, 0o644)
+    print("    Deployed AxisOS Btrfs Snapshot Pre-Upgrade Hook -> /etc/apt/apt.conf.d/80-axisos-btrfs-snapshot")
+
 # Deploy Session Launcher
 kiosk_sh = os.path.join(workspace_dir, "os-build", "configs", "cage-session", "axisos-kiosk.sh")
 if os.path.exists(kiosk_sh):
@@ -636,12 +652,13 @@ if os.path.exists(game_boost_svc):
     shutil.copyfile(game_boost_svc, game_boost_svc_dst)
     print("    Deployed AxisOS Game Boost Service -> /etc/systemd/system/axis-game-boost.service")
 
-# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield)
+# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield, OTA Sysupgrade)
 for util_name, script_name in [
     ("axis-rewind", "axis-rewind.sh"),
     ("axis-neural-pulse", "axis-neural-pulse.sh"),
     ("axis-usb-vault", "axis-usb-vault.sh"),
     ("axis-gaze-shield", "axis-gaze-shield.sh"),
+    ("axis-sysupgrade", "axis-sysupgrade.sh"),
 ]:
     u_src = os.path.join(workspace_dir, "os-build", "scripts", script_name)
     if os.path.exists(u_src):

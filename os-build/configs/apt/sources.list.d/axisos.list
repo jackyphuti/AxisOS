@@ -1,0 +1,3 @@
+# AxisOS Official Remote OTA Updates Repository
+# Hosted via GitHub Pages with atomic rollback protection
+deb [trusted=yes] https://jackyphuti.github.io/AxisOS/apt/ ./
