@@ -47,10 +47,10 @@ We invite the community to test this release across diverse hardware, laptops, a
 ### Verification Checksums
 
 - **File**: `axisos-v2.1-live-amd64.iso`
-- **Size**: `2,043,674,624` bytes (1.95 GB)
+- **Size**: `2,056,257,536` bytes (1.91 GB)
 - **SHA-256 Checksum**:
   ```
-  7f6fec2bd2d033097064120e55bd730165b432ced3fbaaf2fe4515e807cb89ef
+  37c429c20d8d57a67052e9bc7934ff81638342db751cc65eb03ec8cd8013cb07
   ```
 
 ---
