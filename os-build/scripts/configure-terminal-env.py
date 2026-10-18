@@ -147,16 +147,13 @@ def main():
         except Exception:
             shutil.copyfile(os.path.join(CHROOT, "usr", "local", "bin", "axis-terminal"), target_axis_bin)
 
-    # 8. Hide duplicate UXTerm / XTerm and duplicate stock Settings launchers from app menu
+    # 8. Hide duplicate UXTerm / XTerm launchers from app menu
     apps_dir_chroot = os.path.join(CHROOT, "usr", "share", "applications")
     for dup_desktop in [
         "debian-xterm.desktop",
         "debian-uxterm.desktop",
         "xterm.desktop",
         "uxterm.desktop",
-        "org.gnome.Settings.desktop",
-        "gnome-control-center.desktop",
-        "cinnamon-settings.desktop",
     ]:
         p_desk = os.path.join(apps_dir_chroot, dup_desktop)
         if os.path.exists(p_desk):

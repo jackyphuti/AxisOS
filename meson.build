@@ -90,6 +90,15 @@ configure_file(
 )
 
 configure_file(
+  input: 'data/bin/axisos-settings-panel.in',
+  output: 'axisos-settings-panel',
+  configuration: {'AXIS_DIR': axis_lib_dir},
+  install: true,
+  install_dir: bindir,
+  install_mode: 'rwxr-xr-x'
+)
+
+configure_file(
   input: 'data/bin/axis-installer.in',
   output: 'axis-installer',
   configuration: {'AXIS_DIR': axis_lib_dir},

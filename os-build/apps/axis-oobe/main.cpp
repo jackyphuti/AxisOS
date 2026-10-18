@@ -239,7 +239,7 @@ private:
     }
 
     static void on_open_settings_cb(AxisOobeApp*) {
-        system("axis-settings &");
+        system("gnome-control-center &");
     }
 
     static void on_check_net_cb(AxisOobeApp* app) {

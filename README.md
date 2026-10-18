@@ -50,7 +50,7 @@
 AxisOS features zero web-wrapper / Electron overhead. All core utilities are built from scratch with native C++17/20 and Qt 6:
 
 - **Files (`axis-files`)**: Asynchronous multi-threaded file manager with high-speed thumbnailing, MIME integration, and archive management.
-- **Settings (`axis-settings`)**: Native control panel communicating with `systemd`, `NetworkManager`, `BlueZ`, and `UPower` via `QtDBus`. Features the integrated **GameBoost Extreme Performance Engine** with real-time CPU & GPU overclocking, power unthrottling, and low-latency kernel tuning.
+- **Settings (`gnome-control-center`)**: Unified default GNOME & Debian Control Center pinned to the taskbar, seamlessly integrating all custom AxisOS features (System Health, GameBoost Performance Engine, Biometrics & IR Iris, and AxisOS Signature Features) directly into the native settings experience.
 - **GameBoost (`axis-game-boost`)**: Dedicated hardware acceleration daemon and CLI utility optimizing CPU governors, NVIDIA PowerMizer / AMD DPM, memory maps, and `gamemoded`.
 - **Terminal (`axis-terminal`)**: Ultra-low-latency PTY terminal emulator powered by `libvterm` and OpenGL/SceneGraph rendering.
 - **Installer (`axis-installer`)**: High-reliability graphical system installer supporting automated Btrfs/EXT4 disk partitioning, user creation, dynamic device node polling, and GRUB EFI setup. Automatically suppresses itself upon disk installation.

@@ -1,8 +1,15 @@
 #!/usr/bin/env python3
 """
-AxisOS System Settings & Appearance Manager
-Native GTK 3 Control Panel for Desktop Tuning, Appearance Presets,
-Graphical Software Updates, Wi-Fi Captive Portal, Location, and Security.
+AxisOS Settings Panel — Custom feature panels for GNOME Control Center.
+
+Provides AxisOS-specific panels (System Health, Gaming Boost, Biometrics,
+Signature Features, Appearance, Updates) that complement the default GNOME
+Settings (gnome-control-center). Launched via Desktop Actions on
+org.gnome.Settings.desktop or directly with:
+
+    axisos-settings-panel [health|appearance|gaming|security|signature|updates|network|datetime|about]
+
+If called with no arguments, opens the full multi-panel window.
 """
 
 import os
@@ -184,8 +191,8 @@ class AxisSettingsApp(Gtk.Window):
     def init_headerbar(self):
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
-        hb.props.title = "AxisOS Settings"
-        hb.props.subtitle = "Desktop, Updates, Network & Security"
+        hb.props.title = "AxisOS Features"
+        hb.props.subtitle = "Health, Gaming, Biometrics & Signature Features"
         self.set_titlebar(hb)
 
     def init_ui(self):
@@ -1262,9 +1269,48 @@ class AxisSettingsApp(Gtk.Window):
 
 
 def main():
+    # Support launching a specific panel via CLI argument:
+    #   axisos-settings-panel health
+    #   axisos-settings-panel gaming
+    #   axisos-settings-panel security
+    #   etc.
+    panel = None
+    if len(sys.argv) > 1:
+        panel = sys.argv[1].lower().strip()
+
     app = AxisSettingsApp()
     app.connect("destroy", Gtk.main_quit)
     app.show_all()
+
+    # If a specific panel was requested, switch to it immediately
+    if panel:
+        valid_panels = [
+            "health", "appearance", "gaming", "security",
+            "signature", "updates", "network", "datetime", "about",
+        ]
+        if panel in valid_panels:
+            app.stack.set_visible_child_name(panel)
+            # Also select the matching sidebar row
+            for i, (_, cat_id) in enumerate([
+                ("🩺 System Health", "health"),
+                ("🎨 Appearance & Desktop", "appearance"),
+                ("⚡ Gaming, Display & Audio", "gaming"),
+                ("🔐 Biometrics & Screen Lock", "security"),
+                ("✨ Signature Features", "signature"),
+                ("🔄 Software & Updates", "updates"),
+                ("📶 Wi-Fi & Network", "network"),
+                ("🌍 Date, Time & Location", "datetime"),
+                ("ℹ️ About AxisOS", "about"),
+            ]):
+                if cat_id == panel:
+                    row = app.listbox.get_row_at_index(i)
+                    if row:
+                        app.listbox.select_row(row)
+                    break
+        else:
+            print(f"Unknown panel: {panel}", file=sys.stderr)
+            print(f"Valid panels: {', '.join(valid_panels)}", file=sys.stderr)
+
     Gtk.main()
 
 

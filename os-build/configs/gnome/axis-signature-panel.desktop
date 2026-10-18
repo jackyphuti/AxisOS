@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=AxisOS Signature Features
+Comment=Configure Liquid Nodes piping, Axis Rewind CoW checkpoints, NeuralPulse focus telemetry, Gaze Shield, and USB Vault
+Exec=/usr/local/bin/axisos-settings-panel signature
+Icon=emblem-system
+Terminal=false
+Type=Application
+NoDisplay=true
+Categories=GNOME;GTK;Settings;X-GNOME-Settings-Panel;X-GNOME-SystemSettings;
+OnlyShowIn=GNOME;
+Keywords=Liquid Nodes;Rewind;NeuralPulse;Gaze;Privacy;USB Vault;Signature;Time Travel;

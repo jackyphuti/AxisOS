@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Gaming Boost & Hardware
+Comment=Configure CPU performance governors, low-latency scheduling, and audio/display
+Exec=/usr/local/bin/axisos-settings-panel gaming
+Icon=input-gaming
+Terminal=false
+Type=Application
+NoDisplay=true
+Categories=GNOME;GTK;Settings;X-GNOME-Settings-Panel;HardwareSettings;
+OnlyShowIn=GNOME;
+Keywords=Gaming;GameMode;Boost;Governor;Performance;Latency;Scheduler;Audio;Volume;Brightness;

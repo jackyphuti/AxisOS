@@ -648,16 +648,13 @@ for util_name, script_name in [
         copy_text_lf(u_src, os.path.join(chroot_dir, "usr", "local", "bin", util_name), 0o755)
         print(f"    Deployed AxisOS {util_name} -> /usr/local/bin/{util_name}")
 
-# Hide duplicate UXTerm, XTerm, and stock GNOME/Cinnamon Settings menu entries so only AxisOS Terminal & AxisOS Settings appear
+# Hide duplicate UXTerm and XTerm menu entries so only AxisOS Terminal appears
 apps_menu_dir = os.path.join(chroot_dir, "usr", "share", "applications")
 for dup_d in [
     "debian-xterm.desktop",
     "debian-uxterm.desktop",
     "xterm.desktop",
     "uxterm.desktop",
-    "org.gnome.Settings.desktop",
-    "gnome-control-center.desktop",
-    "cinnamon-settings.desktop",
 ]:
     dup_p = os.path.join(apps_menu_dir, dup_d)
     if os.path.exists(dup_p):
@@ -669,6 +666,32 @@ for dup_d in [
                 write_text_lf(dup_p, d_content, 0o644)
         except Exception:
             pass
+
+# Deploy AxisOS-branded org.gnome.Settings.desktop override (adds Desktop Actions for AxisOS panels)
+gnome_settings_override = os.path.join(workspace_dir, "os-build", "configs", "gnome", "org.gnome.Settings.desktop")
+if os.path.exists(gnome_settings_override):
+    dst_settings = os.path.join(apps_menu_dir, "org.gnome.Settings.desktop")
+    copy_text_lf(gnome_settings_override, dst_settings, 0o644)
+    print("    Deployed org.gnome.Settings.desktop override with AxisOS panel Actions")
+
+# Deploy GNOME Settings panel search integration files
+for p_desk in [
+    "axis-health-panel.desktop",
+    "axis-gaming-panel.desktop",
+    "axis-biometrics-panel.desktop",
+    "axis-signature-panel.desktop",
+]:
+    p_src = os.path.join(workspace_dir, "os-build", "configs", "gnome", p_desk)
+    if os.path.exists(p_src):
+        copy_text_lf(p_src, os.path.join(apps_menu_dir, p_desk), 0o644)
+        print(f"    Deployed GNOME Settings panel search entry: {p_desk}")
+
+# Deploy axisos-settings-panel helper (replaces standalone axis-settings)
+panel_src = os.path.join(apps_dir, "axis-settings", "axis-settings.py")
+if os.path.exists(panel_src):
+    panel_dst = os.path.join(chroot_dir, "usr", "local", "bin", "axisos-settings-panel")
+    copy_binary_or_text(panel_src, panel_dst, 0o755)
+    print("    Deployed /usr/local/bin/axisos-settings-panel")
 
 # Deploy Captive Portal & Auto-Timezone services
 captive_sh = os.path.join(workspace_dir, "os-build", "scripts", "axis-captive-portal.sh")

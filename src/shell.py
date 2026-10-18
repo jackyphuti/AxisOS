@@ -75,7 +75,7 @@ APPLICATIONS = [
         "icon": "preferences-system-symbolic",
         "category": "Preferences",
         "desc": "Configure system, appearance, and hardware",
-        "exec": "axis-settings"
+        "exec": "gnome-control-center"
     },
     {
         "id": "installer",

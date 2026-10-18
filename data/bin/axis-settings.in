@@ -1,2 +1,7 @@
 #!/bin/sh
-exec python3 @AXIS_DIR@/settings.py "$@"
+# AxisOS Settings wrapper — delegates default execution to gnome-control-center
+if [ $# -eq 0 ]; then
+    exec gnome-control-center "$@"
+else
+    exec python3 @AXIS_DIR@/settings.py "$@"
+fi
