@@ -15,6 +15,7 @@
 
   <p>
     <a href="./INSTALLATION_GUIDE.md"><b>📖 Installation Guide</b></a> •
+    <a href="./INSTALLER_TROUBLESHOOTING.md"><b>🔧 Installer Troubleshooting</b></a> •
     <a href="./DEVELOPMENT.md"><b>🛠️ Developer Guide</b></a> •
     <a href="https://github.com/jackyphuti/AxisOS/releases"><b>⬇️ Download ISO</b></a> •
     <a href="https://github.com/jackyphuti/AxisOS/issues"><b>🐛 Report Issue</b></a>
@@ -64,8 +65,9 @@ AxisOS features zero web-wrapper / Electron overhead. All core utilities are bui
 ## 🔗 Quick Links & Documentation
 
 - **[Installation Guide](INSTALLATION_GUIDE.md)** — Step-by-step flashing, BIOS/UEFI setup, and drive partitioning guide.
+- **[Installer Troubleshooting Guide](INSTALLER_TROUBLESHOOTING.md)** — Live session credentials (`axis` / `axis`), partition wiping (`wipefs`/`sgdisk`), and installer error diagnosis.
 - **[Developer & Build Guide](DEVELOPMENT.md)** — Compiling native C++ applications, chroot setup, and generating bootable ISOs.
-- **[Releases & ISO Downloads](https://github.com/jackyphuti/AxisOS/releases)** — Download the latest bootable live ISO (`axisos-v2.0-live-amd64.iso`).
+- **[Releases & ISO Downloads](https://github.com/jackyphuti/AxisOS/releases)** — Download the latest bootable live ISO (`axisos-v2.1-live-amd64.iso`).
 - **[Issue Tracker](https://github.com/jackyphuti/AxisOS/issues)** — Bug reports, feature requests, and system discussions.
 
 ---

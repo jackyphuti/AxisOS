@@ -139,9 +139,14 @@ Once installed into your drive, take advantage of built-in hardware acceleration
 
 ## 7. Troubleshooting FAQ
 
+> [!NOTE]
+> For in-depth partition wiping commands, live session passwords (`axis` / `axis`), and installer error log analysis, see the dedicated **[Installer & Partitioning Troubleshooting Guide](INSTALLER_TROUBLESHOOTING.md)**.
+
 - **Q: "Selected boot device failed" / "Security Boot Violation"**:
   - *Fix*: Enable "Allow Microsoft 3rd Party UEFI CA" in BIOS Secure Boot options, or temporarily disable Secure Boot.
 - **Q: Screen is blank / black on boot**:
-  - *Fix*: Select option **3. AxisOS 2.0 (Safe Graphics)** from the GRUB boot menu.
+  - *Fix*: Select option **3. AxisOS 2.1 (Safe Graphics Mode)** from the GRUB boot menu.
 - **Q: Can I test AxisOS without wiping my Windows drive?**:
   - *Answer*: Yes! Boot in Live Mode from the USB. Everything runs entirely in RAM, leaving internal hard drives and partitions 100% untouched.
+- **Q: Installer fails during partition or drive formatting**:
+  - *Fix*: Consult **[INSTALLER_TROUBLESHOOTING.md](INSTALLER_TROUBLESHOOTING.md)** for instructions on using `wipefs` and `sgdisk` to clean target drives before running `axis-installer`.
