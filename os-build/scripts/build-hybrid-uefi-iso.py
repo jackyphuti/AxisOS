@@ -720,6 +720,7 @@ if os.path.exists(autostart_src):
     os.makedirs(autostart_dst_dir, exist_ok=True)
     copy_text_lf(autostart_src, os.path.join(autostart_dst_dir, "axis-update-notifier.desktop"), 0o644)
 
+apps_menu_dir = os.path.join(chroot_dir, "usr", "share", "applications")
 sysup_desktop_src = os.path.join(workspace_dir, "os-build", "configs", "desktop", "axis-sysupgrade.desktop")
 if os.path.exists(sysup_desktop_src):
     copy_text_lf(sysup_desktop_src, os.path.join(apps_menu_dir, "axis-sysupgrade.desktop"), 0o644)
@@ -727,7 +728,6 @@ print("    Deployed Background Remote OTA Update Notifier and System Update desk
 
 
 # Hide duplicate UXTerm and XTerm menu entries so only AxisOS Terminal appears
-apps_menu_dir = os.path.join(chroot_dir, "usr", "share", "applications")
 for dup_d in [
     "debian-xterm.desktop",
     "debian-uxterm.desktop",
@@ -878,7 +878,7 @@ PROMPT 0
 TIMEOUT 50
 DEFAULT live
 
-MENU TITLE AxisOS 2.0 (GNOME Desktop Edition)
+MENU TITLE AxisOS 2.1 (GNOME Desktop Edition)
 MENU COLOR border       30;44   #40ffffff #a0000000 std
 MENU COLOR title        1;36;44 #902563eb #a0000000 std
 MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
@@ -886,18 +886,18 @@ MENU COLOR unsel        37;44   #50ffffff #a0000000 std
 MENU COLOR help         37;40   #c0ffffff #a0000000 std
 
 LABEL live
-  MENU LABEL ^1. Try AxisOS 2.0 (GNOME Desktop)
+  MENU LABEL ^1. Try AxisOS 2.1 (GNOME Desktop)
   MENU DEFAULT
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
 
 LABEL install
-  MENU LABEL ^2. Install AxisOS 2.0 (Direct Setup Wizard)
+  MENU LABEL ^2. Install AxisOS 2.1 (Direct Setup Wizard)
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 axisos.autoinstall=1 amdgpu.freesync_video=1
 
 LABEL failsafe
-  MENU LABEL ^3. AxisOS 2.0 (Safe Graphics Mode)
+  MENU LABEL ^3. AxisOS 2.1 (Safe Graphics Mode)
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC nomodeset quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3
 """)
@@ -965,17 +965,17 @@ if [ -f /boot/grub/splash.png ]; then
     background_image /boot/grub/splash.png
 fi
 
-menuentry "Try AxisOS 2.0 (GNOME Desktop)" --class axisos --class gnu-linux --class gnu {
+menuentry "Try AxisOS 2.1 (GNOME Desktop)" --class axisos --class gnu-linux --class gnu {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }
 
-menuentry "Install AxisOS 2.0 (Direct Setup Wizard)" --class axisos {
+menuentry "Install AxisOS 2.1 (Direct Setup Wizard)" --class axisos {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 axisos.autoinstall=1 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }
 
-menuentry "AxisOS 2.0 (Safe Graphics Mode - nomodeset)" --class axisos {
+menuentry "AxisOS 2.1 (Safe Graphics Mode - nomodeset)" --class axisos {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev live-config.locales=en_US.UTF-8 live-config.timezone=UTC nomodeset quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3
     initrd /live/initrd.img
 }
@@ -1007,7 +1007,7 @@ subprocess.run(
 
 # Step 7: Create Dual UEFI + BIOS Hybrid ISO via xorriso
 print("--> 7. Assembling Dual-Boot UEFI + Legacy BIOS Hybrid ISO with xorriso")
-output_iso = f"{build_dir}/axisos-v2.0-live-amd64.iso"
+output_iso = f"{build_dir}/axisos-v2.1-live-amd64.iso"
 if os.path.exists(output_iso):
     os.remove(output_iso)
 
@@ -1015,7 +1015,7 @@ mbr_template = "/usr/lib/ISOLINUX/isohdpfx.bin"
 
 xorriso_cmd = [
     "xorriso", "-as", "mkisofs",
-    "-r", "-V", "AXISOS_V2",
+    "-r", "-V", "AXISOS_2_1",
     "-J", "-joliet-long",
     "-b", "isolinux/isolinux.bin",
     "-c", "isolinux/boot.cat",
@@ -1036,9 +1036,11 @@ print("--> 8. Applying isohybrid UEFI partition flags")
 subprocess.run(["isohybrid", "--uefi", output_iso], check=False)
 
 # Copy to Windows workspace
-dest = f"{workspace_dir}/axisos-v2.0-live-amd64.iso"
+dest = f"{workspace_dir}/axisos-v2.1-live-amd64.iso"
+dest_compat = f"{workspace_dir}/axisos-v2.0-live-amd64.iso"
 print(f"--> 9. Copying ISO to Windows workspace ({dest})")
 shutil.copyfile(output_iso, dest)
+shutil.copyfile(output_iso, dest_compat)
 
 iso_size_mb = os.path.getsize(dest) / (1024 * 1024)
 print("==================================================")
