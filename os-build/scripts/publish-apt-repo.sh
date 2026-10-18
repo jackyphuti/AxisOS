@@ -142,6 +142,11 @@ else
     done
 fi
 gzip -k -f Packages
+
+# Generate translation indices to prevent APT 404 lookup warnings
+touch Translation-en
+gzip -k -f Translation-en
+
 cat << EOF > Release
 Origin: AxisOS
 Label: AxisOS Official Repository
@@ -151,6 +156,21 @@ Architectures: amd64
 Components: main
 Description: AxisOS Remote OTA Updates Repository
 Date: $(date -Ru)
+MD5Sum:
+ $(md5sum Packages | awk '{print $1}') $(stat -c %s Packages) Packages
+ $(md5sum Packages.gz | awk '{print $1}') $(stat -c %s Packages.gz) Packages.gz
+ $(md5sum Translation-en | awk '{print $1}') $(stat -c %s Translation-en) Translation-en
+ $(md5sum Translation-en.gz | awk '{print $1}') $(stat -c %s Translation-en.gz) Translation-en.gz
+SHA1:
+ $(sha1sum Packages | awk '{print $1}') $(stat -c %s Packages) Packages
+ $(sha1sum Packages.gz | awk '{print $1}') $(stat -c %s Packages.gz) Packages.gz
+ $(sha1sum Translation-en | awk '{print $1}') $(stat -c %s Translation-en) Translation-en
+ $(sha1sum Translation-en.gz | awk '{print $1}') $(stat -c %s Translation-en.gz) Translation-en.gz
+SHA256:
+ $(sha256sum Packages | awk '{print $1}') $(stat -c %s Packages) Packages
+ $(sha256sum Packages.gz | awk '{print $1}') $(stat -c %s Packages.gz) Packages.gz
+ $(sha256sum Translation-en | awk '{print $1}') $(stat -c %s Translation-en) Translation-en
+ $(sha256sum Translation-en.gz | awk '{print $1}') $(stat -c %s Translation-en.gz) Translation-en.gz
 EOF
 
 echo "=== APT Repository Artifacts Generated Successfully ==="
