@@ -363,12 +363,42 @@ if os.path.exists(wayland_configs):
                 d_file = os.path.join(dst_dir, item)
                 if os.path.isfile(s_file):
                     copy_text_lf(s_file, d_file)
-    bg_src = os.path.join(wayland_configs, "backgrounds", "nobara-gaming.png")
-    if os.path.exists(bg_src):
-        dst_bg_dir = os.path.join(chroot_dir, "usr", "share", "backgrounds")
-        os.makedirs(dst_bg_dir, exist_ok=True)
+    # Deploy official AxisOS wallpaper collection & GNOME background properties
+    wallpapers_src_dir = os.path.join(workspace_dir, "data", "wallpapers")
+    wallpapers_dst_dir = os.path.join(chroot_dir, "usr", "share", "backgrounds", "axisos")
+    os.makedirs(wallpapers_dst_dir, exist_ok=True)
+    if os.path.exists(wallpapers_src_dir):
+        for wp in os.listdir(wallpapers_src_dir):
+            if wp.endswith(".jpg") or wp.endswith(".png"):
+                copy_binary_or_text(os.path.join(wallpapers_src_dir, wp), os.path.join(wallpapers_dst_dir, wp), 0o644)
+        print("    Deployed official AxisOS 20-wallpaper collection -> /usr/share/backgrounds/axisos/")
+
+    dst_bg_dir = os.path.join(chroot_dir, "usr", "share", "backgrounds")
+    os.makedirs(dst_bg_dir, exist_ok=True)
+    primary_wp = os.path.join(wallpapers_dst_dir, "01-axisos-signature-core.jpg")
+    if os.path.exists(primary_wp):
+        shutil.copyfile(primary_wp, os.path.join(dst_bg_dir, "nobara-gaming.png"))
+        shutil.copyfile(primary_wp, os.path.join(dst_bg_dir, "axis-wallpaper.png"))
+    elif os.path.exists(bg_src):
         shutil.copyfile(bg_src, os.path.join(dst_bg_dir, "nobara-gaming.png"))
         shutil.copyfile(bg_src, os.path.join(dst_bg_dir, "axis-wallpaper.png"))
+
+    gnome_bg_props = os.path.join(chroot_dir, "usr", "share", "gnome-background-properties")
+    os.makedirs(gnome_bg_props, exist_ok=True)
+    xml_src = os.path.join(workspace_dir, "os-build", "configs", "gnome", "axisos-wallpapers.xml")
+    if os.path.exists(xml_src):
+        copy_text_lf(xml_src, os.path.join(gnome_bg_props, "axisos-wallpapers.xml"), 0o644)
+
+    # Disable non-AxisOS wallpaper XMLs from GNOME Settings
+    stock_disabled = os.path.join(gnome_bg_props, "stock-disabled")
+    os.makedirs(stock_disabled, exist_ok=True)
+    for f in os.listdir(gnome_bg_props):
+        if f.endswith(".xml") and f != "axisos-wallpapers.xml":
+            try:
+                shutil.move(os.path.join(gnome_bg_props, f), os.path.join(stock_disabled, f))
+            except Exception:
+                pass
+    print("    Configured GNOME background properties and isolated only AxisOS wallpapers for Settings")
 
 # Deploy Nobara-Axis Wayland Session
 nobara_sess_dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "nobara-axis.desktop")

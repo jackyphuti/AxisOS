@@ -13,15 +13,15 @@ document-font-name='Cantarell 11'
 monospace-font-name='JetBrains Mono 10'
 
 [org/gnome/desktop/background]
-picture-uri='file:///usr/share/backgrounds/axis-wallpaper.png'
-picture-uri-dark='file:///usr/share/backgrounds/axis-wallpaper.png'
+picture-uri='file:///usr/share/backgrounds/axisos/01-axisos-signature-core.jpg'
+picture-uri-dark='file:///usr/share/backgrounds/axisos/01-axisos-signature-core.jpg'
 picture-options='zoom'
 primary-color='#0B0D13'
 secondary-color='#0B0D13'
 
 [org/gnome/desktop/screensaver]
-picture-uri='file:///usr/share/backgrounds/axis-wallpaper.png'
-picture-uri-dark='file:///usr/share/backgrounds/axis-wallpaper.png'
+picture-uri='file:///usr/share/backgrounds/axisos/01-axisos-signature-core.jpg'
+picture-uri-dark='file:///usr/share/backgrounds/axisos/01-axisos-signature-core.jpg'
 primary-color='#0B0D13'
 secondary-color='#0B0D13'
 
