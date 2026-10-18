@@ -1,12 +1,12 @@
 Package: axisos-desktop-suite
-Version: 2.1.0-202610182212
+Version: 2.1.0-202610182301
 Architecture: amd64
 Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
-Filename: ./axisos-desktop-suite_2.1.0-202610182212_amd64.deb
-Size: 13329828
-MD5sum: 4fb6ab87ff1427e4043b9ee32e6be507
-SHA1: 9adf6c42c82927810b31cae73b846f9a8ba76c1b
-SHA256: 30a63d1a6907a5b0aadeb880590c7b51dfce9467d828787c0a6a3f4c5f3c7232
+Filename: ./axisos-desktop-suite_2.1.0-202610182301_amd64.deb
+Size: 13329824
+MD5sum: 4d4a4ba4ecfebc2968466f352b0c0d0b
+SHA1: 4f606cd0bc5b38241b5ac6b2b51d09e3ae55133b
+SHA256: a2b64e51b9783b517248259ec07ec442f72cc4a8dda934a738fa6e0c9b5bb851
 Section: x11
 Priority: optional
 Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
