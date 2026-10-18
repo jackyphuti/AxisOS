@@ -24,23 +24,50 @@ static const char* AXIS_CSS = R"(
     font-family: "Segoe UI", "Inter", "Ubuntu", "Cantarell", sans-serif;
 }
 
-window {
+window,
+.background,
+scrolledwindow,
+viewport,
+stack {
     background-color: #0B0D11;
     color: #F8FAFC;
 }
 
 headerbar {
-    background: #14171E;
+    background-color: #14171E;
+    background-image: none;
     border-bottom: 1px solid rgba(255, 255, 255, 0.15);
     color: #FFFFFF;
     min-height: 42px;
     padding: 0 12px;
+    box-shadow: none;
 }
 
 headerbar .title {
     font-weight: 700;
     font-size: 14px;
     color: #FFFFFF;
+}
+
+headerbar .subtitle {
+    font-size: 11px;
+    color: #38BDF8;
+}
+
+headerbar button {
+    background-color: #1E232B;
+    background-image: none;
+    color: #F8FAFC;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 6px;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+headerbar button:hover {
+    background-color: #2B323D;
+    color: #FFFFFF;
+    border-color: #3A9CC9;
 }
 
 .setup-canvas {
@@ -65,7 +92,6 @@ headerbar .title {
     font-size: 13px;
     color: #94A3B8;
     margin-bottom: 18px;
-    line-height: 1.4;
 }
 
 .field-label {
@@ -76,77 +102,153 @@ headerbar .title {
 }
 
 /* Primary Action Buttons - High Contrast Axis Cyan */
+button.btn-primary,
 .btn-primary {
-    background-color: #3A9CC9;
+    background-color: #0284C7;
+    background-image: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
     color: #FFFFFF;
     font-size: 14px;
     font-weight: 700;
-    border: 1px solid #3A9CC9;
+    border: 1px solid #38BDF8;
     border-radius: 6px;
     padding: 10px 28px;
+    box-shadow: none;
+    text-shadow: none;
 }
 
+button.btn-primary label,
+.btn-primary label {
+    color: #FFFFFF;
+    font-weight: 700;
+}
+
+button.btn-primary:hover,
 .btn-primary:hover {
-    background-color: #4FB0DD;
-    border-color: #4FB0DD;
+    background-color: #0EA5E9;
+    background-image: linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%);
+    border-color: #7DD3FC;
+    color: #FFFFFF;
 }
 
+button.btn-primary:active,
 .btn-primary:active {
-    background-color: #2B8BB8;
+    background-color: #0369A1;
+    background-image: none;
 }
 
+button.btn-primary:disabled,
 .btn-primary:disabled {
     background-color: #1E232B;
-    color: #475569;
-    border-color: #1E232B;
+    background-image: none;
+    color: #64748B;
+    border-color: #2D3542;
+}
+
+button.btn-primary:disabled label,
+.btn-primary:disabled label {
+    color: #64748B;
 }
 
 /* Prominent Install Now Button */
+button.btn-install-large,
 .btn-install-large {
-    background-color: #3A9CC9;
+    background-color: #0284C7;
+    background-image: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);
     color: #FFFFFF;
     font-size: 16px;
     font-weight: 700;
-    border: 2px solid #60C0ED;
+    border: 2px solid #7DD3FC;
     border-radius: 8px;
     padding: 14px 44px;
+    box-shadow: none;
+    text-shadow: none;
 }
 
+button.btn-install-large label,
+.btn-install-large label {
+    color: #FFFFFF;
+    font-weight: 700;
+}
+
+button.btn-install-large:hover,
 .btn-install-large:hover {
-    background-color: #4FB0DD;
+    background-color: #0EA5E9;
+    background-image: linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%);
     border-color: #FFFFFF;
 }
 
 /* Secondary Navigation Buttons */
+button.btn-secondary,
 .btn-secondary {
     background-color: #1E232B;
+    background-image: none;
     color: #F8FAFC;
     font-size: 13px;
     font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.20);
+    border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 6px;
     padding: 9px 22px;
+    box-shadow: none;
+    text-shadow: none;
 }
 
+button.btn-secondary label,
+.btn-secondary label {
+    color: #F8FAFC;
+    font-weight: 600;
+}
+
+button.btn-secondary:hover,
 .btn-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.12);
-    border-color: #FFFFFF;
+    background-color: #2B323E;
+    background-image: none;
+    border-color: #38BDF8;
     color: #FFFFFF;
+}
+
+button.btn-secondary:hover label,
+.btn-secondary:hover label {
+    color: #FFFFFF;
+}
+
+button.btn-secondary:disabled,
+.btn-secondary:disabled {
+    background-color: #14171E;
+    background-image: none;
+    color: #475569;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+button.btn-secondary:disabled label,
+.btn-secondary:disabled label {
+    color: #475569;
 }
 
 /* Danger Action Buttons */
+button.btn-danger,
 .btn-danger {
-    background-color: #7A2234;
+    background-color: #881337;
+    background-image: none;
     color: #FFFFFF;
     font-size: 13px;
     font-weight: 600;
-    border: 1px solid #D9384E;
+    border: 1px solid #E11D48;
     border-radius: 6px;
     padding: 9px 18px;
+    box-shadow: none;
+    text-shadow: none;
 }
 
+button.btn-danger label,
+.btn-danger label {
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+button.btn-danger:hover,
 .btn-danger:hover {
-    background-color: #9C2B42;
+    background-color: #9F1239;
+    background-image: none;
     border-color: #FFFFFF;
     color: #FFFFFF;
 }
@@ -154,7 +256,7 @@ headerbar .title {
 /* Information & Summary Cards */
 .info-card {
     background-color: #14171E;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
     padding: 16px 20px;
 }
@@ -173,54 +275,74 @@ headerbar .title {
 
 /* Inputs & Form Controls */
 entry {
-    background-color: #181B22;
+    background-color: #181C24;
+    background-image: none;
     color: #FFFFFF;
     border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 6px;
     padding: 8px 12px;
     font-size: 13px;
+    box-shadow: none;
 }
 
 entry:focus {
-    border-color: #3A9CC9;
-    background-color: #1E222B;
+    border-color: #38BDF8;
+    background-color: #1E2430;
 }
 
-combobox {
-    background-color: #181B22;
+combobox,
+combobox box {
+    background-color: #181C24;
+    background-image: none;
     color: #FFFFFF;
 }
 
 combobox button {
-    background-color: #181B22;
+    background-color: #181C24;
+    background-image: none;
     color: #FFFFFF;
     border: 1px solid rgba(255, 255, 255, 0.22);
     border-radius: 6px;
     padding: 7px 12px;
+    box-shadow: none;
+    text-shadow: none;
 }
 
 combobox button:hover {
-    border-color: #3A9CC9;
+    background-color: #202632;
+    background-image: none;
+    border-color: #38BDF8;
 }
 
+combobox button label,
 combobox cellview {
     color: #FFFFFF;
 }
 
 combobox menu,
-combobox window menu {
+combobox window menu,
+menu {
     background-color: #14171E;
+    background-image: none;
     color: #FFFFFF;
     border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
-combobox menu menuitem {
+combobox menu menuitem,
+menuitem {
     color: #FFFFFF;
     padding: 7px 14px;
 }
 
-combobox menu menuitem:hover {
-    background-color: #3A9CC9;
+combobox menu menuitem label,
+menuitem label {
+    color: #FFFFFF;
+}
+
+combobox menu menuitem:hover,
+menuitem:hover {
+    background-color: #0284C7;
+    background-image: none;
     color: #FFFFFF;
 }
 
@@ -234,15 +356,24 @@ treeview {
 
 treeview:selected,
 treeview row:selected {
-    background-color: #3A9CC9;
+    background-color: #0284C7;
     color: #FFFFFF;
 }
 
 treeview header button {
     background-color: #1E232B;
+    background-image: none;
     color: #CBD5E1;
     border: none;
-    padding: 6px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+    padding: 7px 10px;
+    font-weight: 700;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+treeview header button label {
+    color: #CBD5E1;
     font-weight: 700;
 }
 
@@ -254,7 +385,7 @@ treeview header button {
 }
 
 .progress-stage.active {
-    color: #3A9CC9;
+    color: #38BDF8;
     font-weight: 700;
 }
 
@@ -264,12 +395,14 @@ treeview header button {
 }
 
 progressbar progress {
-    background-color: #3A9CC9;
+    background-color: #0EA5E9;
+    background-image: none;
     border-radius: 3px;
 }
 
 progressbar trough {
     background-color: #1E232B;
+    background-image: none;
     border-radius: 3px;
     min-height: 8px;
 }
@@ -482,6 +615,10 @@ public:
     GtkWidget* lbl_progress_percent;
 
     AxisInstallerApp() {
+        GtkSettings* settings = gtk_settings_get_default();
+        if (settings) {
+            g_object_set(settings, "gtk-application-prefer-dark-theme", TRUE, NULL);
+        }
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_window_set_title(GTK_WINDOW(window), "AxisOS 2.0 Setup");
 

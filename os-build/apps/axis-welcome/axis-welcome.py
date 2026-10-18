@@ -19,45 +19,159 @@ gi.require_version("Gdk", "3.0")
 from gi.repository import Gtk, Gdk, GLib
 
 CSS = b"""
-window {
+* {
+    font-family: "Inter", "Segoe UI", "Ubuntu", "Cantarell", sans-serif;
+}
+
+window,
+.background {
     background-color: #0B0E17;
     color: #F8FAFC;
 }
+
 headerbar {
     background-color: #111624;
+    background-image: none;
     color: #F8FAFC;
     border-bottom: 1px solid #1E293B;
+    box-shadow: none;
 }
-.sidebar {
+
+headerbar .title {
+    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+headerbar .subtitle {
+    color: #38BDF8;
+    font-size: 11px;
+}
+
+headerbar button {
+    background-color: #1E293B;
+    background-image: none;
+    color: #F8FAFC;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+headerbar button:hover {
+    background-color: #334155;
+    color: #FFFFFF;
+    border-color: #00F2FE;
+}
+
+.sidebar,
+.sidebar scrolledwindow,
+.sidebar viewport,
+.sidebar list {
     background-color: #0F1420;
+    color: #CBD5E1;
     border-right: 1px solid #1E293B;
 }
+
+.sidebar row,
+.sidebar list row {
+    background-color: transparent;
+    background-image: none;
+    color: #CBD5E1;
+    padding: 12px 16px;
+    margin: 4px 8px;
+    border-radius: 8px;
+    border-left: 3px solid transparent;
+}
+
+.sidebar row label,
+.sidebar list row label {
+    color: #CBD5E1;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.sidebar row:hover,
+.sidebar list row:hover {
+    background-color: #161F33;
+    color: #FFFFFF;
+}
+
+.sidebar row:hover label,
+.sidebar list row:hover label {
+    color: #FFFFFF;
+}
+
+.sidebar row:selected,
+.sidebar list row:selected {
+    background-color: #1A2640;
+    background-image: none;
+    color: #00F2FE;
+    border-left: 3px solid #00F2FE;
+}
+
+.sidebar row:selected label,
+.sidebar list row:selected label {
+    color: #00F2FE;
+    font-weight: 700;
+}
+
+scrolledwindow,
+viewport,
+stack {
+    background-color: #0B0E17;
+    color: #F8FAFC;
+}
+
 .card {
     background-color: #151C2C;
-    border: 1px solid #222E46;
+    border: 1px solid #24324D;
     border-radius: 12px;
-    padding: 16px;
+    padding: 16px 20px;
 }
+
+.card-header {
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
 .title-hero {
     font-size: 20pt;
     font-weight: bold;
     color: #FFFFFF;
 }
+
 .subtitle-hero {
-    font-size: 11pt;
+    font-size: 10.5pt;
     color: #94A3B8;
 }
+
 button.primary-btn,
 button.primary-btn:hover,
 button.primary-btn:active,
 button.primary-btn:checked {
-    background: #00F2FE;
+    background-color: #00F2FE;
     background-image: none;
     color: #0A0D14;
-    font-weight: bold;
+    font-weight: 700;
+    border: 1px solid #00F2FE;
     border-radius: 8px;
-    padding: 8px 16px;
+    padding: 9px 18px;
+    box-shadow: none;
+    text-shadow: none;
 }
+
+button.primary-btn label {
+    color: #0A0D14;
+    font-weight: 700;
+}
+
+button.primary-btn:hover {
+    background-color: #38F8FF;
+    border-color: #FFFFFF;
+}
+
 button.secondary-btn,
 button.secondary-btn:hover,
 button.secondary-btn:active,
@@ -67,9 +181,59 @@ button.secondary-btn:checked {
     color: #F8FAFC;
     border: 1px solid #334155;
     border-radius: 8px;
-    padding: 8px 14px;
+    padding: 8px 16px;
+    font-weight: 600;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+button.secondary-btn label {
+    color: #F8FAFC;
+    font-weight: 600;
+}
+
+button.secondary-btn:hover {
+    background-color: #28354D;
+    border-color: #00F2FE;
+    color: #FFFFFF;
+}
+
+button.secondary-btn:hover label {
+    color: #FFFFFF;
+}
+
+.footer-bar {
+    background-color: #0F1420;
+    border-top: 1px solid #1E293B;
+    padding: 10px 18px;
+}
+
+checkbutton,
+checkbutton label {
+    color: #CBD5E1;
+    font-size: 12px;
+}
+
+checkbutton check {
+    background-color: #151C2C;
+    background-image: none;
+    border: 1px solid #475569;
+    border-radius: 4px;
+    color: #00F2FE;
+}
+
+checkbutton check:checked {
+    background-color: #00F2FE;
+    border-color: #00F2FE;
+    color: #0A0D14;
+}
+
+.status-label {
+    color: #94A3B8;
+    font-size: 12px;
 }
 """
+
 
 def read_cmd(cmd, fallback="Available"):
     try:
@@ -78,11 +242,16 @@ def read_cmd(cmd, fallback="Available"):
     except Exception:
         return fallback
 
+
 class AxisWelcomeWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Welcome to AxisOS 2.0")
         self.set_default_size(940, 620)
         self.set_position(Gtk.WindowPosition.CENTER)
+
+        settings = Gtk.Settings.get_default()
+        if settings is not None:
+            settings.set_property("gtk-application-prefer-dark-theme", True)
 
         provider = Gtk.CssProvider()
         provider.load_from_data(CSS)
@@ -121,10 +290,7 @@ class AxisWelcomeWindow(Gtk.Window):
 
         # Footer with Launch at Startup toggle
         footer = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        footer.set_margin_start(16)
-        footer.set_margin_end(16)
-        footer.set_margin_top(10)
-        footer.set_margin_bottom(10)
+        footer.get_style_context().add_class("footer-bar")
 
         autostart_file = Path.home() / ".config/autostart/axis-welcome.desktop"
         self.startup_chk = Gtk.CheckButton(label="Show AxisOS Welcome on startup")
@@ -134,6 +300,7 @@ class AxisWelcomeWindow(Gtk.Window):
 
         self.status_lbl = Gtk.Label(label="Ready.")
         self.status_lbl.set_xalign(0.0)
+        self.status_lbl.get_style_context().add_class("status-label")
         footer.pack_start(self.status_lbl, True, True, 0)
 
         close_btn = Gtk.Button(label="Close")
@@ -169,9 +336,9 @@ class AxisWelcomeWindow(Gtk.Window):
     def _make_card(self, title, desc):
         frame = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         frame.get_style_context().add_class("card")
-        lbl = Gtk.Label()
-        lbl.set_markup(f"<b>{GLib.markup_escape_text(title)}</b>")
+        lbl = Gtk.Label(label=title)
         lbl.set_xalign(0.0)
+        lbl.get_style_context().add_class("card-header")
         frame.pack_start(lbl, False, False, 0)
         d_lbl = Gtk.Label(label=desc)
         d_lbl.set_xalign(0.0)

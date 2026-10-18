@@ -83,8 +83,8 @@ ApplicationWindow {
 
                 // AxisOS Official Vector Triangle Icon
                 Image {
-                    width: 36
-                    height: 36
+                    Layout.preferredWidth: 36
+                    Layout.preferredHeight: 36
                     source: "file:///usr/share/icons/hicolor/scalable/apps/axisos.svg"
                     fillMode: Image.PreserveAspectFit
                     smooth: true
@@ -114,8 +114,8 @@ ApplicationWindow {
                 // Live Session Badge
                 Rectangle {
                     visible: WelcomeBackend.isLiveSession
-                    height: 26
-                    width: 120
+                    Layout.preferredHeight: 26
+                    Layout.preferredWidth: 120
                     radius: 13
                     color: "#2A1838"
                     border.color: root.cAccentViolet
@@ -125,7 +125,9 @@ ApplicationWindow {
                         anchors.centerIn: parent
                         spacing: 6
                         Rectangle {
-                            width: 6; height: 6; radius: 3
+                            Layout.preferredWidth: 6
+                            Layout.preferredHeight: 6
+                            radius: 3
                             color: root.cAccentViolet
                         }
                         Text {
@@ -139,8 +141,8 @@ ApplicationWindow {
 
                 // Close Button
                 Rectangle {
-                    width: 32
-                    height: 32
+                    Layout.preferredWidth: 32
+                    Layout.preferredHeight: 32
                     radius: 8
                     color: closeHover.hovered ? "#EF4444" : "#1B2030"
                     Behavior on color { ColorAnimation { duration: 150 } }
@@ -159,13 +161,12 @@ ApplicationWindow {
 
             // Navigation Tabs
             RowLayout {
+                id: navTabsBar
                 Layout.fillWidth: true
                 Layout.preferredHeight: 46
                 Layout.leftMargin: 24
                 Layout.rightMargin: 24
                 spacing: 12
-
-                property int currentTab: 0
 
                 Repeater {
                     model: [
@@ -176,7 +177,7 @@ ApplicationWindow {
                     ]
 
                     delegate: Rectangle {
-                        height: 36
+                        Layout.preferredHeight: 36
                         Layout.preferredWidth: 170
                         radius: 8
                         color: navTabs.currentTab === index ? root.cCardHover : "transparent"
@@ -247,10 +248,12 @@ ApplicationWindow {
                             // CPU Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 110
+                                Layout.preferredHeight: 110
+                                Layout.minimumHeight: 110
                                 radius: 12
                                 color: root.cCardBg
                                 border.color: root.cBorder
+                                clip: true
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -279,10 +282,12 @@ ApplicationWindow {
                             // GPU Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 110
+                                Layout.preferredHeight: 110
+                                Layout.minimumHeight: 110
                                 radius: 12
                                 color: root.cCardBg
                                 border.color: root.cBorder
+                                clip: true
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -311,10 +316,12 @@ ApplicationWindow {
                             // RAM Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 110
+                                Layout.preferredHeight: 110
+                                Layout.minimumHeight: 110
                                 radius: 12
                                 color: root.cCardBg
                                 border.color: root.cBorder
+                                clip: true
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -322,7 +329,7 @@ ApplicationWindow {
                                     RowLayout {
                                         Text { text: "Physical RAM Memory"; color: root.cAccentTeal; font.bold: true; font.pixelSize: 12 }
                                         Item { Layout.fillWidth: true }
-                                        Text { 
+                                        Text {
                                             text: WelcomeBackend.ramUsedGb.toFixed(1) + " GB / " + WelcomeBackend.ramTotalGb.toFixed(1) + " GB (" + WelcomeBackend.ramPercent + "%)"
                                             color: root.cTextMain
                                             font.bold: true
@@ -332,11 +339,12 @@ ApplicationWindow {
                                     // RAM Meter Bar
                                     Rectangle {
                                         Layout.fillWidth: true
+                                        Layout.preferredHeight: 8
                                         height: 8
                                         radius: 4
                                         color: "#23283B"
                                         Rectangle {
-                                            width: parent.width * (WelcomeBackend.ramPercent / 100.0)
+                                            width: parent.width * Math.min(1.0, Math.max(0.0, WelcomeBackend.ramPercent / 100.0))
                                             height: parent.height
                                             radius: 4
                                             gradient: Gradient {
@@ -357,10 +365,12 @@ ApplicationWindow {
                             // zRAM Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 110
+                                Layout.preferredHeight: 110
+                                Layout.minimumHeight: 110
                                 radius: 12
                                 color: root.cCardBg
                                 border.color: root.cBorder
+                                clip: true
 
                                 ColumnLayout {
                                     anchors.fill: parent
@@ -368,7 +378,7 @@ ApplicationWindow {
                                     RowLayout {
                                         Text { text: "zRAM Compressed Swap"; color: root.cSuccess; font.bold: true; font.pixelSize: 12 }
                                         Item { Layout.fillWidth: true }
-                                        Text { 
+                                        Text {
                                             text: WelcomeBackend.zramActive ? (WelcomeBackend.zramUsedGb.toFixed(1) + " GB / " + WelcomeBackend.zramTotalGb.toFixed(1) + " GB") : "Disabled"
                                             color: WelcomeBackend.zramActive ? root.cSuccess : root.cTextMuted
                                             font.bold: true
@@ -378,11 +388,12 @@ ApplicationWindow {
                                     // zRAM Meter Bar
                                     Rectangle {
                                         Layout.fillWidth: true
+                                        Layout.preferredHeight: 8
                                         height: 8
                                         radius: 4
                                         color: "#23283B"
                                         Rectangle {
-                                            width: WelcomeBackend.zramTotalGb > 0 ? (parent.width * (WelcomeBackend.zramUsedGb / WelcomeBackend.zramTotalGb)) : 0
+                                            width: WelcomeBackend.zramTotalGb > 0 ? (parent.width * Math.min(1.0, Math.max(0.0, WelcomeBackend.zramUsedGb / WelcomeBackend.zramTotalGb))) : 0
                                             height: parent.height
                                             radius: 4
                                             color: root.cSuccess
@@ -404,7 +415,8 @@ ApplicationWindow {
 
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 48
+                                Layout.preferredHeight: 48
+                                Layout.minimumHeight: 48
                                 radius: 8
                                 color: root.cCardBg
                                 border.color: root.cBorder
@@ -418,7 +430,8 @@ ApplicationWindow {
 
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 48
+                                Layout.preferredHeight: 48
+                                Layout.minimumHeight: 48
                                 radius: 8
                                 color: root.cCardBg
                                 border.color: root.cBorder
@@ -456,10 +469,12 @@ ApplicationWindow {
                             // 1. Kernel Scheduler Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 110
+                                Layout.preferredHeight: 110
+                                Layout.minimumHeight: 110
                                 radius: 12
                                 color: schedHover.hovered ? root.cCardHover : root.cCardBg
                                 border.color: schedHover.hovered ? root.cAccentTeal : root.cBorder
+                                clip: true
 
                                 HoverHandler { id: schedHover }
                                 TapHandler { onTapped: WelcomeBackend.launchApp("scheduler") }
@@ -470,7 +485,9 @@ ApplicationWindow {
                                     spacing: 16
 
                                     Rectangle {
-                                        width: 48; height: 48; radius: 10
+                                        Layout.preferredWidth: 48
+                                        Layout.preferredHeight: 48
+                                        radius: 10
                                         color: "#182A3A"
                                         Text { anchors.centerIn: parent; text: "⚡"; font.pixelSize: 22 }
                                     }
@@ -479,7 +496,7 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         spacing: 4
                                         Text { text: "Kernel Scheduler (SCX)"; color: root.cTextMain; font.bold: true; font.pixelSize: 14 }
-                                        Text { 
+                                        Text {
                                             text: "Switch BORE, Lavd, or Rusty sched-ext schedulers on the fly."
                                             color: root.cTextMuted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
                                         }
@@ -490,10 +507,12 @@ ApplicationWindow {
                             // 2. Package Installer Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 110
+                                Layout.preferredHeight: 110
+                                Layout.minimumHeight: 110
                                 radius: 12
                                 color: pkgHover.hovered ? root.cCardHover : root.cCardBg
                                 border.color: pkgHover.hovered ? root.cAccentTeal : root.cBorder
+                                clip: true
 
                                 HoverHandler { id: pkgHover }
                                 TapHandler { onTapped: WelcomeBackend.launchApp("installer") }
@@ -504,7 +523,9 @@ ApplicationWindow {
                                     spacing: 16
 
                                     Rectangle {
-                                        width: 48; height: 48; radius: 10
+                                        Layout.preferredWidth: 48
+                                        Layout.preferredHeight: 48
+                                        radius: 10
                                         color: "#2C1838"
                                         Text { anchors.centerIn: parent; text: "📦"; font.pixelSize: 22 }
                                     }
@@ -513,7 +534,7 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         spacing: 4
                                         Text { text: "Package Installer"; color: root.cTextMain; font.bold: true; font.pixelSize: 14 }
-                                        Text { 
+                                        Text {
                                             text: "Curated software categories: Browsers, Gaming, Dev & Office."
                                             color: root.cTextMuted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
                                         }
@@ -524,10 +545,12 @@ ApplicationWindow {
                             // 3. System Settings Card
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 110
+                                Layout.preferredHeight: 110
+                                Layout.minimumHeight: 110
                                 radius: 12
                                 color: setHover.hovered ? root.cCardHover : root.cCardBg
                                 border.color: setHover.hovered ? root.cAccentTeal : root.cBorder
+                                clip: true
 
                                 HoverHandler { id: setHover }
                                 TapHandler { onTapped: WelcomeBackend.launchApp("settings") }
@@ -538,7 +561,9 @@ ApplicationWindow {
                                     spacing: 16
 
                                     Rectangle {
-                                        width: 48; height: 48; radius: 10
+                                        Layout.preferredWidth: 48
+                                        Layout.preferredHeight: 48
+                                        radius: 10
                                         color: "#183228"
                                         Text { anchors.centerIn: parent; text: "⚙️"; font.pixelSize: 22 }
                                     }
@@ -547,7 +572,7 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         spacing: 4
                                         Text { text: "Control Center"; color: root.cTextMain; font.bold: true; font.pixelSize: 14 }
-                                        Text { 
+                                        Text {
                                             text: "Configure Displays, Audio, Wi-Fi, BlueZ and Biometrics."
                                             color: root.cTextMuted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
                                         }
@@ -558,10 +583,12 @@ ApplicationWindow {
                             // 4. NVIDIA Auto-Installer
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 110
+                                Layout.preferredHeight: 110
+                                Layout.minimumHeight: 110
                                 radius: 12
                                 color: nvdHover.hovered ? root.cCardHover : root.cCardBg
                                 border.color: nvdHover.hovered ? root.cAccentTeal : root.cBorder
+                                clip: true
 
                                 HoverHandler { id: nvdHover }
                                 TapHandler { onTapped: WelcomeBackend.launchApp("nvidia") }
@@ -572,7 +599,9 @@ ApplicationWindow {
                                     spacing: 16
 
                                     Rectangle {
-                                        width: 48; height: 48; radius: 10
+                                        Layout.preferredWidth: 48
+                                        Layout.preferredHeight: 48
+                                        radius: 10
                                         color: "#16331C"
                                         Text { anchors.centerIn: parent; text: "🎮"; font.pixelSize: 22 }
                                     }
@@ -581,7 +610,7 @@ ApplicationWindow {
                                         Layout.fillWidth: true
                                         spacing: 4
                                         Text { text: "NVIDIA Drivers"; color: root.cTextMain; font.bold: true; font.pixelSize: 14 }
-                                        Text { 
+                                        Text {
                                             text: "Detect PCI ID and install proprietary NVIDIA graphics modules."
                                             color: root.cTextMuted; font.pixelSize: 11; wrapMode: Text.WordWrap; Layout.fillWidth: true
                                         }
@@ -598,7 +627,8 @@ ApplicationWindow {
                             // GameMode Button
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 52
+                                Layout.preferredHeight: 52
+                                Layout.minimumHeight: 52
                                 radius: 8
                                 color: WelcomeBackend.gameModeActive ? "#164E63" : root.cCardBg
                                 border.color: WelcomeBackend.gameModeActive ? root.cAccentTeal : root.cBorder
@@ -607,7 +637,7 @@ ApplicationWindow {
                                     anchors.centerIn: parent
                                     spacing: 12
                                     Text { text: "🎯 GameMode:"; color: root.cTextMuted; font.pixelSize: 12 }
-                                    Text { 
+                                    Text {
                                         text: WelcomeBackend.gameModeActive ? "ACTIVE (Low Latency)" : "STANDBY (Click to toggle)"
                                         color: WelcomeBackend.gameModeActive ? root.cAccentTeal : root.cTextMain
                                         font.bold: true
@@ -621,7 +651,8 @@ ApplicationWindow {
                             // zRAM Tuning Button
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 52
+                                Layout.preferredHeight: 52
+                                Layout.minimumHeight: 52
                                 radius: 8
                                 color: root.cCardBg
                                 border.color: root.cBorder
@@ -663,11 +694,13 @@ ApplicationWindow {
 
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 180
+                            Layout.preferredHeight: 190
+                            Layout.minimumHeight: 190
                             radius: 12
                             color: root.cCardBg
                             border.color: root.cAccentViolet
                             border.width: 1
+                            clip: true
 
                             ColumnLayout {
                                 anchors.fill: parent
@@ -692,6 +725,7 @@ ApplicationWindow {
 
                                 Rectangle {
                                     Layout.fillWidth: true
+                                    Layout.preferredHeight: 44
                                     height: 44
                                     radius: 8
                                     gradient: Gradient {
@@ -738,10 +772,12 @@ ApplicationWindow {
 
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 90
+                            Layout.preferredHeight: 90
+                            Layout.minimumHeight: 90
                             radius: 12
                             color: root.cCardBg
                             border.color: root.cBorder
+                            clip: true
 
                             RowLayout {
                                 anchors.fill: parent
@@ -757,7 +793,9 @@ ApplicationWindow {
                                 }
 
                                 Rectangle {
-                                    width: 120; height: 36; radius: 6
+                                    Layout.preferredWidth: 120
+                                    Layout.preferredHeight: 36
+                                    radius: 6
                                     color: root.cCardHover
                                     border.color: root.cAccentTeal
                                     Text { anchors.centerIn: parent; text: "Visit GitHub"; color: root.cAccentTeal; font.bold: true; font.pixelSize: 11 }
@@ -768,10 +806,12 @@ ApplicationWindow {
 
                         Rectangle {
                             Layout.fillWidth: true
-                            height: 90
+                            Layout.preferredHeight: 90
+                            Layout.minimumHeight: 90
                             radius: 12
                             color: root.cCardBg
                             border.color: root.cBorder
+                            clip: true
 
                             RowLayout {
                                 anchors.fill: parent
@@ -787,7 +827,9 @@ ApplicationWindow {
                                 }
 
                                 Rectangle {
-                                    width: 120; height: 36; radius: 6
+                                    Layout.preferredWidth: 120
+                                    Layout.preferredHeight: 36
+                                    radius: 6
                                     color: root.cCardHover
                                     border.color: root.cAccentViolet
                                     Text { anchors.centerIn: parent; text: "Open Terminal"; color: root.cAccentViolet; font.bold: true; font.pixelSize: 11 }
@@ -811,7 +853,9 @@ ApplicationWindow {
                 RowLayout {
                     spacing: 8
                     Rectangle {
-                        width: 18; height: 18; radius: 4
+                        Layout.preferredWidth: 18
+                        Layout.preferredHeight: 18
+                        radius: 4
                         color: WelcomeBackend.showOnStartup ? root.cAccentTeal : root.cCardBg
                         border.color: root.cBorder
 
@@ -843,8 +887,8 @@ ApplicationWindow {
 
                 // Launch Web Browser
                 Rectangle {
-                    width: 130
-                    height: 36
+                    Layout.preferredWidth: 130
+                    Layout.preferredHeight: 36
                     radius: 8
                     color: root.cCardBg
                     border.color: root.cBorder
@@ -863,8 +907,8 @@ ApplicationWindow {
 
                 // Close Button
                 Rectangle {
-                    width: 90
-                    height: 36
+                    Layout.preferredWidth: 90
+                    Layout.preferredHeight: 36
                     radius: 8
                     color: root.cCardHover
                     border.color: root.cBorder

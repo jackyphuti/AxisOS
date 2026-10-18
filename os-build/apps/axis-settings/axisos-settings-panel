@@ -37,7 +37,8 @@ window {
 }
 
 headerbar {
-    background: #111827;
+    background-color: #111827;
+    background-image: none;
     border-bottom: 2px solid #2563eb;
     color: #ffffff;
 }
@@ -48,8 +49,11 @@ headerbar .title {
     color: #ffffff;
 }
 
-.sidebar {
+.sidebar, .sidebar list, scrolledwindow, viewport, stack {
     background-color: #0f141c;
+    color: #f8fafc;
+}
+.sidebar {
     border-right: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -95,8 +99,10 @@ button.btn-primary,
 button.btn-primary:hover,
 button.btn-primary:active,
 button.btn-primary:checked {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    background-image: none;
+    background-color: #2563eb;
+    background-image: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: none;
+    text-shadow: none;
     color: #ffffff;
     font-weight: 700;
     border-radius: 6px;
@@ -175,6 +181,8 @@ class AxisSettingsApp(Gtk.Window):
     def __init__(self):
         super().__init__(title="Settings")
         self.set_default_size(940, 640)
+        if Gtk.Settings.get_default():
+            Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme', True)
         self.set_position(Gtk.WindowPosition.CENTER)
 
         self.apply_css()

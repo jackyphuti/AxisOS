@@ -20,7 +20,8 @@ window {
 }
 
 headerbar {
-    background: #111827;
+    background-color: #111827;
+    background-image: none;
     border-bottom: 2px solid #2563eb;
     color: #ffffff;
 }
@@ -64,8 +65,11 @@ notebook tab:checked {
     margin: 6px 12px;
 }
 
-.action-btn-primary {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+button.action-btn-primary, .action-btn-primary {
+    background-color: #2563eb;
+    background-image: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: none;
+    text-shadow: none;
     color: #ffffff;
     font-weight: bold;
     border-radius: 6px;
@@ -77,8 +81,11 @@ notebook tab:checked {
     background: linear-gradient(135deg, #3b82f6, #2563eb);
 }
 
-.action-btn-secondary {
-    background: #1f2937;
+button.action-btn-secondary, .action-btn-secondary {
+    background-color: #1f2937;
+    background-image: none;
+    box-shadow: none;
+    text-shadow: none;
     color: #e2e8f0;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 6px;
@@ -113,6 +120,8 @@ class NobaraWelcomeWindow(Gtk.Window):
     def __init__(self):
         super().__init__(title="Nobara Hardware & Codec Suite")
         self.set_default_size(780, 560)
+        if Gtk.Settings.get_default():
+            Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme', True)
         self.set_position(Gtk.WindowPosition.CENTER)
 
         # Apply CSS

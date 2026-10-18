@@ -18,24 +18,48 @@ from gi.repository import Gtk, Gdk, GLib, Pango
 
 CSS_STYLING = b"""
 * {
-    font-family: "Inter", "Cantarell", "DejaVu Sans", sans-serif;
+    font-family: "Inter", "Segoe UI", "Cantarell", "DejaVu Sans", sans-serif;
 }
 
-window {
+window,
+.background {
     background-color: #0a0c10;
     color: #f8fafc;
 }
 
 headerbar {
-    background: #111827;
+    background-color: #111827;
+    background-image: none;
     border-bottom: 2px solid #2563eb;
     color: #ffffff;
+    box-shadow: none;
 }
 
 headerbar .title {
     font-weight: 800;
     font-size: 16px;
     color: #ffffff;
+}
+
+headerbar .subtitle {
+    font-size: 11px;
+    color: #93c5fd;
+}
+
+headerbar button {
+    background-color: #1f2937;
+    background-image: none;
+    color: #f8fafc;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 6px;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+headerbar button:hover {
+    background-color: #374151;
+    color: #ffffff;
+    border-color: #3b82f6;
 }
 
 .step-sidebar {
@@ -63,6 +87,14 @@ headerbar .title {
     color: #60a5fa;
 }
 
+.wizard-content,
+scrolledwindow,
+viewport,
+stack {
+    background-color: #0a0c10;
+    color: #f8fafc;
+}
+
 .wizard-content {
     padding: 32px 40px;
 }
@@ -78,12 +110,11 @@ headerbar .title {
     font-size: 13px;
     color: #94a3b8;
     margin-bottom: 24px;
-    line-height: 1.4;
 }
 
 .card {
     background-color: #111827;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 10px;
     padding: 20px 24px;
     margin-bottom: 20px;
@@ -98,7 +129,7 @@ headerbar .title {
 
 .disk-row {
     background-color: #161e2e;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     border-radius: 8px;
     padding: 14px 18px;
     margin-bottom: 10px;
@@ -108,61 +139,109 @@ headerbar .title {
     border-color: #2563eb;
 }
 
+radiobutton,
+radiobutton label {
+    color: #f8fafc;
+    font-weight: 600;
+}
+
 button.btn-primary,
-button.btn-primary:hover,
 button.btn-primary:active,
 button.btn-primary:checked {
-    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-    background-image: none;
+    background-color: #2563eb;
+    background-image: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     color: #ffffff;
     font-weight: 700;
     font-size: 14px;
     border-radius: 8px;
-    border: none;
+    border: 1px solid #3b82f6;
     padding: 10px 24px;
-    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.35);
+    box-shadow: none;
+    text-shadow: none;
+}
+
+button.btn-primary label {
+    color: #ffffff;
+    font-weight: 700;
 }
 
 button.btn-primary:hover {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background-color: #3b82f6;
+    background-image: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: #ffffff;
+    border-color: #60a5fa;
+}
+
+button.btn-primary:disabled {
+    background-color: #1e293b;
+    background-image: none;
+    color: #64748b;
+    border-color: #334155;
+}
+
+button.btn-primary:disabled label {
+    color: #64748b;
 }
 
 button.btn-secondary,
-button.btn-secondary:hover,
 button.btn-secondary:active,
 button.btn-secondary:checked {
-    background: #1f2937;
+    background-color: #1f2937;
     background-image: none;
     color: #e2e8f0;
     font-weight: 600;
     font-size: 13px;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: 8px;
     padding: 9px 20px;
+    box-shadow: none;
+    text-shadow: none;
+}
+
+button.btn-secondary label {
+    color: #e2e8f0;
+    font-weight: 600;
 }
 
 button.btn-secondary:hover {
-    background: #374151;
+    background-color: #374151;
+    background-image: none;
     color: #ffffff;
-    border-color: #2563eb;
+    border-color: #3b82f6;
+}
+
+button.btn-secondary:hover label {
+    color: #ffffff;
+}
+
+button.btn-secondary:disabled {
+    background-color: #111827;
+    background-image: none;
+    color: #475569;
+    border-color: rgba(255, 255, 255, 0.06);
+}
+
+button.btn-secondary:disabled label {
+    color: #475569;
 }
 
 entry {
     background-color: #161e2e;
+    background-image: none;
     color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 6px;
     padding: 10px 14px;
     font-size: 13px;
 }
 
 entry:focus {
-    border-color: #2563eb;
+    border-color: #3b82f6;
 }
 
 progressbar progress {
-    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    background-color: #2563eb;
+    background-image: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
     border-radius: 6px;
 }
 
@@ -182,11 +261,16 @@ progressbar trough {
 }
 """
 
+
 class AxisFriendlyInstaller(Gtk.Window):
     def __init__(self):
         super().__init__(title="Install AxisOS Linux")
         self.set_default_size(960, 640)
         self.set_position(Gtk.WindowPosition.CENTER)
+
+        settings = Gtk.Settings.get_default()
+        if settings is not None:
+            settings.set_property("gtk-application-prefer-dark-theme", True)
 
         self.step_index = 0
         self.selected_disk = None
