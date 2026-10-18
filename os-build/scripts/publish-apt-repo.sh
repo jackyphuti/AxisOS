@@ -35,12 +35,20 @@ Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
 EOF
 chmod 644 "${DEB_DIR}/DEBIAN/control"
 
-# Generate post-installation hook to enable periodic update checking
+# Generate post-installation hook to enable periodic update checking and remove Debian wallpapers
 cat << 'EOF' > "${DEB_DIR}/DEBIAN/postinst"
 #!/bin/sh
 set -e
 if command -v systemctl >/dev/null 2>&1; then
     systemctl --global enable axis-update-notifier.timer 2>/dev/null || true
+fi
+# Remove Debian & stock wallpapers from GNOME Settings so only AxisOS wallpapers appear
+if [ -d /usr/share/gnome-background-properties ]; then
+    mkdir -p /usr/share/gnome-background-properties/stock-disabled
+    for f in /usr/share/gnome-background-properties/*.xml; do
+        [ "$f" = "/usr/share/gnome-background-properties/axisos-wallpapers.xml" ] && continue
+        [ -f "$f" ] && mv -f "$f" /usr/share/gnome-background-properties/stock-disabled/ 2>/dev/null || true
+    done
 fi
 exit 0
 EOF
@@ -97,6 +105,22 @@ fi
 if [ -f "os-build/configs/desktop/axis-sysupgrade.desktop" ]; then
     cp -f "os-build/configs/desktop/axis-sysupgrade.desktop" "${DEB_DIR}/usr/share/applications/axis-sysupgrade.desktop"
     chmod 644 "${DEB_DIR}/usr/share/applications/axis-sysupgrade.desktop"
+fi
+
+# Deploy AxisOS Wallpaper Collection & GNOME Properties
+mkdir -p "${DEB_DIR}/usr/share/backgrounds/axisos"
+if [ -d "data/wallpapers" ]; then
+    cp -f data/wallpapers/*.jpg "${DEB_DIR}/usr/share/backgrounds/axisos/" 2>/dev/null || true
+    chmod 644 "${DEB_DIR}/usr/share/backgrounds/axisos/"*.jpg 2>/dev/null || true
+fi
+mkdir -p "${DEB_DIR}/usr/share/gnome-background-properties"
+if [ -f "os-build/configs/gnome/axisos-wallpapers.xml" ]; then
+    cp -f "os-build/configs/gnome/axisos-wallpapers.xml" "${DEB_DIR}/usr/share/gnome-background-properties/axisos-wallpapers.xml"
+    chmod 644 "${DEB_DIR}/usr/share/gnome-background-properties/axisos-wallpapers.xml"
+fi
+if [ -f "data/wallpapers/01-axisos-signature-core.jpg" ]; then
+    cp -f "data/wallpapers/01-axisos-signature-core.jpg" "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
+    chmod 644 "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
 fi
 
 mkdir -p public_apt/apt

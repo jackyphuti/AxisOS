@@ -101,7 +101,28 @@ def deploy_branding(target_root="/build/chroot"):
     print("    [OK] Deployed /etc/os-release and system identification files")
 
     # 2. Deploy Official Wallpapers & Boot Splash
-    if os.path.exists(boot_png_path):
+    wallpapers_src_dir = os.path.join(REPO_ROOT, "data", "wallpapers")
+    wallpapers_dst_dir = os.path.join(target_root, "usr", "share", "backgrounds", "axisos")
+    os.makedirs(wallpapers_dst_dir, exist_ok=True)
+
+    if os.path.exists(wallpapers_src_dir):
+        for wp in os.listdir(wallpapers_src_dir):
+            if wp.endswith(".jpg") or wp.endswith(".png"):
+                src_f = os.path.join(wallpapers_src_dir, wp)
+                dst_f = os.path.join(wallpapers_dst_dir, wp)
+                shutil.copyfile(src_f, dst_f)
+                try:
+                    os.chmod(dst_f, 0o644)
+                except Exception:
+                    pass
+        print("    [OK] Deployed official AxisOS 20-wallpaper collection to /usr/share/backgrounds/axisos/")
+
+    # Deploy primary wallpaper to standard targets
+    primary_wp = os.path.join(wallpapers_dst_dir, "01-axisos-signature-core.jpg")
+    if not os.path.exists(primary_wp) and os.path.exists(boot_png_path):
+        primary_wp = boot_png_path
+
+    if os.path.exists(primary_wp):
         wallpaper_targets = [
             os.path.join(target_root, "usr", "share", "backgrounds", "axis-wallpaper.png"),
             os.path.join(target_root, "usr", "share", "backgrounds", "nobara-gaming.png"),
@@ -115,8 +136,30 @@ def deploy_branding(target_root="/build/chroot"):
         ]
         for wp in wallpaper_targets:
             os.makedirs(os.path.dirname(wp), exist_ok=True)
-            shutil.copyfile(boot_png_path, wp)
-        print("    [OK] Deployed official AxisOS 1080p boot splash & wallpaper")
+            shutil.copyfile(primary_wp, wp)
+        print("    [OK] Deployed official AxisOS boot splash & primary wallpaper")
+
+    # Deploy GNOME Settings wallpaper properties XML and remove Debian wallpapers
+    gnome_bg_props = os.path.join(target_root, "usr", "share", "gnome-background-properties")
+    os.makedirs(gnome_bg_props, exist_ok=True)
+    xml_src = os.path.join(REPO_ROOT, "os-build", "configs", "gnome", "axisos-wallpapers.xml")
+    if os.path.exists(xml_src):
+        shutil.copyfile(xml_src, os.path.join(gnome_bg_props, "axisos-wallpapers.xml"))
+        try:
+            os.chmod(os.path.join(gnome_bg_props, "axisos-wallpapers.xml"), 0o644)
+        except Exception:
+            pass
+
+    # Disable all non-AxisOS wallpaper entries from GNOME Settings
+    stock_disabled = os.path.join(gnome_bg_props, "stock-disabled")
+    os.makedirs(stock_disabled, exist_ok=True)
+    for f in os.listdir(gnome_bg_props):
+        if f.endswith(".xml") and f != "axisos-wallpapers.xml":
+            try:
+                shutil.move(os.path.join(gnome_bg_props, f), os.path.join(stock_disabled, f))
+            except Exception:
+                pass
+    print("    [OK] Configured GNOME background properties and isolated only AxisOS wallpapers for Settings")
 
     # 3. Deploy Vector SVG Logos & Icons
     svg_icon_targets = [
