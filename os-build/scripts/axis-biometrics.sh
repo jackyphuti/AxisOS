@@ -49,7 +49,7 @@ safe_load_file() {
     [ ! -f "$file" ] && return
     while IFS='=' read -r key val || [ -n "$key" ]; do
         key="$(echo "$key" | tr -d ' \t\r\n')"
-        val="$(echo "$val" | tr -d ' \t\r\n"\'')"
+        val="$(printf '%s' "$val" | tr -d ' \t\r\n"\x27')"
         [[ "$key" =~ ^# ]] && continue
         [ -z "$key" ] && continue
         case "$key" in
