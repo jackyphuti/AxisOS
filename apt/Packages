@@ -1,0 +1,15 @@
+Package: axisos-desktop-suite
+Version: 2.1.0
+Architecture: amd64
+Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
+Filename: ./axisos-desktop-suite_2.1.0-202610180758_amd64.deb
+Size: 123582
+MD5sum: b8b88abc0c93d911b7a43e31ced0a8e2
+SHA1: 19e65216c85ddf0fb3d5212b309c05d7c04d0c78
+SHA256: df30d9c7534655e7725624bc26c45a3ee067c243d22e5123386cc28c3e407780
+Section: x11
+Priority: optional
+Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
+ AxisOS Native Suite featuring HUD Task Manager, Settings Panels,
+ Terminal, Rewind CoW Engine, and Remote OTA Updates with snapshot protection.
+
