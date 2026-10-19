@@ -29,6 +29,8 @@ Section: x11
 Priority: optional
 Architecture: amd64
 Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation
+Replaces: axisos-desktop-suite (<< ${VERSION})
+Breaks: axisos-desktop-suite (<< ${VERSION})
 Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
 Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
  AxisOS Native Suite featuring HUD Task Manager, Settings Panels,
@@ -46,6 +48,17 @@ fi
 # Rebuild font cache so newly installed fonts and fallbacks are indexed
 if command -v fc-cache >/dev/null 2>&1; then
     fc-cache -f 2>/dev/null || true
+fi
+# Add Switch OS Edition quick action to GNOME Settings right-click menu safely
+if [ -f /usr/share/applications/org.gnome.Settings.desktop ] && ! grep -q "AxisEdition" /usr/share/applications/org.gnome.Settings.desktop 2>/dev/null; then
+    sed -i 's/^Actions=.*/&AxisEdition;/' /usr/share/applications/org.gnome.Settings.desktop 2>/dev/null || true
+    cat << 'DESK_EOF' >> /usr/share/applications/org.gnome.Settings.desktop
+
+[Desktop Action AxisEdition]
+Name=Switch OS Edition (About)
+Exec=/usr/local/bin/axisos-settings-panel about
+Icon=help-about
+DESK_EOF
 fi
 # Remove Debian & stock wallpapers from GNOME Settings so only AxisOS wallpapers appear
 if [ -d /usr/share/gnome-background-properties ]; then
@@ -120,10 +133,6 @@ fi
 if [ -f "os-build/configs/desktop/axis-domain-join.desktop" ]; then
     cp -f "os-build/configs/desktop/axis-domain-join.desktop" "${DEB_DIR}/usr/share/applications/axis-domain-join.desktop"
     chmod 644 "${DEB_DIR}/usr/share/applications/axis-domain-join.desktop"
-fi
-if [ -f "os-build/configs/gnome/org.gnome.Settings.desktop" ]; then
-    cp -f "os-build/configs/gnome/org.gnome.Settings.desktop" "${DEB_DIR}/usr/share/applications/org.gnome.Settings.desktop"
-    chmod 644 "${DEB_DIR}/usr/share/applications/org.gnome.Settings.desktop"
 fi
 
 # Deploy AxisOS Wallpaper Collection & GNOME Properties
