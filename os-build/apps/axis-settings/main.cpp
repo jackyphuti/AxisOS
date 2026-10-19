@@ -1508,8 +1508,100 @@ private:
         GtkWidget* lbl = gtk_label_new(text.c_str());
         gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
         gtk_box_pack_start(GTK_BOX(card), lbl, FALSE, FALSE, 8);
-
         gtk_box_pack_start(GTK_BOX(page), card, FALSE, FALSE, 0);
+
+        // ---------------------------------------------------------------------
+        // Software Updates Option Card (Above OS Edition)
+        // ---------------------------------------------------------------------
+        GtkWidget* card_up = create_card("Software Updates",
+            "Official Debian 12 & AxisOS OTA Channels • Direct APT integration");
+        GtkWidget* box_up_action = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+        GtkWidget* lbl_up_desc = gtk_label_new("Check for system updates, package upgrades, and security patches.");
+        gtk_label_set_xalign(GTK_LABEL(lbl_up_desc), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(lbl_up_desc), "card-subtitle");
+        GtkWidget* btn_check_up = gtk_button_new_with_label("🔍 Check for Updates");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_check_up), "btn-secondary");
+        g_signal_connect_swapped(btn_check_up, "clicked", G_CALLBACK(+[](AxisSettingsApp* a) {
+            gtk_stack_set_visible_child_name(GTK_STACK(a->stack), "updates");
+        }), this);
+
+        gtk_box_pack_start(GTK_BOX(box_up_action), lbl_up_desc, TRUE, TRUE, 0);
+        gtk_box_pack_end(GTK_BOX(box_up_action), btn_check_up, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(card_up), box_up_action, FALSE, FALSE, 6);
+        gtk_box_pack_start(GTK_BOX(page), card_up, FALSE, FALSE, 0);
+
+        // ---------------------------------------------------------------------
+        // OS Edition Switcher Card (At the bottom, after Software Updates)
+        // ---------------------------------------------------------------------
+        std::string ed_name = "AxisOS Home & Gaming";
+        std::ifstream ed_file("/etc/axisos-edition");
+        if (ed_file.is_open()) {
+            std::string line;
+            while (std::getline(ed_file, line)) {
+                if (line.rfind("EDITION_NAME=", 0) == 0) {
+                    ed_name = line.substr(13);
+                    if (!ed_name.empty() && (ed_name.front() == '"' || ed_name.front() == '\'')) {
+                        ed_name = ed_name.substr(1, ed_name.size() - 2);
+                    }
+                    break;
+                }
+            }
+        }
+
+        GtkWidget* card_ed = create_card("OS Edition", ("Active Profile: " + ed_name).c_str());
+        GtkWidget* box_ed_action = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+        std::string ed_desc = "Includes low-latency XanMod kernel tuning, GameBoost GPU engine, Steam, and media codecs.";
+        if (ed_name.find("Enterprise") != std::string::npos) {
+            ed_desc = "Enterprise Profile: Hardened sysctl security, UFW firewall, Active Directory / SSSD domain join.";
+        } else if (ed_name.find("School") != std::string::npos || ed_name.find("Work") != std::string::npos) {
+            ed_desc = "Work & School Profile: Full LibreOffice productivity suite, VS Code, Python STEM development tools.";
+        }
+        GtkWidget* lbl_ed_desc = gtk_label_new(ed_desc.c_str());
+        gtk_label_set_xalign(GTK_LABEL(lbl_ed_desc), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(lbl_ed_desc), "card-subtitle");
+
+        GtkWidget* btn_switch_ed = gtk_button_new_with_label("🔄 Switch OS Edition...");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_switch_ed), "btn-primary");
+        g_signal_connect_swapped(btn_switch_ed, "clicked", G_CALLBACK(+[](AxisSettingsApp* a) {
+            GtkWidget* dlg = gtk_dialog_new_with_buttons("Switch AxisOS Edition",
+                GTK_WINDOW(a->window), GTK_DIALOG_MODAL,
+                "Cancel", GTK_RESPONSE_CANCEL,
+                "Apply Edition", GTK_RESPONSE_OK, NULL);
+            gtk_window_set_default_size(GTK_WINDOW(dlg), 460, 240);
+            GtkWidget* ca = gtk_dialog_get_content_area(GTK_DIALOG(dlg));
+            gtk_box_set_spacing(GTK_BOX(ca), 10);
+            gtk_container_set_border_width(GTK_CONTAINER(ca), 16);
+
+            GtkWidget* l = gtk_label_new("Select the edition to apply without reinstalling:");
+            gtk_label_set_xalign(GTK_LABEL(l), 0.0);
+            gtk_box_pack_start(GTK_BOX(ca), l, FALSE, FALSE, 0);
+
+            GtkWidget* r1 = gtk_radio_button_new_with_label(NULL, "AxisOS Home & Gaming (Default, Steam, Media)");
+            GtkWidget* r2 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r1), "AxisOS Enterprise Workstation (Hardened, AD/Domain)");
+            GtkWidget* r3 = gtk_radio_button_new_with_label_from_widget(GTK_RADIO_BUTTON(r1), "AxisOS Work & School (Office, Productivity, Education)");
+
+            gtk_box_pack_start(GTK_BOX(ca), r1, FALSE, FALSE, 0);
+            gtk_box_pack_start(GTK_BOX(ca), r2, FALSE, FALSE, 0);
+            gtk_box_pack_start(GTK_BOX(ca), r3, FALSE, FALSE, 0);
+            gtk_widget_show_all(ca);
+
+            gint res = gtk_dialog_run(GTK_DIALOG(dlg));
+            if (res == GTK_RESPONSE_OK) {
+                const char* target = "base";
+                if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(r2))) target = "enterprise";
+                else if (gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(r3))) target = "school";
+                std::string cmd = (geteuid() == 0) ? ("/usr/local/bin/axis-switch-edition " + std::string(target))
+                                                   : ("pkexec /usr/local/bin/axis-switch-edition " + std::string(target));
+                exec_cmd(cmd + " &");
+            }
+            gtk_widget_destroy(dlg);
+        }), this);
+
+        gtk_box_pack_start(GTK_BOX(box_ed_action), lbl_ed_desc, TRUE, TRUE, 0);
+        gtk_box_pack_end(GTK_BOX(box_ed_action), btn_switch_ed, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(card_ed), box_ed_action, FALSE, FALSE, 6);
+        gtk_box_pack_start(GTK_BOX(page), card_ed, FALSE, FALSE, 0);
+
         gtk_stack_add_named(GTK_STACK(stack), page, "about");
     }
 };

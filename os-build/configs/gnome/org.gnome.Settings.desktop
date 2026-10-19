@@ -8,7 +8,12 @@ Type=Application
 Categories=GNOME;GTK;Settings;DesktopSettings;HardwareSettings;X-GNOME-Settings-Panel;X-GNOME-PersonalSettings;X-GNOME-SystemSettings;
 Keywords=Appearance;Theme;Display;Taskbar;Update;WiFi;Password;Time;Health;Gaming;Biometrics;Iris;Fingerprint;Rewind;USB;
 StartupNotify=true
-Actions=AxisHealth;AxisGaming;AxisBiometrics;AxisSignature;AxisAppearance;AxisUpdates;
+Actions=AxisEdition;AxisHealth;AxisGaming;AxisBiometrics;AxisSignature;AxisAppearance;AxisUpdates;
+
+[Desktop Action AxisEdition]
+Name=Switch OS Edition (About)
+Exec=/usr/local/bin/axisos-settings-panel about
+Icon=help-about
 
 [Desktop Action AxisHealth]
 Name=System Health Check

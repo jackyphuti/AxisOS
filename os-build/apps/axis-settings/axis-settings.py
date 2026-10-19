@@ -1272,16 +1272,81 @@ class AxisSettingsApp(Gtk.Window):
 
         card.pack_start(grid, False, False, 0)
 
-        edition_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        edition_box.set_margin_top(12)
-        btn_switch_edition = Gtk.Button(label="🔄 Switch OS Edition...")
-        btn_switch_edition.get_style_context().add_class("btn-secondary")
-        btn_switch_edition.connect("clicked", self.on_switch_edition_clicked)
-        edition_box.pack_start(btn_switch_edition, False, False, 0)
-        card.pack_start(edition_box, False, False, 0)
-
         page.pack_start(card, False, False, 0)
+
+        # ---------------------------------------------------------------------
+        # Software Updates Option Card (Above OS Edition)
+        # ---------------------------------------------------------------------
+        card_updates = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        card_updates.get_style_context().add_class("card")
+
+        row_up = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
+        lbl_up_icon = Gtk.Label(label="🔄", xalign=0)
+        lbl_up_icon.get_style_context().add_class("status-badge-ok")
+
+        box_up_text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        title_up = Gtk.Label(label="Software Updates", xalign=0)
+        title_up.get_style_context().add_class("card-title")
+        sub_up = Gtk.Label(label="Official Debian 12 & AxisOS OTA Channels • Direct APT integration", xalign=0)
+        sub_up.get_style_context().add_class("card-subtitle")
+        box_up_text.pack_start(title_up, False, False, 0)
+        box_up_text.pack_start(sub_up, False, False, 0)
+
+        btn_check_updates = Gtk.Button(label="🔍 Check for Updates")
+        btn_check_updates.get_style_context().add_class("btn-secondary")
+        btn_check_updates.connect("clicked", lambda _: self.stack.set_visible_child_name("updates"))
+
+        row_up.pack_start(lbl_up_icon, False, False, 0)
+        row_up.pack_start(box_up_text, True, True, 0)
+        row_up.pack_end(btn_check_updates, False, False, 0)
+        card_updates.pack_start(row_up, False, False, 0)
+        page.pack_start(card_updates, False, False, 0)
+
+        # ---------------------------------------------------------------------
+        # OS Edition Switcher Card (At the bottom, after Software Updates)
+        # ---------------------------------------------------------------------
+        card_edition = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        card_edition.get_style_context().add_class("card")
+
+        row_ed = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=14)
+        lbl_ed_icon = Gtk.Label(label="⚡", xalign=0)
+        lbl_ed_icon.get_style_context().add_class("status-badge-ok")
+
+        box_ed_text = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        title_ed = Gtk.Label(label="OS Edition", xalign=0)
+        title_ed.get_style_context().add_class("card-title")
+        self.lbl_active_edition_sub = Gtk.Label(label=f"Active Profile: {edition_name}", xalign=0)
+        self.lbl_active_edition_sub.get_style_context().add_class("card-subtitle")
+        box_ed_text.pack_start(title_ed, False, False, 0)
+        box_ed_text.pack_start(self.lbl_active_edition_sub, False, False, 0)
+
+        btn_switch_edition = Gtk.Button(label="🔄 Switch OS Edition...")
+        btn_switch_edition.get_style_context().add_class("btn-primary")
+        btn_switch_edition.connect("clicked", self.on_switch_edition_clicked)
+
+        row_ed.pack_start(lbl_ed_icon, False, False, 0)
+        row_ed.pack_start(box_ed_text, True, True, 0)
+        row_ed.pack_end(btn_switch_edition, False, False, 0)
+        card_edition.pack_start(row_ed, False, False, 0)
+
+        self.lbl_edition_desc = Gtk.Label(xalign=0)
+        self.lbl_edition_desc.get_style_context().add_class("card-subtitle")
+        self._update_edition_desc(edition_name)
+        card_edition.pack_start(self.lbl_edition_desc, False, False, 4)
+
+        page.pack_start(card_edition, False, False, 0)
         self.stack.add_named(page, "about")
+
+    def _update_edition_desc(self, edition_name):
+        ed_lower = edition_name.lower()
+        if "enterprise" in ed_lower:
+            desc = "Enterprise Profile: Hardened sysctl security, UFW firewall, Active Directory / SSSD domain join, and audit logging."
+        elif "school" in ed_lower or "work" in ed_lower or "education" in ed_lower:
+            desc = "Work & School Profile: Full LibreOffice productivity suite, VS Code, Python STEM development tools, and education workspaces."
+        else:
+            desc = "Home & Gaming Profile: Low-latency XanMod kernel tuning, GameBoost GPU engine, Steam, and full media codecs."
+        if hasattr(self, "lbl_edition_desc"):
+            self.lbl_edition_desc.set_text(desc)
 
     def on_switch_edition_clicked(self, btn):
         dialog = Gtk.Dialog(
@@ -1332,10 +1397,13 @@ class AxisSettingsApp(Gtk.Window):
 
         resp = dialog.run()
         target_ed = "base"
+        target_title = "AxisOS Home & Gaming"
         if rad_ent.get_active():
             target_ed = "enterprise"
+            target_title = "AxisOS Enterprise Workstation"
         elif rad_edu.get_active():
             target_ed = "education"
+            target_title = "AxisOS Work & School"
 
         dialog.destroy()
 
@@ -1344,6 +1412,9 @@ class AxisSettingsApp(Gtk.Window):
             cmd = prefix + ["/usr/local/bin/axis-switch-edition", target_ed]
             try:
                 subprocess.Popen(cmd)
+                self.lbl_active_edition_sub.set_text(f"Active Profile: {target_title}")
+                self._update_edition_desc(target_title)
+                self.show_info_dialog("Switch Edition Applied", f"Profile switched to {target_title}.\nSystem optimization and configuration updated.")
             except Exception as e:
                 self.show_info_dialog("Switch Edition Failed", str(e))
 

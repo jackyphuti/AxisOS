@@ -87,6 +87,16 @@ fs.file-max = 2097152
 EOF
     sysctl -p /etc/sysctl.d/99-axisos-gaming.conf 2>/dev/null || true
 
+    # Sync /etc/os-release so GNOME Settings and all system diagnostics reflect active edition
+    if [ -f /etc/os-release ]; then
+        sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="AxisOS 2.0 (Home \& Gaming Edition)"/' /etc/os-release 2>/dev/null || true
+        sed -i 's/^VARIANT=.*/VARIANT="Home \& Gaming"/' /etc/os-release 2>/dev/null || true
+        if ! grep -q "^VARIANT=" /etc/os-release 2>/dev/null; then
+            echo 'VARIANT="Home & Gaming"' >> /etc/os-release
+            echo 'VARIANT_ID="base"' >> /etc/os-release
+        fi
+    fi
+
     notify "AxisOS Edition Changed" "Switched to AxisOS Home & Gaming Edition. GameBoost and high-performance gaming profiles engaged."
 }
 
@@ -122,6 +132,16 @@ EOF
         ufw --force enable 2>/dev/null || true
     fi
 
+    # Sync /etc/os-release so GNOME Settings and all system diagnostics reflect active edition
+    if [ -f /etc/os-release ]; then
+        sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="AxisOS 2.0 (Enterprise Workstation Edition)"/' /etc/os-release 2>/dev/null || true
+        sed -i 's/^VARIANT=.*/VARIANT="Enterprise Workstation"/' /etc/os-release 2>/dev/null || true
+        if ! grep -q "^VARIANT=" /etc/os-release 2>/dev/null; then
+            echo 'VARIANT="Enterprise Workstation"' >> /etc/os-release
+            echo 'VARIANT_ID="enterprise"' >> /etc/os-release
+        fi
+    fi
+
     notify "AxisOS Edition Changed" "Switched to AxisOS Enterprise Workstation. Security hardening and corporate domain join tools activated."
 }
 
@@ -144,6 +164,16 @@ OFFICE_SUITE=libreoffice
 DEV_TOOLING=enabled
 EOF
     chmod 644 /etc/axisos-work-school.conf
+
+    # Sync /etc/os-release so GNOME Settings and all system diagnostics reflect active edition
+    if [ -f /etc/os-release ]; then
+        sed -i 's/^PRETTY_NAME=.*/PRETTY_NAME="AxisOS 2.0 (Work \& School Edition)"/' /etc/os-release 2>/dev/null || true
+        sed -i 's/^VARIANT=.*/VARIANT="Work \& School"/' /etc/os-release 2>/dev/null || true
+        if ! grep -q "^VARIANT=" /etc/os-release 2>/dev/null; then
+            echo 'VARIANT="Work & School"' >> /etc/os-release
+            echo 'VARIANT_ID="school"' >> /etc/os-release
+        fi
+    fi
 
     notify "AxisOS Edition Changed" "Switched to AxisOS Work & School. Office suite, STEM developer tools, and productivity workspace configured."
 }

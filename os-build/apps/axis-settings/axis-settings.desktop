@@ -1,9 +1,35 @@
 [Desktop Entry]
-Name=AxisOS Features
-Comment=AxisOS custom feature panels (use Settings for the full experience)
+Name=AxisOS Settings
+Comment=AxisOS System Settings, Hardware & Edition Switcher
 Exec=/usr/local/bin/axisos-settings-panel
 Icon=preferences-system
 Terminal=false
 Type=Application
-Categories=Settings;
-NoDisplay=true
+Categories=Settings;DesktopSettings;GTK;
+StartupNotify=true
+Actions=About;Updates;Health;Gaming;Biometrics;
+
+[Desktop Action About]
+Name=About & OS Edition
+Exec=/usr/local/bin/axisos-settings-panel about
+Icon=help-about
+
+[Desktop Action Updates]
+Name=Software Updates
+Exec=/usr/local/bin/axisos-settings-panel updates
+Icon=system-software-update
+
+[Desktop Action Health]
+Name=System Health Check
+Exec=/usr/local/bin/axisos-settings-panel health
+Icon=utilities-system-monitor
+
+[Desktop Action Gaming]
+Name=Gaming Boost & Hardware
+Exec=/usr/local/bin/axisos-settings-panel gaming
+Icon=input-gaming
+
+[Desktop Action Biometrics]
+Name=Biometrics & Screen Lock
+Exec=/usr/local/bin/axisos-settings-panel security
+Icon=changes-prevent

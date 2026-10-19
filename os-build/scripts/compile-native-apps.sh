@@ -30,11 +30,12 @@ if [ -f "$APPS_DIR/axis-settings/axis-settings.py" ]; then
     chmod 755 "$APPS_DIR/axis-settings/axisos-settings-panel"
     cat << 'EOF' > "$APPS_DIR/axis-settings/axis-settings"
 #!/bin/sh
-if [ $# -eq 0 ]; then
-    exec gnome-control-center "$@"
-else
-    exec /usr/local/bin/axisos-settings-panel "$@"
+if [ "$1" = "about" ] || [ "$1" = "--about" ] || [ "$1" = "-a" ]; then
+    exec /usr/local/bin/axisos-settings-panel about
+elif [ "$1" = "updates" ] || [ "$1" = "--updates" ] || [ "$1" = "-u" ]; then
+    exec /usr/local/bin/axisos-settings-panel updates
 fi
+exec /usr/local/bin/axisos-settings-panel "$@"
 EOF
     chmod 755 "$APPS_DIR/axis-settings/axis-settings"
 fi

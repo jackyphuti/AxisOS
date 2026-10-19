@@ -121,6 +121,10 @@ if [ -f "os-build/configs/desktop/axis-domain-join.desktop" ]; then
     cp -f "os-build/configs/desktop/axis-domain-join.desktop" "${DEB_DIR}/usr/share/applications/axis-domain-join.desktop"
     chmod 644 "${DEB_DIR}/usr/share/applications/axis-domain-join.desktop"
 fi
+if [ -f "os-build/configs/gnome/org.gnome.Settings.desktop" ]; then
+    cp -f "os-build/configs/gnome/org.gnome.Settings.desktop" "${DEB_DIR}/usr/share/applications/org.gnome.Settings.desktop"
+    chmod 644 "${DEB_DIR}/usr/share/applications/org.gnome.Settings.desktop"
+fi
 
 # Deploy AxisOS Wallpaper Collection & GNOME Properties
 mkdir -p "${DEB_DIR}/usr/share/backgrounds/axisos"
