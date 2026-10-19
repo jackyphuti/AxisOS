@@ -50,6 +50,7 @@ chmod 755 "$APPS_DIR/axis-usb-daemon/axis-usb-daemon" 2>/dev/null || true
 echo "--> Building axis-task-manager..."
 if command -v g++ >/dev/null 2>&1 && pkg-config --exists gtk+-3.0 2>/dev/null; then
     g++ -O2 -std=c++17 "$APPS_DIR/axis-task-manager/main.cpp" $(pkg-config --cflags --libs gtk+-3.0) -o "$APPS_DIR/axis-task-manager/axis-task-manager"
+    strip "$APPS_DIR/axis-task-manager/axis-task-manager" 2>/dev/null || true
 fi
 chmod 755 "$APPS_DIR/axis-task-manager/axis-task-manager" 2>/dev/null || true
 
