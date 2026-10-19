@@ -1,13 +1,15 @@
 Package: axisos-desktop-suite
-Version: 2.1.0-202610190801
+Version: 2.1.0-202610190817
 Architecture: amd64
 Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
 Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation
-Filename: ./axisos-desktop-suite_2.1.0-202610190801_amd64.deb
-Size: 20214076
-MD5sum: 1fbccf32fff811c0b8a15dcbb152c6e2
-SHA1: 36a406ff9aa7e14933c86f3bdb8e7f55894e6922
-SHA256: f8656aacadd6fa3e4da4032494ad2d9fc588127ecebb093af5185b9b3174d079
+Breaks: axisos-desktop-suite (<< 2.1.0-202610190817)
+Replaces: axisos-desktop-suite (<< 2.1.0-202610190817)
+Filename: ./axisos-desktop-suite_2.1.0-202610190817_amd64.deb
+Size: 20214284
+MD5sum: 7b549a6eb192175bdeb308f37822b28d
+SHA1: fd162cc343fd2bd94d2a88f925795ef08a39870d
+SHA256: 9f3a7a3658db691c921cdf9cd123f032c7df65f5a5b604af6b221f8b311e6369
 Section: x11
 Priority: optional
 Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
