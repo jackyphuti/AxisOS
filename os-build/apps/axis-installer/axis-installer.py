@@ -675,6 +675,7 @@ class AxisFriendlyInstaller(Gtk.Window):
         prefix = [] if os.geteuid() == 0 else (["pkexec"] if shutil.which("pkexec") else ["sudo", "-n"])
         cmd = prefix + [
             script_path,
+            "--edition", str(getattr(self, "selected_edition", "base")),
             "--disk", str(self.selected_disk or "/dev/sda"),
             "--username", str(self.username),
             "--password-stdin",

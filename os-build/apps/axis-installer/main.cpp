@@ -406,6 +406,70 @@ progressbar trough {
     border-radius: 3px;
     min-height: 8px;
 }
+
+/* Edition Selection Cards */
+.edition-card {
+    background-color: #14171E;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    padding: 16px 20px;
+}
+
+.edition-card:hover {
+    background-color: #1A1F29;
+    border-color: rgba(56, 189, 248, 0.4);
+}
+
+.edition-card.selected {
+    background-color: #152238;
+    border-color: #38BDF8;
+}
+
+.edition-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.edition-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background-color: #0284C7;
+    color: #FFFFFF;
+}
+
+.edition-desc {
+    font-size: 13px;
+    color: #94A3B8;
+}
+
+.edition-features {
+    font-size: 12px;
+    color: #38BDF8;
+    font-weight: 600;
+}
+
+radiobutton,
+radiobutton:hover,
+radiobutton:checked {
+    color: #FFFFFF;
+}
+
+radiobutton radio,
+radiobutton radio:checked {
+    min-width: 18px;
+    min-height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    background-color: #1E232B;
+}
+
+radiobutton radio:checked {
+    border-color: #38BDF8;
+    background-color: #0284C7;
+}
 )";
 
 struct LangEntry {
@@ -560,6 +624,8 @@ public:
     int current_step = 0;
 
     // User preferences
+    std::string selected_edition = "base";
+    std::string selected_edition_name = "AxisOS Home & Gaming";
     std::string selected_disk = "/dev/sda";
     std::string selected_fs = "ext4";
     std::string selected_locale = "en_US.UTF-8";
@@ -580,7 +646,15 @@ public:
     GtkWidget* combo_keyboard;
     GtkWidget* entry_keytest;
 
-    // Step 1: Disk selection & Filesystem
+    // Step 1: Edition Selection
+    GtkWidget* card_edition_base = nullptr;
+    GtkWidget* card_edition_ent = nullptr;
+    GtkWidget* card_edition_edu = nullptr;
+    GtkWidget* radio_edition_base = nullptr;
+    GtkWidget* radio_edition_ent = nullptr;
+    GtkWidget* radio_edition_edu = nullptr;
+
+    // Step 2: Disk selection & Filesystem
     GtkWidget* tree_drives;
     GtkListStore* store_drives;
     GtkWidget* lbl_disk_selection_status;
@@ -589,14 +663,15 @@ public:
     std::string live_disk_device = "";
     std::vector<std::string> excluded_disks;
 
-    // Step 2: Account
+    // Step 3: Account
     GtkWidget* entry_fullname;
     GtkWidget* entry_username;
     GtkWidget* entry_hostname;
     GtkWidget* entry_pwd;
     GtkWidget* entry_cpwd;
 
-    // Step 3: Summary
+    // Step 4: Summary
+    GtkWidget* lbl_summary_edition = nullptr;
     GtkWidget* lbl_summary_disk;
     GtkWidget* lbl_summary_fs;
     GtkWidget* lbl_summary_lang;
@@ -605,7 +680,7 @@ public:
     GtkWidget* lbl_summary_user;
     GtkWidget* btn_summary_install_large;
 
-    // Step 4: Installing
+    // Step 5: Installing
     GtkWidget* lbl_stage_copy;
     GtkWidget* lbl_stage_prep;
     GtkWidget* lbl_stage_feat;
@@ -683,13 +758,14 @@ public:
         // Detect live installation media right away
         detect_live_media();
 
-        // Build 6 Setup Screens
+        // Build 7 Setup Screens
         build_step_locale();    // Step 0: Welcome & Localization
-        build_step_disk();      // Step 1: Storage & Drive Selection
-        build_step_account();   // Step 2: User Account & Security
-        build_step_summary();   // Step 3: Confirmation Summary & Install Now
-        build_step_installing();// Step 4: Live Installation Progress
-        build_step_finish();    // Step 5: Completed & Reboot
+        build_step_edition();   // Step 1: Edition Selection (Base, Enterprise, Education)
+        build_step_disk();      // Step 2: Storage & Drive Selection
+        build_step_account();   // Step 3: User Account & Security
+        build_step_summary();   // Step 4: Confirmation Summary & Install Now
+        build_step_installing();// Step 5: Live Installation Progress
+        build_step_finish();    // Step 6: Completed & Reboot
 
         g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
         update_navigation_state();
@@ -914,8 +990,165 @@ public:
         }
     }
 
+    void select_edition(const std::string& ed_id) {
+        selected_edition = ed_id;
+        if (ed_id == "enterprise") {
+            selected_edition_name = "AxisOS Enterprise Workstation";
+            if (radio_edition_ent && !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(radio_edition_ent))) {
+                gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_edition_ent), TRUE);
+            }
+            if (card_edition_base) gtk_style_context_remove_class(gtk_widget_get_style_context(card_edition_base), "selected");
+            if (card_edition_ent) gtk_style_context_add_class(gtk_widget_get_style_context(card_edition_ent), "selected");
+            if (card_edition_edu) gtk_style_context_remove_class(gtk_widget_get_style_context(card_edition_edu), "selected");
+        } else if (ed_id == "education") {
+            selected_edition_name = "AxisOS Work & School";
+            if (radio_edition_edu && !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(radio_edition_edu))) {
+                gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_edition_edu), TRUE);
+            }
+            if (card_edition_base) gtk_style_context_remove_class(gtk_widget_get_style_context(card_edition_base), "selected");
+            if (card_edition_ent) gtk_style_context_remove_class(gtk_widget_get_style_context(card_edition_ent), "selected");
+            if (card_edition_edu) gtk_style_context_add_class(gtk_widget_get_style_context(card_edition_edu), "selected");
+        } else {
+            selected_edition = "base";
+            selected_edition_name = "AxisOS Home & Gaming";
+            if (radio_edition_base && !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(radio_edition_base))) {
+                gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(radio_edition_base), TRUE);
+            }
+            if (card_edition_base) gtk_style_context_add_class(gtk_widget_get_style_context(card_edition_base), "selected");
+            if (card_edition_ent) gtk_style_context_remove_class(gtk_widget_get_style_context(card_edition_ent), "selected");
+            if (card_edition_edu) gtk_style_context_remove_class(gtk_widget_get_style_context(card_edition_edu), "selected");
+        }
+    }
+
+    struct EditionCbData {
+        AxisInstallerApp* app;
+        const char* key;
+    };
+
+    static void on_edition_radio_toggled(GtkToggleButton* btn, gpointer user_data) {
+        if (gtk_toggle_button_get_active(btn)) {
+            EditionCbData* data = static_cast<EditionCbData*>(user_data);
+            data->app->select_edition(data->key);
+        }
+    }
+
+    static gboolean on_edition_card_clicked(GtkWidget*, GdkEventButton* ev, gpointer user_data) {
+        if (ev->button == 1) {
+            EditionCbData* data = static_cast<EditionCbData*>(user_data);
+            data->app->select_edition(data->key);
+            return TRUE;
+        }
+        return FALSE;
+    }
+
     // -------------------------------------------------------------------------
-    // Step 1: Storage & Drive Selection
+    // Step 1: Edition Selection (Base, Enterprise, Education)
+    // -------------------------------------------------------------------------
+    void build_step_edition() {
+        GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
+
+        GtkWidget* title = gtk_label_new("Choose Your AxisOS Edition");
+        gtk_label_set_xalign(GTK_LABEL(title), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(title), "win-title");
+
+        GtkWidget* sub = gtk_label_new("Select the tailored configuration that fits your workflow. You can easily switch editions anytime after installation.");
+        gtk_label_set_xalign(GTK_LABEL(sub), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(sub), "win-subtitle");
+
+        gtk_box_pack_start(GTK_BOX(box), title, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(box), sub, FALSE, FALSE, 0);
+
+        GtkWidget* cards_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+
+        auto create_card = [&](const char* title_text, const char* badge_text,
+                               const char* desc_text, const char* feats_text,
+                               GtkWidget** out_card, GtkWidget** out_radio,
+                               GtkWidget* group_radio, const char* edition_key) -> GtkWidget* {
+            GtkWidget* card_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+            gtk_style_context_add_class(gtk_widget_get_style_context(card_box), "edition-card");
+
+            GtkWidget* row_top = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+            GtkWidget* rad = gtk_radio_button_new_from_widget(group_radio ? GTK_RADIO_BUTTON(group_radio) : NULL);
+            *out_radio = rad;
+
+            GtkWidget* lbl_t = gtk_label_new(title_text);
+            gtk_label_set_xalign(GTK_LABEL(lbl_t), 0.0);
+            gtk_style_context_add_class(gtk_widget_get_style_context(lbl_t), "edition-title");
+
+            GtkWidget* lbl_b = gtk_label_new(badge_text);
+            gtk_style_context_add_class(gtk_widget_get_style_context(lbl_b), "edition-badge");
+
+            gtk_box_pack_start(GTK_BOX(row_top), rad, FALSE, FALSE, 0);
+            gtk_box_pack_start(GTK_BOX(row_top), lbl_t, FALSE, FALSE, 0);
+            gtk_box_pack_start(GTK_BOX(row_top), lbl_b, FALSE, FALSE, 4);
+
+            GtkWidget* lbl_d = gtk_label_new(desc_text);
+            gtk_label_set_xalign(GTK_LABEL(lbl_d), 0.0);
+            gtk_label_set_line_wrap(GTK_LABEL(lbl_d), TRUE);
+            gtk_style_context_add_class(gtk_widget_get_style_context(lbl_d), "edition-desc");
+            gtk_widget_set_margin_start(lbl_d, 28);
+
+            GtkWidget* lbl_f = gtk_label_new(feats_text);
+            gtk_label_set_xalign(GTK_LABEL(lbl_f), 0.0);
+            gtk_label_set_line_wrap(GTK_LABEL(lbl_f), TRUE);
+            gtk_style_context_add_class(gtk_widget_get_style_context(lbl_f), "edition-features");
+            gtk_widget_set_margin_start(lbl_f, 28);
+
+            gtk_box_pack_start(GTK_BOX(card_box), row_top, FALSE, FALSE, 0);
+            gtk_box_pack_start(GTK_BOX(card_box), lbl_d, FALSE, FALSE, 0);
+            gtk_box_pack_start(GTK_BOX(card_box), lbl_f, FALSE, FALSE, 0);
+
+            GtkWidget* event_box = gtk_event_box_new();
+            gtk_container_add(GTK_CONTAINER(event_box), card_box);
+            gtk_event_box_set_above_child(GTK_EVENT_BOX(event_box), FALSE);
+
+            *out_card = card_box;
+
+            EditionCbData* cb_data = new EditionCbData{this, edition_key};
+            g_signal_connect(rad, "toggled", G_CALLBACK(on_edition_radio_toggled), cb_data);
+            g_signal_connect(event_box, "button-press-event", G_CALLBACK(on_edition_card_clicked), cb_data);
+
+            return event_box;
+        };
+
+        GtkWidget* eb_base = create_card(
+            "AxisOS Home & Gaming",
+            "DEFAULT / GAMING",
+            "Optimized for high-performance low-latency gaming, streaming, content creation, and daily computing.",
+            "• Proton-GE & Wine gaming runtimes  • Mesa & NVIDIA graphics pipelines  • Flatpak app ecosystem",
+            &card_edition_base, &radio_edition_base, NULL, "base"
+        );
+
+        GtkWidget* eb_ent = create_card(
+            "AxisOS Enterprise Workstation",
+            "ENTERPRISE",
+            "Hardened for corporate environments, DevOps, system administration, and enterprise security compliance.",
+            "• Active Directory / FreeIPA domain join  • Docker & KVM virtualization  • Hardened sysctl & UFW firewall",
+            &card_edition_ent, &radio_edition_ent, radio_edition_base, "enterprise"
+        );
+
+        GtkWidget* eb_edu = create_card(
+            "AxisOS Work & School",
+            "WORK & EDUCATION",
+            "Focused productivity environment designed for students, educators, researchers, and professional workspaces.",
+            "• Complete LibreOffice & PDF tools  • Zoom, Teams, Webex web apps  • Distraction-free & battery longevity profile",
+            &card_edition_edu, &radio_edition_edu, radio_edition_base, "education"
+        );
+
+        gtk_box_pack_start(GTK_BOX(cards_box), eb_base, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(cards_box), eb_ent, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(cards_box), eb_edu, FALSE, FALSE, 0);
+
+        gtk_box_pack_start(GTK_BOX(box), cards_box, FALSE, FALSE, 4);
+
+        select_edition("base");
+
+        GtkWidget* scroller = wrap_in_scroller(box);
+        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_1");
+    }
+
+    // -------------------------------------------------------------------------
+    // Step 2: Storage & Drive Selection
     // -------------------------------------------------------------------------
     void build_step_disk() {
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
@@ -989,7 +1222,7 @@ public:
         gtk_box_pack_start(GTK_BOX(box), fs_card, FALSE, FALSE, 4);
 
         GtkWidget* scroller = wrap_in_scroller(box);
-        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_1");
+        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_2");
         populate_drives();
     }
 
@@ -1254,7 +1487,7 @@ public:
     }
 
     // -------------------------------------------------------------------------
-    // Step 2: User Account & Security Credentials
+    // Step 3: User Account & Security Credentials
     // -------------------------------------------------------------------------
     void build_step_account() {
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
@@ -1324,11 +1557,11 @@ public:
         gtk_box_pack_start(GTK_BOX(box), card, FALSE, FALSE, 4);
 
         GtkWidget* scroller = wrap_in_scroller(box);
-        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_2");
+        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_3");
     }
 
     // -------------------------------------------------------------------------
-    // Step 3: Confirmation Summary & Clear Install Now Option
+    // Step 4: Confirmation Summary & Clear Install Now Option
     // -------------------------------------------------------------------------
     void build_step_summary() {
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
@@ -1366,12 +1599,13 @@ public:
             gtk_grid_attach(GTK_GRID(grid), lv, 1, row, 1, 1);
         };
 
-        add_row(0, "Target Hard Disk:", &lbl_summary_disk);
-        add_row(1, "Filesystem Architecture:", &lbl_summary_fs);
-        add_row(2, "Language & Locale:", &lbl_summary_lang);
-        add_row(3, "Location & Timezone:", &lbl_summary_tz);
-        add_row(4, "Keyboard Layout:", &lbl_summary_keymap);
-        add_row(5, "User Administrator:", &lbl_summary_user);
+        add_row(0, "AxisOS Edition:", &lbl_summary_edition);
+        add_row(1, "Target Hard Disk:", &lbl_summary_disk);
+        add_row(2, "Filesystem Architecture:", &lbl_summary_fs);
+        add_row(3, "Language & Locale:", &lbl_summary_lang);
+        add_row(4, "Location & Timezone:", &lbl_summary_tz);
+        add_row(5, "Keyboard Layout:", &lbl_summary_keymap);
+        add_row(6, "User Administrator:", &lbl_summary_user);
 
         gtk_box_pack_start(GTK_BOX(card), grid, FALSE, FALSE, 0);
 
@@ -1390,23 +1624,23 @@ public:
         gtk_box_pack_start(GTK_BOX(box), card, FALSE, FALSE, 4);
 
         GtkWidget* scroller = wrap_in_scroller(box);
-        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_3");
+        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_4");
     }
 
     void update_summary_card() {
-        if (!lbl_summary_disk) return;
-        gtk_label_set_text(GTK_LABEL(lbl_summary_disk), selected_disk.c_str());
+        if (lbl_summary_edition) gtk_label_set_text(GTK_LABEL(lbl_summary_edition), selected_edition_name.c_str());
+        if (lbl_summary_disk) gtk_label_set_text(GTK_LABEL(lbl_summary_disk), selected_disk.c_str());
         std::string fs_str = (selected_fs == "ext4") ? "EXT4 (Recommended - Universal Stability)" : "Btrfs (Modern with Transparent Compression)";
         if (lbl_summary_fs) gtk_label_set_text(GTK_LABEL(lbl_summary_fs), fs_str.c_str());
-        gtk_label_set_text(GTK_LABEL(lbl_summary_lang), selected_locale_name.c_str());
-        gtk_label_set_text(GTK_LABEL(lbl_summary_tz), selected_tz_name.c_str());
-        gtk_label_set_text(GTK_LABEL(lbl_summary_keymap), selected_keymap_name.c_str());
+        if (lbl_summary_lang) gtk_label_set_text(GTK_LABEL(lbl_summary_lang), selected_locale_name.c_str());
+        if (lbl_summary_tz) gtk_label_set_text(GTK_LABEL(lbl_summary_tz), selected_tz_name.c_str());
+        if (lbl_summary_keymap) gtk_label_set_text(GTK_LABEL(lbl_summary_keymap), selected_keymap_name.c_str());
         std::string usr_info = username + " (" + fullname + ")";
-        gtk_label_set_text(GTK_LABEL(lbl_summary_user), usr_info.c_str());
+        if (lbl_summary_user) gtk_label_set_text(GTK_LABEL(lbl_summary_user), usr_info.c_str());
     }
 
     // -------------------------------------------------------------------------
-    // Step 4: Live Installation Progress
+    // Step 5: Live Installation Progress
     // -------------------------------------------------------------------------
     void build_step_installing() {
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
@@ -1464,11 +1698,11 @@ public:
         gtk_box_pack_start(GTK_BOX(box), card, FALSE, FALSE, 4);
 
         GtkWidget* scroller = wrap_in_scroller(box);
-        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_4");
+        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_5");
     }
 
     // -------------------------------------------------------------------------
-    // Step 5: Completed & Ready to Reboot
+    // Step 6: Completed & Ready to Reboot
     // -------------------------------------------------------------------------
     void build_step_finish() {
         GtkWidget* box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 18);
@@ -1493,7 +1727,7 @@ public:
         gtk_box_pack_start(GTK_BOX(box), btn_restart, FALSE, FALSE, 14);
 
         GtkWidget* scroller = wrap_in_scroller(box);
-        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_5");
+        gtk_stack_add_named(GTK_STACK(stack), scroller, "step_6");
     }
 
     // -------------------------------------------------------------------------
@@ -1506,13 +1740,11 @@ public:
         // Back button configuration
         if (current_step == 0) {
             gtk_widget_set_visible(btn_back, FALSE);
-        } else if (current_step < 4) {
+        } else if (current_step <= 4) {
             gtk_widget_set_visible(btn_back, TRUE);
             gtk_widget_set_sensitive(btn_back, TRUE);
             gtk_button_set_label(GTK_BUTTON(btn_back), "← Back");
-        } else if (current_step == 4) { // Installing
-            gtk_widget_set_visible(btn_back, FALSE);
-        } else if (current_step == 5) { // Finished
+        } else { // 5 (Installing) or 6 (Finished)
             gtk_widget_set_visible(btn_back, FALSE);
         }
 
@@ -1521,21 +1753,25 @@ public:
             gtk_widget_set_visible(btn_next, TRUE);
             gtk_widget_set_sensitive(btn_next, TRUE);
             gtk_button_set_label(GTK_BUTTON(btn_next), "Continue →");
-        } else if (current_step == 1) {
+        } else if (current_step == 1) { // Edition selection
+            gtk_widget_set_visible(btn_next, TRUE);
+            gtk_widget_set_sensitive(btn_next, TRUE);
+            gtk_button_set_label(GTK_BUTTON(btn_next), "Continue →");
+        } else if (current_step == 2) { // Drive selection
             gtk_widget_set_visible(btn_next, TRUE);
             gtk_widget_set_sensitive(btn_next, !selected_disk.empty());
             gtk_button_set_label(GTK_BUTTON(btn_next), "Continue →");
-        } else if (current_step == 2) {
+        } else if (current_step == 3) { // User Account
             gtk_widget_set_visible(btn_next, TRUE);
             gtk_widget_set_sensitive(btn_next, TRUE);
             gtk_button_set_label(GTK_BUTTON(btn_next), "Continue →");
-        } else if (current_step == 3) { // Summary
+        } else if (current_step == 4) { // Summary
             gtk_widget_set_visible(btn_next, TRUE);
             gtk_widget_set_sensitive(btn_next, TRUE);
             gtk_button_set_label(GTK_BUTTON(btn_next), "⚡ Install AxisOS Now");
-        } else if (current_step == 4) { // Installing
+        } else if (current_step == 5) { // Installing
             gtk_widget_set_visible(btn_next, FALSE);
-        } else if (current_step == 5) { // Finished
+        } else if (current_step == 6) { // Finished
             gtk_widget_set_visible(btn_next, TRUE);
             gtk_widget_set_sensitive(btn_next, TRUE);
             gtk_button_set_label(GTK_BUTTON(btn_next), "Restart Now");
@@ -1543,9 +1779,9 @@ public:
     }
 
     static void on_back_clicked(AxisInstallerApp* app) {
-        if (app->current_step == 4) {
+        if (app->current_step == 5) {
             // Recovery from installation failure: return to disk selection
-            app->current_step = 1;
+            app->current_step = 2;
             app->update_navigation_state();
             return;
         }
@@ -1556,14 +1792,14 @@ public:
     }
 
     static void on_next_clicked(AxisInstallerApp* app) {
-        if (app->current_step == 1) {
+        if (app->current_step == 2) {
             if (app->selected_disk.empty()) {
                 show_alert(app->window, "Please select a target storage drive before continuing.");
                 return;
             }
         }
 
-        if (app->current_step == 2) {
+        if (app->current_step == 3) {
             // Validate account credentials
             app->fullname = gtk_entry_get_text(GTK_ENTRY(app->entry_fullname));
             app->username = gtk_entry_get_text(GTK_ENTRY(app->entry_username));
@@ -1580,25 +1816,25 @@ public:
                 return;
             }
 
-            app->current_step = 3;
+            app->current_step = 4;
             app->update_summary_card();
             app->update_navigation_state();
             return;
         }
 
-        if (app->current_step == 3) {
+        if (app->current_step == 4) {
             if (app->selected_disk.empty()) {
                 show_alert(app->window, "Please select a target storage drive before continuing.");
                 return;
             }
             // User confirmed on summary screen -> Launch installation worker
-            app->current_step = 4;
+            app->current_step = 5;
             app->update_navigation_state();
             app->start_installer_worker();
             return;
         }
 
-        if (app->current_step == 5) {
+        if (app->current_step == 6) {
             // Finished screen -> Reboot
             system("systemctl reboot 2>/dev/null || reboot 2>/dev/null");
             return;
@@ -1614,7 +1850,7 @@ public:
             return;
         }
         // Center button on summary screen
-        app->current_step = 4;
+        app->current_step = 5;
         app->update_navigation_state();
         app->start_installer_worker();
     }
@@ -1656,6 +1892,8 @@ public:
                     args_storage.push_back("pkexec");
                 }
                 args_storage.push_back("/usr/local/bin/axisos-installer.sh");
+                args_storage.push_back("--edition");
+                args_storage.push_back(selected_edition);
                 args_storage.push_back("--disk");
                 args_storage.push_back(selected_disk);
                 args_storage.push_back("--fs");
@@ -1765,7 +2003,7 @@ public:
             if (exit_code == 0) {
                 g_idle_add(+[](gpointer data) -> gboolean {
                     AxisInstallerApp* app = static_cast<AxisInstallerApp*>(data);
-                    app->current_step = 5;
+                    app->current_step = 6;
                     app->update_navigation_state();
                     return G_SOURCE_REMOVE;
                 }, this);

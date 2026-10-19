@@ -63,6 +63,7 @@ usage() {
 Usage: $0 --disk <device> [options]
 Options:
   --disk <path>         Target block device (e.g. /dev/sda, /dev/nvme0n1) [REQUIRED]
+  --edition <type>      OS Edition (base|enterprise|education, default: base)
   --username <name>     Primary username (default: axis)
   --password <pass>     User password (default: password)
   --fullname <name>     User full name (default: AxisOS User)
@@ -77,10 +78,13 @@ EOF
     exit 1
 }
 
+EDITION="base"
+
 # Parse CLI arguments
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --disk) TARGET_DISK="$2"; shift 2 ;;
+        --edition) EDITION="$2"; shift 2 ;;
         --user|--username) USERNAME="$2"; shift 2 ;;
         --pass|--password) PASSWORD="$2"; shift 2 ;;
         --password-stdin) IFS= read -r PASSWORD; shift 1 ;;
@@ -976,12 +980,34 @@ fi
 chmod +x "/mnt/home/${USERNAME}/Desktop"/*.desktop 2>/dev/null || true
 chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}"
 
+# Resolve and configure selected OS Edition profile
+case "$EDITION" in
+    enterprise|workstation|corp)
+        EDITION_ID="enterprise"
+        EDITION_LABEL="AxisOS Enterprise Workstation"
+        EDITION_DESC="Hardened workstation with corporate domain join, VPNs, and compliance security."
+        ;;
+    education|school|work|edu)
+        EDITION_ID="education"
+        EDITION_LABEL="AxisOS Work & School"
+        EDITION_DESC="Full productivity workstation for students, educators, and professionals."
+        ;;
+    *)
+        EDITION_ID="base"
+        EDITION_LABEL="AxisOS Home & Gaming"
+        EDITION_DESC="High-performance gaming, multimedia, and daily computing edition."
+        ;;
+esac
+
+log "Applying OS Edition Profile: $EDITION_LABEL ($EDITION_ID)"
+
 # Permanent marker indicating system is fully installed to hard disk
 cat << EOF > /mnt/etc/axisos-installed
 INSTALLED=true
-VERSION="2.0"
+VERSION="2.1"
 CODENAME="Debian Edition"
-EDITION="Gaming & Workstation"
+EDITION_ID="${EDITION_ID}"
+EDITION="${EDITION_LABEL}"
 INSTALL_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 TARGET_DISK="${TARGET_DISK}"
 TARGET_PART="${ROOT_PART}"
@@ -990,6 +1016,52 @@ PRIMARY_USER="${USERNAME}"
 BOOT_MODE="$([[ "$IS_UEFI" == "true" ]] && echo "UEFI" || echo "BIOS")"
 EOF
 chmod 644 /mnt/etc/axisos-installed
+
+cat << EOF > /mnt/etc/axisos-edition
+EDITION_ID="${EDITION_ID}"
+EDITION_NAME="${EDITION_LABEL}"
+EDITION_DESC="${EDITION_DESC}"
+VERSION="2.1"
+EOF
+chmod 644 /mnt/etc/axisos-edition
+
+# Apply edition-specific profiles
+if [ "$EDITION_ID" = "enterprise" ]; then
+    cat << 'EOF' > /mnt/etc/sysctl.d/99-axisos-enterprise.conf
+# AxisOS Enterprise Workstation Security Hardening
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1
+fs.protected_regular = 2
+fs.protected_fifos = 2
+kernel.dmesg_restrict = 1
+kernel.kptr_restrict = 2
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+EOF
+    if [ -f /usr/local/bin/axis-domain-join ]; then
+        cp -f /usr/local/bin/axis-domain-join /mnt/usr/local/bin/axis-domain-join
+        chmod 755 /mnt/usr/local/bin/axis-domain-join
+    fi
+    if [ -f /usr/share/applications/axis-domain-join.desktop ]; then
+        cp -f /usr/share/applications/axis-domain-join.desktop /mnt/usr/share/applications/axis-domain-join.desktop
+        chmod 644 /mnt/usr/share/applications/axis-domain-join.desktop
+    fi
+elif [ "$EDITION_ID" = "education" ]; then
+    cat << 'EOF' > /mnt/etc/axisos-work-school.conf
+PRODUCTIVITY_PROFILE=standard
+CONTENT_SHIELD_SAFE_SEARCH=recommended
+OFFICE_SUITE=libreoffice
+DEV_TOOLING=enabled
+EOF
+    chmod 644 /mnt/etc/axisos-work-school.conf
+fi
+
+# Ensure axis-switch-edition is deployed in installed system
+if [ -f /usr/local/bin/axis-switch-edition ]; then
+    cp -f /usr/local/bin/axis-switch-edition /mnt/usr/local/bin/axis-switch-edition
+    chmod 755 /mnt/usr/local/bin/axis-switch-edition
+fi
 
 report 87 "Configuring automated kernel & system updates (unattended-upgrades)..."
 mkdir -p /mnt/etc/apt/apt.conf.d

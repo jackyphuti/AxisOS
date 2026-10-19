@@ -1243,8 +1243,19 @@ class AxisSettingsApp(Gtk.Window):
         grid.set_row_spacing(8)
 
         uname = os.uname()
+        edition_name = "AxisOS Home & Gaming"
+        if os.path.exists("/etc/axisos-edition"):
+            try:
+                with open("/etc/axisos-edition", "r") as f:
+                    for line in f:
+                        if line.startswith("EDITION_NAME="):
+                            edition_name = line.strip().split("=", 1)[1].strip('"\'')
+            except Exception:
+                pass
+
         specs = [
             ("Operating System:", "AxisOS Linux 2.0"),
+            ("Active Edition:", edition_name),
             ("Base Distribution:", "Debian GNU/Linux 12 (Bookworm)"),
             ("Kernel:", f"{uname.sysname} {uname.release} ({uname.machine})"),
             ("Compositor:", "Native wlroots Wayland Compositor (axis-compositor)"),
@@ -1260,8 +1271,81 @@ class AxisSettingsApp(Gtk.Window):
             grid.attach(lbl_v, 1, i, 1, 1)
 
         card.pack_start(grid, False, False, 0)
+
+        edition_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        edition_box.set_margin_top(12)
+        btn_switch_edition = Gtk.Button(label="🔄 Switch OS Edition...")
+        btn_switch_edition.get_style_context().add_class("btn-secondary")
+        btn_switch_edition.connect("clicked", self.on_switch_edition_clicked)
+        edition_box.pack_start(btn_switch_edition, False, False, 0)
+        card.pack_start(edition_box, False, False, 0)
+
         page.pack_start(card, False, False, 0)
         self.stack.add_named(page, "about")
+
+    def on_switch_edition_clicked(self, btn):
+        dialog = Gtk.Dialog(
+            title="Switch AxisOS Edition",
+            transient_for=self,
+            flags=Gtk.DialogFlags.MODAL,
+            buttons=(
+                "Cancel", Gtk.ResponseType.CANCEL,
+                "Apply Edition", Gtk.ResponseType.OK
+            )
+        )
+        dialog.set_default_size(460, 240)
+        content = dialog.get_content_area()
+        content.set_spacing(12)
+        content.set_margin_start(16)
+        content.set_margin_end(16)
+        content.set_margin_top(16)
+        content.set_margin_bottom(16)
+
+        lbl = Gtk.Label(label="Select the edition to apply without reinstalling:", xalign=0)
+        content.pack_start(lbl, False, False, 0)
+
+        rad_base = Gtk.RadioButton.new_with_label(None, "AxisOS Home & Gaming (Default, Steam, Media)")
+        rad_ent = Gtk.RadioButton.new_with_label_from_widget(rad_base, "AxisOS Enterprise Workstation (Security Hardening, AD/Domain)")
+        rad_edu = Gtk.RadioButton.new_with_label_from_widget(rad_base, "AxisOS Work & School (Office, Productivity, Education)")
+
+        cur_ed = "base"
+        if os.path.exists("/etc/axisos-edition"):
+            try:
+                with open("/etc/axisos-edition") as f:
+                    for line in f:
+                        if line.startswith("EDITION_ID="):
+                            cur_ed = line.strip().split("=", 1)[1].strip('"\'')
+            except Exception:
+                pass
+
+        if cur_ed == "enterprise":
+            rad_ent.set_active(True)
+        elif cur_ed in ("education", "school"):
+            rad_edu.set_active(True)
+        else:
+            rad_base.set_active(True)
+
+        content.pack_start(rad_base, False, False, 0)
+        content.pack_start(rad_ent, False, False, 0)
+        content.pack_start(rad_edu, False, False, 0)
+        content.show_all()
+
+        resp = dialog.run()
+        target_ed = "base"
+        if rad_ent.get_active():
+            target_ed = "enterprise"
+        elif rad_edu.get_active():
+            target_ed = "education"
+
+        dialog.destroy()
+
+        if resp == Gtk.ResponseType.OK:
+            prefix = ["pkexec"] if os.geteuid() != 0 and shutil.which("pkexec") else []
+            cmd = prefix + ["/usr/local/bin/axis-switch-edition", target_ed]
+            try:
+                subprocess.Popen(cmd)
+            except Exception as e:
+                self.show_info_dialog("Switch Edition Failed", str(e))
 
     def show_info_dialog(self, title, message):
         dialog = Gtk.MessageDialog(

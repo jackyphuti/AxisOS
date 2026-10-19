@@ -163,13 +163,15 @@ if os.path.exists(game_boost_svc_src):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
     shutil.copyfile(game_boost_svc_src, dst)
 
-# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield, OTA Sysupgrade)
+# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield, OTA Sysupgrade, Switch Edition, Domain Join)
 for util_name, script_name in [
     ("axis-rewind", "axis-rewind.sh"),
     ("axis-neural-pulse", "axis-neural-pulse.sh"),
     ("axis-usb-vault", "axis-usb-vault.sh"),
     ("axis-gaze-shield", "axis-gaze-shield.sh"),
     ("axis-sysupgrade", "axis-sysupgrade.sh"),
+    ("axis-switch-edition", "axis-switch-edition.sh"),
+    ("axis-domain-join", "axis-domain-join.sh"),
 ]:
     u_src = os.path.join(workspace_dir, "os-build", "scripts", script_name)
     if os.path.exists(u_src):
@@ -682,7 +684,7 @@ if os.path.exists(game_boost_svc):
     shutil.copyfile(game_boost_svc, game_boost_svc_dst)
     print("    Deployed AxisOS Game Boost Service -> /etc/systemd/system/axis-game-boost.service")
 
-# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield, OTA Sysupgrade)
+# Deploy Signature AxisOS Utilities (Axis Rewind, NeuralPulse, USB Quarantine Vault, Gaze Shield, OTA Sysupgrade, Switch Edition, Domain Join)
 for util_name, script_name in [
     ("axis-rewind", "axis-rewind.sh"),
     ("axis-neural-pulse", "axis-neural-pulse.sh"),
@@ -690,6 +692,8 @@ for util_name, script_name in [
     ("axis-gaze-shield", "axis-gaze-shield.sh"),
     ("axis-sysupgrade", "axis-sysupgrade.sh"),
     ("axis-update-notifier", "axis-update-notifier.sh"),
+    ("axis-switch-edition", "axis-switch-edition.sh"),
+    ("axis-domain-join", "axis-domain-join.sh"),
 ]:
     u_src = os.path.join(workspace_dir, "os-build", "scripts", script_name)
     if os.path.exists(u_src):

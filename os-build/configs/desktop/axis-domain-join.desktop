@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Enterprise Domain Join
+GenericName=Active Directory / LDAP Network Join
+Comment=Join this computer to an enterprise corporate domain
+Exec=pkexec /usr/local/bin/axis-domain-join
+Icon=network-workgroup
+Terminal=true
+Type=Application
+Categories=System;Settings;Network;
+Keywords=domain;ad;activedirectory;ldap;corporate;enterprise;workgroup;
+StartupNotify=true

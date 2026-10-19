@@ -71,7 +71,7 @@ if [ -f "os-build/apps/axis-settings/axisos-settings-panel" ]; then
     chmod 755 "${DEB_DIR}/usr/local/bin/axisos-settings-panel"
 fi
 
-for s in axis-rewind.sh axis-sysupgrade.sh axis-update-notifier.sh axis-game-boost.sh axis-neural-pulse.sh axis-usb-vault.sh axis-gaze-shield.sh axis-disk-info.sh axis-biometrics.sh; do
+for s in axis-rewind.sh axis-sysupgrade.sh axis-update-notifier.sh axis-game-boost.sh axis-neural-pulse.sh axis-usb-vault.sh axis-gaze-shield.sh axis-disk-info.sh axis-biometrics.sh axis-switch-edition.sh axis-domain-join.sh; do
     if [ -f "os-build/scripts/$s" ]; then
         out_name="$(echo "$s" | sed 's/\.sh$//')"
         cp -f "os-build/scripts/$s" "${DEB_DIR}/usr/local/bin/$out_name"
@@ -105,6 +105,10 @@ fi
 if [ -f "os-build/configs/desktop/axis-sysupgrade.desktop" ]; then
     cp -f "os-build/configs/desktop/axis-sysupgrade.desktop" "${DEB_DIR}/usr/share/applications/axis-sysupgrade.desktop"
     chmod 644 "${DEB_DIR}/usr/share/applications/axis-sysupgrade.desktop"
+fi
+if [ -f "os-build/configs/desktop/axis-domain-join.desktop" ]; then
+    cp -f "os-build/configs/desktop/axis-domain-join.desktop" "${DEB_DIR}/usr/share/applications/axis-domain-join.desktop"
+    chmod 644 "${DEB_DIR}/usr/share/applications/axis-domain-join.desktop"
 fi
 
 # Deploy AxisOS Wallpaper Collection & GNOME Properties
