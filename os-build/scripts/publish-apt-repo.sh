@@ -28,6 +28,7 @@ Version: ${VERSION}
 Section: x11
 Priority: optional
 Architecture: amd64
+Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation
 Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
 Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
  AxisOS Native Suite featuring HUD Task Manager, Settings Panels,
@@ -41,6 +42,10 @@ cat << 'EOF' > "${DEB_DIR}/DEBIAN/postinst"
 set -e
 if command -v systemctl >/dev/null 2>&1; then
     systemctl --global enable axis-update-notifier.timer 2>/dev/null || true
+fi
+# Rebuild font cache so newly installed fonts and fallbacks are indexed
+if command -v fc-cache >/dev/null 2>&1; then
+    fc-cache -f 2>/dev/null || true
 fi
 # Remove Debian & stock wallpapers from GNOME Settings so only AxisOS wallpapers appear
 if [ -d /usr/share/gnome-background-properties ]; then

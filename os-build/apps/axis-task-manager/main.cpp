@@ -24,6 +24,33 @@
 
 #include <gtk/gtk.h>
 #include <cairo.h>
+#include <pango/pangocairo.h>
+
+// Robust Pango text rendering helper with automatic fontconfig fallback (eliminates Cairo toy font tofu)
+static void render_pango_text(cairo_t* cr, double x, double y, const char* text,
+                              const char* font_desc_str,
+                              double r, double g, double b, double a = 1.0,
+                              bool center_x = false, bool center_y = false) {
+    if (!cr || !text) return;
+    PangoLayout* layout = pango_cairo_create_layout(cr);
+    pango_layout_set_text(layout, text, -1);
+    PangoFontDescription* desc = pango_font_description_from_string(font_desc_str);
+    pango_layout_set_font_description(layout, desc);
+    pango_font_description_free(desc);
+
+    int text_w = 0, text_h = 0;
+    pango_layout_get_pixel_size(layout, &text_w, &text_h);
+
+    double draw_x = x;
+    double draw_y = y;
+    if (center_x) draw_x -= (text_w / 2.0);
+    if (center_y) draw_y -= (text_h / 2.0);
+
+    cairo_set_source_rgba(cr, r, g, b, a);
+    cairo_move_to(cr, draw_x, draw_y);
+    pango_cairo_show_layout(cr, layout);
+    g_object_unref(layout);
+}
 #include <cmath>
 #include <cstring>
 #include <chrono>
@@ -1095,25 +1122,31 @@ private:
         // Draw Disk line (Emerald #10B981)
         app->render_sparkline_curve(cr, app->history_disk, w, h, 0.063, 0.725, 0.506, 200.0);
 
-        // Legends
-        cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-        cairo_set_font_size(cr, 11);
-
+        // Legends (Drawn with vector dots & Pango font fallback)
         char buf[64];
+        double leg_y = 10.0;
+
+        // CPU Legend (Cyan #00F2FE)
         cairo_set_source_rgb(cr, 0.0, 0.949, 0.996);
-        snprintf(buf, sizeof(buf), "● CPU: %.1f%%", app->current_cpu_pct);
-        cairo_move_to(cr, 12, 20);
-        cairo_show_text(cr, buf);
+        cairo_arc(cr, 18.0, leg_y + 7.0, 4.0, 0, 2 * M_PI);
+        cairo_fill(cr);
+        snprintf(buf, sizeof(buf), "CPU: %.1f%%", app->current_cpu_pct);
+        render_pango_text(cr, 27.0, leg_y, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 0.0, 0.949, 0.996);
 
+        // RAM Legend (Violet #A855F7)
         cairo_set_source_rgb(cr, 0.75, 0.48, 0.99);
-        snprintf(buf, sizeof(buf), "● RAM: %.1f GB (%.0f%%)", app->current_mem_gb, (app->current_mem_gb / app->total_mem_gb) * 100.0);
-        cairo_move_to(cr, 130, 20);
-        cairo_show_text(cr, buf);
+        cairo_arc(cr, 142.0, leg_y + 7.0, 4.0, 0, 2 * M_PI);
+        cairo_fill(cr);
+        double ram_pct = (app->total_mem_gb > 0) ? (app->current_mem_gb / app->total_mem_gb) * 100.0 : 0.0;
+        snprintf(buf, sizeof(buf), "RAM: %.1f GB (%.0f%%)", app->current_mem_gb, ram_pct);
+        render_pango_text(cr, 151.0, leg_y, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 0.75, 0.48, 0.99);
 
+        // Disk Legend (Emerald #10B981)
         cairo_set_source_rgb(cr, 0.063, 0.725, 0.506);
-        snprintf(buf, sizeof(buf), "● Disk: %.1f MB/s", app->disk_read_mbs + app->disk_write_mbs);
-        cairo_move_to(cr, 305, 20);
-        cairo_show_text(cr, buf);
+        cairo_arc(cr, 316.0, leg_y + 7.0, 4.0, 0, 2 * M_PI);
+        cairo_fill(cr);
+        snprintf(buf, sizeof(buf), "Disk: %.1f MB/s", app->disk_read_mbs + app->disk_write_mbs);
+        render_pango_text(cr, 325.0, leg_y, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 0.063, 0.725, 0.506);
 
         return FALSE;
     }
@@ -1184,42 +1217,58 @@ private:
 
             double red = 0.0, green = 0.949, blue = 0.996;
             if (load > 70.0) {
-                red = 1.0; green = 0.0; blue = 0.333;
+                red = 1.0; green = 0.0; blue = 0.333; // Crimson
             } else if (load > 35.0) {
-                red = 0.988; green = 0.933; blue = 0.039;
+                red = 0.988; green = 0.933; blue = 0.039; // Cyber Yellow
             }
 
-            // Cell background
-            cairo_set_source_rgba(cr, red, green, blue, 0.10);
+            // Cell background (Clean obsidian card when idle, tinted when active)
+            if (load < 5.0) {
+                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.03);
+            } else {
+                cairo_set_source_rgba(cr, red, green, blue, 0.08);
+            }
             cairo_rectangle(cr, x, y, cell_w, cell_h);
             cairo_fill(cr);
 
-            // Filled load bar inside cell
-            double bar_h = cell_h * std::clamp(load / 100.0, 0.0, 1.0);
-            cairo_set_source_rgba(cr, red, green, blue, 0.42);
-            cairo_rectangle(cr, x, y + (cell_h - bar_h), cell_w, bar_h);
-            cairo_fill(cr);
+            // Filled load bar inside cell (rising dynamically)
+            if (load >= 1.0) {
+                double bar_h = cell_h * std::clamp(load / 100.0, 0.0, 1.0);
+                cairo_set_source_rgba(cr, red, green, blue, 0.35);
+                cairo_rectangle(cr, x, y + (cell_h - bar_h), cell_w, bar_h);
+                cairo_fill(cr);
+            }
 
             // Cell border
-            cairo_set_source_rgba(cr, red, green, blue, 0.55);
+            if (load < 5.0) {
+                cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.10);
+            } else {
+                cairo_set_source_rgba(cr, red, green, blue, 0.45);
+            }
             cairo_set_line_width(cr, 1.0);
             cairo_rectangle(cr, x, y, cell_w, cell_h);
             cairo_stroke(cr);
 
-            // Text
-            cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-            cairo_set_font_size(cr, 11);
-            cairo_set_source_rgb(cr, 0.95, 0.97, 1.0);
+            // Text rendered via Pango
             char lbl[32];
             snprintf(lbl, sizeof(lbl), "CPU %zu", i);
-            cairo_move_to(cr, x + 8, y + 18);
-            cairo_show_text(cr, lbl);
+            render_pango_text(cr, x + 8, y + 6, lbl, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 0.85, 0.90, 0.96);
 
             snprintf(lbl, sizeof(lbl), "%.0f%%", load);
-            cairo_text_extents_t ext;
-            cairo_text_extents(cr, lbl, &ext);
-            cairo_move_to(cr, x + cell_w - ext.width - 8, y + cell_h - 8);
-            cairo_show_text(cr, lbl);
+            PangoLayout* p_lay = pango_cairo_create_layout(cr);
+            pango_layout_set_text(p_lay, lbl, -1);
+            PangoFontDescription* p_desc = pango_font_description_from_string("Inter, Cantarell, DejaVu Sans, Sans Bold 9");
+            pango_layout_set_font_description(p_lay, p_desc);
+            pango_font_description_free(p_desc);
+            int pw = 0, ph = 0;
+            pango_layout_get_pixel_size(p_lay, &pw, &ph);
+            g_object_unref(p_lay);
+
+            double txt_r = (load > 70.0 ? 1.0 : (load > 35.0 ? 0.988 : (load < 5.0 ? 0.65 : 0.0)));
+            double txt_g = (load > 70.0 ? 0.2 : (load > 35.0 ? 0.933 : (load < 5.0 ? 0.72 : 0.949)));
+            double txt_b = (load > 70.0 ? 0.333 : (load > 35.0 ? 0.039 : (load < 5.0 ? 0.82 : 0.996)));
+            render_pango_text(cr, x + cell_w - pw - 8, y + cell_h - ph - 6, lbl,
+                              "Inter, Cantarell, DejaVu Sans, Sans Bold 9", txt_r, txt_g, txt_b);
         }
         return FALSE;
     }
@@ -1264,32 +1313,14 @@ private:
             cairo_arc(cr, cx, cy, radius, start_angle, active_end);
             cairo_stroke(cr);
 
-            cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-            cairo_set_font_size(cr, 14);
-            cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
             char buf[32];
             snprintf(buf, sizeof(buf), "%.0f°C", temp);
-            cairo_text_extents_t ext;
-            cairo_text_extents(cr, buf, &ext);
-            cairo_move_to(cr, cx - ext.width / 2.0, cy + ext.height / 2.0 - 2);
-            cairo_show_text(cr, buf);
+            render_pango_text(cr, cx, cy, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 13", 1.0, 1.0, 1.0, 1.0, true, true);
         } else {
-            cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-            cairo_set_font_size(cr, 12);
-            cairo_set_source_rgb(cr, 0.58, 0.64, 0.72);
-            const char* buf = "N/A";
-            cairo_text_extents_t ext;
-            cairo_text_extents(cr, buf, &ext);
-            cairo_move_to(cr, cx - ext.width / 2.0, cy + ext.height / 2.0 - 2);
-            cairo_show_text(cr, buf);
+            render_pango_text(cr, cx, cy, "N/A", "Inter, Cantarell, DejaVu Sans, Sans Bold 11", 0.58, 0.64, 0.72, 1.0, true, true);
         }
 
-        cairo_set_font_size(cr, 10);
-        cairo_set_source_rgb(cr, 0.58, 0.64, 0.72);
-        cairo_text_extents_t ext;
-        cairo_text_extents(cr, label, &ext);
-        cairo_move_to(cr, cx - ext.width / 2.0, cy + radius + 16);
-        cairo_show_text(cr, label);
+        render_pango_text(cr, cx, cy + radius + 14, label, "Inter, Cantarell, DejaVu Sans, Sans 9", 0.58, 0.64, 0.72, 1.0, true, false);
     }
 
     // ------------------------------------------------------------------------
@@ -1326,14 +1357,10 @@ private:
         cairo_fill(cr);
 
         // Text indicator
-        cairo_select_font_face(cr, "Inter", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-        cairo_set_font_size(cr, 11);
-        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
         char buf[128];
-        snprintf(buf, sizeof(buf), "In Use: %.1f GB   |   Cached: %.1f GB   |   Available: %.1f GB / %.1f GB",
+        snprintf(buf, sizeof(buf), "In Use: %.1f GB   •   Cached: %.1f GB   •   Available: %.1f GB / %.1f GB",
                  app->current_mem_gb, app->cached_mem_gb, app->free_mem_gb, app->total_mem_gb);
-        cairo_move_to(cr, 12, h / 2.0 + 4);
-        cairo_show_text(cr, buf);
+        render_pango_text(cr, 12.0, (h - 14) / 2.0, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 1.0, 1.0, 1.0, 1.0, false, false);
 
         return FALSE;
     }
