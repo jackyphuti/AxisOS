@@ -7,7 +7,10 @@ on:
     paths:
       - 'os-build/apps/**'
       - 'os-build/scripts/**'
-      - 'os-build/configs/apt/**'
+      - 'os-build/configs/**'
+      - 'data/wallpapers/**'
+      - 'data/branding/**'
+      - 'data/theme/**'
       - '.github/workflows/apt-repo.yml'
   workflow_dispatch:
 

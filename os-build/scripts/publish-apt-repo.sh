@@ -50,6 +50,12 @@ if [ -d /usr/share/gnome-background-properties ]; then
         [ -f "$f" ] && mv -f "$f" /usr/share/gnome-background-properties/stock-disabled/ 2>/dev/null || true
     done
 fi
+if command -v glib-compile-schemas >/dev/null 2>&1; then
+    glib-compile-schemas /usr/share/glib-2.0/schemas 2>/dev/null || true
+fi
+if command -v dconf >/dev/null 2>&1; then
+    dconf update 2>/dev/null || true
+fi
 exit 0
 EOF
 chmod 755 "${DEB_DIR}/DEBIAN/postinst"
@@ -122,8 +128,11 @@ if [ -f "os-build/configs/gnome/axisos-wallpapers.xml" ]; then
     cp -f "os-build/configs/gnome/axisos-wallpapers.xml" "${DEB_DIR}/usr/share/gnome-background-properties/axisos-wallpapers.xml"
     chmod 644 "${DEB_DIR}/usr/share/gnome-background-properties/axisos-wallpapers.xml"
 fi
-if [ -f "data/wallpapers/01-axisos-signature-core.jpg" ]; then
-    cp -f "data/wallpapers/01-axisos-signature-core.jpg" "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
+if [ -f "data/theme/axis-wallpaper.png" ]; then
+    cp -f "data/theme/axis-wallpaper.png" "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
+    chmod 644 "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
+elif [ -f "data/branding/axis-wallpaper.png" ]; then
+    cp -f "data/branding/axis-wallpaper.png" "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
     chmod 644 "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
 fi
 

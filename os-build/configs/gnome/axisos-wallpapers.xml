@@ -4,6 +4,7 @@
   <wallpaper>
     <name>AxisOS Signature Core</name>
     <filename>/usr/share/backgrounds/axisos/01-axisos-signature-core.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/01-axisos-signature-core.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -12,6 +13,7 @@
   <wallpaper>
     <name>AxisOS RGB Honeycomb</name>
     <filename>/usr/share/backgrounds/axisos/01-axisos-rgb-honeycomb.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/01-axisos-rgb-honeycomb.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -20,6 +22,7 @@
   <wallpaper>
     <name>AxisOS Cyan Horizon</name>
     <filename>/usr/share/backgrounds/axisos/02-axisos-cyan-horizon.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/02-axisos-cyan-horizon.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -28,6 +31,7 @@
   <wallpaper>
     <name>AxisOS Kernel Code</name>
     <filename>/usr/share/backgrounds/axisos/02-axisos-kernel-code.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/02-axisos-kernel-code.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -36,6 +40,7 @@
   <wallpaper>
     <name>AxisOS Arctic Light</name>
     <filename>/usr/share/backgrounds/axisos/03-axisos-arctic-light.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/03-axisos-arctic-light.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -44,6 +49,7 @@
   <wallpaper>
     <name>AxisOS Cyber HUD</name>
     <filename>/usr/share/backgrounds/axisos/03-axisos-cyber-hud.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/03-axisos-cyber-hud.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -52,6 +58,7 @@
   <wallpaper>
     <name>AxisOS Alpine Axis</name>
     <filename>/usr/share/backgrounds/axisos/04-axisos-alpine-axis.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/04-axisos-alpine-axis.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -60,6 +67,7 @@
   <wallpaper>
     <name>AxisOS Cryo Loop</name>
     <filename>/usr/share/backgrounds/axisos/04-axisos-cryo-loop.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/04-axisos-cryo-loop.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -68,6 +76,7 @@
   <wallpaper>
     <name>AxisOS Digital Rain</name>
     <filename>/usr/share/backgrounds/axisos/05-axisos-digital-rain.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/05-axisos-digital-rain.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -76,6 +85,7 @@
   <wallpaper>
     <name>AxisOS Frosted Dispersion</name>
     <filename>/usr/share/backgrounds/axisos/05-axisos-frosted-dispersion.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/05-axisos-frosted-dispersion.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -84,6 +94,7 @@
   <wallpaper>
     <name>AxisOS Quantum Trace</name>
     <filename>/usr/share/backgrounds/axisos/06-axisos-quantum-trace.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/06-axisos-quantum-trace.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -92,6 +103,7 @@
   <wallpaper>
     <name>AxisOS Tactile Switch</name>
     <filename>/usr/share/backgrounds/axisos/06-axisos-tactile-switch.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/06-axisos-tactile-switch.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -100,6 +112,7 @@
   <wallpaper>
     <name>AxisOS Deep Space</name>
     <filename>/usr/share/backgrounds/axisos/07-axisos-deep-space.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/07-axisos-deep-space.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -108,6 +121,7 @@
   <wallpaper>
     <name>AxisOS Pro Arena</name>
     <filename>/usr/share/backgrounds/axisos/07-axisos-pro-arena.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/07-axisos-pro-arena.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -116,14 +130,25 @@
   <wallpaper>
     <name>AxisOS Dev Graph</name>
     <filename>/usr/share/backgrounds/axisos/08-axisos-dev-graph.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/08-axisos-dev-graph.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
     <shade_type>solid</shade_type>
   </wallpaper>
   <wallpaper>
-    <name>AxisOS Elevation Lines</name>
-    <filename>/usr/share/backgrounds/axisos/08-axisos-elevation-lines.jpg</filename>
+    <name>AxisOS Obsidian Wave</name>
+    <filename>/usr/share/backgrounds/axisos/08-axisos-obsidian-wave.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/08-axisos-obsidian-wave.jpg</filename-dark>
+    <options>zoom</options>
+    <pcolor>#0B0D13</pcolor>
+    <scolor>#0B0D13</scolor>
+    <shade_type>solid</shade_type>
+  </wallpaper>
+  <wallpaper>
+    <name>AxisOS Cyber Matrix</name>
+    <filename>/usr/share/backgrounds/axisos/09-axisos-cyber-matrix.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/09-axisos-cyber-matrix.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -132,14 +157,7 @@
   <wallpaper>
     <name>AxisOS Metallic Flow</name>
     <filename>/usr/share/backgrounds/axisos/09-axisos-metallic-flow.jpg</filename>
-    <options>zoom</options>
-    <pcolor>#0B0D13</pcolor>
-    <scolor>#0B0D13</scolor>
-    <shade_type>solid</shade_type>
-  </wallpaper>
-  <wallpaper>
-    <name>AxisOS Overclocked Glitch</name>
-    <filename>/usr/share/backgrounds/axisos/09-axisos-overclocked-glitch.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/09-axisos-metallic-flow.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -148,6 +166,7 @@
   <wallpaper>
     <name>AxisOS Stealth Rig</name>
     <filename>/usr/share/backgrounds/axisos/10-axisos-stealth-rig.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/10-axisos-stealth-rig.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>
@@ -156,6 +175,7 @@
   <wallpaper>
     <name>AxisOS Synth Horizon</name>
     <filename>/usr/share/backgrounds/axisos/10-axisos-synth-horizon.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/10-axisos-synth-horizon.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>

@@ -377,10 +377,12 @@ if os.path.exists(wayland_configs):
 
     dst_bg_dir = os.path.join(chroot_dir, "usr", "share", "backgrounds")
     os.makedirs(dst_bg_dir, exist_ok=True)
-    primary_wp = os.path.join(wallpapers_dst_dir, "01-axisos-signature-core.jpg")
-    if os.path.exists(primary_wp):
-        shutil.copyfile(primary_wp, os.path.join(dst_bg_dir, "nobara-gaming.png"))
-        shutil.copyfile(primary_wp, os.path.join(dst_bg_dir, "axis-wallpaper.png"))
+    primary_png = os.path.join(workspace_dir, "data", "theme", "axis-wallpaper.png")
+    if not os.path.exists(primary_png):
+        primary_png = os.path.join(workspace_dir, "data", "branding", "axis-wallpaper.png")
+    if os.path.exists(primary_png):
+        shutil.copyfile(primary_png, os.path.join(dst_bg_dir, "nobara-gaming.png"))
+        shutil.copyfile(primary_png, os.path.join(dst_bg_dir, "axis-wallpaper.png"))
     elif os.path.exists(bg_src):
         shutil.copyfile(bg_src, os.path.join(dst_bg_dir, "nobara-gaming.png"))
         shutil.copyfile(bg_src, os.path.join(dst_bg_dir, "axis-wallpaper.png"))
