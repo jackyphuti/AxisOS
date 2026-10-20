@@ -1,18 +1,19 @@
 Package: axisos-desktop-suite
-Version: 2.1.0-202610190817
+Version: 2.1.0-202610202318
 Architecture: amd64
 Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
-Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation
-Breaks: axisos-desktop-suite (<< 2.1.0-202610190817)
-Replaces: axisos-desktop-suite (<< 2.1.0-202610190817)
-Filename: ./axisos-desktop-suite_2.1.0-202610190817_amd64.deb
-Size: 20214284
-MD5sum: 7b549a6eb192175bdeb308f37822b28d
-SHA1: fd162cc343fd2bd94d2a88f925795ef08a39870d
-SHA256: 9f3a7a3658db691c921cdf9cd123f032c7df65f5a5b604af6b221f8b311e6369
+Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation, fonts-inter, libqt6core6, libqt6gui6, libqt6qml6, libqt6quick6, libqt6dbus6, libqt6waylandcompositor6, qml6-module-qtwayland-compositor, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qml6-module-qtquick-templates, qt6-wayland, libpam0g
+Breaks: axisos-desktop-suite (<< 2.1.0-202610202318)
+Replaces: axisos-desktop-suite (<< 2.1.0-202610202318)
+Filename: ./axisos-desktop-suite_2.1.0-202610202318_amd64.deb
+Size: 20329968
+MD5sum: 892734ce5076c911f61288ea037d1421
+SHA1: cf844e84a4974797b0599008525070f254c1cd2e
+SHA256: f65f9035b480e24214df3de49b6238c43a58a49ea84784e8c51180368e87be3e
 Section: x11
 Priority: optional
-Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
- AxisOS Native Suite featuring HUD Task Manager, Settings Panels,
- Terminal, Rewind CoW Engine, and Remote OTA Updates with snapshot protection.
+Description: AxisOS LiquidNodes Desktop Environment, HUD & System Suite
+ AxisOS Native LiquidNodes Wayland Compositor & Glassmorphic Desktop,
+ featuring HUD Task Manager, Settings Panels, Terminal, Rewind CoW Engine,
+ and Remote OTA Updates.
 
