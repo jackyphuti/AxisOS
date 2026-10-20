@@ -886,43 +886,58 @@ rm -rf /mnt/etc/systemd/system/getty@tty1.service.d 2>/dev/null || true
 rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos.service 2>/dev/null || true
 rm -rf /mnt/etc/lightdm/lightdm.conf.d 2>/dev/null || true
 
-# Configure GDM3 for GNOME Wayland desktop
-mkdir -p /mnt/etc/gdm3
+# Configure Native AxisOS LiquidNodes Qt6 Wayland Session & Display Manager
+mkdir -p /mnt/etc/systemd/system
+mkdir -p /mnt/usr/share/wayland-sessions
+
 if [[ "$AUTOLOGIN" == "true" ]]; then
-    cat << EOF > /mnt/etc/gdm3/daemon.conf
-# GDM configuration for AxisOS
-[daemon]
-AutomaticLoginEnable = true
-AutomaticLogin = ${USERNAME}
-WaylandEnable = true
-
-[security]
-
-[xdmcp]
-
-[chooser]
-
-[debug]
-EOF
+    touch /mnt/etc/axisos-autologin
 else
-    cat << EOF > /mnt/etc/gdm3/daemon.conf
-# GDM configuration for AxisOS
-[daemon]
-AutomaticLoginEnable = false
-WaylandEnable = true
-
-[security]
-
-[xdmcp]
-
-[chooser]
-
-[debug]
-EOF
+    rm -f /mnt/etc/axisos-autologin 2>/dev/null || true
 fi
 
+cat << EOF > /mnt/etc/systemd/system/axisos-session.service
+[Unit]
+Description=AxisOS LiquidNodes Desktop Environment
+After=systemd-user-sessions.service plymouth-quit-wait.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+Type=simple
+User=${USERNAME}
+WorkingDirectory=/home/${USERNAME}
+Environment=XDG_SESSION_TYPE=wayland
+Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=QT_QPA_PLATFORM=wayland;xcb;eglfs
+Environment=QSG_RHI_PREFER_SOFTWARE_RENDERER=0
+ExecStart=/usr/local/bin/LiquidNodesOS
+Restart=on-failure
+RestartSec=1
+StandardInput=tty
+StandardOutput=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=graphical.target
+EOF
+
+cat << 'EOF' > /mnt/usr/share/wayland-sessions/axisos-liquidnodes.desktop
+[Desktop Entry]
+Name=AxisOS LiquidNodes
+Comment=AxisOS Native Qt 6 Wayland Compositor & Glassmorphic Desktop
+Exec=/usr/local/bin/LiquidNodesOS
+Type=Application
+DesktopNames=AxisOS:LiquidNodes
+EOF
+ln -sfn /usr/share/wayland-sessions/axisos-liquidnodes.desktop /mnt/usr/share/wayland-sessions/axisos.desktop 2>/dev/null || true
+
 chroot /mnt systemctl set-default graphical.target 2>/dev/null || true
-chroot /mnt systemctl enable gdm3.service 2>/dev/null || true
+chroot /mnt systemctl disable gdm3.service 2>/dev/null || true
+chroot /mnt systemctl enable axisos-session.service 2>/dev/null || true
 
 # Clean user profile to ensure no live-session kiosk loop and deploy desktop applications
 mkdir -p "/mnt/home/${USERNAME}/Desktop"

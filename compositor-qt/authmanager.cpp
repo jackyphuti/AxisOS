@@ -45,6 +45,31 @@ AuthManager::AuthManager(QObject *parent)
 
     // Initial probe of biometric hardware
     checkHardware();
+
+    // Check for Live ISO or automated autologin
+    bool autologinRequested = qEnvironmentVariableIsSet("AXISOS_AUTOLOGIN")
+                           || QFile::exists(QStringLiteral("/etc/axisos-autologin"))
+                           || QFile::exists(QStringLiteral("/run/live"))
+                           || QFile::exists(QStringLiteral("/etc/axisos-live"));
+    if (!autologinRequested) {
+        QFile cmdline(QStringLiteral("/proc/cmdline"));
+        if (cmdline.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QString content = QString::fromUtf8(cmdline.readAll());
+            if (content.contains(QStringLiteral("autologin")) || content.contains(QStringLiteral("boot=live"))) {
+                autologinRequested = true;
+            }
+            cmdline.close();
+        }
+    }
+
+    if (autologinRequested) {
+        m_isLocked = false;
+        m_isAuthenticated = true;
+        qInfo() << "[AuthManager] Autologin activated for user:" << m_username;
+    } else {
+        m_isLocked = true;
+        m_isAuthenticated = false;
+    }
 }
 
 AuthManager::~AuthManager()

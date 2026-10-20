@@ -9,6 +9,9 @@ Item {
     property bool privacyShieldEnabled: false
     property bool isFocusedWindow: true
     property string rewindStatusText: "" 
+    property bool isMaximized: false
+    property real savedX: 0
+    property real savedY: 0 
 
     width: shellItem.width + 16
     height: shellItem.height + 48
@@ -181,19 +184,44 @@ Item {
                     // Minimize Button
                     Rectangle {
                         width: 12; height: 12; radius: 6
-                        color: "#F59E0B"
+                        color: btnMinMouse.containsMouse ? "#FBBF24" : "#F59E0B"
+                        MouseArea {
+                            id: btnMinMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                windowRoot.visible = false;
+                            }
+                        }
                     }
 
-                    // Maximize / Snap Button
+                    // Maximize / Restore Button
                     Rectangle {
                         width: 12; height: 12; radius: 6
-                        color: "#10B981"
+                        color: btnMaxMouse.containsMouse ? "#34D399" : "#10B981"
 
                         MouseArea {
+                            id: btnMaxMouse
                             anchors.fill: parent
+                            hoverEnabled: true
                             onClicked: {
-                                windowRoot.x = 24;
-                                windowRoot.y = 44;
+                                if (!windowRoot.isMaximized) {
+                                    windowRoot.savedX = windowRoot.x;
+                                    windowRoot.savedY = windowRoot.y;
+                                    windowRoot.isMaximized = true;
+                                    windowRoot.x = 8;
+                                    windowRoot.y = 40;
+                                    if (windowRoot.parent) {
+                                        windowRoot.width = windowRoot.parent.width - 16;
+                                        windowRoot.height = windowRoot.parent.height - 48 - 64;
+                                    }
+                                } else {
+                                    windowRoot.isMaximized = false;
+                                    windowRoot.x = windowRoot.savedX;
+                                    windowRoot.y = windowRoot.savedY;
+                                    windowRoot.width = shellItem.width + 16;
+                                    windowRoot.height = shellItem.height + 48;
+                                }
                             }
                         }
                     }

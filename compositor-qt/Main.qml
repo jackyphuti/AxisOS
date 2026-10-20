@@ -16,8 +16,31 @@ WaylandCompositor {
             width: 1440
             height: 900
             visible: true
+            visibility: Window.FullScreen
             title: "AxisOS - LiquidNodes Wayland Desktop"
             color: "#06070A"
+
+            // Desktop Keyboard Shortcuts
+            Shortcut {
+                sequence: "Meta"
+                onActivated: if (!AuthManager.isLocked) appLauncher.visible = !appLauncher.visible
+            }
+            Shortcut {
+                sequence: "Meta+Return"
+                onActivated: SystemController.launchApp("axis-terminal")
+            }
+            Shortcut {
+                sequence: "Meta+T"
+                onActivated: SystemController.launchApp("axis-terminal")
+            }
+            Shortcut {
+                sequence: "Meta+E"
+                onActivated: SystemController.launchApp("nautilus")
+            }
+            Shortcut {
+                sequence: "Meta+L"
+                onActivated: AuthManager.lockSession()
+            }
 
             // 1. Hardware Accelerated Liquid Nebula & Plasma Nodes Background
             LiquidBackground {
@@ -116,7 +139,15 @@ WaylandCompositor {
                 visible: !AuthManager.isLocked
             }
 
-            // 5. Liquid Nodes Display Manager (Greeter / Lock Screen)
+            // 5. Glassmorphic Application Launcher Grid
+            LiquidAppLauncher {
+                id: appLauncher
+                anchors.fill: parent
+                visible: false
+                z: 8500
+            }
+
+            // 6. Liquid Nodes Display Manager (Greeter / Lock Screen)
             LoginScreen {
                 id: loginScreen
                 anchors.fill: parent

@@ -70,7 +70,22 @@ if [ -d "$REPO_ROOT/os-build/updater" ] && command -v gcc >/dev/null 2>&1; then
     make -C "$REPO_ROOT/os-build/updater" clean all || true
 fi
 
-# 8. Install to /usr/local/bin and /usr/bin if running as root
+# 8. Compile Qt 6 LiquidNodesOS Wayland Compositor
+if [ -d "$REPO_ROOT/compositor-qt" ] && command -v cmake >/dev/null 2>&1; then
+    echo "--> Building Qt6 LiquidNodesOS Wayland Compositor..."
+    mkdir -p "$REPO_ROOT/compositor-qt/build"
+    (
+        cd "$REPO_ROOT/compositor-qt/build"
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        make -j"$(nproc 2>/dev/null || echo 2)"
+        if [ -f "LiquidNodesOS" ]; then
+            cp -f LiquidNodesOS "$REPO_ROOT/compositor-qt/LiquidNodesOS"
+            chmod 755 "$REPO_ROOT/compositor-qt/LiquidNodesOS"
+        fi
+    ) || echo "Warning: LiquidNodesOS build skipped or failed, using pre-existing binary."
+fi
+
+# 9. Install to /usr/local/bin and /usr/bin if running as root
 if [ -d "/usr/local/bin" ] && [ "${EUID:-$(id -u)}" -eq 0 ]; then
     echo "--> Installing applications to /usr/local/bin and /usr/bin..."
     for app in axis-terminal axis-package-installer axis-scheduler-manager axis-welcome axis-installer axis-settings axis-software-manager axis-update-manager axis-usb-daemon axis-task-manager axis-oobe; do
@@ -85,7 +100,15 @@ if [ -d "/usr/local/bin" ] && [ "${EUID:-$(id -u)}" -eq 0 ]; then
         chmod 755 "/usr/local/bin/axisos-settings-panel"
         ln -sfn "/usr/local/bin/axisos-settings-panel" "/usr/bin/axisos-settings-panel"
     fi
-    ln -sfn /usr/local/bin/axis-terminal /usr/local/bin/gnome-terminal
+    if [ -f "$REPO_ROOT/compositor-qt/LiquidNodesOS" ]; then
+        cp -f "$REPO_ROOT/compositor-qt/LiquidNodesOS" "/usr/local/bin/LiquidNodesOS"
+        chmod 755 "/usr/local/bin/LiquidNodesOS"
+        ln -sfn "/usr/local/bin/LiquidNodesOS" "/usr/bin/LiquidNodesOS"
+        ln -sfn "/usr/local/bin/LiquidNodesOS" "/usr/local/bin/axis-compositor"
+        ln -sfn "/usr/local/bin/LiquidNodesOS" "/usr/bin/axis-compositor"
+        mkdir -p /usr/share/axis-compositor-qt
+        cp -rf "$REPO_ROOT/compositor-qt/"*.qml /usr/share/axis-compositor-qt/ 2>/dev/null || true
+    fi
 fi
 
 echo "=== All AxisOS Desktop Applications Configured Successfully! ==="

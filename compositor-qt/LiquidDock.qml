@@ -32,6 +32,13 @@ Rectangle {
         Repeater {
             model: [
                 {
+                    id: "launcher",
+                    name: "Applications",
+                    cmd: "__AXIS_LAUNCHER__",
+                    icon: "file:///usr/share/icons/Papirus/48x48/apps/view-app-grid.svg",
+                    accent: "#00F2FE"
+                },
+                {
                     id: "terminal",
                     name: "Terminal",
                     cmd: "axis-terminal",
@@ -90,7 +97,7 @@ Rectangle {
                 {
                     id: "settings",
                     name: "System Settings",
-                    cmd: "gnome-control-center",
+                    cmd: "axis-settings",
                     icon: "file:///usr/share/icons/Papirus/48x48/apps/preferences-system.svg",
                     accent: "#94A3B8"
                 },
@@ -144,14 +151,21 @@ Rectangle {
                     mipmap: true
                     fillMode: Image.PreserveAspectFit
 
-                    // Fallback visual dot if icon path is unavailable
-                    Rectangle {
+                    // Fallback visual dot / grid if icon path is unavailable or launcher
+                    Grid {
                         anchors.centerIn: parent
-                        width: 14
-                        height: 14
-                        radius: 7
-                        color: modelData.accent
-                        visible: parent.status !== Image.Ready
+                        columns: 3
+                        spacing: 3
+                        visible: parent.status !== Image.Ready || modelData.cmd === "__AXIS_LAUNCHER__"
+                        Repeater {
+                            model: 9
+                            Rectangle {
+                                width: 4
+                                height: 4
+                                radius: 2
+                                color: modelData.accent
+                            }
+                        }
                     }
                 }
 
@@ -161,7 +175,13 @@ Rectangle {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        SystemController.launchApp(modelData.cmd);
+                        if (modelData.cmd === "__AXIS_LAUNCHER__") {
+                            if (typeof appLauncher !== "undefined") {
+                                appLauncher.visible = !appLauncher.visible;
+                            }
+                        } else {
+                            SystemController.launchApp(modelData.cmd);
+                        }
                     }
                 }
 

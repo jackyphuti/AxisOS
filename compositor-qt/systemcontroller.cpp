@@ -6,6 +6,9 @@
 #include <QTextStream>
 #include <QDebug>
 #include <QDir>
+#include <QRegularExpression>
+#include <QSet>
+#include <algorithm>
 #include <sys/utsname.h>
 
 SystemController::SystemController(QObject *parent)
@@ -332,4 +335,99 @@ void SystemController::connectLiquidNode(const QString &sourceTitle, const QStri
         QStringLiteral("LiquidNode Connected"),
         sourceTitle + QStringLiteral(" ⟶ ") + targetTitle
     );
+}
+
+QVariantList SystemController::getInstalledApps()
+{
+    QVariantList apps;
+    const QStringList searchDirs = {
+        QStringLiteral("/usr/share/applications"),
+        QStringLiteral("/usr/local/share/applications")
+    };
+    QSet<QString> seenExecs;
+
+    for (const QString &dirPath : searchDirs) {
+        QDir dir(dirPath);
+        if (!dir.exists()) continue;
+
+        const QFileInfoList entries = dir.entryInfoList({QStringLiteral("*.desktop")}, QDir::Files);
+        for (const QFileInfo &info : entries) {
+            QFile file(info.absoluteFilePath());
+            if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) continue;
+
+            QString name, exec, icon, categories;
+            bool noDisplay = false;
+            bool isDesktopEntry = false;
+
+            QTextStream stream(&file);
+            while (!stream.atEnd()) {
+                QString line = stream.readLine().trimmed();
+                if (line == QStringLiteral("[Desktop Entry]")) {
+                    isDesktopEntry = true;
+                    continue;
+                }
+                if (line.startsWith(QLatin1Char('[')) && line != QStringLiteral("[Desktop Entry]")) {
+                    break;
+                }
+                if (!isDesktopEntry) continue;
+
+                if (line.startsWith(QStringLiteral("Name=")) && name.isEmpty()) {
+                    name = line.mid(5).trimmed();
+                } else if (line.startsWith(QStringLiteral("Exec=")) && exec.isEmpty()) {
+                    exec = line.mid(5).trimmed();
+                    static const QRegularExpression fieldCodeRegex(QStringLiteral("%[a-zA-Z]"));
+                    exec.replace(fieldCodeRegex, QString()).trimmed();
+                } else if (line.startsWith(QStringLiteral("Icon=")) && icon.isEmpty()) {
+                    icon = line.mid(5).trimmed();
+                } else if (line.startsWith(QStringLiteral("Categories="))) {
+                    categories = line.mid(11).trimmed();
+                } else if (line.startsWith(QStringLiteral("NoDisplay="))) {
+                    if (line.mid(10).trimmed().toLower() == QStringLiteral("true")) {
+                        noDisplay = true;
+                    }
+                }
+            }
+            file.close();
+
+            if (noDisplay || name.isEmpty() || exec.isEmpty()) continue;
+            if (seenExecs.contains(exec)) continue;
+            seenExecs.insert(exec);
+
+            QString resolvedIcon = icon;
+            if (!icon.startsWith(QLatin1Char('/'))) {
+                const QString papirusSvg = QStringLiteral("/usr/share/icons/Papirus/48x48/apps/") + icon + QStringLiteral(".svg");
+                const QString papirusPng = QStringLiteral("/usr/share/icons/Papirus/48x48/apps/") + icon + QStringLiteral(".png");
+                const QString hicolor48 = QStringLiteral("/usr/share/icons/hicolor/48x48/apps/") + icon + QStringLiteral(".png");
+                const QString pixmaps = QStringLiteral("/usr/share/pixmaps/") + icon + QStringLiteral(".png");
+
+                if (QFile::exists(papirusSvg)) {
+                    resolvedIcon = QStringLiteral("file://") + papirusSvg;
+                } else if (QFile::exists(papirusPng)) {
+                    resolvedIcon = QStringLiteral("file://") + papirusPng;
+                } else if (QFile::exists(hicolor48)) {
+                    resolvedIcon = QStringLiteral("file://") + hicolor48;
+                } else if (QFile::exists(pixmaps)) {
+                    resolvedIcon = QStringLiteral("file://") + pixmaps;
+                } else {
+                    resolvedIcon = QStringLiteral("file:///usr/share/icons/Papirus/48x48/apps/application-x-executable.svg");
+                }
+            } else {
+                resolvedIcon = QStringLiteral("file://") + icon;
+            }
+
+            QVariantMap app;
+            app[QStringLiteral("name")] = name;
+            app[QStringLiteral("exec")] = exec;
+            app[QStringLiteral("icon")] = resolvedIcon;
+            app[QStringLiteral("categories")] = categories;
+            apps.append(app);
+        }
+    }
+
+    std::sort(apps.begin(), apps.end(), [](const QVariant &a, const QVariant &b) {
+        return a.toMap().value(QStringLiteral("name")).toString().toLower() <
+               b.toMap().value(QStringLiteral("name")).toString().toLower();
+    });
+
+    return apps;
 }

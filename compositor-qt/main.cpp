@@ -44,21 +44,25 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(QStringLiteral("AuthManager"), authManager.get());
 
     const QUrl qrcUrl(u"qrc:/LiquidNodes/Main.qml"_qs);
+    const QUrl qrcUrl2(u"qrc:/qt/qml/LiquidNodes/Main.qml"_qs);
     const QUrl localUrl = QUrl::fromLocalFile(QStringLiteral("/usr/share/axis-compositor-qt/Main.qml"));
 
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
-                     &app, [qrcUrl](QObject *obj, const QUrl &objUrl) {
-        if (!obj && objUrl == qrcUrl) {
-            qCritical() << "[LiquidNodesOS] Failed to load Main.qml from compiled Qt resources!";
-            QCoreApplication::exit(-1);
-        }
-    }, Qt::QueuedConnection);
-
     engine.load(qrcUrl);
+    if (engine.rootObjects().isEmpty()) {
+        engine.load(qrcUrl2);
+    }
+    if (engine.rootObjects().isEmpty() && QFileInfo::exists(localUrl.toLocalFile())) {
+        qInfo() << "[LiquidNodesOS] Loading from system QML directory:" << localUrl;
+        engine.load(localUrl);
+    }
+    if (engine.rootObjects().isEmpty()) {
+        qWarning() << "[LiquidNodesOS] Resource URL failed, falling back to working directory...";
+        engine.load(QUrl(QStringLiteral("Main.qml")));
+    }
 
     if (engine.rootObjects().isEmpty()) {
-        qWarning() << "[LiquidNodesOS] Resource URL failed, falling back to local file...";
-        engine.load(QUrl(QStringLiteral("Main.qml")));
+        qCritical() << "[LiquidNodesOS] Fatal: Unable to load Main.qml from any location!";
+        return -1;
     }
 
     return app.exec();

@@ -38,6 +38,7 @@ qt_add_qml_module(LiquidNodesOS
         LiquidTopBar.qml
         LiquidDock.qml
         LoginScreen.qml
+        LiquidAppLauncher.qml
 )
 
 target_link_libraries(LiquidNodesOS

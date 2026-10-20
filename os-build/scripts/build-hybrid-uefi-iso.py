@@ -178,42 +178,78 @@ for util_name, script_name in [
         dst = os.path.join(chroot_dir, "usr", "local", "bin", util_name)
         copy_text_lf(u_src, dst, 0o755)
 
-# GNOME Desktop Environment Sessions, GDM3, Dconf & Extensions
-gnome_dir = os.path.join(workspace_dir, "os-build", "configs", "gnome")
-if os.path.exists(gnome_dir):
-    print("    Syncing GNOME desktop configurations, GDM3, and dconf profiles...")
-    gdm3_conf = os.path.join(gnome_dir, "gdm3", "daemon.conf")
-    if os.path.exists(gdm3_conf):
-        dst = os.path.join(chroot_dir, "etc", "gdm3", "daemon.conf")
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        copy_text_lf(gdm3_conf, dst, 0o644)
-    dconf_profile = os.path.join(gnome_dir, "dconf", "profile", "user")
-    if os.path.exists(dconf_profile):
-        dst = os.path.join(chroot_dir, "etc", "dconf", "profile", "user")
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        copy_text_lf(dconf_profile, dst, 0o644)
-    dconf_local = os.path.join(gnome_dir, "dconf", "00-axisos-gnome")
-    if os.path.exists(dconf_local):
-        dst = os.path.join(chroot_dir, "etc", "dconf", "db", "local.d", "00-axisos-gnome")
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        copy_text_lf(dconf_local, dst, 0o644)
-    # Remove obsolete lightdm/session files
-    for stale in [
-        os.path.join(chroot_dir, "etc", "lightdm", "lightdm.conf.d", "01_autologin.conf"),
-        os.path.join(chroot_dir, "etc", "lightdm", "lightdm.conf.d", "00-axisos-cinnamon.conf"),
-        os.path.join(chroot_dir, "usr", "local", "bin", "axisos-xsession.sh"),
-        os.path.join(chroot_dir, "assets"),
-    ]:
-        if os.path.islink(stale) or os.path.isfile(stale):
-            try:
-                os.remove(stale)
-            except Exception:
-                pass
-    try:
-        subprocess.run(["chroot", chroot_dir, "dconf", "update"], check=False)
-        subprocess.run(["chroot", chroot_dir, "systemctl", "set-default", "graphical.target"], check=False)
-    except Exception:
-        pass
+# Deploy AxisOS Native Qt 6 Wayland Compositor Session (LiquidNodesOS)
+print("    Configuring AxisOS LiquidNodes Desktop Session & Display Service...")
+os.makedirs(os.path.join(chroot_dir, "etc", "systemd", "system"), exist_ok=True)
+os.makedirs(os.path.join(chroot_dir, "usr", "share", "wayland-sessions"), exist_ok=True)
+
+# Autologin flag for Live USB
+write_text_lf(os.path.join(chroot_dir, "etc", "axisos-autologin"), "AUTOLOGIN=true\n", 0o644)
+write_text_lf(os.path.join(chroot_dir, "etc", "axisos-live"), "AXISOS_LIVE=true\n", 0o644)
+
+write_text_lf(os.path.join(chroot_dir, "etc", "systemd", "system", "axisos-session.service"), """[Unit]
+Description=AxisOS LiquidNodes Desktop Environment
+After=systemd-user-sessions.service plymouth-quit-wait.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+Type=simple
+User=axis
+WorkingDirectory=/home/axis
+Environment=XDG_SESSION_TYPE=wayland
+Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=QT_QPA_PLATFORM=wayland;xcb;eglfs
+Environment=QSG_RHI_PREFER_SOFTWARE_RENDERER=0
+ExecStart=/usr/local/bin/LiquidNodesOS
+Restart=on-failure
+RestartSec=1
+StandardInput=tty
+StandardOutput=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=graphical.target
+""", 0o644)
+
+write_text_lf(os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "axisos-liquidnodes.desktop"), """[Desktop Entry]
+Name=AxisOS LiquidNodes
+Comment=AxisOS Native Qt 6 Wayland Compositor & Glassmorphic Desktop
+Exec=/usr/local/bin/LiquidNodesOS
+Type=Application
+DesktopNames=AxisOS:LiquidNodes
+""", 0o644)
+
+try:
+    link_target = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "axisos.desktop")
+    if os.path.islink(link_target) or os.path.isfile(link_target):
+        os.remove(link_target)
+    os.symlink("/usr/share/wayland-sessions/axisos-liquidnodes.desktop", link_target)
+except Exception:
+    pass
+
+# Remove any obsolete display manager services
+for stale in [
+    os.path.join(chroot_dir, "etc", "gdm3", "daemon.conf"),
+    os.path.join(chroot_dir, "etc", "lightdm", "lightdm.conf.d", "01_autologin.conf"),
+    os.path.join(chroot_dir, "etc", "lightdm", "lightdm.conf.d", "00-axisos-cinnamon.conf"),
+    os.path.join(chroot_dir, "usr", "local", "bin", "axisos-xsession.sh"),
+]:
+    if os.path.islink(stale) or os.path.isfile(stale):
+        try:
+            os.remove(stale)
+        except Exception:
+            pass
+
+try:
+    subprocess.run(["chroot", chroot_dir, "systemctl", "disable", "gdm3.service"], check=False)
+    subprocess.run(["chroot", chroot_dir, "systemctl", "enable", "axisos-session.service"], check=False)
+    subprocess.run(["chroot", chroot_dir, "systemctl", "set-default", "graphical.target"], check=False)
+except Exception:
+    pass
 
 # Deploy Official AxisOS Branding, Logo, and OS Release
 branding_script = os.path.join(workspace_dir, "os-build", "scripts", "deploy-axisos-branding.py")
@@ -884,7 +920,7 @@ PROMPT 0
 TIMEOUT 50
 DEFAULT live
 
-MENU TITLE AxisOS 2.1 (GNOME Desktop Edition)
+MENU TITLE AxisOS 2.1 (LiquidNodes Desktop Edition)
 MENU COLOR border       30;44   #40ffffff #a0000000 std
 MENU COLOR title        1;36;44 #902563eb #a0000000 std
 MENU COLOR sel          7;37;40 #e0ffffff #20ffffff all
@@ -892,7 +928,7 @@ MENU COLOR unsel        37;44   #50ffffff #a0000000 std
 MENU COLOR help         37;40   #c0ffffff #a0000000 std
 
 LABEL live
-  MENU LABEL ^1. Try AxisOS 2.1 (GNOME Desktop)
+  MENU LABEL ^1. Try AxisOS 2.1 (LiquidNodes Desktop)
   MENU DEFAULT
   KERNEL /live/vmlinuz
   APPEND initrd=/live/initrd.img boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
@@ -971,7 +1007,7 @@ if [ -f /boot/grub/splash.png ]; then
     background_image /boot/grub/splash.png
 fi
 
-menuentry "Try AxisOS 2.1 (GNOME Desktop)" --class axisos --class gnu-linux --class gnu {
+menuentry "Try AxisOS 2.1 (LiquidNodes Desktop)" --class axisos --class gnu-linux --class gnu {
     linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }

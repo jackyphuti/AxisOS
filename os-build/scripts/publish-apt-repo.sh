@@ -28,51 +28,31 @@ Version: ${VERSION}
 Section: x11
 Priority: optional
 Architecture: amd64
-Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation
+Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation, fonts-inter, libqt6core6, libqt6gui6, libqt6qml6, libqt6quick6, libqt6dbus6, libqt6waylandcompositor6, qml6-module-qtwayland-compositor, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qml6-module-qtquick-templates, qt6-wayland, libpam0g
 Replaces: axisos-desktop-suite (<< ${VERSION})
 Breaks: axisos-desktop-suite (<< ${VERSION})
 Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
-Description: AxisOS Desktop Applications, HUD Task Manager & System Utilities
- AxisOS Native Suite featuring HUD Task Manager, Settings Panels,
- Terminal, Rewind CoW Engine, and Remote OTA Updates with snapshot protection.
+Description: AxisOS LiquidNodes Desktop Environment, HUD & System Suite
+ AxisOS Native LiquidNodes Wayland Compositor & Glassmorphic Desktop,
+ featuring HUD Task Manager, Settings Panels, Terminal, Rewind CoW Engine,
+ and Remote OTA Updates.
 EOF
 chmod 644 "${DEB_DIR}/DEBIAN/control"
 
-# Generate post-installation hook to enable periodic update checking and remove Debian wallpapers
+# Generate post-installation hook
 cat << 'EOF' > "${DEB_DIR}/DEBIAN/postinst"
 #!/bin/sh
 set -e
 if command -v systemctl >/dev/null 2>&1; then
     systemctl --global enable axis-update-notifier.timer 2>/dev/null || true
+    systemctl daemon-reload 2>/dev/null || true
 fi
 # Rebuild font cache so newly installed fonts and fallbacks are indexed
 if command -v fc-cache >/dev/null 2>&1; then
     fc-cache -f 2>/dev/null || true
 fi
-# Add Switch OS Edition quick action to GNOME Settings right-click menu safely
-if [ -f /usr/share/applications/org.gnome.Settings.desktop ] && ! grep -q "AxisEdition" /usr/share/applications/org.gnome.Settings.desktop 2>/dev/null; then
-    sed -i 's/^Actions=.*/&AxisEdition;/' /usr/share/applications/org.gnome.Settings.desktop 2>/dev/null || true
-    cat << 'DESK_EOF' >> /usr/share/applications/org.gnome.Settings.desktop
-
-[Desktop Action AxisEdition]
-Name=Switch OS Edition (About)
-Exec=/usr/local/bin/axisos-settings-panel about
-Icon=help-about
-DESK_EOF
-fi
-# Remove Debian & stock wallpapers from GNOME Settings so only AxisOS wallpapers appear
-if [ -d /usr/share/gnome-background-properties ]; then
-    mkdir -p /usr/share/gnome-background-properties/stock-disabled
-    for f in /usr/share/gnome-background-properties/*.xml; do
-        [ "$f" = "/usr/share/gnome-background-properties/axisos-wallpapers.xml" ] && continue
-        [ -f "$f" ] && mv -f "$f" /usr/share/gnome-background-properties/stock-disabled/ 2>/dev/null || true
-    done
-fi
 if command -v glib-compile-schemas >/dev/null 2>&1; then
     glib-compile-schemas /usr/share/glib-2.0/schemas 2>/dev/null || true
-fi
-if command -v dconf >/dev/null 2>&1; then
-    dconf update 2>/dev/null || true
 fi
 exit 0
 EOF
@@ -153,6 +133,65 @@ elif [ -f "data/branding/axis-wallpaper.png" ]; then
     cp -f "data/branding/axis-wallpaper.png" "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
     chmod 644 "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
 fi
+
+# Deploy AxisOS LiquidNodes Qt6 Wayland Compositor & Shell
+if [ -f "compositor-qt/LiquidNodesOS" ]; then
+    echo "--> Packaging LiquidNodesOS compositor binary..."
+    cp -f "compositor-qt/LiquidNodesOS" "${DEB_DIR}/usr/local/bin/LiquidNodesOS"
+    chmod 755 "${DEB_DIR}/usr/local/bin/LiquidNodesOS"
+    ln -sfn "/usr/local/bin/LiquidNodesOS" "${DEB_DIR}/usr/bin/LiquidNodesOS"
+    ln -sfn "/usr/local/bin/LiquidNodesOS" "${DEB_DIR}/usr/local/bin/axis-compositor"
+    ln -sfn "/usr/local/bin/LiquidNodesOS" "${DEB_DIR}/usr/bin/axis-compositor"
+fi
+
+mkdir -p "${DEB_DIR}/usr/share/axis-compositor-qt"
+if [ -d "compositor-qt" ]; then
+    cp -rf compositor-qt/*.qml "${DEB_DIR}/usr/share/axis-compositor-qt/" 2>/dev/null || true
+    chmod 644 "${DEB_DIR}/usr/share/axis-compositor-qt/"* 2>/dev/null || true
+fi
+
+mkdir -p "${DEB_DIR}/usr/share/wayland-sessions"
+cat << 'EOF' > "${DEB_DIR}/usr/share/wayland-sessions/axisos-liquidnodes.desktop"
+[Desktop Entry]
+Name=AxisOS LiquidNodes
+Comment=AxisOS Native Qt 6 Wayland Compositor & Glassmorphic Desktop
+Exec=/usr/local/bin/LiquidNodesOS
+Type=Application
+DesktopNames=AxisOS:LiquidNodes
+EOF
+chmod 644 "${DEB_DIR}/usr/share/wayland-sessions/axisos-liquidnodes.desktop"
+ln -sfn "/usr/share/wayland-sessions/axisos-liquidnodes.desktop" "${DEB_DIR}/usr/share/wayland-sessions/axisos.desktop"
+
+mkdir -p "${DEB_DIR}/etc/systemd/system"
+cat << 'EOF' > "${DEB_DIR}/etc/systemd/system/axisos-session.service"
+[Unit]
+Description=AxisOS LiquidNodes Desktop Environment
+After=systemd-user-sessions.service plymouth-quit-wait.service
+Conflicts=getty@tty1.service
+After=getty@tty1.service
+
+[Service]
+Type=simple
+User=axis
+WorkingDirectory=/home/axis
+Environment=XDG_SESSION_TYPE=wayland
+Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
+Environment=WAYLAND_DISPLAY=wayland-0
+Environment=QT_QPA_PLATFORM=wayland;xcb;eglfs
+Environment=QSG_RHI_PREFER_SOFTWARE_RENDERER=0
+ExecStart=/usr/local/bin/LiquidNodesOS
+Restart=on-failure
+RestartSec=1
+StandardInput=tty
+StandardOutput=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=graphical.target
+EOF
+chmod 644 "${DEB_DIR}/etc/systemd/system/axisos-session.service"
 
 mkdir -p public_apt/apt
 dpkg-deb --build "${DEB_DIR}" "public_apt/apt/axisos-desktop-suite_${VERSION}_amd64.deb"

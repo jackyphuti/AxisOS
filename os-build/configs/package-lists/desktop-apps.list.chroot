@@ -1,32 +1,49 @@
-gnome-shell
-gnome-session
-gdm3
-gnome-control-center
-gnome-tweaks
-gnome-shell-extension-dashtodock
-gnome-shell-extension-appindicator
-xdg-desktop-portal-gnome
+# ==============================================================================
+# AxisOS LiquidNodes Native Desktop Applications Manifest
+# Zero GNOME Shell / Mutter / GDM3 Overhead - Powered by Qt 6 Wayland Compositor
+# ==============================================================================
+
+# Qt 6 Wayland Compositor Framework & QML Runtime
+libqt6waylandcompositor6
+qml6-module-qtwayland-compositor
+qt6-wayland
+qml6-module-qtquick
+qml6-module-qtquick-controls
+qml6-module-qtquick-layouts
+qml6-module-qtquick-window
+qml6-module-qtquick-templates
+libqt6core6
+libqt6gui6
+libqt6qml6
+libqt6quick6
+libqt6dbus6
+
+# Desktop Portal & Authentication Stack
+xdg-desktop-portal
+xdg-desktop-portal-wlr
+libpam0g
+libpam-fprintd
+fprintd
 dconf-cli
-gnome-software
-packagekit
-gnome-software-plugin-flatpak
+
+# Package & Software Integration
 flatpak
+packagekit
+
+# Office & Typography Stack
 libreoffice
-libreoffice-gnome
 papirus-icon-theme
 fonts-font-awesome
 fonts-cantarell
 fonts-dejavu-core
 fonts-liberation
 fonts-inter
-rhythmbox
-cheese
+
+# Client Desktop Applications & Utilities
 celluloid
 eog
 evince
 nautilus
 gedit
-gnome-calculator
 file-roller
-gnome-terminal
 xterm

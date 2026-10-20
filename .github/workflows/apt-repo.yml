@@ -5,6 +5,7 @@ on:
     branches:
       - main
     paths:
+      - 'compositor-qt/**'
       - 'os-build/apps/**'
       - 'os-build/scripts/**'
       - 'os-build/configs/**'
@@ -37,9 +38,18 @@ jobs:
               apt-get install -y --no-install-recommends \
                 build-essential \
                 g++ \
+                cmake \
                 pkg-config \
                 libgtk-3-dev \
                 libudev-dev \
+                qt6-base-dev \
+                qt6-declarative-dev \
+                qt6-wayland-dev \
+                libwayland-dev \
+                libpam0g-dev \
+                libxkbcommon-dev \
+                libgl1-mesa-dev \
+                libvulkan-dev \
                 dpkg-dev \
                 gzip \
                 coreutils

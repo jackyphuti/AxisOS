@@ -8,6 +8,7 @@
 #include <QDBusReply>
 #include <QDBusMessage>
 #include <QTimer>
+#include <QVariantList>
 #include <memory>
 
 class SystemController : public QObject {
@@ -55,6 +56,7 @@ public:
 
     // Q_INVOKABLE Actions
     Q_INVOKABLE void launchApp(const QString &command);
+    Q_INVOKABLE QVariantList getInstalledApps();
     Q_INVOKABLE void toggleWifi(bool enabled);
     Q_INVOKABLE void toggleBluetooth(bool enabled);
     Q_INVOKABLE void powerOff();

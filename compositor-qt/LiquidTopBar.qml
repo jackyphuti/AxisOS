@@ -33,40 +33,68 @@ Rectangle {
         anchors.rightMargin: 16
         spacing: 18
 
-        // Left Branding & Kernel Telemetry
+        // Left Branding & Kernel Telemetry (Click to open App Launcher)
         RowLayout {
             spacing: 10
 
-            // Glowing Liquid Node Logo
             Rectangle {
-                width: 12
-                height: 12
-                radius: 6
-                color: "#00F2FE"
+                id: brandBtn
+                height: 26
+                width: brandRow.implicitWidth + 16
+                radius: 13
+                color: brandMouse.containsMouse ? "#222B3E" : "transparent"
+                border.color: brandMouse.containsMouse ? "#00F2FE" : "transparent"
+                border.width: 1
 
-                Rectangle {
+                RowLayout {
+                    id: brandRow
                     anchors.centerIn: parent
-                    width: 6
-                    height: 6
-                    radius: 3
-                    color: "#FFFFFF"
+                    spacing: 8
+
+                    // Glowing Liquid Node Logo
+                    Rectangle {
+                        width: 12
+                        height: 12
+                        radius: 6
+                        color: "#00F2FE"
+
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 6
+                            height: 6
+                            radius: 3
+                            color: "#FFFFFF"
+                        }
+                    }
+
+                    Text {
+                        text: "AXIS OS"
+                        color: "#F8FAFC"
+                        font.bold: true
+                        font.pixelSize: 12
+                        font.family: "Inter, Cantarell, sans-serif"
+                    }
+
+                    Text {
+                        text: "LiquidNodes"
+                        color: "#8B5CF6"
+                        font.bold: true
+                        font.pixelSize: 11
+                        font.family: "Inter, Cantarell, sans-serif"
+                    }
                 }
-            }
 
-            Text {
-                text: "AXIS OS"
-                color: "#F8FAFC"
-                font.bold: true
-                font.pixelSize: 12
-                font.family: "Inter, Cantarell, sans-serif"
-            }
-
-            Text {
-                text: "LiquidNodes"
-                color: "#8B5CF6"
-                font.bold: true
-                font.pixelSize: 11
-                font.family: "Inter, Cantarell, sans-serif"
+                MouseArea {
+                    id: brandMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (typeof appLauncher !== "undefined") {
+                            appLauncher.visible = !appLauncher.visible;
+                        }
+                    }
+                }
             }
 
             // XanMod Kernel Badge
