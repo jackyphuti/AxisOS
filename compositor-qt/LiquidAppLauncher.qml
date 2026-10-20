@@ -7,13 +7,13 @@ Item {
     anchors.fill: parent
     visible: false
     opacity: visible ? 1.0 : 0.0
-    scale: visible ? 1.0 : 0.96
+    scale: visible ? 1.0 : 0.98
 
     Behavior on opacity {
-        NumberAnimation { duration: 180; easing.type: Easing.OutQuad }
+        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
     }
     Behavior on scale {
-        SpringAnimation { spring: 4.5; damping: 0.35; epsilon: 0.01 }
+        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
     }
 
     onVisibleChanged: {
@@ -63,10 +63,10 @@ Item {
         filteredAppsList = result;
     }
 
-    // Semi-transparent backdrop blur
+    // Soft airy backdrop blur
     Rectangle {
         anchors.fill: parent
-        color: "#E606080E"
+        color: "#801C1C1E"
 
         MouseArea {
             anchors.fill: parent
@@ -74,30 +74,26 @@ Item {
         }
     }
 
-    // Centered frosted glassmorphic launcher modal
+    // Centered One UI Launchpad Modal
     Rectangle {
         id: launcherModal
         width: Math.min(parent.width - 64, 880)
         height: Math.min(parent.height - 80, 680)
         anchors.centerIn: parent
         radius: 24
-        color: "#D90F131D"
-        border.color: "#28344A"
+        color: "#FFFFFF"
+        border.color: "#E5E7EE"
         border.width: 1
 
-        // Top neon ambient highlight
+        // Soft elevation shadow
         Rectangle {
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            height: 1
+            anchors.fill: parent
+            anchors.topMargin: 4
+            z: -1
             radius: 24
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: "#00F2FE" }
-                GradientStop { position: 0.5; color: "#8B5CF6" }
-                GradientStop { position: 1.0; color: "#00FF9D" }
-            }
+            color: "transparent"
+            border.color: "#0D1428A0"
+            border.width: 10
             opacity: 0.8
         }
 
@@ -106,40 +102,26 @@ Item {
             anchors.margins: 28
             spacing: 18
 
-            // 1. Header with Logo & Title
+            // 1. One UI Large Header
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 12
 
-                Rectangle {
-                    width: 32
-                    height: 32
-                    radius: 16
-                    color: "#182030"
-                    border.color: "#00F2FE"
-                    border.width: 1.5
-
-                    Text {
-                        anchors.centerIn: parent
-                        text: "▲"
-                        color: "#00F2FE"
-                        font.pixelSize: 14
-                    }
-                }
-
                 ColumnLayout {
                     spacing: 2
                     Text {
-                        text: "AxisOS Applications"
-                        color: "#F8FAFC"
+                        text: "Applications"
+                        color: "#1C1C1E"
                         font.bold: true
-                        font.pixelSize: 16
-                        font.family: "Inter, Cantarell, sans-serif"
+                        font.pixelSize: 28
+                        font.letterSpacing: -0.5
+                        font.family: "Inter, -apple-system, system-ui, sans-serif"
                     }
                     Text {
-                        text: "Launch applications, system utilities, and configuration panels"
-                        color: "#94A3B8"
-                        font.pixelSize: 11
+                        text: "All installed software, system utilities, and configuration panels"
+                        color: "#6B6F7B"
+                        font.pixelSize: 13
+                        font.family: "Inter, -apple-system, system-ui, sans-serif"
                     }
                 }
 
@@ -147,18 +129,18 @@ Item {
 
                 // Close button
                 Rectangle {
-                    width: 28
-                    height: 28
-                    radius: 14
-                    color: closeMouse.containsMouse ? "#EF4444" : "#1A2234"
-                    border.color: "#28344A"
+                    width: 32
+                    height: 32
+                    radius: 16
+                    color: closeMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
+                    border.color: "#E5E7EE"
                     border.width: 1
 
                     Text {
                         anchors.centerIn: parent
                         text: "✕"
-                        color: "#FFFFFF"
-                        font.pixelSize: 11
+                        color: "#1C1C1E"
+                        font.pixelSize: 12
                         font.bold: true
                     }
 
@@ -172,33 +154,35 @@ Item {
                 }
             }
 
-            // 2. Search Field
+            // 2. Search Input (Pill Shaped)
             Rectangle {
                 Layout.fillWidth: true
-                height: 44
-                radius: 12
-                color: "#131824"
-                border.color: searchInput.activeFocus ? "#00F2FE" : "#222C3E"
-                border.width: searchInput.activeFocus ? 1.5 : 1
+                height: 46
+                radius: 999
+                color: "#F4F6FB"
+                border.color: searchInput.activeFocus ? "#1428A0" : "#E5E7EE"
+                border.width: searchInput.activeFocus ? 2 : 1
+
+                Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 14
-                    anchors.rightMargin: 14
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
                     spacing: 10
 
                     Text {
                         text: "🔍"
                         font.pixelSize: 14
-                        color: "#64748B"
+                        color: "#6B6F7B"
                     }
 
                     TextInput {
                         id: searchInput
                         Layout.fillWidth: true
-                        color: "#F8FAFC"
-                        font.pixelSize: 13
-                        font.family: "Inter, Cantarell, sans-serif"
+                        color: "#1C1C1E"
+                        font.pixelSize: 14
+                        font.family: "Inter, -apple-system, system-ui, sans-serif"
                         verticalAlignment: TextInput.AlignVCenter
                         selectByMouse: true
                         clip: true
@@ -206,9 +190,10 @@ Item {
                         Text {
                             anchors.fill: parent
                             verticalAlignment: Text.AlignVCenter
-                            text: "Type to search applications, utilities, settings..."
-                            color: "#475569"
-                            font.pixelSize: 13
+                            text: "Search apps, tools, settings..."
+                            color: "#9EA3B5"
+                            font.pixelSize: 14
+                            font.family: "Inter, -apple-system, system-ui, sans-serif"
                             visible: !searchInput.text && !searchInput.activeFocus
                         }
 
@@ -228,7 +213,7 @@ Item {
                     Text {
                         visible: searchInput.text.length > 0
                         text: "✕"
-                        color: "#64748B"
+                        color: "#6B6F7B"
                         font.pixelSize: 12
                         MouseArea {
                             anchors.fill: parent
@@ -239,26 +224,29 @@ Item {
                 }
             }
 
-            // 3. Category Filter Tabs
+            // 3. Category Filter Tabs (Pill shaped)
             RowLayout {
                 spacing: 8
                 Repeater {
                     model: ["All", "System", "Utilities", "Development", "Internet", "Media", "Games"]
                     Rectangle {
-                        height: 28
-                        width: tabText.implicitWidth + 20
-                        radius: 14
-                        color: launcherRoot.selectedCategory === modelData ? "#00F2FE" : (tabMouse.containsMouse ? "#202A3C" : "#131824")
-                        border.color: launcherRoot.selectedCategory === modelData ? "#00F2FE" : "#28344A"
+                        height: 30
+                        width: tabText.implicitWidth + 22
+                        radius: 999
+                        color: launcherRoot.selectedCategory === modelData ? "#1428A0" : (tabMouse.containsMouse ? "#E6EBFF" : "#F4F6FB")
+                        border.color: launcherRoot.selectedCategory === modelData ? "#1428A0" : "#E5E7EE"
                         border.width: 1
+
+                        Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                         Text {
                             id: tabText
                             anchors.centerIn: parent
                             text: modelData
-                            color: launcherRoot.selectedCategory === modelData ? "#06080E" : "#94A3B8"
-                            font.pixelSize: 11
+                            color: launcherRoot.selectedCategory === modelData ? "#FFFFFF" : "#1C1C1E"
+                            font.pixelSize: 12
                             font.bold: launcherRoot.selectedCategory === modelData
+                            font.family: "Inter, -apple-system, system-ui, sans-serif"
                         }
 
                         MouseArea {
@@ -285,7 +273,7 @@ Item {
                     id: appGridView
                     anchors.fill: parent
                     cellWidth: 156
-                    cellHeight: 120
+                    cellHeight: 124
                     model: launcherRoot.filteredAppsList
 
                     delegate: Item {
@@ -297,16 +285,19 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 6
                             radius: 16
-                            color: tileMouse.containsMouse ? "#222B3E" : "#151B28"
-                            border.color: tileMouse.containsMouse ? "#00F2FE" : "#1F2738"
+                            color: tileMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
+                            border.color: tileMouse.containsMouse ? "#1428A0" : "#E5E7EE"
                             border.width: 1
-                            scale: tileMouse.containsMouse ? 1.05 : 1.0
+                            scale: tileMouse.containsMouse ? 1.04 : 1.0
 
                             Behavior on scale {
-                                SpringAnimation { spring: 5.0; damping: 0.35 }
+                                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
                             }
                             Behavior on color {
-                                ColorAnimation { duration: 120 }
+                                ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
+                            }
+                            Behavior on border.color {
+                                ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
                             }
 
                             ColumnLayout {
@@ -327,10 +318,10 @@ Item {
 
                                     Rectangle {
                                         anchors.centerIn: parent
-                                        width: 24
-                                        height: 24
-                                        radius: 12
-                                        color: "#00F2FE"
+                                        width: 20
+                                        height: 20
+                                        radius: 10
+                                        color: "#1428A0"
                                         visible: parent.status !== Image.Ready
                                     }
                                 }
@@ -338,10 +329,10 @@ Item {
                                 Text {
                                     Layout.fillWidth: true
                                     text: modelData.name
-                                    color: tileMouse.containsMouse ? "#FFFFFF" : "#E2E8F0"
-                                    font.pixelSize: 11
+                                    color: "#1C1C1E"
+                                    font.pixelSize: 12
                                     font.bold: true
-                                    font.family: "Inter, Cantarell, sans-serif"
+                                    font.family: "Inter, -apple-system, system-ui, sans-serif"
                                     horizontalAlignment: Text.AlignHCenter
                                     elide: Text.ElideRight
                                     maximumLineCount: 1
@@ -369,9 +360,10 @@ Item {
                 spacing: 12
 
                 Text {
-                    text: launcherRoot.filteredAppsList.length + " applications available"
-                    color: "#64748B"
-                    font.pixelSize: 11
+                    text: launcherRoot.filteredAppsList.length + " applications"
+                    color: "#6B6F7B"
+                    font.pixelSize: 12
+                    font.family: "Inter, -apple-system, system-ui, sans-serif"
                 }
 
                 Item { Layout.fillWidth: true }
@@ -385,20 +377,23 @@ Item {
                     ]
 
                     Rectangle {
-                        height: 24
-                        width: fText.implicitWidth + 16
-                        radius: 6
-                        color: fMouse.containsMouse ? "#202A3C" : "#131824"
-                        border.color: "#28344A"
+                        height: 28
+                        width: fText.implicitWidth + 18
+                        radius: 999
+                        color: fMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
+                        border.color: "#E5E7EE"
                         border.width: 1
+
+                        Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                         Text {
                             id: fText
                             anchors.centerIn: parent
                             text: modelData.name
-                            color: "#94A3B8"
-                            font.pixelSize: 10
+                            color: "#1C1C1E"
+                            font.pixelSize: 11
                             font.bold: true
+                            font.family: "Inter, -apple-system, system-ui, sans-serif"
                         }
 
                         MouseArea {

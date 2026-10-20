@@ -1,55 +1,59 @@
 /*
- * AxisOS Design Tokens - Monochrome Slate Architecture (Black, Grey, White)
- * Single source of truth for color, spacing, radius, and elevation tokens.
- * Pure deep blacks, rich titanium/slate greys, and crisp brilliant whites.
+ * AxisOS Design Tokens — One UI Inspired Design System
+ * Clean, airy surfaces, single Samsung deep blue accent, large rounded corners, and soft elevation shadows.
  */
 
-/* -------------------------------------------------------------------------
- * Dark Scheme Tokens (Obsidian, Graphite Slate, and Crisp White)
- * Base: #0A0B0D (Pitch obsidian-black canvas)
- * Surface: #14161A (Deep dark graphite surface for panels, dock & sidebars)
- * Surface Raised: #202329 (Elevated cards & input backgrounds)
- * Accent: #FFFFFF (Crisp brilliant white primary accent)
- * Accent 2: #94A3B8 (Cool titanium slate grey for secondary tags & folders)
- * Text: #F8FAFC (High-contrast pure crisp white text)
- * Text Muted: #94A3B8 (Medium-contrast readable silver slate)
- * Outline: alpha(#FFFFFF, 0.12) (Subtle frosted glass rim)
- * ------------------------------------------------------------------------- */
-@define-color axis_dark_base #0A0B0D;
-@define-color axis_dark_surface #14161A;
-@define-color axis_dark_surface_raised #202329;
-@define-color axis_dark_accent #FFFFFF;
-@define-color axis_dark_accent_2 #94A3B8;
-@define-color axis_dark_text #F8FAFC;
-@define-color axis_dark_text_muted #94A3B8;
-@define-color axis_dark_outline alpha(#FFFFFF, 0.12);
-@define-color axis_dark_tile_fill alpha(#FFFFFF, 0.05);
-@define-color axis_dark_dock_highlight alpha(#FFFFFF, 0.16);
-@define-color axis_dark_launcher_overlay alpha(#0A0B0D, 0.78);
-@define-color axis_dark_shadow alpha(#000000, 0.60);
-@define-color axis_dark_btn_text #0A0B0D;
+:root {
+  --bg-wallpaper: linear-gradient(160deg, #e9eefc 0%, #f6f1fb 100%);
+  --surface: #ffffff;
+  --surface-alt: #f4f6fb;          /* grouped list backgrounds */
+  --text-primary: #1c1c1e;
+  --text-secondary: #6b6f7b;
+  --accent: #1428a0;               /* Samsung-style deep blue */
+  --accent-soft: #e6ebff;          /* selected/hover states */
+  --divider: #e5e7ee;
+  --success: #2bb673;
+  --radius-lg: 24px;
+  --radius-md: 16px;
+  --radius-pill: 999px;
+  --shadow-soft: 0 4px 20px rgba(20, 40, 160, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-wallpaper: linear-gradient(160deg, #141826 0%, #1b1d2b 100%);
+    --surface: #1f2231;
+    --surface-alt: #262a3d;
+    --text-primary: #f2f3f7;
+    --text-secondary: #9ea3b5;
+    --divider: #2e3349;
+    --accent: #7d95ff;
+    --accent-soft: #2a3366;
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.35);
+  }
+}
 
 /* -------------------------------------------------------------------------
- * Light Scheme Tokens (Pure White, Soft Slate-Grey, and Jet Black)
- * Base: #F4F5F7 (Clean architectural soft platinum grey canvas)
- * Surface: #FFFFFF (Pure crisp white cards & window surfaces)
- * Surface Raised: #E2E5EB (Soft pearl slate grey for elevated cards & troughs)
- * Accent: #0F172A (Deep jet black primary action accent)
- * Accent 2: #64748B (Balanced slate-500 grey for secondary tags & folders)
- * Text: #0F172A (Deep rich black body text)
- * Text Muted: #64748B (Neutral medium slate grey captions & secondary labels)
- * Outline: alpha(#000000, 0.10) (Crisp delicate border outline)
+ * GTK 3 & GTK 4 Compatibility Mapping (@define-color)
  * ------------------------------------------------------------------------- */
-@define-color axis_light_base #F4F5F7;
+@define-color axis_light_base #F4F6FB;
 @define-color axis_light_surface #FFFFFF;
-@define-color axis_light_surface_raised #E2E5EB;
-@define-color axis_light_accent #0F172A;
-@define-color axis_light_accent_2 #64748B;
-@define-color axis_light_text #0F172A;
-@define-color axis_light_text_muted #64748B;
-@define-color axis_light_outline alpha(#000000, 0.10);
-@define-color axis_light_tile_fill alpha(#000000, 0.04);
-@define-color axis_light_dock_highlight alpha(#FFFFFF, 0.85);
-@define-color axis_light_launcher_overlay alpha(#FFFFFF, 0.85);
-@define-color axis_light_shadow alpha(#000000, 0.08);
-@define-color axis_light_btn_text #FFFFFF;
+@define-color axis_light_surface_raised #F4F6FB;
+@define-color axis_light_accent #1428A0;
+@define-color axis_light_accent_soft #E6EBFF;
+@define-color axis_light_text #1C1C1E;
+@define-color axis_light_text_muted #6B6F7B;
+@define-color axis_light_outline #E5E7EE;
+@define-color axis_light_success #2BB673;
+@define-color axis_light_shadow rgba(20, 40, 160, 0.08);
+
+@define-color axis_dark_base #141826;
+@define-color axis_dark_surface #1F2231;
+@define-color axis_dark_surface_raised #262A3D;
+@define-color axis_dark_accent #7D95FF;
+@define-color axis_dark_accent_soft #2A3366;
+@define-color axis_dark_text #F2F3F7;
+@define-color axis_dark_text_muted #9EA3B5;
+@define-color axis_dark_outline #2E3349;
+@define-color axis_dark_success #2BB673;
+@define-color axis_dark_shadow rgba(0, 0, 0, 0.35);

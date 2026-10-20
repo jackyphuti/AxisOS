@@ -7,80 +7,52 @@ Rectangle {
     anchors.top: parent.top
     anchors.left: parent.left
     anchors.right: parent.right
-    height: 36
-    color: "#D90B0D13" // Deep obsidian frosted glass
-    border.color: "#242A38" // Matte titanium rim
+    height: 38
+    color: "#FFFFFF"
+    border.color: "#E5E7EE"
     border.width: 1
-
-    // Cyber-Teal / Violet bottom highlight line
-    Rectangle {
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: 1
-        gradient: Gradient {
-            orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: "#00F2FE" }
-            GradientStop { position: 0.5; color: "#8B5CF6" }
-            GradientStop { position: 1.0; color: "#FF007F" }
-        }
-        opacity: 0.45
-    }
 
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: 16
-        anchors.rightMargin: 16
-        spacing: 18
+        anchors.leftMargin: 18
+        anchors.rightMargin: 18
+        spacing: 16
 
-        // Left Branding & Kernel Telemetry (Click to open App Launcher)
+        // Left Branding & Launcher Trigger (Clean One UI Pill)
         RowLayout {
             spacing: 10
 
             Rectangle {
                 id: brandBtn
-                height: 26
+                height: 28
                 width: brandRow.implicitWidth + 16
-                radius: 13
-                color: brandMouse.containsMouse ? "#222B3E" : "transparent"
-                border.color: brandMouse.containsMouse ? "#00F2FE" : "transparent"
+                radius: 14
+                color: brandMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
+                border.color: brandMouse.containsMouse ? "#1428A0" : "#E5E7EE"
                 border.width: 1
+
+                Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                 RowLayout {
                     id: brandRow
                     anchors.centerIn: parent
-                    spacing: 8
+                    spacing: 7
 
-                    // Glowing Liquid Node Logo
+                    // Clean Samsung Deep Blue Accent Dot
                     Rectangle {
-                        width: 12
-                        height: 12
-                        radius: 6
-                        color: "#00F2FE"
-
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 6
-                            height: 6
-                            radius: 3
-                            color: "#FFFFFF"
-                        }
+                        width: 8
+                        height: 8
+                        radius: 4
+                        color: "#1428A0"
                     }
 
                     Text {
-                        text: "AXIS OS"
-                        color: "#F8FAFC"
+                        text: "AxisOS"
+                        color: "#1C1C1E"
                         font.bold: true
-                        font.pixelSize: 12
-                        font.family: "Inter, Cantarell, sans-serif"
-                    }
-
-                    Text {
-                        text: "LiquidNodes"
-                        color: "#8B5CF6"
-                        font.bold: true
-                        font.pixelSize: 11
-                        font.family: "Inter, Cantarell, sans-serif"
+                        font.pixelSize: 13
+                        font.family: "Inter, -apple-system, system-ui, sans-serif"
                     }
                 }
 
@@ -96,37 +68,17 @@ Rectangle {
                     }
                 }
             }
-
-            // XanMod Kernel Badge
-            Rectangle {
-                height: 18
-                width: kernelTxt.implicitWidth + 12
-                radius: 4
-                color: "#181C26"
-                border.color: "#283042"
-                border.width: 1
-
-                Text {
-                    id: kernelTxt
-                    anchors.centerIn: parent
-                    text: SystemController.kernelVersion
-                    color: "#94A3B8"
-                    font.pixelSize: 9
-                    font.bold: true
-                    font.family: "Fira Code, monospace"
-                }
-            }
         }
 
         Item { Layout.fillWidth: true }
 
-        // Center Date & Time Clock
+        // Center Date & Time Clock (Clean One UI typography)
         Text {
             id: clockDisplay
-            color: "#F8FAFC"
+            color: "#1C1C1E"
             font.bold: true
-            font.pixelSize: 12
-            font.family: "Inter, Cantarell, sans-serif"
+            font.pixelSize: 13
+            font.family: "Inter, -apple-system, system-ui, sans-serif"
 
             Timer {
                 interval: 1000
@@ -135,109 +87,39 @@ Rectangle {
                 triggeredOnStart: true
                 onTriggered: {
                     var now = new Date();
-                    clockDisplay.text = Qt.formatDateTime(now, "ddd MMM d   hh:mm AP");
+                    clockDisplay.text = Qt.formatDateTime(now, "ddd, MMM d   •   h:mm AP");
                 }
             }
         }
 
         Item { Layout.fillWidth: true }
 
-        // Right Telemetry & Hardware Indicators (D-Bus Bound)
+        // Right Telemetry & Status Area (Calm, clean outline indicators)
         RowLayout {
             spacing: 14
 
-            // CPU Load Meter
-            RowLayout {
-                spacing: 5
-                Text {
-                    text: "CPU"
-                    color: "#64748B"
-                    font.pixelSize: 10
-                    font.bold: true
-                }
-                Text {
-                    text: SystemController.cpuLoadPercent + "%"
-                    color: SystemController.cpuLoadPercent > 80 ? "#FF007F" : "#00F2FE"
-                    font.pixelSize: 11
-                    font.bold: true
-                    font.family: "Fira Code, monospace"
-                }
-            }
-
-            // RAM Utilization
-            RowLayout {
-                spacing: 5
-                Text {
-                    text: "RAM"
-                    color: "#64748B"
-                    font.pixelSize: 10
-                    font.bold: true
-                }
-                Text {
-                    text: SystemController.ramUsagePercent + "%"
-                    color: "#8B5CF6"
-                    font.pixelSize: 11
-                    font.bold: true
-                    font.family: "Fira Code, monospace"
-                }
-            }
-
-            // Feature 3: NeuralPulse Focus Booster & Active LiquidNodes Badge
+            // Focus pill (NeuralPulse) in subtle soft-blue pill
             Rectangle {
-                height: 20
-                width: npRow.implicitWidth + 14
-                radius: 10
-                color: "#141D2B"
-                border.color: "#00F2FE"
+                height: 24
+                width: focusRow.implicitWidth + 14
+                radius: 12
+                color: "#F4F6FB"
+                border.color: "#E5E7EE"
                 border.width: 1
+
                 RowLayout {
-                    id: npRow
+                    id: focusRow
                     anchors.centerIn: parent
-                    spacing: 5
-                    Text {
-                        text: "⚡ NeuralPulse:"
-                        color: "#00F2FE"
-                        font.pixelSize: 9
-                        font.bold: true
-                    }
+                    spacing: 6
+
                     Text {
                         text: SystemController.neuralPulseTarget
-                        color: "#F8FAFC"
-                        font.pixelSize: 9
+                        color: "#1C1C1E"
+                        font.pixelSize: 11
                         font.bold: true
-                    }
-                    Text {
-                        visible: SystemController.activeNodeLinks > 0
-                        text: "• ◉ " + SystemController.activeNodeLinks
-                        color: "#00FF9D"
-                        font.pixelSize: 9
-                        font.bold: true
+                        font.family: "Inter, -apple-system, system-ui, sans-serif"
                     }
                 }
-            }
-
-            // zRAM Compression Savings
-            RowLayout {
-                spacing: 5
-                Text {
-                    text: "zRAM"
-                    color: "#64748B"
-                    font.pixelSize: 10
-                    font.bold: true
-                }
-                Text {
-                    text: "+" + SystemController.zramSavedMb + " MB"
-                    color: "#00F2FE"
-                    font.pixelSize: 11
-                    font.bold: true
-                    font.family: "Fira Code, monospace"
-                }
-            }
-
-            Rectangle {
-                width: 1
-                height: 16
-                color: "#283042"
             }
 
             // Wi-Fi Status
@@ -247,13 +129,13 @@ Rectangle {
                     width: 7
                     height: 7
                     radius: 3.5
-                    color: SystemController.wifiConnected ? "#00F2FE" : "#EF4444"
+                    color: SystemController.wifiConnected ? "#1428A0" : "#6B6F7B"
                 }
                 Text {
                     text: SystemController.wifiSsid
-                    color: "#E2E8F0"
-                    font.pixelSize: 11
-                    font.bold: true
+                    color: "#1C1C1E"
+                    font.pixelSize: 12
+                    font.family: "Inter, -apple-system, system-ui, sans-serif"
                 }
             }
 
@@ -262,26 +144,33 @@ Rectangle {
                 spacing: 5
                 Text {
                     text: (SystemController.batteryCharging ? "⚡ " : "") + SystemController.batteryPercent + "%"
-                    color: SystemController.batteryCharging ? "#00F2FE" : (SystemController.batteryPercent < 20 ? "#EF4444" : "#E2E8F0")
-                    font.pixelSize: 11
-                    font.bold: true
-                    font.family: "Fira Code, monospace"
+                    color: SystemController.batteryPercent < 20 ? "#D92D20" : "#1C1C1E"
+                    font.pixelSize: 12
+                    font.family: "Inter, -apple-system, system-ui, sans-serif"
                 }
             }
 
-            // Power Session Menu Trigger
             Rectangle {
-                width: 24
-                height: 24
-                radius: 12
-                color: pwrMouse.containsMouse ? "#FF007F" : "#181C26"
-                border.color: "#283042"
+                width: 1
+                height: 16
+                color: "#E5E7EE"
+            }
+
+            // Power Session Trigger
+            Rectangle {
+                width: 26
+                height: 26
+                radius: 13
+                color: pwrMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
+                border.color: pwrMouse.containsMouse ? "#1428A0" : "#E5E7EE"
                 border.width: 1
+
+                Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
                 Text {
                     anchors.centerIn: parent
                     text: "⏻"
-                    color: pwrMouse.containsMouse ? "#FFFFFF" : "#E2E8F0"
+                    color: pwrMouse.containsMouse ? "#1428A0" : "#1C1C1E"
                     font.pixelSize: 12
                 }
 
@@ -289,6 +178,7 @@ Rectangle {
                     id: pwrMouse
                     anchors.fill: parent
                     hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
                     onClicked: powerMenu.open()
                 }
 
