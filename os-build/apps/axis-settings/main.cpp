@@ -47,131 +47,132 @@ static std::string exec_cmd(const std::string& cmd) {
 
 static const char* CSS_THEME = R"(
 * {
-    font-family: "Inter", "Segoe UI", "Cantarell", sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Cantarell, sans-serif;
 }
 window {
-    background-color: #0A0B0D;
-    color: #F8FAFC;
+    background-color: #F4F6FB;
+    color: #1C1C1E;
 }
 headerbar {
-    background: #14161A;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    color: #FFFFFF;
+    background: #FFFFFF;
+    border-bottom: 1px solid #E5E7EE;
+    color: #1C1C1E;
 }
 headerbar .title {
-    font-weight: 800;
-    font-size: 14px;
-    color: #FFFFFF;
+    font-weight: 700;
+    font-size: 15px;
+    color: #1C1C1E;
 }
 headerbar .subtitle {
-    font-size: 11px;
-    color: #94A3B8;
+    font-size: 12px;
+    color: #6B6F7B;
 }
 .sidebar {
-    background-color: #0A0B0D;
-    border-right: 1px solid rgba(255, 255, 255, 0.10);
+    background-color: #FFFFFF;
+    border-right: 1px solid #E5E7EE;
 }
 .sidebar list row {
-    padding: 12px 16px;
-    color: #94A3B8;
+    padding: 12px 18px;
+    color: #6B6F7B;
     font-weight: 600;
     font-size: 13px;
     border-left: 3px solid transparent;
 }
 .sidebar list row:selected {
-    background-color: #202329;
-    color: #FFFFFF;
-    border-left: 3px solid #FFFFFF;
+    background-color: #E6EBFF;
+    color: #1428A0;
+    border-left: 3px solid #1428A0;
 }
 .content-pane {
     padding: 24px 32px;
 }
 .card {
-    background-color: #14161A;
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    border-radius: 12px;
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EE;
+    border-radius: 16px;
     padding: 18px 22px;
     margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(20, 40, 160, 0.04);
 }
 .card-title {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
-    color: #FFFFFF;
+    color: #1C1C1E;
     margin-bottom: 4px;
 }
 .card-subtitle {
     font-size: 12px;
-    color: #94A3B8;
+    color: #6B6F7B;
     margin-bottom: 12px;
 }
 .btn-primary {
-    background: #FFFFFF;
-    color: #0A0B0D;
+    background: #1428A0;
+    color: #FFFFFF;
     font-weight: 700;
-    border-radius: 8px;
+    border-radius: 999px;
     border: none;
-    padding: 8px 18px;
+    padding: 8px 20px;
 }
 .btn-primary:hover {
-    background: #E2E8F0;
+    background: #0F1F7A;
 }
 .btn-secondary {
-    background: #202329;
-    color: #F8FAFC;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 8px;
-    padding: 8px 16px;
+    background: #FFFFFF;
+    color: #1C1C1E;
+    border: 1px solid #E5E7EE;
+    border-radius: 999px;
+    padding: 8px 18px;
     font-weight: 600;
 }
 .btn-secondary:hover {
-    background: #2D313A;
-    color: #FFFFFF;
+    background: #E6EBFF;
+    color: #1428A0;
 }
 .badge-blue {
-    background: rgba(255, 255, 255, 0.12);
-    color: #FFFFFF;
-    border: 1px solid rgba(255, 255, 255, 0.20);
-    border-radius: 6px;
-    padding: 4px 10px;
+    background: #E6EBFF;
+    color: #1428A0;
+    border: 1px solid #C7D5FF;
+    border-radius: 999px;
+    padding: 4px 12px;
     font-size: 11px;
     font-weight: 700;
 }
 .badge-green {
-    background: rgba(148, 163, 184, 0.15);
-    color: #94A3B8;
-    border: 1px solid rgba(148, 163, 184, 0.25);
-    border-radius: 6px;
-    padding: 4px 10px;
+    background: #E6F8EE;
+    color: #2BB673;
+    border: 1px solid #B7EBCE;
+    border-radius: 999px;
+    padding: 4px 12px;
     font-size: 11px;
     font-weight: 700;
 }
 progressbar progress {
-    background: #FFFFFF;
-    border-radius: 3px;
+    background: #1428A0;
+    border-radius: 999px;
 }
 progressbar trough {
-    background: #202329;
-    border-radius: 3px;
+    background: #E5E7EE;
+    border-radius: 999px;
     min-height: 8px;
 }
 entry {
-    background-color: #202329;
-    color: #FFFFFF;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 4px;
-    padding: 8px 12px;
+    background-color: #FFFFFF;
+    color: #1C1C1E;
+    border: 1px solid #E5E7EE;
+    border-radius: 10px;
+    padding: 8px 14px;
 }
 entry:focus {
-    border-color: #FFFFFF;
+    border-color: #1428A0;
 }
 scale trough {
-    background-color: #202329;
-    border-radius: 3px;
+    background-color: #E5E7EE;
+    border-radius: 999px;
     min-height: 6px;
 }
 scale highlight {
-    background-color: #FFFFFF;
-    border-radius: 3px;
+    background-color: #1428A0;
+    border-radius: 999px;
 }
 )";
 

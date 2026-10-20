@@ -72,38 +72,38 @@ static void render_pango_text(cairo_t* cr, double x, double y, const char* text,
 #include <iostream>
 
 // ============================================================================
-// CSS Theme & Styling
+// CSS Theme & Styling (Samsung One UI Design System)
 // ============================================================================
 static const char* CSS_TASK_MANAGER = R"(
 * {
-    font-family: "Inter", "Segoe UI", "Cantarell", "DejaVu Sans", sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Cantarell, "DejaVu Sans", sans-serif;
     outline-style: none;
 }
 
 window,
 .background {
-    background-color: #0B0D11;
-    color: #F8FAFC;
+    background-color: #F4F6FB;
+    color: #1C1C1E;
 }
 
 headerbar {
-    background-color: #0F1218;
+    background-color: #FFFFFF;
     background-image: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    color: #FFFFFF;
+    border-bottom: 1px solid #E5E7EE;
+    color: #1C1C1E;
     box-shadow: none;
 }
 
 headerbar .title {
-    font-weight: 800;
+    font-weight: 700;
     font-size: 15px;
-    color: #FFFFFF;
+    color: #1C1C1E;
 }
 
 headerbar .subtitle {
-    font-size: 11px;
-    color: #00F2FE;
-    font-weight: 600;
+    font-size: 12px;
+    color: #6B6F7B;
+    font-weight: 500;
 }
 
 headerbar button {
@@ -114,8 +114,8 @@ headerbar button {
 
 /* Collapsible Left Navigation Rail */
 .nav-rail {
-    background-color: #07090D;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: #FFFFFF;
+    border-right: 1px solid #E5E7EE;
     padding: 8px 6px;
 }
 
@@ -123,9 +123,9 @@ button.nav-rail-btn {
     background-color: transparent;
     background-image: none;
     border: none;
-    border-radius: 6px;
-    color: #94A3B8;
-    padding: 10px 12px;
+    border-radius: 999px;
+    color: #6B6F7B;
+    padding: 10px 16px;
     font-weight: 600;
     font-size: 13px;
     margin: 2px 4px;
@@ -135,32 +135,32 @@ button.nav-rail-btn {
 }
 
 button.nav-rail-btn label {
-    color: #94A3B8;
+    color: #6B6F7B;
     font-weight: 600;
 }
 
 button.nav-rail-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: #F4F6FB;
     background-image: none;
-    color: #FFFFFF;
+    color: #1C1C1E;
 }
 
 button.nav-rail-btn:hover label {
-    color: #FFFFFF;
+    color: #1C1C1E;
 }
 
 button.nav-rail-btn:checked,
 button.nav-rail-btn.active {
-    background-color: rgba(0, 242, 254, 0.12);
-    background-image: linear-gradient(90deg, rgba(0, 242, 254, 0.18) 0%, rgba(0, 242, 254, 0.03) 100%);
-    color: #00F2FE;
+    background-color: #E6EBFF;
+    background-image: none;
+    color: #1428A0;
     font-weight: 700;
-    border-left: 3px solid #00F2FE;
+    border-left: 3px solid #1428A0;
 }
 
 button.nav-rail-btn:checked label,
 button.nav-rail-btn.active label {
-    color: #00F2FE;
+    color: #1428A0;
     font-weight: 700;
 }
 
@@ -168,8 +168,8 @@ button.hamburger-btn {
     background-color: transparent;
     background-image: none;
     border: 1px solid transparent;
-    border-radius: 6px;
-    color: #94A3B8;
+    border-radius: 999px;
+    color: #6B6F7B;
     font-size: 15px;
     padding: 6px 10px;
     margin: 2px 4px 6px 4px;
@@ -178,16 +178,16 @@ button.hamburger-btn {
 }
 
 button.hamburger-btn label {
-    color: #94A3B8;
+    color: #6B6F7B;
 }
 
 button.hamburger-btn:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #00F2FE;
+    background-color: #E6EBFF;
+    color: #1428A0;
 }
 
 button.hamburger-btn:hover label {
-    color: #00F2FE;
+    color: #1428A0;
 }
 
 /* Main Content Area */
@@ -195,45 +195,46 @@ button.hamburger-btn:hover label {
 scrolledwindow,
 viewport,
 stack {
-    background-color: #0B0D11;
-    color: #F8FAFC;
+    background-color: #F4F6FB;
+    color: #1C1C1E;
 }
 
 .content-pane {
-    padding: 12px 16px;
+    padding: 16px 20px;
 }
 
 .card {
-    background-color: #121620;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 14px 18px;
-    margin-bottom: 10px;
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EE;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 10px rgba(20, 40, 160, 0.04);
 }
 
 .card-title {
     font-size: 12px;
-    font-weight: 800;
-    color: #94A3B8;
-    letter-spacing: 0.5px;
+    font-weight: 700;
+    color: #6B6F7B;
+    letter-spacing: 0.3px;
     margin-bottom: 4px;
 }
 
 .card-value {
     font-size: 18px;
     font-weight: 800;
-    color: #FFFFFF;
+    color: #1C1C1E;
 }
 
 /* Action Buttons */
 button.btn-terminate {
     background-color: #E11D48;
-    background-image: linear-gradient(135deg, #FF0055 0%, #BE123C 100%);
+    background-image: none;
     color: #FFFFFF;
     font-weight: 700;
-    border-radius: 6px;
-    border: 1px solid #FF2A6D;
-    padding: 6px 14px;
+    border-radius: 999px;
+    border: none;
+    padding: 6px 16px;
     box-shadow: none;
     text-shadow: none;
 }
@@ -244,106 +245,96 @@ button.btn-terminate label {
 }
 
 button.btn-terminate:hover {
-    background-color: #FF2A6D;
-    background-image: linear-gradient(135deg, #FF2A6D 0%, #E11D48 100%);
-    border-color: #FFFFFF;
+    background-color: #BE123C;
 }
 
 button.btn-run-task {
-    background-color: #162235;
+    background-color: #1428A0;
     background-image: none;
-    color: #00F2FE;
+    color: #FFFFFF;
     font-weight: 700;
-    border-radius: 6px;
-    border: 1px solid rgba(0, 242, 254, 0.45);
-    padding: 6px 14px;
+    border-radius: 999px;
+    border: none;
+    padding: 6px 16px;
     box-shadow: none;
     text-shadow: none;
 }
 
 button.btn-run-task label {
-    color: #00F2FE;
+    color: #FFFFFF;
     font-weight: 700;
 }
 
 button.btn-run-task:hover {
-    background-color: #00F2FE;
-    background-image: none;
-    color: #0B0D11;
-    border-color: #00F2FE;
-}
-
-button.btn-run-task:hover label {
-    color: #0B0D11;
+    background-color: #0F1F7A;
 }
 
 button.btn-secondary {
-    background-color: #171C28;
+    background-color: #FFFFFF;
     background-image: none;
-    color: #E2E8F0;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    padding: 7px 14px;
+    color: #1C1C1E;
+    border: 1px solid #E5E7EE;
+    border-radius: 999px;
+    padding: 7px 16px;
     font-weight: 600;
     box-shadow: none;
     text-shadow: none;
 }
 
 button.btn-secondary label {
-    color: #E2E8F0;
+    color: #1C1C1E;
     font-weight: 600;
 }
 
 button.btn-secondary:hover {
-    background-color: #22293A;
-    background-image: none;
-    border-color: #00F2FE;
-    color: #FFFFFF;
+    background-color: #E6EBFF;
+    border-color: #1428A0;
+    color: #1428A0;
 }
 
 button.btn-secondary:hover label {
-    color: #FFFFFF;
+    color: #1428A0;
 }
 
 /* GameBoost Interactive Badge */
 button.gameboost-badge-on {
-    background-color: rgba(255, 0, 85, 0.22);
-    background-image: linear-gradient(90deg, rgba(255, 0, 85, 0.28) 0%, rgba(252, 238, 10, 0.22) 100%);
-    border: 1px solid #FF0055;
-    border-radius: 20px;
-    color: #FFFFFF;
+    background-color: #E6EBFF;
+    background-image: none;
+    border: 1px solid #1428A0;
+    border-radius: 999px;
+    color: #1428A0;
     font-weight: 800;
     font-size: 11px;
-    padding: 7px 14px;
+    padding: 7px 16px;
     box-shadow: none;
     text-shadow: none;
 }
 
 button.gameboost-badge-on label {
-    color: #FFFFFF;
+    color: #1428A0;
     font-weight: 800;
 }
 
 button.gameboost-badge-off {
-    background-color: rgba(0, 242, 254, 0.10);
+    background-color: #F4F6FB;
     background-image: none;
-    border: 1px solid rgba(0, 242, 254, 0.45);
-    border-radius: 20px;
-    color: #00F2FE;
+    border: 1px solid #E5E7EE;
+    border-radius: 999px;
+    color: #6B6F7B;
     font-weight: 800;
     font-size: 11px;
-    padding: 7px 14px;
+    padding: 7px 16px;
     box-shadow: none;
     text-shadow: none;
 }
 
 button.gameboost-badge-off label {
-    color: #00F2FE;
+    color: #6B6F7B;
     font-weight: 800;
 }
 
 .summary-pill {
-    color: #E2E8F0;
+    color: #1C1C1E;
     font-size: 12px;
     font-weight: 600;
     padding: 4px 10px;
@@ -351,69 +342,69 @@ button.gameboost-badge-off label {
 
 /* TreeView & Grid */
 treeview {
-    background-color: #0E1117;
-    color: #F8FAFC;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 6px;
+    background-color: #FFFFFF;
+    color: #1C1C1E;
+    border: 1px solid #E5E7EE;
+    border-radius: 12px;
 }
 
 treeview:selected,
 treeview row:selected {
-    background-color: rgba(0, 242, 254, 0.22);
-    color: #FFFFFF;
+    background-color: #E6EBFF;
+    color: #1428A0;
 }
 
 treeview header button {
-    background-color: #141923;
+    background-color: #F4F6FB;
     background-image: none;
-    color: #94A3B8;
+    color: #6B6F7B;
     font-weight: 700;
     font-size: 12px;
     border: none;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.08);
-    border-right: 1px solid rgba(255, 255, 255, 0.04);
-    padding: 8px 8px;
+    border-bottom: 2px solid #E5E7EE;
+    border-right: 1px solid #E5E7EE;
+    padding: 8px 12px;
     box-shadow: none;
     text-shadow: none;
 }
 
 treeview header button label {
-    color: #94A3B8;
+    color: #6B6F7B;
     font-weight: 700;
 }
 
 treeview header button:hover {
-    background-color: #1A2130;
+    background-color: #E6EBFF;
     background-image: none;
-    color: #00F2FE;
-    border-bottom: 2px solid #00F2FE;
+    color: #1428A0;
+    border-bottom: 2px solid #1428A0;
 }
 
 treeview header button:hover label {
-    color: #00F2FE;
+    color: #1428A0;
 }
 
 searchentry,
 entry {
-    background-color: #121620;
+    background-color: #FFFFFF;
     background-image: none;
-    color: #FFFFFF;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 6px;
-    padding: 6px 12px;
+    color: #1C1C1E;
+    border: 1px solid #E5E7EE;
+    border-radius: 999px;
+    padding: 6px 14px;
     box-shadow: none;
 }
 
 searchentry:focus,
 entry:focus {
-    border-color: #00F2FE;
+    border-color: #1428A0;
 }
 
 .status-footer {
-    background-color: #07090D;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    padding: 6px 16px;
-    color: #94A3B8;
+    background-color: #FFFFFF;
+    border-top: 1px solid #E5E7EE;
+    padding: 8px 18px;
+    color: #6B6F7B;
     font-size: 12px;
 }
 )";

@@ -20,182 +20,183 @@ from gi.repository import Gtk, Gdk, GLib
 
 CSS = b"""
 * {
-    font-family: "Inter", "Segoe UI", "Ubuntu", "Cantarell", sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Ubuntu", "Cantarell", sans-serif;
 }
 
 window,
 .background {
-    background-color: #0B0E17;
-    color: #F8FAFC;
+    background-color: #F4F6FB;
+    color: #1C1C1E;
 }
 
 headerbar {
-    background-color: #111624;
+    background-color: #FFFFFF;
     background-image: none;
-    color: #F8FAFC;
-    border-bottom: 1px solid #1E293B;
+    color: #1C1C1E;
+    border-bottom: 1px solid #E5E7EE;
     box-shadow: none;
 }
 
 headerbar .title {
-    color: #FFFFFF;
+    color: #1C1C1E;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 headerbar .subtitle {
-    color: #38BDF8;
-    font-size: 11px;
+    color: #6B6F7B;
+    font-size: 12px;
 }
 
 headerbar button {
-    background-color: #1E293B;
+    background-color: #FFFFFF;
     background-image: none;
-    color: #F8FAFC;
-    border: 1px solid #334155;
-    border-radius: 6px;
+    color: #1C1C1E;
+    border: 1px solid #E5E7EE;
+    border-radius: 999px;
     box-shadow: none;
     text-shadow: none;
+    padding: 6px 14px;
 }
 
 headerbar button:hover {
-    background-color: #334155;
-    color: #FFFFFF;
-    border-color: #00F2FE;
+    background-color: #E6EBFF;
+    color: #1428A0;
+    border-color: #1428A0;
 }
 
 .sidebar,
 .sidebar scrolledwindow,
 .sidebar viewport,
 .sidebar list {
-    background-color: #0F1420;
-    color: #CBD5E1;
-    border-right: 1px solid #1E293B;
+    background-color: #FFFFFF;
+    color: #6B6F7B;
+    border-right: 1px solid #E5E7EE;
 }
 
 .sidebar row,
 .sidebar list row {
     background-color: transparent;
     background-image: none;
-    color: #CBD5E1;
-    padding: 12px 16px;
-    margin: 4px 8px;
-    border-radius: 8px;
+    color: #6B6F7B;
+    padding: 12px 18px;
+    margin: 2px 0px;
+    border-radius: 0px;
     border-left: 3px solid transparent;
 }
 
 .sidebar row label,
 .sidebar list row label {
-    color: #CBD5E1;
+    color: #6B6F7B;
     font-weight: 600;
     font-size: 13px;
 }
 
 .sidebar row:hover,
 .sidebar list row:hover {
-    background-color: #161F33;
-    color: #FFFFFF;
+    background-color: #F4F6FB;
+    color: #1C1C1E;
 }
 
 .sidebar row:hover label,
 .sidebar list row:hover label {
-    color: #FFFFFF;
+    color: #1C1C1E;
 }
 
 .sidebar row:selected,
 .sidebar list row:selected {
-    background-color: #1A2640;
+    background-color: #E6EBFF;
     background-image: none;
-    color: #00F2FE;
-    border-left: 3px solid #00F2FE;
+    color: #1428A0;
+    border-left: 3px solid #1428A0;
 }
 
 .sidebar row:selected label,
 .sidebar list row:selected label {
-    color: #00F2FE;
+    color: #1428A0;
     font-weight: 700;
 }
 
 scrolledwindow,
 viewport,
 stack {
-    background-color: #0B0E17;
-    color: #F8FAFC;
+    background-color: #F4F6FB;
+    color: #1C1C1E;
 }
 
 .card {
-    background-color: #151C2C;
-    border: 1px solid #24324D;
-    border-radius: 12px;
-    padding: 16px 20px;
+    background-color: #FFFFFF;
+    border: 1px solid #E5E7EE;
+    border-radius: 16px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 12px rgba(20, 40, 160, 0.04);
 }
 
 .card-header {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
-    color: #FFFFFF;
+    color: #1C1C1E;
 }
 
 .title-hero {
     font-size: 20pt;
     font-weight: bold;
-    color: #FFFFFF;
+    color: #1C1C1E;
 }
 
 .subtitle-hero {
-    font-size: 10.5pt;
-    color: #94A3B8;
+    font-size: 11pt;
+    color: #6B6F7B;
 }
 
 button.primary-btn,
 button.primary-btn:hover,
 button.primary-btn:active,
 button.primary-btn:checked {
-    background-color: #00F2FE;
+    background-color: #1428A0;
     background-image: none;
-    color: #0A0D14;
+    color: #FFFFFF;
     font-weight: 700;
-    border: 1px solid #00F2FE;
-    border-radius: 8px;
-    padding: 9px 18px;
+    border: none;
+    border-radius: 999px;
+    padding: 9px 20px;
     box-shadow: none;
     text-shadow: none;
 }
 
 button.primary-btn label {
-    color: #0A0D14;
+    color: #FFFFFF;
     font-weight: 700;
 }
 
 button.primary-btn:hover {
-    background-color: #38F8FF;
-    border-color: #FFFFFF;
+    background-color: #0F1F7A;
 }
 
 button.secondary-btn,
 button.secondary-btn:hover,
 button.secondary-btn:active,
 button.secondary-btn:checked {
-    background-color: #1E293B;
+    background-color: #FFFFFF;
     background-image: none;
-    color: #F8FAFC;
-    border: 1px solid #334155;
-    border-radius: 8px;
-    padding: 8px 16px;
+    color: #1C1C1E;
+    border: 1px solid #E5E7EE;
+    border-radius: 999px;
+    padding: 8px 18px;
     font-weight: 600;
     box-shadow: none;
     text-shadow: none;
 }
 
 button.secondary-btn label {
-    color: #F8FAFC;
+    color: #1C1C1E;
     font-weight: 600;
 }
 
 button.secondary-btn:hover {
-    background-color: #28354D;
-    border-color: #00F2FE;
-    color: #FFFFFF;
+    background-color: #E6EBFF;
+    border-color: #1428A0;
+    color: #1428A0;
 }
 
 button.secondary-btn:hover label {

@@ -36,42 +36,26 @@ Window {
         NumberAnimation { target: glassBorder; property: "opacity"; to: 0.25; duration: 180 }
     }
 
-    // Glassmorphic Prism Window Container
+    // One UI Toned Terminal Window Container
     Rectangle {
         id: windowFrame
         anchors.fill: parent
-        radius: 16
-        color: "#E606070A" // 90% Obsidian Base for frosted glass look
+        radius: 24
+        color: "#1E1E2E"
 
-        // 1px Cyber-Teal / Electric-Violet Gradient Border
+        // Subtle 1px Border
         Rectangle {
             id: glassBorder
             anchors.fill: parent
             radius: parent.radius
             color: "transparent"
             border.width: 1
-            border.color: "#00F2FE"
-            opacity: terminalScreen.activeFocus ? 0.6 : 0.25
+            border.color: terminalScreen.activeFocus ? "#7D95FF" : "#2E3349"
+            opacity: 0.8
 
-            Behavior on opacity {
-                NumberAnimation { duration: 200 }
+            Behavior on border.color {
+                ColorAnimation { duration: 180 }
             }
-        }
-
-        // Frosted Glass Shader Effect sampling background
-        ShaderEffect {
-            anchors.fill: parent
-            opacity: 0.15
-            fragmentShader: "
-                #version 440
-                layout(location = 0) in vec2 qt_TexCoord0;
-                layout(location = 0) out vec4 fragColor;
-                void main() {
-                    vec2 uv = qt_TexCoord0;
-                    float n = fract(sin(dot(uv, vec2(12.9898, 78.233))) * 43758.5453);
-                    fragColor = vec4(vec3(n * 0.04), 0.1);
-                }
-            "
         }
 
         ColumnLayout {
@@ -79,19 +63,19 @@ Window {
             spacing: 0
 
             // -----------------------------------------------------------------
-            // Glassmorphic Header Bar (Draggable)
+            // One UI Header Bar (Draggable, centered title, plain subtle buttons)
             // -----------------------------------------------------------------
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 38
-                color: "#CC0E141B"
-                radius: 16
+                color: "#181825"
+                radius: 24
 
                 // Flatten bottom corners
                 Rectangle {
                     anchors.bottom: parent.bottom
                     width: parent.width
-                    height: 10
+                    height: 12
                     color: parent.color
                 }
 
@@ -102,45 +86,68 @@ Window {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 14
-                    anchors.rightMargin: 14
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
                     spacing: 12
 
-                    // Window Controls (Traffic Lights)
-                    RowLayout {
-                        spacing: 8
+                    // Plain Centered Terminal Title
+                    Text {
+                        Layout.fillWidth: true
+                        Layout.alignment: Qt.AlignVCenter
+                        text: terminalBackend.title.length > 0 ? terminalBackend.title : "Terminal — " + terminalBackend.cols + " × " + terminalBackend.rows
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
+                        font.family: "Inter, -apple-system, system-ui, sans-serif"
+                        color: "#F2F3F7"
+                        horizontalAlignment: Text.AlignHCenter
+                        elide: Text.ElideMiddle
+                    }
 
-                        // Close Button (Neon Magenta)
-                        Rectangle {
-                            width: 12; height: 12; radius: 6
-                            color: "#FF007A"
-                            border.width: 1; border.color: "#CCFF007A"
-                            MouseArea {
-                                anchors.fill: parent
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: rootWindow.close()
-                            }
+                    // Terminal Dimension / Status Badge
+                    Rectangle {
+                        Layout.preferredWidth: 64
+                        Layout.preferredHeight: 20
+                        radius: 10
+                        color: "#2A3366"
+                        border.width: 1
+                        border.color: "#7D95FF"
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: terminalBackend.cols + " × " + terminalBackend.rows
+                            font.pixelSize: 10
+                            font.weight: Font.DemiBold
+                            color: "#7D95FF"
                         }
+                    }
 
-                        // Minimize Button (Cyber Amber)
+                    // Window Control Icons (Plain Subtle Monochrome Buttons - No colored traffic lights)
+                    RowLayout {
+                        spacing: 4
+
+                        // Minimize Button
                         Rectangle {
-                            width: 12; height: 12; radius: 6
-                            color: "#FFD600"
-                            border.width: 1; border.color: "#CCFFD600"
+                            width: 24; height: 24; radius: 12
+                            color: minMouse.containsMouse ? "#2E3349" : "transparent"
+                            Text { anchors.centerIn: parent; text: "−"; font.pixelSize: 13; font.bold: true; color: "#9EA3B5" }
                             MouseArea {
+                                id: minMouse
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: rootWindow.showMinimized()
                             }
                         }
 
-                        // Maximize / Restore Button (Cyber Mint)
+                        // Maximize Button
                         Rectangle {
-                            width: 12; height: 12; radius: 6
-                            color: "#00FF9D"
-                            border.width: 1; border.color: "#CC00FF9D"
+                            width: 24; height: 24; radius: 12
+                            color: maxMouse.containsMouse ? "#2E3349" : "transparent"
+                            Text { anchors.centerIn: parent; text: "◻"; font.pixelSize: 11; color: "#9EA3B5" }
                             MouseArea {
+                                id: maxMouse
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     if (rootWindow.visibility === Window.Maximized) {
@@ -151,35 +158,19 @@ Window {
                                 }
                             }
                         }
-                    }
 
-                    // Terminal Title
-                    Text {
-                        Layout.fillWidth: true
-                        Layout.alignment: Qt.AlignVCenter
-                        text: terminalBackend.title.length > 0 ? terminalBackend.title : "bash - " + terminalBackend.cols + "x" + terminalBackend.rows
-                        font.pixelSize: 12
-                        font.weight: Font.Medium
-                        color: "#94A3B8"
-                        horizontalAlignment: Text.AlignHCenter
-                        elide: Text.ElideMiddle
-                    }
-
-                    // Terminal Dimension / Status Badge
-                    Rectangle {
-                        Layout.preferredWidth: 64
-                        Layout.preferredHeight: 20
-                        radius: 10
-                        color: "#18212D"
-                        border.width: 1
-                        border.color: "#2EC4B6"
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: terminalBackend.cols + " × " + terminalBackend.rows
-                            font.pixelSize: 10
-                            font.weight: Font.DemiBold
-                            color: "#00F2FE"
+                        // Close Button
+                        Rectangle {
+                            width: 24; height: 24; radius: 12
+                            color: clsMouse.containsMouse ? "#E11D48" : "transparent"
+                            Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: clsMouse.containsMouse ? "#FFFFFF" : "#9EA3B5" }
+                            MouseArea {
+                                id: clsMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: rootWindow.close()
+                            }
                         }
                     }
                 }

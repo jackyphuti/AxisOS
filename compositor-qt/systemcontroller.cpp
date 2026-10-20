@@ -2,6 +2,7 @@
 
 #include <QDBusMessage>
 #include <QDBusReply>
+#include <QDBusObjectPath>
 #include <QFile>
 #include <QTextStream>
 #include <QDebug>
@@ -86,50 +87,168 @@ void SystemController::initDBusSubscribers()
 
 void SystemController::updateNetworkManager()
 {
-    if (!m_nmInterface || !m_nmInterface->isValid()) {
-        m_wifiConnected = false;
-        m_wifiSsid = QStringLiteral("Disconnected");
-        m_wifiStrength = 0;
-        emit wifiChanged();
-        return;
+    bool connected = false;
+    QString activeSsid = QStringLiteral("Offline");
+    int strength = 0;
+
+    // 1. Try NetworkManager D-Bus for active connection SSID & signal strength
+    if (m_nmInterface && m_nmInterface->isValid()) {
+        QVariant stateProp = m_nmInterface->property("State");
+        uint state = stateProp.isValid() ? stateProp.toUInt() : 0;
+        // 70: NM_STATE_CONNECTED_GLOBAL, 60: NM_STATE_CONNECTED_SITE
+        connected = (state >= 60);
+
+        if (connected) {
+            QVariant primaryConn = m_nmInterface->property("PrimaryConnection");
+            QDBusObjectPath primaryPath = primaryConn.value<QDBusObjectPath>();
+            if (!primaryPath.path().isEmpty() && primaryPath.path() != QStringLiteral("/")) {
+                QDBusInterface connIf(
+                    QStringLiteral("org.freedesktop.NetworkManager"),
+                    primaryPath.path(),
+                    QStringLiteral("org.freedesktop.NetworkManager.Connection.Active"),
+                    QDBusConnection::systemBus()
+                );
+                if (connIf.isValid()) {
+                    QString id = connIf.property("Id").toString();
+                    if (!id.isEmpty()) {
+                        activeSsid = id;
+                        strength = 85;
+                    }
+                }
+            }
+        }
     }
 
-    // Query NM State
-    QVariant stateProp = m_nmInterface->property("State");
-    uint state = stateProp.toUInt();
-    // 70: NM_STATE_CONNECTED_GLOBAL
-    bool connected = (state >= 60);
+    // 2. Fallback check: Direct sysfs /sys/class/net inspection
+    if (!connected || activeSsid == QStringLiteral("Offline")) {
+        QDir netDir(QStringLiteral("/sys/class/net"));
+        const QStringList ifaces = netDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QString &iface : ifaces) {
+            if (iface == QStringLiteral("lo") || iface.startsWith(QLatin1String("docker")) ||
+                iface.startsWith(QLatin1String("veth")) || iface.startsWith(QLatin1String("virbr"))) {
+                continue;
+            }
 
-    if (connected != m_wifiConnected) {
+            QFile carrierFile(QStringLiteral("/sys/class/net/%1/carrier").arg(iface));
+            QFile operFile(QStringLiteral("/sys/class/net/%1/operstate").arg(iface));
+            bool isUp = false;
+
+            if (carrierFile.open(QIODevice::ReadOnly)) {
+                QString c = QString::fromUtf8(carrierFile.readAll()).trimmed();
+                carrierFile.close();
+                if (c == QLatin1String("1")) isUp = true;
+            } else if (operFile.open(QIODevice::ReadOnly)) {
+                QString op = QString::fromUtf8(operFile.readAll()).trimmed();
+                operFile.close();
+                if (op == QLatin1String("up")) isUp = true;
+            }
+
+            if (isUp) {
+                connected = true;
+                bool isWireless = QDir(QStringLiteral("/sys/class/net/%1/wireless").arg(iface)).exists() ||
+                                  QFile::exists(QStringLiteral("/sys/class/net/%1/phy80211").arg(iface));
+                if (isWireless) {
+                    QProcess proc;
+                    proc.start(QStringLiteral("iwgetid"), {QStringLiteral("-r")});
+                    if (proc.waitForFinished(200) && proc.exitCode() == 0) {
+                        QString ssid = QString::fromUtf8(proc.readAllStandardOutput()).trimmed();
+                        if (!ssid.isEmpty()) {
+                            activeSsid = ssid;
+                            strength = 80;
+                            break;
+                        }
+                    }
+                    activeSsid = QStringLiteral("Wi-Fi Connected");
+                    strength = 75;
+                } else {
+                    activeSsid = QStringLiteral("Ethernet");
+                    strength = 100;
+                }
+                break;
+            }
+        }
+    }
+
+    if (!connected) {
+        activeSsid = QStringLiteral("Offline");
+        strength = 0;
+    }
+
+    if (connected != m_wifiConnected || activeSsid != m_wifiSsid || strength != m_wifiStrength) {
         m_wifiConnected = connected;
-        m_wifiSsid = connected ? QStringLiteral("Axis-Gigabit") : QStringLiteral("Disconnected");
-        m_wifiStrength = connected ? 92 : 0;
+        m_wifiSsid = activeSsid;
+        m_wifiStrength = strength;
         emit wifiChanged();
     }
 }
 
 void SystemController::updateUPower()
 {
-    if (!m_upowerInterface || !m_upowerInterface->isValid()) {
-        m_batteryPercent = 0;
-        m_batteryCharging = false;
-        m_hasBattery = false;
-        emit batteryChanged();
-        return;
+    int pct = 100;
+    bool charging = false;
+    bool hasBat = false;
+
+    // 1. Direct sysfs check (/sys/class/power_supply/BAT*)
+    QDir psDir(QStringLiteral("/sys/class/power_supply"));
+    const QStringList entries = psDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    QString batFolder;
+    for (const QString &entry : entries) {
+        if (entry.startsWith(QLatin1String("BAT"), Qt::CaseInsensitive)) {
+            batFolder = entry;
+            break;
+        }
     }
 
-    QVariant pctProp = m_upowerInterface->property("Percentage");
-    QVariant stateProp = m_upowerInterface->property("State");
-    QVariant isPresent = m_upowerInterface->property("IsPresent");
+    if (!batFolder.isEmpty()) {
+        hasBat = true;
+        QFile capFile(QStringLiteral("/sys/class/power_supply/%1/capacity").arg(batFolder));
+        if (capFile.open(QIODevice::ReadOnly)) {
+            pct = QString::fromUtf8(capFile.readAll()).trimmed().toInt();
+            capFile.close();
+        }
+        QFile statFile(QStringLiteral("/sys/class/power_supply/%1/status").arg(batFolder));
+        if (statFile.open(QIODevice::ReadOnly)) {
+            QString st = QString::fromUtf8(statFile.readAll()).trimmed();
+            statFile.close();
+            charging = (st.compare(QLatin1String("Charging"), Qt::CaseInsensitive) == 0 ||
+                        st.compare(QLatin1String("Full"), Qt::CaseInsensitive) == 0);
+        }
+    } else {
+        // Check for AC power (Desktop / Workstation)
+        bool hasAc = false;
+        for (const QString &entry : entries) {
+            if (entry.startsWith(QLatin1String("AC"), Qt::CaseInsensitive) ||
+                entry.startsWith(QLatin1String("ADP"), Qt::CaseInsensitive)) {
+                QFile onlineFile(QStringLiteral("/sys/class/power_supply/%1/online").arg(entry));
+                if (onlineFile.open(QIODevice::ReadOnly)) {
+                    QString on = QString::fromUtf8(onlineFile.readAll()).trimmed();
+                    onlineFile.close();
+                    if (on == QLatin1String("1")) hasAc = true;
+                }
+            }
+        }
 
-    m_hasBattery = isPresent.isValid() ? isPresent.toBool() : true;
-    int pct = pctProp.isValid() ? static_cast<int>(pctProp.toDouble()) : 100;
-    uint state = stateProp.isValid() ? stateProp.toUInt() : 0;
-    bool charging = (state == 1); // 1 = Charging
+        if (hasAc) {
+            hasBat = false;
+            pct = 100;
+            charging = true;
+        } else if (m_upowerInterface && m_upowerInterface->isValid()) {
+            // Fallback to UPower D-Bus
+            QVariant isPresent = m_upowerInterface->property("IsPresent");
+            hasBat = isPresent.isValid() && isPresent.toBool();
+            if (hasBat) {
+                QVariant pctProp = m_upowerInterface->property("Percentage");
+                QVariant stateProp = m_upowerInterface->property("State");
+                pct = pctProp.isValid() ? static_cast<int>(pctProp.toDouble()) : 100;
+                charging = (stateProp.toUInt() == 1);
+            }
+        }
+    }
 
-    if (pct != m_batteryPercent || charging != m_batteryCharging) {
+    if (pct != m_batteryPercent || charging != m_batteryCharging || hasBat != m_hasBattery) {
         m_batteryPercent = pct;
         m_batteryCharging = charging;
+        m_hasBattery = hasBat;
         emit batteryChanged();
     }
 }

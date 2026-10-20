@@ -14,17 +14,17 @@ ApplicationWindow {
     color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint
 
-    // Liquid Nodes Color Palette
-    readonly property color cBg: "#0B0D13"
-    readonly property color cCardBg: "#141722"
-    readonly property color cCardHover: "#1C2030"
-    readonly property color cBorder: "#23283B"
-    readonly property color cBorderHover: "#00F2FE"
-    readonly property color cAccentTeal: "#00F2FE"
-    readonly property color cAccentViolet: "#9D4EDD"
-    readonly property color cTextMain: "#F0F3F8"
-    readonly property color cTextMuted: "#8E99AE"
-    readonly property color cSuccess: "#10B981"
+    // One UI Design System Color Tokens
+    readonly property color cBg: "#F4F6FB"
+    readonly property color cCardBg: "#FFFFFF"
+    readonly property color cCardHover: "#E6EBFF"
+    readonly property color cBorder: "#E5E7EE"
+    readonly property color cBorderHover: "#1428A0"
+    readonly property color cAccentTeal: "#1428A0"
+    readonly property color cAccentViolet: "#1428A0"
+    readonly property color cTextMain: "#1C1C1E"
+    readonly property color cTextMuted: "#6B6F7B"
+    readonly property color cSuccess: "#2BB673"
 
     // Window Dragging
     MouseArea {
@@ -49,24 +49,19 @@ ApplicationWindow {
     // Main Acrylic / Glass Panel
     Rectangle {
         anchors.fill: parent
-        radius: 16
+        radius: 24
         color: root.cBg
         border.color: root.cBorder
         border.width: 1
         clip: true
 
-        // Top Accent Glow Strip
+        // Top Subtle Accent Strip
         Rectangle {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             height: 2
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: "#00F2FE" }
-                GradientStop { position: 0.5; color: "#9D4EDD" }
-                GradientStop { position: 1.0; color: "#00F2FE" }
-            }
+            color: "#1428A0"
         }
 
         ColumnLayout {

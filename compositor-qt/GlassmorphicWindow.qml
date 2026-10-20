@@ -101,12 +101,12 @@ Item {
                         font.family: "Inter, -apple-system, system-ui, sans-serif"
                     }
 
-                    // Feature 2A: Time-Travel Checkpoint Button
+                    // Feature 2A: Time-Travel Checkpoint Button (Clean Vector Clock/Snap)
                     Rectangle {
                         width: 26; height: 24; radius: 12
                         color: cpMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
                         border.color: cpMouse.containsMouse ? "#1428A0" : "#E5E7EE"; border.width: 1
-                        Text { anchors.centerIn: parent; text: "⏱"; font.pixelSize: 11; color: "#1428A0" }
+                        Text { anchors.centerIn: parent; text: "◷"; font.pixelSize: 13; color: "#1428A0" }
                         MouseArea {
                             id: cpMouse
                             anchors.fill: parent
@@ -120,15 +120,15 @@ Item {
                         }
                     }
 
-                    // Feature 4: Privacy Shield Toggle
+                    // Feature 4: Privacy Shield Toggle (Clean Vector Shield/Lock Glyph)
                     Rectangle {
                         width: 26; height: 24; radius: 12
                         color: windowRoot.privacyShieldEnabled ? "#1428A0" : (psMouse.containsMouse ? "#E6EBFF" : "#F4F6FB")
                         border.color: windowRoot.privacyShieldEnabled ? "#1428A0" : "#E5E7EE"; border.width: 1
                         Text {
                             anchors.centerIn: parent
-                            text: "🛡"
-                            font.pixelSize: 11
+                            text: "⛉"
+                            font.pixelSize: 12
                             color: windowRoot.privacyShieldEnabled ? "#FFFFFF" : "#6B6F7B"
                         }
                         MouseArea {
@@ -303,7 +303,7 @@ Item {
                     spacing: 8
                     Text {
                         Layout.alignment: Qt.AlignHCenter
-                        text: "🛡 Privacy Shield Active"
+                        text: "Privacy Shield Active"
                         color: "#1428A0"
                         font.bold: true
                         font.pixelSize: 14

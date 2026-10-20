@@ -171,10 +171,29 @@ Item {
                     anchors.rightMargin: 16
                     spacing: 10
 
-                    Text {
-                        text: "🔍"
-                        font.pixelSize: 14
-                        color: "#6B6F7B"
+                    // Clean Vector Search Icon (Outline Magnifying Glass)
+                    Canvas {
+                        width: 16
+                        height: 16
+                        renderTarget: Canvas.FramebufferObject
+                        onPaint: {
+                            var ctx = getContext("2d");
+                            ctx.reset();
+                            ctx.strokeStyle = "#6B6F7B";
+                            ctx.lineWidth = 1.75;
+                            ctx.lineCap = "round";
+
+                            // Glass circle
+                            ctx.beginPath();
+                            ctx.arc(6.5, 6.5, 4.5, 0, 2 * Math.PI);
+                            ctx.stroke();
+
+                            // Handle
+                            ctx.beginPath();
+                            ctx.moveTo(10, 10);
+                            ctx.lineTo(14, 14);
+                            ctx.stroke();
+                        }
                     }
 
                     TextInput {

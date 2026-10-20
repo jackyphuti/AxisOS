@@ -36,63 +36,64 @@ ANSI_ESCAPE_RE = re.compile(r'\x1b\[[0-9;?]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b\][^
 
 CSS = b"""
 window {
-    background-color: #0A0D14;
-    color: #F8FAFC;
+    background-color: #1E1E2E;
+    color: #F2F3F7;
 }
 headerbar {
-    background-color: #111622;
-    color: #F8FAFC;
-    border-bottom: 1px solid #1E293B;
+    background-color: #181825;
+    color: #F2F3F7;
+    border-bottom: 1px solid #2E3349;
 }
 notebook header {
-    background-color: #0F1420;
-    border-bottom: 1px solid #1E293B;
+    background-color: #181825;
+    border-bottom: 1px solid #2E3349;
 }
 notebook tab {
-    background-color: #141B2B;
-    color: #94A3B8;
-    padding: 6px 14px;
-    border: 1px solid #1E293B;
+    background-color: #181825;
+    color: #9EA3B5;
+    padding: 6px 16px;
+    border: 1px solid #2E3349;
+    border-radius: 8px 8px 0 0;
 }
 notebook tab:checked {
-    background-color: #1E293B;
-    color: #00F2FE;
-    border-bottom: 2px solid #00F2FE;
+    background-color: #1E1E2E;
+    color: #7D95FF;
+    border-bottom: 2px solid #7D95FF;
 }
 textview, textview text {
-    background-color: #0A0D14;
-    color: #E2E8F0;
+    background-color: #1E1E2E;
+    color: #F2F3F7;
     font-family: "JetBrains Mono", "Fira Code", "DejaVu Sans Mono", monospace;
     font-size: 11pt;
 }
 entry.cmd-entry {
-    background-color: #111622;
-    color: #00F2FE;
-    border: 1px solid #1E293B;
-    border-radius: 6px;
-    padding: 6px 10px;
+    background-color: #181825;
+    color: #7D95FF;
+    border: 1px solid #2E3349;
+    border-radius: 999px;
+    padding: 6px 14px;
     font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace;
     font-size: 11pt;
 }
 .heal-pill {
-    background-color: #161F33;
-    border: 1px solid #00F2FE;
-    border-radius: 10px;
+    background-color: #2A3366;
+    border: 1px solid #7D95FF;
+    border-radius: 12px;
     padding: 8px 14px;
 }
 button.heal-btn {
-    background: #00F2FE;
-    color: #0A0D14;
+    background: #1428A0;
+    color: #FFFFFF;
+    border-radius: 999px;
+    padding: 6px 14px;
     font-weight: bold;
-    border-radius: 6px;
-    padding: 4px 12px;
 }
 button.action-btn {
-    background-color: #1E293B;
-    color: #F8FAFC;
-    border: 1px solid #334155;
-    border-radius: 6px;
-    padding: 4px 10px;
+    background-color: #181825;
+    color: #F2F3F7;
+    border: 1px solid #2E3349;
+    border-radius: 999px;
+    padding: 4px 12px;
 }
 """
 
