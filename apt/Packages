@@ -1,15 +1,15 @@
 Package: axisos-desktop-suite
-Version: 2.1.0-202610210429
+Version: 2.1.0-202610212242
 Architecture: amd64
 Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
 Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation, fonts-inter, libqt6core6, libqt6gui6, libqt6qml6, libqt6quick6, libqt6dbus6, libqt6waylandcompositor6, qml6-module-qtwayland-compositor, qml6-module-qtquick, qml6-module-qtquick-controls, qml6-module-qtquick-layouts, qml6-module-qtquick-window, qml6-module-qtquick-templates, qt6-wayland, libpam0g
-Breaks: axisos-desktop-suite (<< 2.1.0-202610210429)
-Replaces: axisos-desktop-suite (<< 2.1.0-202610210429)
-Filename: ./axisos-desktop-suite_2.1.0-202610210429_amd64.deb
-Size: 20357400
-MD5sum: 4a23068f07fd8ac4f5ec4244c7f0457b
-SHA1: 8378b8e0a0a354f65405992104bd052a395aa927
-SHA256: b9c0b296b399adb172e12a55534443176b388d2d8ca2c0973ce8b00500c80d1f
+Breaks: axisos-desktop-suite (<< 2.1.0-202610212242)
+Replaces: axisos-desktop-suite (<< 2.1.0-202610212242)
+Filename: ./axisos-desktop-suite_2.1.0-202610212242_amd64.deb
+Size: 20357408
+MD5sum: fd6e8771d895cc4c3f34bc39832c52aa
+SHA1: a25f09472fba4d86c256f481c7827a16ae7ab00f
+SHA256: bf860fb44d109262bc28ee18fca319972c47f618928dc6c36b3ef81072e3d91a
 Section: x11
 Priority: optional
 Description: AxisOS LiquidNodes Desktop Environment, HUD & System Suite
