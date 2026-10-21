@@ -697,18 +697,19 @@ public:
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
         gtk_window_set_title(GTK_WINDOW(window), "AxisOS 2.0 Setup");
 
-        // Fit entire screen and start maximized
+        // Fit comfortably on standard screens (1024x768, 1280x800, 1080p) without overflowing
         GdkScreen* screen = gdk_screen_get_default();
+        int target_w = 980;
+        int target_h = 640;
         if (screen) {
             int sw = gdk_screen_get_width(screen);
             int sh = gdk_screen_get_height(screen);
-            gtk_window_set_default_size(GTK_WINDOW(window), sw, sh);
-        } else {
-            gtk_window_set_default_size(GTK_WINDOW(window), 1024, 720);
+            if (sw > 0 && sw <= 1024) target_w = sw - 32;
+            if (sh > 0 && sh <= 768) target_h = sh - 64;
         }
+        gtk_window_set_default_size(GTK_WINDOW(window), target_w, target_h);
         gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
         gtk_window_set_resizable(GTK_WINDOW(window), TRUE);
-        gtk_window_maximize(GTK_WINDOW(window));
         gtk_window_set_default_icon_name("axisos");
         gtk_window_set_icon_name(GTK_WINDOW(window), "axisos");
 

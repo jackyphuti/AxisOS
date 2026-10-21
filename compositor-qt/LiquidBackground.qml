@@ -1,25 +1,43 @@
 import QtQuick
+import Qt5Compat.GraphicalEffects
 
 Item {
     id: root
     anchors.fill: parent
 
-    property bool isDarkMode: false
+    property bool isDarkMode: true
+    property bool blurRequested: false
 
-    // One UI Soft Gradient Wallpaper
-    // Light: 160deg #e9eefc -> #f6f1fb | Dark: 160deg #141826 -> #1b1d2b
+    // Dark base layer
     Rectangle {
         anchors.fill: parent
-        gradient: Gradient {
-            orientation: Gradient.Vertical
-            GradientStop {
-                position: 0.0
-                color: root.isDarkMode ? "#141826" : "#E9EEFC"
-            }
-            GradientStop {
-                position: 1.0
-                color: root.isDarkMode ? "#1B1D2B" : "#F6F1FB"
-            }
+        color: "#141824"
+    }
+
+    // High-res AxisOS Signature Wallpaper
+    Image {
+        id: bgImage
+        anchors.fill: parent
+        source: "file:///usr/share/backgrounds/axisos/01-axisos-signature-core.png"
+        fillMode: Image.PreserveAspectCrop
+        asynchronous: true
+        visible: !root.blurRequested
+    }
+
+    FastBlur {
+        id: blurEffect
+        anchors.fill: bgImage
+        source: bgImage
+        radius: 48
+        visible: root.blurRequested
+    }
+
+    // Frosted glass dark overlay when menu/launcher is open
+    Rectangle {
+        anchors.fill: parent
+        color: root.blurRequested ? "#550A0B0D" : "transparent"
+        Behavior on color {
+            ColorAnimation { duration: 200 }
         }
     }
 }

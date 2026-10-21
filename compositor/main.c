@@ -202,6 +202,25 @@ static void spawn_command(const char *cmd) {
 	}
 }
 
+static void axis_set_taskbars_visible(struct axis_server *server, bool visible) {
+	struct axis_layer_surface *surface;
+	wl_list_for_each(surface, &server->layer_surfaces, link) {
+		if (surface->layer_surface && surface->layer_surface->current.layer != ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
+			wlr_scene_node_set_enabled(surface->scene_node, visible);
+		}
+	}
+}
+
+static bool axis_has_maximized_view(struct axis_server *server, struct axis_view *ignore_view) {
+	struct axis_view *v;
+	wl_list_for_each(v, &server->views, link) {
+		if (v != ignore_view && v->is_maximized) {
+			return true;
+		}
+	}
+	return false;
+}
+
 /* ========================================================================= */
 /* Keyboard Handling & Keybindings                                          */
 /* ========================================================================= */
@@ -314,6 +333,9 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 					wlr_scene_node_set_position(view->scene_node, view->saved_geometry.x, view->saved_geometry.y);
 					wlr_xdg_toplevel_set_maximized(view->xdg_surface, false);
 					view->is_maximized = false;
+					if (!axis_has_maximized_view(view->server, NULL)) {
+						axis_set_taskbars_visible(view->server, true);
+					}
 				} else {
 					struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
 					if (output) {
@@ -324,9 +346,10 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 						view->saved_geometry.width = geo_box.width;
 						view->saved_geometry.height = geo_box.height;
 
-						/* Reserve 36px at top for Waybar */
-						wlr_scene_node_set_position(view->scene_node, 0, 36);
-						wlr_xdg_toplevel_set_size(view->xdg_surface, output->width, output->height - 36);
+						/* Auto-hide taskbar on maximize */
+						axis_set_taskbars_visible(view->server, false);
+						wlr_scene_node_set_position(view->scene_node, 0, 0);
+						wlr_xdg_toplevel_set_size(view->xdg_surface, output->width, output->height);
 						wlr_xdg_toplevel_set_maximized(view->xdg_surface, true);
 						view->is_maximized = true;
 					}
@@ -540,12 +563,24 @@ static void xdg_toplevel_map(struct wl_listener *listener, void *data) {
 static void xdg_toplevel_unmap(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, unmap);
+	if (view->is_maximized) {
+		view->is_maximized = false;
+		if (!axis_has_maximized_view(view->server, view)) {
+			axis_set_taskbars_visible(view->server, true);
+		}
+	}
 	wl_list_remove(&view->link);
 }
 
 static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, destroy);
+	if (view->is_maximized) {
+		view->is_maximized = false;
+		if (!axis_has_maximized_view(view->server, view)) {
+			axis_set_taskbars_visible(view->server, true);
+		}
+	}
 	wl_list_remove(&view->map.link);
 	wl_list_remove(&view->unmap.link);
 	wl_list_remove(&view->destroy.link);
@@ -590,6 +625,9 @@ static void xdg_toplevel_request_maximize(struct wl_listener *listener, void *da
 		wlr_scene_node_set_position(view->scene_node, view->saved_geometry.x, view->saved_geometry.y);
 		wlr_xdg_toplevel_set_maximized(view->xdg_surface, false);
 		view->is_maximized = false;
+		if (!axis_has_maximized_view(view->server, NULL)) {
+			axis_set_taskbars_visible(view->server, true);
+		}
 	} else {
 		struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
 		if (output) {
@@ -600,9 +638,10 @@ static void xdg_toplevel_request_maximize(struct wl_listener *listener, void *da
 			view->saved_geometry.width = geo_box.width;
 			view->saved_geometry.height = geo_box.height;
 
-			/* Reserve 36px at top for Waybar */
-			wlr_scene_node_set_position(view->scene_node, 0, 36);
-			wlr_xdg_toplevel_set_size(view->xdg_surface, output->width, output->height - 36);
+			/* Auto-hide taskbar on maximize to occupy full screen */
+			axis_set_taskbars_visible(view->server, false);
+			wlr_scene_node_set_position(view->scene_node, 0, 0);
+			wlr_xdg_toplevel_set_size(view->xdg_surface, output->width, output->height);
 			wlr_xdg_toplevel_set_maximized(view->xdg_surface, true);
 			view->is_maximized = true;
 		}

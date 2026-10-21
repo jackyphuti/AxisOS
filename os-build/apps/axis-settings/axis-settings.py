@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 AxisOS Settings Panel — Native System Settings & Hardware Control Center.
-Unified Samsung One UI Light Design System with Deep Blue Accent (#1428a0).
+Unified Samsung One UI Dark Design System with Deep Blue / Accent (#7d95ff / #1428a0).
 
 Comprehensive Hardware Interaction:
   - Display & Brightness: Direct sysfs / brightnessctl backlight, wlr-randr modes, Night Light
   - Audio & Sound: PipeWire / WirePlumber volume, mic level, sound test, sink selection
-  - Wi-Fi & Network: nmcli live scanning, connect with password, radio toggle, IP telemetry
+  - Wi-Fi & Network: nmcli live scanning, passwordless open / captive portal connect, radio toggle
   - Bluetooth: BlueZ power toggle, device discovery, paired device management
   - Power & Battery: Live /sys/class/power_supply telemetry, powerprofilesctl governors
   - CPU & Performance: cpupower governor (performance/schedutil/powersave), turbo, zRAM
@@ -25,6 +25,7 @@ import shutil
 import glob
 import urllib.error
 import urllib.request
+import re
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -37,90 +38,97 @@ CSS_STYLING = b"""
 }
 
 window {
-    background-color: #f4f6fb;
-    color: #1c1c1e;
+    background-color: #141824;
+    color: #f2f3f7;
 }
 
 headerbar {
-    background-color: #ffffff;
+    background-color: #1a1d2e;
     background-image: none;
-    border-bottom: 1px solid #e5e7ee;
-    color: #1c1c1e;
+    border-bottom: 1px solid #2e3349;
+    color: #f2f3f7;
     box-shadow: none;
 }
 
 headerbar .title {
     font-weight: 700;
     font-size: 15px;
-    color: #1c1c1e;
+    color: #f2f3f7;
 }
 
 headerbar .subtitle {
     font-size: 12px;
-    color: #6b6f7b;
+    color: #9ea3b5;
+}
+
+headerbar button {
+    background: #262a3d;
+    color: #f2f3f7;
+    border: 1px solid #2e3349;
+    border-radius: 999px;
 }
 
 .sidebar, .sidebar list, scrolledwindow, viewport, stack {
-    background-color: #ffffff;
-    color: #1c1c1e;
+    background-color: #1a1d2e;
+    color: #f2f3f7;
 }
 
 .sidebar {
-    border-right: 1px solid #e5e7ee;
+    border-right: 1px solid #2e3349;
 }
 
 .sidebar list row {
-    padding: 12px 18px;
-    color: #6b6f7b;
+    padding: 10px 16px;
+    color: #9ea3b5;
     font-weight: 600;
     font-size: 13px;
     border-left: 3px solid transparent;
 }
 
 .sidebar list row:hover {
-    background-color: #f4f6fb;
-    color: #1c1c1e;
+    background-color: #262a3d;
+    color: #f2f3f7;
 }
 
 .sidebar list row:selected {
-    background-color: #e6ebff;
-    color: #1428a0;
-    border-left: 3px solid #1428a0;
+    background-color: #2a3366;
+    color: #7d95ff;
+    border-left: 3px solid #7d95ff;
     font-weight: 700;
 }
 
 .content-pane {
-    background-color: #f4f6fb;
-    padding: 24px 32px;
+    background-color: #141824;
+    padding: 18px 24px;
 }
 
 .card {
-    background-color: #ffffff;
-    border: 1px solid #e5e7ee;
+    background-color: #1f2231;
+    border: 1px solid #2e3349;
     border-radius: 16px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
-    box-shadow: 0 2px 12px rgba(20, 40, 160, 0.04);
+    padding: 18px 22px;
+    margin-bottom: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
 .card-title {
     font-size: 15px;
     font-weight: 700;
-    color: #1c1c1e;
+    color: #f2f3f7;
     margin-bottom: 4px;
 }
 
 .card-subtitle {
     font-size: 12px;
-    color: #6b6f7b;
-    margin-bottom: 12px;
+    color: #9ea3b5;
+    margin-bottom: 10px;
 }
 
 button.btn-primary,
 button.btn-primary:hover,
 button.btn-primary:active,
 button.btn-primary:checked {
-    background: #1428a0;
+    background: #7d95ff;
     background-image: none;
     box-shadow: none;
     text-shadow: none;
@@ -128,11 +136,11 @@ button.btn-primary:checked {
     font-weight: 700;
     border-radius: 999px;
     border: none;
-    padding: 9px 20px;
+    padding: 8px 18px;
 }
 
 button.btn-primary:hover {
-    background: #0f1f7a;
+    background: #6780ee;
     color: #ffffff;
 }
 
@@ -140,25 +148,25 @@ button.btn-secondary,
 button.btn-secondary:hover,
 button.btn-secondary:active,
 button.btn-secondary:checked {
-    background: #ffffff;
+    background: #262a3d;
     background-image: none;
-    color: #1c1c1e;
-    border: 1px solid #e5e7ee;
+    color: #f2f3f7;
+    border: 1px solid #2e3349;
     border-radius: 999px;
     padding: 8px 18px;
     font-weight: 600;
 }
 
 button.btn-secondary:hover {
-    background: #e6ebff;
-    color: #1428a0;
-    border-color: #1428a0;
+    background: #2a3366;
+    color: #7d95ff;
+    border-color: #7d95ff;
 }
 
 .status-badge-ok {
-    background-color: #e6ebff;
-    color: #1428a0;
-    border: 1px solid #c7d5ff;
+    background-color: #2a3366;
+    color: #7d95ff;
+    border: 1px solid #3d4a8f;
     font-weight: bold;
     font-size: 11px;
     padding: 4px 12px;
@@ -166,9 +174,9 @@ button.btn-secondary:hover {
 }
 
 .status-badge-warn {
-    background-color: #fff7ed;
-    color: #c2410c;
-    border: 1px solid #fed7aa;
+    background-color: #4a2211;
+    color: #fb923c;
+    border: 1px solid #7c2d12;
     font-weight: bold;
     font-size: 11px;
     padding: 4px 12px;
@@ -176,56 +184,64 @@ button.btn-secondary:hover {
 }
 
 entry {
-    background-color: #ffffff;
-    color: #1c1c1e;
-    border: 1px solid #e5e7ee;
+    background-color: #1a1d2e;
+    color: #f2f3f7;
+    border: 1px solid #2e3349;
     border-radius: 10px;
     padding: 8px 14px;
 }
 
 entry:focus {
-    border-color: #1428a0;
+    border-color: #7d95ff;
 }
 
 scale slider {
-    background-color: #1428a0;
+    background-color: #7d95ff;
     border: 2px solid #ffffff;
     border-radius: 50%;
     min-width: 18px;
     min-height: 18px;
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 scale trough {
-    background-color: #e5e7ee;
+    background-color: #2e3349;
     border-radius: 999px;
     min-height: 6px;
 }
 
 scale highlight {
-    background-color: #1428a0;
+    background-color: #7d95ff;
     border-radius: 999px;
 }
 
 switch:checked {
-    background-color: #1428a0;
-    border-color: #1428a0;
+    background-color: #7d95ff;
+    border-color: #7d95ff;
 }
 
 progressbar progress {
-    background: #1428a0;
+    background: #7d95ff;
     border-radius: 999px;
 }
+
 progressbar trough {
-    background-color: #e5e7ee;
+    background-color: #2e3349;
     border-radius: 999px;
+}
+
+combobox button {
+    background-color: #1a1d2e;
+    color: #f2f3f7;
+    border: 1px solid #2e3349;
+    border-radius: 10px;
 }
 """
 
 class AxisSettingsApp(Gtk.Window):
     def __init__(self):
         super().__init__(title="Settings")
-        self.set_default_size(960, 680)
+        self.set_default_size(980, 640)
         self.set_position(Gtk.WindowPosition.CENTER)
 
         self.apply_css()
@@ -242,15 +258,15 @@ class AxisSettingsApp(Gtk.Window):
     def init_headerbar(self):
         hb = Gtk.HeaderBar()
         hb.set_show_close_button(True)
-        hb.props.title = "Hardware Settings"
-        hb.props.subtitle = "AxisOS Control Center • One UI Architecture"
+        hb.props.title = "Settings"
+        hb.props.subtitle = "AxisOS Control Center • Samsung One UI Dark"
         self.set_titlebar(hb)
 
     def init_ui(self):
         main_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=0)
         self.add(main_box)
 
-        # Left Sidebar (Clean Typography, 0% emojis)
+        # Left Sidebar (Clean Typography + Real SVG Symbolic Icons)
         sidebar_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         sidebar_box.get_style_context().add_class("sidebar")
         sidebar_box.set_size_request(240, -1)
@@ -260,28 +276,35 @@ class AxisSettingsApp(Gtk.Window):
         self.listbox.connect("row-selected", self.on_category_selected)
 
         categories = [
-            ("Display & Brightness", "display"),
-            ("Audio & Sound", "audio"),
-            ("Wi-Fi & Network", "network"),
-            ("Bluetooth", "bluetooth"),
-            ("Power & Battery", "power"),
-            ("CPU & Performance", "performance"),
-            ("Storage & Disks", "storage"),
-            ("Security & Biometrics", "security"),
-            ("System Health", "health"),
-            ("Appearance", "appearance"),
-            ("Software & Updates", "updates"),
-            ("About & OS Edition", "about"),
+            ("Display & Brightness", "display", "display-brightness-symbolic"),
+            ("Audio & Sound", "audio", "audio-volume-high-symbolic"),
+            ("Wi-Fi & Network", "network", "network-wireless-signal-excellent-symbolic"),
+            ("Bluetooth", "bluetooth", "bluetooth-active-symbolic"),
+            ("Power & Battery", "power", "battery-charging-symbolic"),
+            ("CPU & Performance", "performance", "utilities-terminal-symbolic"),
+            ("Storage & Disks", "storage", "drive-harddisk-symbolic"),
+            ("Security & Biometrics", "security", "system-lock-screen-symbolic"),
+            ("System Health", "health", "emblem-ok-symbolic"),
+            ("Appearance", "appearance", "weather-clear-night-symbolic"),
+            ("Software & Updates", "updates", "system-software-install-symbolic"),
+            ("About & OS Edition", "about", "preferences-system-symbolic"),
         ]
 
-        for label_text, cat_id in categories:
+        for label_text, cat_id, icon_name in categories:
             row = Gtk.ListBoxRow()
+            row_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            icon = Gtk.Image.new_from_icon_name(icon_name, Gtk.IconSize.MENU)
             lbl = Gtk.Label(label=label_text, xalign=0)
-            lbl.cat_id = cat_id
-            row.add(lbl)
+            row_box.pack_start(icon, False, False, 0)
+            row_box.pack_start(lbl, True, True, 0)
+            row.add(row_box)
+            row.cat_id = cat_id
             self.listbox.add(row)
 
-        sidebar_box.pack_start(self.listbox, True, True, 0)
+        sidebar_scroll = Gtk.ScrolledWindow()
+        sidebar_scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        sidebar_scroll.add(self.listbox)
+        sidebar_box.pack_start(sidebar_scroll, True, True, 0)
         main_box.pack_start(sidebar_box, False, False, 0)
 
         # Right Content Stack
@@ -318,10 +341,8 @@ class AxisSettingsApp(Gtk.Window):
         self.listbox.select_row(first_row)
 
     def on_category_selected(self, box, row):
-        if row:
-            lbl = row.get_child()
-            if hasattr(lbl, "cat_id"):
-                self.stack.set_visible_child_name(lbl.cat_id)
+        if row and hasattr(row, "cat_id"):
+            self.stack.set_visible_child_name(row.cat_id)
 
     # =========================================================================
     # 1. Display & Brightness Page
@@ -380,7 +401,6 @@ class AxisSettingsApp(Gtk.Window):
     def get_hardware_brightness(self):
         try:
             out = subprocess.check_output(["brightnessctl", "-m"], text=True).strip()
-            # Format: device,class,curr,max,percent%
             parts = out.split(",")
             if len(parts) >= 4 and parts[3].endswith("%"):
                 return float(parts[3].rstrip("%"))
@@ -419,13 +439,14 @@ class AxisSettingsApp(Gtk.Window):
         card.pack_start(title, False, False, 0)
         card.pack_start(sub, False, False, 0)
 
-        # Master Output Slider
+        # Master Output Slider with Real Hardware Readback
         lbl_v = Gtk.Label(label="Master Output Volume", xalign=0)
         lbl_v.get_style_context().add_class("card-title")
         card.pack_start(lbl_v, False, False, 0)
 
+        initial_vol = self.get_hardware_volume()
         self.scale_vol = Gtk.Scale.new_with_range(Gtk.Orientation.HORIZONTAL, 0, 100, 1)
-        self.scale_vol.set_value(75)
+        self.scale_vol.set_value(initial_vol)
         self.scale_vol.set_draw_value(True)
         self.scale_vol.set_value_pos(Gtk.PositionType.RIGHT)
         self.scale_vol.connect("value-changed", self.on_volume_changed)
@@ -442,6 +463,16 @@ class AxisSettingsApp(Gtk.Window):
         self.scale_mic.set_value_pos(Gtk.PositionType.RIGHT)
         self.scale_mic.connect("value-changed", self.on_mic_changed)
         card.pack_start(self.scale_mic, False, False, 0)
+
+        # Audio Output Device Selector
+        row_sink = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        lbl_sink = Gtk.Label(label="Audio Output Device:", xalign=0)
+        self.combo_sink = Gtk.ComboBoxText()
+        self.populate_audio_sinks()
+        self.combo_sink.connect("changed", self.on_sink_changed)
+        row_sink.pack_start(lbl_sink, True, True, 0)
+        row_sink.pack_end(self.combo_sink, False, False, 0)
+        card.pack_start(row_sink, False, False, 4)
 
         # Sound test & Mute buttons
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -464,6 +495,43 @@ class AxisSettingsApp(Gtk.Window):
         page.pack_start(card, False, False, 0)
         self.stack.add_named(page, "audio")
 
+    def get_hardware_volume(self):
+        try:
+            out = subprocess.check_output(["wpctl", "get-volume", "@DEFAULT_AUDIO_SINK@"], text=True).strip()
+            parts = out.split()
+            if len(parts) >= 2 and parts[0] == "Volume:":
+                return float(parts[1]) * 100.0
+        except Exception:
+            pass
+        try:
+            out = subprocess.check_output(["amixer", "sget", "Master"], text=True)
+            m = re.search(r"\[(\d+)%\]", out)
+            if m:
+                return float(m.group(1))
+        except Exception:
+            pass
+        return 75.0
+
+    def populate_audio_sinks(self):
+        self.combo_sink.append("default", "Default PipeWire System Sink")
+        try:
+            out = subprocess.check_output(["pactl", "list", "sinks", "short"], text=True).strip()
+            for line in out.splitlines():
+                parts = line.split()
+                if len(parts) >= 2:
+                    sink_id = parts[0]
+                    sink_name = parts[1]
+                    display_name = sink_name.split(".")[-1].replace("_", " ").title()
+                    self.combo_sink.append(sink_id, f"{display_name} (#{sink_id})")
+        except Exception:
+            pass
+        self.combo_sink.set_active(0)
+
+    def on_sink_changed(self, combo):
+        sink_id = combo.get_active_id()
+        if sink_id and sink_id != "default":
+            subprocess.Popen(["wpctl", "set-default", sink_id])
+
     def on_volume_changed(self, scale):
         pct = scale.get_value() / 100.0
         subprocess.Popen(f"wpctl set-volume @DEFAULT_AUDIO_SINK@ {pct:.2f} 2>/dev/null || amixer -q sset Master {int(pct*100)}%", shell=True)
@@ -473,7 +541,7 @@ class AxisSettingsApp(Gtk.Window):
         subprocess.Popen(f"wpctl set-volume @DEFAULT_AUDIO_SOURCE@ {pct:.2f} 2>/dev/null || amixer -q sset Capture {int(pct*100)}%", shell=True)
 
     # =========================================================================
-    # 3. Wi-Fi & Network Page
+    # 3. Wi-Fi & Network Page (With Passwordless & Captive Portal Support)
     # =========================================================================
     def build_network_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
@@ -482,7 +550,7 @@ class AxisSettingsApp(Gtk.Window):
         card.get_style_context().add_class("card")
         title = Gtk.Label(label="Wi-Fi & Network Telemetry", xalign=0)
         title.get_style_context().add_class("card-title")
-        sub = Gtk.Label(label="Manage wireless interfaces, scan access points, and inspect IP connections.", xalign=0)
+        sub = Gtk.Label(label="Manage wireless interfaces, connect to open/captive/secured Wi-Fi, and open web portals.", xalign=0)
         sub.get_style_context().add_class("card-subtitle")
         card.pack_start(title, False, False, 0)
         card.pack_start(sub, False, False, 0)
@@ -503,7 +571,7 @@ class AxisSettingsApp(Gtk.Window):
 
         self.wifi_listbox = Gtk.ListBox()
         scroll_wifi = Gtk.ScrolledWindow()
-        scroll_wifi.set_min_content_height(160)
+        scroll_wifi.set_min_content_height(180)
         scroll_wifi.add(self.wifi_listbox)
         card.pack_start(scroll_wifi, True, True, 0)
 
@@ -512,8 +580,9 @@ class AxisSettingsApp(Gtk.Window):
         btn_rescan.get_style_context().add_class("btn-secondary")
         btn_rescan.connect("clicked", lambda b: self.scan_wifi_networks())
 
-        btn_portal = Gtk.Button(label="Check Web Login Portal")
-        btn_portal.get_style_context().add_class("btn-secondary")
+        btn_portal = Gtk.Button(label="🌐 Web Login (Captive Portal)")
+        btn_portal.get_style_context().add_class("btn-primary")
+        btn_portal.set_tooltip_text("Check for captive portal redirect and open login page in web browser")
         btn_portal.connect("clicked", self.on_check_portal_clicked)
 
         btn_box.pack_start(btn_rescan, False, False, 0)
@@ -533,7 +602,10 @@ class AxisSettingsApp(Gtk.Window):
         for child in self.wifi_listbox.get_children():
             self.wifi_listbox.remove(child)
         try:
-            out = subprocess.check_output(["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,IN-USE", "device", "wifi", "list"], universal_newlines=True)
+            out = subprocess.check_output(
+                ["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY,IN-USE", "device", "wifi", "list"],
+                universal_newlines=True
+            )
             seen = set()
             for line in out.splitlines():
                 parts = line.split(":")
@@ -541,17 +613,21 @@ class AxisSettingsApp(Gtk.Window):
                     ssid = parts[0]
                     seen.add(ssid)
                     signal = parts[1] if len(parts) > 1 else "100"
-                    sec = parts[2] if len(parts) > 2 else "Open"
+                    sec = parts[2] if len(parts) > 2 else ""
                     in_use = (len(parts) > 3 and parts[3] == "*")
+                    is_open = (sec == "" or sec.lower() == "none" or sec == "--")
 
                     row = Gtk.ListBoxRow()
                     hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-                    lbl_text = f"{ssid} (Signal: {signal}%, {sec})" + (" [Connected]" if in_use else "")
+                    sec_display = "Open / Web Portal" if is_open else sec
+                    status_text = " [Connected]" if in_use else ""
+                    lbl_text = f"{ssid} (Signal: {signal}%, {sec_display}){status_text}"
                     lbl = Gtk.Label(label=lbl_text, xalign=0)
-                    btn_conn = Gtk.Button(label="Connect" if not in_use else "Active")
-                    btn_conn.get_style_context().add_class("btn-secondary" if not in_use else "btn-primary")
+
+                    btn_conn = Gtk.Button(label="Active" if in_use else "Connect")
+                    btn_conn.get_style_context().add_class("btn-primary" if in_use else "btn-secondary")
                     if not in_use:
-                        btn_conn.connect("clicked", lambda b, s=ssid: self.connect_wifi(s))
+                        btn_conn.connect("clicked", lambda b, s=ssid, o=is_open: self.connect_wifi(s, o))
 
                     hbox.pack_start(lbl, True, True, 0)
                     hbox.pack_start(btn_conn, False, False, 0)
@@ -561,7 +637,18 @@ class AxisSettingsApp(Gtk.Window):
         except Exception:
             pass
 
-    def connect_wifi(self, ssid):
+    def connect_wifi(self, ssid, is_open=False):
+        if is_open:
+            # Connect directly without password prompt!
+            try:
+                subprocess.run(["nmcli", "device", "wifi", "connect", ssid], check=True)
+                self.show_info_dialog("Connected", f"Connected to {ssid}!\nChecking internet access and portal redirect...")
+                self.scan_wifi_networks()
+                threading.Thread(target=self._check_and_open_portal, daemon=True).start()
+            except Exception as e:
+                self.show_info_dialog("Connection Failed", f"Could not connect to open network {ssid}:\n{e}")
+            return
+
         dialog = Gtk.Dialog(title=f"Connect to {ssid}", parent=self, flags=0)
         dialog.add_buttons("Cancel", Gtk.ResponseType.CANCEL, "Connect", Gtk.ResponseType.OK)
         box = dialog.get_content_area()
@@ -587,14 +674,31 @@ class AxisSettingsApp(Gtk.Window):
                 subprocess.run(["nmcli", "device", "wifi", "connect", ssid, "password", pwd], check=True)
                 self.show_info_dialog("Connected", f"Successfully connected to {ssid}!")
                 self.scan_wifi_networks()
-            except Exception as e:
+            except Exception:
                 self.show_info_dialog("Connection Failed", f"Could not connect to {ssid}.\nPlease verify password.")
 
     def on_check_portal_clicked(self, btn):
-        subprocess.Popen(["x-www-browser", "http://connectivity-check.ubuntu.com/"])
+        self._check_and_open_portal()
+
+    def _check_and_open_portal(self):
+        if os.path.exists("/usr/local/bin/axis-captive-portal"):
+            subprocess.Popen(["/usr/local/bin/axis-captive-portal"])
+        else:
+            try:
+                req = urllib.request.Request("http://connectivitycheck.gstatic.com/generate_204", headers={'User-Agent': 'Mozilla/5.0'})
+                resp = urllib.request.urlopen(req, timeout=4)
+                if resp.getcode() != 204:
+                    subprocess.Popen(["x-www-browser", resp.geturl()])
+            except urllib.error.HTTPError as e:
+                if e.code in (301, 302, 307):
+                    loc = e.headers.get('Location', '')
+                    if loc:
+                        subprocess.Popen(["x-www-browser", loc])
+            except Exception:
+                subprocess.Popen(["x-www-browser", "http://connectivity-check.ubuntu.com/"])
 
     # =========================================================================
-    # 4. Bluetooth Page
+    # 4. Bluetooth Page (Hardware BlueZ & RFKill Integration)
     # =========================================================================
     def build_bluetooth_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
@@ -617,23 +721,23 @@ class AxisSettingsApp(Gtk.Window):
         row_bt.pack_end(self.sw_bt, False, False, 0)
         card.pack_start(row_bt, False, False, 0)
 
-        # Paired devices list
-        lbl_devices = Gtk.Label(label="Paired Hardware Peripherals:", xalign=0)
+        # Discovered & Paired devices list
+        lbl_devices = Gtk.Label(label="Discovered & Paired Bluetooth Devices:", xalign=0)
         lbl_devices.get_style_context().add_class("card-title")
         card.pack_start(lbl_devices, False, False, 4)
 
         self.bt_listbox = Gtk.ListBox()
         scroll_bt = Gtk.ScrolledWindow()
-        scroll_bt.set_min_content_height(140)
+        scroll_bt.set_min_content_height(160)
         scroll_bt.add(self.bt_listbox)
         card.pack_start(scroll_bt, True, True, 0)
 
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        btn_scan_bt = Gtk.Button(label="Scan Nearby Devices")
-        btn_scan_bt.get_style_context().add_class("btn-primary")
-        btn_scan_bt.connect("clicked", lambda _: self.scan_bluetooth_devices())
+        self.btn_scan_bt = Gtk.Button(label="Scan Nearby Devices")
+        self.btn_scan_bt.get_style_context().add_class("btn-primary")
+        self.btn_scan_bt.connect("clicked", lambda _: self.scan_bluetooth_devices())
 
-        btn_box.pack_start(btn_scan_bt, False, False, 0)
+        btn_box.pack_start(self.btn_scan_bt, False, False, 0)
         card.pack_start(btn_box, False, False, 0)
 
         page.pack_start(card, False, False, 0)
@@ -643,37 +747,73 @@ class AxisSettingsApp(Gtk.Window):
 
     def on_bluetooth_toggle(self, switch, gparam):
         state = "on" if switch.get_active() else "off"
+        rfkill_act = "unblock" if switch.get_active() else "block"
+        subprocess.Popen(["rfkill", rfkill_act, "bluetooth"])
         subprocess.Popen(["bluetoothctl", "power", state])
 
     def scan_bluetooth_devices(self):
         for child in self.bt_listbox.get_children():
             self.bt_listbox.remove(child)
+        self.btn_scan_bt.set_sensitive(False)
+        self.btn_scan_bt.set_label("Scanning (5s)...")
+        threading.Thread(target=self._run_bt_scan, daemon=True).start()
+
+    def _run_bt_scan(self):
         try:
-            out = subprocess.check_output(["bluetoothctl", "paired-devices"], text=True).strip()
-            lines = out.splitlines()
-            if not lines:
-                row = Gtk.ListBoxRow()
-                lbl = Gtk.Label(label="No paired Bluetooth devices found.", xalign=0)
-                row.add(lbl)
-                self.bt_listbox.add(row)
-            else:
-                for line in lines:
-                    parts = line.split(" ", 2)
-                    if len(parts) >= 3:
-                        mac, name = parts[1], parts[2]
-                        row = Gtk.ListBoxRow()
-                        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-                        lbl = Gtk.Label(label=f"{name} ({mac})", xalign=0)
-                        btn_c = Gtk.Button(label="Connect")
-                        btn_c.get_style_context().add_class("btn-secondary")
-                        btn_c.connect("clicked", lambda _, m=mac: subprocess.Popen(["bluetoothctl", "connect", m]))
-                        hbox.pack_start(lbl, True, True, 0)
-                        hbox.pack_start(btn_c, False, False, 0)
-                        row.add(hbox)
-                        self.bt_listbox.add(row)
-            self.bt_listbox.show_all()
+            subprocess.run(["rfkill", "unblock", "bluetooth"], check=False)
+            subprocess.run(["bluetoothctl", "power", "on"], check=False)
+            subprocess.run(["bluetoothctl", "--timeout", "5", "scan", "on"], check=False)
         except Exception:
             pass
+
+        devices = []
+        try:
+            out_p = subprocess.check_output(["bluetoothctl", "paired-devices"], text=True).strip()
+            for line in out_p.splitlines():
+                parts = line.split(" ", 2)
+                if len(parts) >= 3:
+                    devices.append((parts[1], parts[2], True))
+        except Exception:
+            pass
+
+        try:
+            out_d = subprocess.check_output(["bluetoothctl", "devices"], text=True).strip()
+            seen_macs = {d[0] for d in devices}
+            for line in out_d.splitlines():
+                parts = line.split(" ", 2)
+                if len(parts) >= 3 and parts[1] not in seen_macs:
+                    devices.append((parts[1], parts[2], False))
+        except Exception:
+            pass
+
+        GLib.idle_add(self._on_bt_scan_done, devices)
+
+    def _on_bt_scan_done(self, devices):
+        self.btn_scan_bt.set_sensitive(True)
+        self.btn_scan_bt.set_label("Scan Nearby Devices")
+        if not devices:
+            row = Gtk.ListBoxRow()
+            lbl = Gtk.Label(label="No Bluetooth devices found in range.", xalign=0)
+            row.add(lbl)
+            self.bt_listbox.add(row)
+        else:
+            for mac, name, is_paired in devices:
+                row = Gtk.ListBoxRow()
+                hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+                tag = " [Paired]" if is_paired else ""
+                lbl = Gtk.Label(label=f"{name} ({mac}){tag}", xalign=0)
+                btn_action = Gtk.Button(label="Disconnect" if is_paired else "Pair & Connect")
+                btn_action.get_style_context().add_class("btn-secondary" if is_paired else "btn-primary")
+                if is_paired:
+                    btn_action.connect("clicked", lambda _, m=mac: subprocess.Popen(["bluetoothctl", "disconnect", m]))
+                else:
+                    btn_action.connect("clicked", lambda _, m=mac: subprocess.Popen(["bluetoothctl", "pair", m]))
+                hbox.pack_start(lbl, True, True, 0)
+                hbox.pack_start(btn_action, False, False, 0)
+                row.add(hbox)
+                self.bt_listbox.add(row)
+        self.bt_listbox.show_all()
+        return False
 
     # =========================================================================
     # 5. Power & Battery Page
@@ -690,90 +830,95 @@ class AxisSettingsApp(Gtk.Window):
         card.pack_start(title, False, False, 0)
         card.pack_start(sub, False, False, 0)
 
-        # Battery Telemetry Box
         self.lbl_bat_status = Gtk.Label(label="Battery: Reading telemetry...", xalign=0)
         self.lbl_bat_status.get_style_context().add_class("card-title")
         card.pack_start(self.lbl_bat_status, False, False, 0)
 
-        # Power Profile Selector
         lbl_prof = Gtk.Label(label="Hardware Power Profile:", xalign=0)
         lbl_prof.get_style_context().add_class("card-title")
-        card.pack_start(lbl_prof, False, False, 4)
+        card.pack_start(lbl_prof, False, False, 0)
 
-        row_prof = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        for name, cmd in [
-            ("Performance", "powerprofilesctl set performance || cpupower frequency-set -g performance"),
-            ("Balanced", "powerprofilesctl set balanced || cpupower frequency-set -g schedutil"),
-            ("Power Saver", "powerprofilesctl set power-saver || cpupower frequency-set -g powersave"),
-        ]:
-            b = Gtk.Button(label=name)
-            b.get_style_context().add_class("btn-secondary")
-            b.connect("clicked", lambda _, c=cmd, n=name: self.set_power_profile(n, c))
-            row_prof.pack_start(b, True, True, 0)
-        card.pack_start(row_prof, False, False, 4)
+        self.combo_power = Gtk.ComboBoxText()
+        self.combo_power.append("performance", "High Performance (Unthrottled Turbo)")
+        self.combo_power.append("balanced", "Balanced (Dynamic Power Allocation)")
+        self.combo_power.append("power-saver", "Power Saver (Maximum Battery Endurance)")
+        self.combo_power.set_active(1)
+        self.combo_power.connect("changed", self.on_power_profile_changed)
+        card.pack_start(self.combo_power, False, False, 0)
 
         page.pack_start(card, False, False, 0)
         self.stack.add_named(page, "power")
 
-        GLib.idle_add(self.update_battery_telemetry)
+        GLib.idle_add(self.update_battery_status)
 
-    def update_battery_telemetry(self):
-        bat_files = glob.glob("/sys/class/power_supply/BAT*/capacity")
-        if bat_files:
+    def update_battery_status(self):
+        bat_paths = glob.glob("/sys/class/power_supply/BAT*")
+        if bat_paths:
             try:
-                with open(bat_files[0]) as f:
+                cap_f = os.path.join(bat_paths[0], "capacity")
+                stat_f = os.path.join(bat_paths[0], "status")
+                with open(cap_f) as f:
                     cap = f.read().strip()
-                stat_file = bat_files[0].replace("capacity", "status")
-                stat = "Discharging"
-                if os.path.exists(stat_file):
-                    with open(stat_file) as f:
-                        stat = f.read().strip()
-                self.lbl_bat_status.set_text(f"Battery: {cap}% ({stat}) • Healthy")
+                with open(stat_f) as f:
+                    stat = f.read().strip()
+                self.lbl_bat_status.set_text(f"Battery: {cap}% ({stat})")
             except Exception:
-                self.lbl_bat_status.set_text("Battery: 100% (AC Power)")
+                self.lbl_bat_status.set_text("Battery: Hardware Detected (Reading...)")
         else:
-            self.lbl_bat_status.set_text("System Power: AC Adapter Connected (Workstation Desktop)")
+            self.lbl_bat_status.set_text("Power: AC Wall Power Connected (Desktop Rig / VM)")
+        return False
 
-    def set_power_profile(self, name, cmd):
-        subprocess.Popen(cmd, shell=True)
-        self.show_info_dialog("Power Profile", f"Activated '{name}' hardware profile.")
+    def on_power_profile_changed(self, combo):
+        prof = combo.get_active_id()
+        if prof:
+            subprocess.Popen(["powerprofilesctl", "set", prof])
 
     # =========================================================================
-    # 6. CPU & Performance Page
+    # 6. CPU & Performance Tuning Page
     # =========================================================================
     def build_performance_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
 
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         card.get_style_context().add_class("card")
-        title = Gtk.Label(label="CPU Governors & Kernel Scheduling", xalign=0)
+        title = Gtk.Label(label="CPU Governors & Kernel Performance Engine", xalign=0)
         title.get_style_context().add_class("card-title")
-        sub = Gtk.Label(label="XanMod low-latency tuning, turbo boost, and zRAM memory compression.", xalign=0)
+        sub = Gtk.Label(label="Low-latency XanMod kernel scheduling, cpupower frequency scaling, and GameBoost engine.", xalign=0)
         sub.get_style_context().add_class("card-subtitle")
         card.pack_start(title, False, False, 0)
         card.pack_start(sub, False, False, 0)
 
-        # Game Boost Toggle
-        row_gb = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        btn_gb_on = Gtk.Button(label="Enable Game Boost Mode")
-        btn_gb_on.get_style_context().add_class("btn-primary")
-        btn_gb_on.connect("clicked", lambda _: subprocess.Popen("/usr/local/bin/axis-game-boost start", shell=True))
+        lbl_gov = Gtk.Label(label="CPU Frequency Governor:", xalign=0)
+        lbl_gov.get_style_context().add_class("card-title")
+        card.pack_start(lbl_gov, False, False, 0)
 
-        btn_gb_off = Gtk.Button(label="Disable Game Boost")
-        btn_gb_off.get_style_context().add_class("btn-secondary")
-        btn_gb_off.connect("clicked", lambda _: subprocess.Popen("/usr/local/bin/axis-game-boost stop", shell=True))
+        self.combo_gov = Gtk.ComboBoxText()
+        self.combo_gov.append("performance", "Performance (Locks maximum all-core boost)")
+        self.combo_gov.append("schedutil", "Schedutil (Kernel CFS scheduler driven)")
+        self.combo_gov.append("powersave", "Powersave (Frequency scaling limit)")
+        self.combo_gov.set_active(0)
+        self.combo_gov.connect("changed", self.on_governor_changed)
+        card.pack_start(self.combo_gov, False, False, 0)
 
-        row_gb.pack_start(btn_gb_on, False, False, 0)
-        row_gb.pack_start(btn_gb_off, False, False, 0)
-        card.pack_start(row_gb, False, False, 4)
-
-        # zRAM Compression Info
-        lbl_zram = Gtk.Label(label="zRAM Compression: Active (zstd • 3.2x ratio • 1,240 MB RAM saved)", xalign=0)
-        lbl_zram.get_style_context().add_class("status-badge-ok")
-        card.pack_start(lbl_zram, False, False, 4)
+        row_boost = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        lbl_boost = Gtk.Label(label="GameBoost Low-Latency Real-Time Scheduling", xalign=0)
+        self.sw_boost = Gtk.Switch(active=True, halign=Gtk.Align.END)
+        self.sw_boost.connect("notify::active", self.on_boost_toggle)
+        row_boost.pack_start(lbl_boost, True, True, 0)
+        row_boost.pack_end(self.sw_boost, False, False, 0)
+        card.pack_start(row_boost, False, False, 4)
 
         page.pack_start(card, False, False, 0)
         self.stack.add_named(page, "performance")
+
+    def on_governor_changed(self, combo):
+        gov = combo.get_active_id()
+        if gov:
+            subprocess.Popen(["cpupower", "frequency-set", "-g", gov])
+
+    def on_boost_toggle(self, switch, gparam):
+        val = "1" if switch.get_active() else "0"
+        subprocess.Popen(f"echo {val} > /sys/devices/system/cpu/cpufreq/boost 2>/dev/null || true", shell=True)
 
     # =========================================================================
     # 7. Storage & Disks Page
@@ -783,44 +928,40 @@ class AxisSettingsApp(Gtk.Window):
 
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         card.get_style_context().add_class("card")
-        title = Gtk.Label(label="Storage Drives & Btrfs Reflinks", xalign=0)
+        title = Gtk.Label(label="Storage Volumes & Filesystem Integrity", xalign=0)
         title.get_style_context().add_class("card-title")
-        sub = Gtk.Label(label="NVMe / SATA drive partitions, filesystem snapshots, and SSD TRIM optimization.", xalign=0)
+        sub = Gtk.Label(label="NVMe / SSD health, Btrfs subvolumes, and SSD fstrim discard optimization.", xalign=0)
         sub.get_style_context().add_class("card-subtitle")
         card.pack_start(title, False, False, 0)
         card.pack_start(sub, False, False, 0)
 
-        self.lbl_disk_usage = Gtk.Label(label="Disk: Calculating capacity...", xalign=0)
+        self.lbl_disk_usage = Gtk.Label(label="Reading disk partitions...", xalign=0)
         self.lbl_disk_usage.get_style_context().add_class("card-title")
         card.pack_start(self.lbl_disk_usage, False, False, 0)
 
-        btn_trim = Gtk.Button(label="Run SSD TRIM Optimization")
-        btn_trim.get_style_context().add_class("btn-secondary")
-        btn_trim.connect("clicked", self.on_run_trim)
-        card.pack_start(btn_trim, False, False, 4)
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        btn_trim = Gtk.Button(label="Optimize SSDs (fstrim)")
+        btn_trim.get_style_context().add_class("btn-primary")
+        btn_trim.connect("clicked", lambda _: subprocess.Popen(["fstrim", "-av"]))
+
+        btn_box.pack_start(btn_trim, False, False, 0)
+        card.pack_start(btn_box, False, False, 4)
 
         page.pack_start(card, False, False, 0)
         self.stack.add_named(page, "storage")
 
-        GLib.idle_add(self.update_storage_info)
+        GLib.idle_add(self.update_storage_usage)
 
-    def update_storage_info(self):
+    def update_storage_usage(self):
         try:
-            usage = shutil.disk_usage("/")
-            total_gb = usage.total / (1024 ** 3)
-            free_gb = usage.free / (1024 ** 3)
-            used_gb = total_gb - free_gb
-            self.lbl_disk_usage.set_text(f"Root Filesystem (Btrfs): {used_gb:.1f} GB used / {total_gb:.1f} GB total ({free_gb:.1f} GB available)")
+            out = subprocess.check_output(["df", "-h", "/"], text=True).strip().splitlines()
+            if len(out) >= 2:
+                parts = out[1].split()
+                total, used, avail, pct = parts[1], parts[2], parts[3], parts[4]
+                self.lbl_disk_usage.set_text(f"Root Filesystem (/): {used} used / {total} total ({pct} filled, {avail} free)")
         except Exception:
-            pass
-
-    def on_run_trim(self, btn):
-        try:
-            cmd = ["fstrim", "-v", "/"] if os.geteuid() == 0 else ["pkexec", "fstrim", "-v", "/"]
-            out = subprocess.check_output(cmd, text=True).strip()
-            self.show_info_dialog("SSD TRIM Optimization", f"TRIM completed:\n{out}")
-        except Exception as e:
-            self.show_info_dialog("SSD TRIM", f"Executed fstrim on storage drives:\n{e}")
+            self.lbl_disk_usage.set_text("Storage: Btrfs Subvolume Operational")
+        return False
 
     # =========================================================================
     # 8. Security & Biometrics Page
@@ -830,24 +971,13 @@ class AxisSettingsApp(Gtk.Window):
 
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         card.get_style_context().add_class("card")
-        title = Gtk.Label(label="Biometric Hardware & Screen Security", xalign=0)
+        title = Gtk.Label(label="Security Hardening & Biometrics", xalign=0)
         title.get_style_context().add_class("card-title")
-        sub = Gtk.Label(label="Fingerprint reader sensor enrollment, UFW hardware firewall, and password synchronization.", xalign=0)
+        sub = Gtk.Label(label="fprintd biometric fingerprint authentication, UFW hardware firewall, and USB protection.", xalign=0)
         sub.get_style_context().add_class("card-subtitle")
         card.pack_start(title, False, False, 0)
         card.pack_start(sub, False, False, 0)
 
-        # Fingerprint Enrollment
-        row_fp = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        lbl_fp = Gtk.Label(label="Fingerprint Biometric Sensor", xalign=0)
-        btn_enroll_fp = Gtk.Button(label="Enroll Fingerprint...")
-        btn_enroll_fp.get_style_context().add_class("btn-secondary")
-        btn_enroll_fp.connect("clicked", lambda _: subprocess.Popen(["fprintd-enroll"]))
-        row_fp.pack_start(lbl_fp, True, True, 0)
-        row_fp.pack_end(btn_enroll_fp, False, False, 0)
-        card.pack_start(row_fp, False, False, 4)
-
-        # UFW Firewall Toggle
         row_fw = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         lbl_fw = Gtk.Label(label="UFW Hardware Firewall", xalign=0)
         self.sw_fw = Gtk.Switch(active=True, halign=Gtk.Align.END)
@@ -931,51 +1061,40 @@ class AxisSettingsApp(Gtk.Window):
         return False
 
     # =========================================================================
-    # 10. Appearance Page
+    # 10. Appearance Page (Enforced Samsung One UI Dark Mode)
     # =========================================================================
     def build_appearance_page(self):
         page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
 
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         card.get_style_context().add_class("card")
-        title = Gtk.Label(label="Appearance & One UI Theme", xalign=0)
+        title = Gtk.Label(label="Appearance & Samsung One UI Dark Theme", xalign=0)
         title.get_style_context().add_class("card-title")
-        sub = Gtk.Label(label="Customize color palettes, dark mode, and dock corner radius.", xalign=0)
+        sub = Gtk.Label(label="AxisOS standardizes on a unified Samsung One UI Dark visual design system with deep blue accents and frosted glass blur effects.", xalign=0)
         sub.get_style_context().add_class("card-subtitle")
         card.pack_start(title, False, False, 0)
         card.pack_start(sub, False, False, 0)
 
-        def set_theme_mode(dark: bool):
-            try:
-                conf_dir = os.path.expanduser("~/.config/axisos")
-                os.makedirs(conf_dir, exist_ok=True)
-                conf_path = os.path.join(conf_dir, "theme.json")
-                data = {
-                    "theme": "dark" if dark else "light",
-                    "isDark": dark,
-                    "accent": "#7d95ff" if dark else "#1428a0"
-                }
-                with open(conf_path, "w", encoding="utf-8") as f:
-                    json.dump(data, f, indent=2)
-            except Exception as e:
-                print(f"Error saving theme: {e}")
-            scheme = "prefer-dark" if dark else "prefer-light"
-            theme = "Adwaita-dark" if dark else "Adwaita"
-            subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", scheme])
-            subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", theme])
+        badge_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        lbl_badge = Gtk.Label(label="One UI Dark Mode (Standard & Active)")
+        lbl_badge.get_style_context().add_class("status-badge-ok")
+        badge_box.pack_start(lbl_badge, False, False, 0)
+        card.pack_start(badge_box, False, False, 4)
 
-        row_theme = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        btn_light = Gtk.Button(label="One UI Light Theme")
-        btn_light.get_style_context().add_class("btn-primary")
-        btn_light.connect("clicked", lambda _: set_theme_mode(False))
+        lbl_wp = Gtk.Label(label="Default Desktop Wallpaper: AxisOS Obsidian Core / Signature Wave (Dark)", xalign=0)
+        lbl_wp.get_style_context().add_class("card-subtitle")
+        card.pack_start(lbl_wp, False, False, 0)
 
-        btn_dark = Gtk.Button(label="One UI Dark Theme")
-        btn_dark.get_style_context().add_class("btn-secondary")
-        btn_dark.connect("clicked", lambda _: set_theme_mode(True))
-
-        row_theme.pack_start(btn_light, False, False, 0)
-        row_theme.pack_start(btn_dark, False, False, 0)
-        card.pack_start(row_theme, False, False, 4)
+        # Enforce dark theme in config
+        try:
+            conf_dir = os.path.expanduser("~/.config/axisos")
+            os.makedirs(conf_dir, exist_ok=True)
+            conf_path = os.path.join(conf_dir, "theme.json")
+            data = {"theme": "dark", "isDark": True, "accent": "#7d95ff"}
+            with open(conf_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception:
+            pass
 
         page.pack_start(card, False, False, 0)
         self.stack.add_named(page, "appearance")
@@ -1040,7 +1159,7 @@ class AxisSettingsApp(Gtk.Window):
         card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         card.get_style_context().add_class("card")
 
-        title = Gtk.Label(label="AxisOS Linux 2.1 (One UI Edition)", xalign=0)
+        title = Gtk.Label(label="AxisOS Linux 2.1 (One UI Dark Edition)", xalign=0)
         title.get_style_context().add_class("card-title")
         sub = Gtk.Label(label="Native Qt6 Wayland desktop compositor (LiquidNodes) with Samsung One UI design architecture.", xalign=0)
         sub.get_style_context().add_class("card-subtitle")
@@ -1069,7 +1188,7 @@ class AxisSettingsApp(Gtk.Window):
             ("Kernel:", f"{uname.sysname} {uname.release} ({uname.machine})"),
             ("Compositor:", "LiquidNodes Wayland Compositor (Qt 6 Native)"),
             ("Display Server:", "Wayland Native"),
-            ("Design Architecture:", "Samsung One UI (Airy Surfaces • Deep Blue #1428a0)")
+            ("Design Architecture:", "Samsung One UI Dark (Deep Blue #7d95ff / #1428a0)")
         ]
 
         for i, (k, v) in enumerate(specs):
@@ -1082,9 +1201,7 @@ class AxisSettingsApp(Gtk.Window):
         card.pack_start(grid, False, False, 0)
         page.pack_start(card, False, False, 0)
 
-        # ---------------------------------------------------------------------
-        # Software Updates Option Card (Above OS Edition)
-        # ---------------------------------------------------------------------
+        # Software Updates Option Card
         card_updates = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         card_updates.get_style_context().add_class("card")
 
@@ -1106,9 +1223,7 @@ class AxisSettingsApp(Gtk.Window):
         card_updates.pack_start(row_up, False, False, 0)
         page.pack_start(card_updates, False, False, 0)
 
-        # ---------------------------------------------------------------------
-        # OS Edition Switcher Card (At the bottom, after Software Updates)
-        # ---------------------------------------------------------------------
+        # OS Edition Switcher Card
         card_edition = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         card_edition.get_style_context().add_class("card")
 
@@ -1248,19 +1363,19 @@ def main():
         ]
         if panel in valid_panels:
             app.stack.set_visible_child_name(panel)
-            for i, (_, cat_id) in enumerate([
-                ("Display & Brightness", "display"),
-                ("Audio & Sound", "audio"),
-                ("Wi-Fi & Network", "network"),
-                ("Bluetooth", "bluetooth"),
-                ("Power & Battery", "power"),
-                ("CPU & Performance", "performance"),
-                ("Storage & Disks", "storage"),
-                ("Security & Biometrics", "security"),
-                ("System Health", "health"),
-                ("Appearance", "appearance"),
-                ("Software & Updates", "updates"),
-                ("About & OS Edition", "about"),
+            for i, (_, cat_id, _) in enumerate([
+                ("Display & Brightness", "display", "display-brightness-symbolic"),
+                ("Audio & Sound", "audio", "audio-volume-high-symbolic"),
+                ("Wi-Fi & Network", "network", "network-wireless-signal-excellent-symbolic"),
+                ("Bluetooth", "bluetooth", "bluetooth-active-symbolic"),
+                ("Power & Battery", "power", "battery-charging-symbolic"),
+                ("CPU & Performance", "performance", "utilities-terminal-symbolic"),
+                ("Storage & Disks", "storage", "drive-harddisk-symbolic"),
+                ("Security & Biometrics", "security", "system-lock-screen-symbolic"),
+                ("System Health", "health", "emblem-ok-symbolic"),
+                ("Appearance", "appearance", "weather-clear-night-symbolic"),
+                ("Software & Updates", "updates", "system-software-install-symbolic"),
+                ("About & OS Edition", "about", "preferences-system-symbolic"),
             ]):
                 if cat_id == panel:
                     row = app.listbox.get_row_at_index(i)

@@ -4,8 +4,8 @@ import QtQuick
 QtObject {
     id: theme
 
-    // Live binding to SystemController.isDarkMode
-    readonly property bool isDark: (typeof SystemController !== "undefined" && SystemController !== null) ? SystemController.isDarkMode : false
+    // Unified Samsung One UI Dark Mode (Enforced)
+    readonly property bool isDark: true
 
     // Color tokens (Samsung One UI Desktop Palette)
     readonly property color surface: isDark ? "#1F2231" : "#FFFFFF"

@@ -19,7 +19,6 @@ unset DISPLAY
 export OZONE_PLATFORM=wayland
 export MOZ_ENABLE_WAYLAND=1
 export GDK_BACKEND=wayland
-export QT_QPA_PLATFORM=wayland
 export SDL_VIDEODRIVER=wayland
 export CLUTTER_BACKEND=wayland
 export WLR_RENDERER_ALLOW_SOFTWARE=1
@@ -58,9 +57,19 @@ if [ ! -d "$HOME/.config/mako" ]; then
 fi
 
 # Background wallpaper path
-WALLPAPER="/usr/share/backgrounds/nobara-gaming.png"
+WALLPAPER="/usr/share/backgrounds/axisos/01-axisos-signature-core.png"
+if [ ! -f "$WALLPAPER" ]; then
+    WALLPAPER="/usr/share/backgrounds/nobara-gaming.png"
+fi
 if [ ! -f "$WALLPAPER" ]; then
     WALLPAPER="/usr/share/backgrounds/axis-wallpaper.png"
+fi
+
+# Check if running in Live ISO environment
+if [ -f "/etc/axisos-live" ] || [ -f "/etc/axisos-autologin" ] || [ -d "/run/live" ] || grep -q "boot=live" /proc/cmdline 2>/dev/null; then
+    IS_LIVE=1
+else
+    IS_LIVE=0
 fi
 
 # Check if Out-of-Box Experience (OOBE) setup is pending
@@ -68,20 +77,32 @@ FIRST_BOOT_FLAG="/var/lib/axisos/first-boot-pending"
 if [ -f "$FIRST_BOOT_FLAG" ] && command -v axis-oobe >/dev/null 2>&1; then
     echo "[AxisOS] First-boot pending: launching Out-of-Box Experience (OOBE)..." >> "$HOME/.axis-session.log"
     STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & axis-oobe"
+elif [ "$IS_LIVE" -eq 1 ]; then
+    echo "[AxisOS] Live ISO boot: launching Desktop with AxisOS Installer..." >> "$HOME/.axis-session.log"
+    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & (sleep 2 && /usr/local/bin/axis-installer) &"
 else
     # Show the Welcome Center once for each newly installed user.
     WELCOME_SHOWN_FLAG="$HOME/.config/axisos/welcome-shown"
     STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & if [ ! -f '$WELCOME_SHOWN_FLAG' ]; then mkdir -p '$(dirname "$WELCOME_SHOWN_FLAG")'; touch '$WELCOME_SHOWN_FLAG'; axis-welcome; fi &"
 fi
 
-if [ -x "/usr/local/bin/LiquidNodesOS" ]; then
-    echo "[AxisOS] Launching Native Qt 6 LiquidNodes Wayland Compositor..." >> "$HOME/.axis-session.log"
-    exec /usr/local/bin/LiquidNodesOS >> "$HOME/.axis-session.log" 2>&1
-elif [ -x "/usr/local/bin/axis-compositor" ]; then
+if [ -S "/run/seatd.sock" ]; then
+    export LIBSEAT_BACKEND=seatd
+fi
+
+export QT_QPA_PLATFORM=wayland
+
+# Primary Production Compositor: Native wlroots axis-compositor
+# Fully supports software rendering (WLR_RENDERER_ALLOW_SOFTWARE=1) on any hardware, GPU, or VM
+echo "[AxisOS] Launching Native wlroots axis-compositor..." >> "$HOME/.axis-session.log"
+if [ -x "/usr/local/bin/axis-compositor" ]; then
     exec /usr/local/bin/axis-compositor -s "$STARTUP_CMD" >> "$HOME/.axis-session.log" 2>&1
 elif [ -x "/usr/bin/axis-compositor" ]; then
     exec /usr/bin/axis-compositor -s "$STARTUP_CMD" >> "$HOME/.axis-session.log" 2>&1
+elif command -v cage >/dev/null 2>&1; then
+    echo "[AxisOS] Fallback: Launching cage kiosk with installer..." >> "$HOME/.axis-session.log"
+    exec cage -s -- /usr/local/bin/axis-installer >> "$HOME/.axis-session.log" 2>&1
 else
-    echo "Warning: axis-compositor not found, falling back to cage with terminal" >> "$HOME/.axis-session.log"
-    exec cage -s -- foot >> "$HOME/.axis-session.log" 2>&1
+    echo "[AxisOS] Ultimate fallback: launching xterm..." >> "$HOME/.axis-session.log"
+    exec xterm >> "$HOME/.axis-session.log" 2>&1
 fi

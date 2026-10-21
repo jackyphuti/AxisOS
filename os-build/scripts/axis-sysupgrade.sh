@@ -34,6 +34,12 @@ echo "--> [4/4] Finalizing and cleaning cache..."
 apt-get autoremove -y || true
 apt-get clean || true
 
+# 5. Run FastBoot optimization hotfix
+if [ -x /usr/local/bin/axis-fastboot-patch ]; then
+    echo "--> [OTA Patch] Applying AxisOS FastBoot optimizations..."
+    /usr/local/bin/axis-fastboot-patch || true
+fi
+
 echo "========================================================"
 echo "    AxisOS Remote System Upgrade Completed Successfully! "
 echo "========================================================"

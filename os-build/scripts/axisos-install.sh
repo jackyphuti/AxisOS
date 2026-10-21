@@ -727,7 +727,7 @@ cat << EOF > /mnt/etc/fstab
 # <file system>             <mount point>   <type>  <options>                               <dump>  <pass>
 UUID=$ROOT_UUID             /               ext4    errors=remount-ro,noatime               0       1
 UUID=$ESP_UUID              /boot/efi       vfat    umask=0077                              0       2
-UUID=$SWAP_UUID             none            swap    sw                                      0       0
+UUID=$SWAP_UUID             none            swap    defaults,nofail,x-systemd.device-timeout=5s 0   0
 EOF
 else
 cat << EOF > /mnt/etc/fstab
@@ -738,7 +738,7 @@ UUID=$ROOT_UUID             /home           btrfs   defaults,noatime,compress=zs
 UUID=$ROOT_UUID             /var/log        btrfs   defaults,noatime,compress=zstd:3,subvol=@var_log 0   0
 UUID=$ROOT_UUID             /.snapshots     btrfs   defaults,noatime,compress=zstd:3,subvol=@snapshots 0 0
 UUID=$ESP_UUID              /boot/efi       vfat    umask=0077                              0       2
-UUID=$SWAP_UUID             none            swap    sw                                      0       0
+UUID=$SWAP_UUID             none            swap    defaults,nofail,x-systemd.device-timeout=5s 0   0
 EOF
 fi
 
@@ -898,32 +898,47 @@ fi
 
 cat << EOF > /mnt/etc/systemd/system/axisos-session.service
 [Unit]
-Description=AxisOS LiquidNodes Desktop Environment
-After=systemd-user-sessions.service plymouth-quit-wait.service
+Description=AxisOS Desktop Environment
+After=systemd-user-sessions.service seatd.service
+Wants=seatd.service
 Conflicts=getty@tty1.service
 After=getty@tty1.service
 
 [Service]
 Type=simple
 User=${USERNAME}
+PAMName=login
 WorkingDirectory=/home/${USERNAME}
 Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
+Environment=XDG_CURRENT_DESKTOP=AxisOS-LiquidNodes
 Environment=WAYLAND_DISPLAY=wayland-0
-Environment=QT_QPA_PLATFORM=wayland;xcb;eglfs
-Environment=QSG_RHI_PREFER_SOFTWARE_RENDERER=0
-ExecStart=/usr/local/bin/LiquidNodesOS
+Environment=QT_QPA_PLATFORM=wayland
+Environment=LIBSEAT_BACKEND=seatd
+ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=on-failure
-RestartSec=1
+RestartSec=2
 StandardInput=tty
 StandardOutput=journal
+StandardError=journal
 TTYPath=/dev/tty1
-TTYReset=yes
-TTYVHangup=yes
+TTYReset=no
+TTYVHangup=no
 
 [Install]
 WantedBy=graphical.target
 EOF
+
+# Clean network interfaces: lo only, let NetworkManager handle ethernet & Wi-Fi asynchronously
+cat << 'NET_EOF' > /mnt/etc/network/interfaces
+# AxisOS Network Interfaces
+auto lo
+iface lo inet loopback
+NET_EOF
+
+# Mask slow blocking wait-online services
+chroot /mnt systemctl mask NetworkManager-wait-online.service 2>/dev/null || true
+chroot /mnt systemctl mask systemd-networkd-wait-online.service 2>/dev/null || true
+chroot /mnt systemctl enable seatd.service 2>/dev/null || true
 
 cat << 'EOF' > /mnt/usr/share/wayland-sessions/axisos-liquidnodes.desktop
 [Desktop Entry]
@@ -1287,7 +1302,7 @@ mkdir -p /mnt/etc/default
 cat << 'EOF' > /mnt/etc/default/grub
 # AxisOS Default GRUB Configuration
 GRUB_DEFAULT=0
-GRUB_TIMEOUT=2
+GRUB_TIMEOUT=1
 GRUB_DISTRIBUTOR="AxisOS"
 GRUB_CMDLINE_LINUX_DEFAULT="quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1"
 GRUB_CMDLINE_LINUX=""

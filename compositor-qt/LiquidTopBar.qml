@@ -122,7 +122,7 @@ Rectangle {
             id: clockText
             color: Theme.textPrimary
             font.pixelSize: 13
-            font.weight: Font.SemiBold
+            font.weight: Font.DemiBold
             font.letterSpacing: -0.1
             font.family: "Inter, -apple-system, system-ui, sans-serif"
 

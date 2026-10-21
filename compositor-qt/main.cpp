@@ -4,6 +4,7 @@
 #include <QUrl>
 #include <QDebug>
 #include <QFileInfo>
+#include <QDir>
 #include <QQuickWindow>
 #include <memory>
 #include <cstdlib>
@@ -13,10 +14,35 @@
 
 int main(int argc, char *argv[])
 {
-    // Configure high-performance GPU pipeline (Vulkan/OpenGL RHI)
-    qputenv("QT_QPA_PLATFORM", "wayland;xcb;eglfs");
-    qputenv("QSG_INFO", "1");
-    qputenv("QSG_RHI_PREFER_SOFTWARE_RENDERER", "0");
+    // Setup XDG runtime directory with required 0700 permissions
+    if (qEnvironmentVariableIsEmpty("XDG_RUNTIME_DIR")) {
+        qputenv("XDG_RUNTIME_DIR", "/tmp/runtime-axis");
+    }
+    QString runtimeDir = QString::fromLocal8Bit(qgetenv("XDG_RUNTIME_DIR"));
+    QDir().mkpath(runtimeDir);
+    QFile::setPermissions(runtimeDir, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
+
+    // Dynamic QPA platform selection (avoid invalid semicolon syntax)
+    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
+        if (!qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY") &&
+            QFile::exists(runtimeDir + QLatin1Char('/') + QString::fromLocal8Bit(qgetenv("WAYLAND_DISPLAY")))) {
+            qputenv("QT_QPA_PLATFORM", "wayland");
+        } else if (!qEnvironmentVariableIsEmpty("DISPLAY")) {
+            qputenv("QT_QPA_PLATFORM", "xcb");
+        } else if (QFile::exists(QStringLiteral("/dev/dri/card0")) || QFile::exists(QStringLiteral("/dev/dri/renderD128"))) {
+            qputenv("QT_QPA_PLATFORM", "eglfs");
+            if (qEnvironmentVariableIsEmpty("QT_QPA_EGLFS_INTEGRATION")) {
+                qputenv("QT_QPA_EGLFS_INTEGRATION", "eglfs_kms");
+            }
+        } else {
+            // Software frame buffer fallback for VMs without 3D DRM
+            qputenv("QT_QPA_PLATFORM", "linuxfb");
+        }
+    }
+
+    if (qEnvironmentVariableIsEmpty("QSG_INFO")) {
+        qputenv("QSG_INFO", "1");
+    }
 
     // Wayland Compositor server environment setup
     if (qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY")) {

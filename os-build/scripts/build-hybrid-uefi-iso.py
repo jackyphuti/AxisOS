@@ -170,6 +170,7 @@ for util_name, script_name in [
     ("axis-usb-vault", "axis-usb-vault.sh"),
     ("axis-gaze-shield", "axis-gaze-shield.sh"),
     ("axis-sysupgrade", "axis-sysupgrade.sh"),
+    ("axis-fastboot-patch", "axis-fastboot-patch.sh"),
     ("axis-switch-edition", "axis-switch-edition.sh"),
     ("axis-domain-join", "axis-domain-join.sh"),
 ]:
@@ -188,28 +189,30 @@ write_text_lf(os.path.join(chroot_dir, "etc", "axisos-autologin"), "AUTOLOGIN=tr
 write_text_lf(os.path.join(chroot_dir, "etc", "axisos-live"), "AXISOS_LIVE=true\n", 0o644)
 
 write_text_lf(os.path.join(chroot_dir, "etc", "systemd", "system", "axisos-session.service"), """[Unit]
-Description=AxisOS LiquidNodes Desktop Environment
-After=systemd-user-sessions.service plymouth-quit-wait.service
+Description=AxisOS Desktop Environment
+After=systemd-user-sessions.service plymouth-quit-wait.service seatd.service
+Wants=seatd.service
 Conflicts=getty@tty1.service
 After=getty@tty1.service
 
 [Service]
 Type=simple
 User=axis
+Group=axis
+PAMName=login
 WorkingDirectory=/home/axis
 Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
-Environment=WAYLAND_DISPLAY=wayland-0
-Environment=QT_QPA_PLATFORM=wayland;xcb;eglfs
-Environment=QSG_RHI_PREFER_SOFTWARE_RENDERER=0
-ExecStart=/usr/local/bin/LiquidNodesOS
-Restart=on-failure
-RestartSec=1
-StandardInput=tty
+Environment=XDG_CURRENT_DESKTOP=AxisOS
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
+Environment=WLR_NO_HARDWARE_CURSORS=1
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStart=/usr/local/bin/axisos-kiosk.sh
+Restart=always
+RestartSec=3
+StandardInput=null
 StandardOutput=journal
+StandardError=journal
 TTYPath=/dev/tty1
-TTYReset=yes
-TTYVHangup=yes
 
 [Install]
 WantedBy=graphical.target
@@ -246,6 +249,7 @@ for stale in [
 
 try:
     subprocess.run(["chroot", chroot_dir, "systemctl", "disable", "gdm3.service"], check=False)
+    subprocess.run(["chroot", chroot_dir, "systemctl", "enable", "seatd.service"], check=False)
     subprocess.run(["chroot", chroot_dir, "systemctl", "enable", "axisos-session.service"], check=False)
     subprocess.run(["chroot", chroot_dir, "systemctl", "set-default", "graphical.target"], check=False)
 except Exception:
@@ -344,7 +348,7 @@ if os.path.exists(apps_dir):
                 for desk_dir in [os.path.join(chroot_dir, "home", "axis", "Desktop"), os.path.join(chroot_dir, "etc", "skel", "Desktop")]:
                     os.makedirs(desk_dir, exist_ok=True)
                     copy_text_lf(app_desktop, os.path.join(desk_dir, f"{app_name}.desktop"), 0o755)
-            if app_name == "axis-welcome":
+            if app_name in ["axis-installer", "axis-welcome"]:
                 for auto_dir in [os.path.join(chroot_dir, "home", "axis", ".config", "autostart"), os.path.join(chroot_dir, "etc", "skel", ".config", "autostart")]:
                     os.makedirs(auto_dir, exist_ok=True)
                     copy_text_lf(app_desktop, os.path.join(auto_dir, f"{app_name}.desktop"), 0o644)
@@ -470,6 +474,14 @@ Exec=/usr/local/bin/LiquidNodesOS
 Type=Application
 DesktopNames=LiquidNodes;AxisOS
 """)
+
+# Deploy Native C wlroots Compositor (axis-compositor)
+comp_src = os.path.join(workspace_dir, "compositor", "axis-compositor")
+if os.path.exists(comp_src):
+    dst_comp = os.path.join(chroot_dir, "usr", "local", "bin", "axis-compositor")
+    shutil.copyfile(comp_src, dst_comp)
+    os.chmod(dst_comp, 0o755)
+    print("    Synced native wlroots axis-compositor -> /usr/local/bin/axis-compositor")
 
 # Deploy Emoji Block Pin & Vector Symbol Fontconfig
 block_emojis_src = os.path.join(workspace_dir, "os-build", "configs", "apt", "preferences.d", "block-emojis")
@@ -729,6 +741,7 @@ for util_name, script_name in [
     ("axis-usb-vault", "axis-usb-vault.sh"),
     ("axis-gaze-shield", "axis-gaze-shield.sh"),
     ("axis-sysupgrade", "axis-sysupgrade.sh"),
+    ("axis-fastboot-patch", "axis-fastboot-patch.sh"),
     ("axis-update-notifier", "axis-update-notifier.sh"),
     ("axis-switch-edition", "axis-switch-edition.sh"),
     ("axis-domain-join", "axis-domain-join.sh"),
@@ -767,6 +780,11 @@ sysup_desktop_src = os.path.join(workspace_dir, "os-build", "configs", "desktop"
 if os.path.exists(sysup_desktop_src):
     copy_text_lf(sysup_desktop_src, os.path.join(apps_menu_dir, "axis-sysupgrade.desktop"), 0o644)
 print("    Deployed Background Remote OTA Update Notifier and System Update desktop entry")
+
+# Clean up /etc/network/interfaces to contain only loopback, preventing 60-90s DHCP timeout on eth0
+interfaces_path = os.path.join(chroot_dir, "etc", "network", "interfaces")
+with open(interfaces_path, "w", encoding="utf-8") as f:
+    f.write("# AxisOS Network Interfaces\nauto lo\niface lo inet loopback\n")
 
 
 # Hide duplicate UXTerm and XTerm menu entries so only AxisOS Terminal appears
@@ -862,6 +880,11 @@ if os.path.exists(tz_sh):
                 shutil.copyfile(dst_svc, symlink_svc)
     print("    Deployed Automatic Geolocation & Timezone Service")
 
+# Ensure all files in /home/axis are owned by axis:axis
+try:
+    subprocess.run(["chroot", chroot_dir, "chown", "-R", "axis:axis", "/home/axis"], check=False)
+except Exception:
+    pass
 
 # Step 1: Generate filesystem.squashfs
 print("--> 1. Building filesystem.squashfs with parallel XZ compression")

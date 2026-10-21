@@ -5,6 +5,7 @@
     "spacing": 6,
     "modules-left": [
         "custom/menu",
+        "custom/installer",
         "custom/settings",
         "custom/welcome",
         "custom/steam",
@@ -31,10 +32,15 @@
         "tooltip": false,
         "on-click": "wofi --show drun --prompt 'Search Applications...'"
     },
+    "custom/installer": {
+        "format": "💿 Install AxisOS",
+        "tooltip": "Install AxisOS permanently to your drive",
+        "on-click": "/usr/local/bin/axis-installer"
+    },
     "custom/settings": {
         "format": " Settings",
-        "tooltip": "Open System Settings",
-        "on-click": "gnome-control-center"
+        "tooltip": "Open AxisOS Settings & Hardware Control",
+        "on-click": "axis-settings"
     },
     "custom/welcome": {
         "format": "󰌆 Drivers & Codecs",
@@ -97,12 +103,14 @@
             "default": ["", "", ""]
         },
         "on-click": "amixer -q sset Master toggle",
+        "on-click-right": "axis-settings audio",
         "on-scroll-up": "amixer -q sset Master 2%+",
         "on-scroll-down": "amixer -q sset Master 2%-"
     },
     "backlight": {
         "format": "{icon} {percent}%",
         "format-icons": ["", "", "", "", "", "", "", "", ""],
+        "on-click": "axis-settings display",
         "on-scroll-up": "brightnessctl -q set +5%",
         "on-scroll-down": "brightnessctl -q set 5%-"
     },
@@ -111,7 +119,8 @@
         "format-ethernet": "󰈀 {ipaddr}",
         "format-linked": "󰈀 (No IP)",
         "format-disconnected": "󰖪 Offline",
-        "tooltip-format": "{ifname}: {ipaddr}/{cidr}"
+        "tooltip-format": "{ifname}: {ipaddr}/{cidr}",
+        "on-click": "axis-settings network"
     },
     "battery": {
         "states": {
@@ -121,7 +130,8 @@
         "format": "{icon} {capacity}%",
         "format-charging": "󰂄 {capacity}%",
         "format-plugged": " {capacity}%",
-        "format-icons": ["", "", "", "", ""]
+        "format-icons": ["", "", "", "", ""],
+        "on-click": "axis-settings power"
     },
     "custom/power": {
         "format": "⏻",

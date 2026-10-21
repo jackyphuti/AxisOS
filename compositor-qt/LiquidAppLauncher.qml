@@ -143,7 +143,7 @@ Item {
                     width: 32
                     height: 32
                     radius: 16
-                    color: closeMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
+                    color: closeMouse.containsMouse ? Theme.accentSoft : Theme.surfaceAlt
                     border.color: Theme.divider
                     border.width: 1
 
@@ -171,7 +171,7 @@ Item {
                 height: 46
                 radius: 999
                 color: Theme.surfaceAlt
-                border.color: searchInput.activeFocus ? "#1428A0" : "#E5E7EE"
+                border.color: searchInput.activeFocus ? Theme.accent : Theme.divider
                 border.width: searchInput.activeFocus ? 2 : 1
 
                 Behavior on border.color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -263,8 +263,8 @@ Item {
                         height: 30
                         width: tabText.implicitWidth + 22
                         radius: 999
-                        color: launcherRoot.selectedCategory === modelData ? "#1428A0" : (tabMouse.containsMouse ? "#E6EBFF" : "#F4F6FB")
-                        border.color: launcherRoot.selectedCategory === modelData ? "#1428A0" : "#E5E7EE"
+                        color: launcherRoot.selectedCategory === modelData ? Theme.accent : (tabMouse.containsMouse ? Theme.accentSoft : Theme.surfaceAlt)
+                        border.color: launcherRoot.selectedCategory === modelData ? Theme.accent : Theme.divider
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -273,7 +273,7 @@ Item {
                             id: tabText
                             anchors.centerIn: parent
                             text: modelData
-                            color: launcherRoot.selectedCategory === modelData ? "#FFFFFF" : "#1C1C1E"
+                            color: launcherRoot.selectedCategory === modelData ? "#FFFFFF" : Theme.textPrimary
                             font.pixelSize: 12
                             font.bold: launcherRoot.selectedCategory === modelData
                             font.family: "Inter, -apple-system, system-ui, sans-serif"
@@ -315,8 +315,8 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 6
                             radius: 16
-                            color: tileMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
-                            border.color: tileMouse.containsMouse ? "#1428A0" : "#E5E7EE"
+                            color: tileMouse.containsMouse ? Theme.accentSoft : Theme.surfaceAlt
+                            border.color: tileMouse.containsMouse ? Theme.accent : Theme.divider
                             border.width: 1
                             scale: tileMouse.containsMouse ? 1.04 : 1.0
 
@@ -410,7 +410,7 @@ Item {
                         height: 28
                         width: fText.implicitWidth + 18
                         radius: 999
-                        color: fMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
+                        color: fMouse.containsMouse ? Theme.accentSoft : Theme.surfaceAlt
                         border.color: Theme.divider
                         border.width: 1
 

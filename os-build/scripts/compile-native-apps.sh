@@ -104,10 +104,13 @@ if [ -d "/usr/local/bin" ] && [ "${EUID:-$(id -u)}" -eq 0 ]; then
         cp -f "$REPO_ROOT/compositor-qt/LiquidNodesOS" "/usr/local/bin/LiquidNodesOS"
         chmod 755 "/usr/local/bin/LiquidNodesOS"
         ln -sfn "/usr/local/bin/LiquidNodesOS" "/usr/bin/LiquidNodesOS"
-        ln -sfn "/usr/local/bin/LiquidNodesOS" "/usr/local/bin/axis-compositor"
-        ln -sfn "/usr/local/bin/LiquidNodesOS" "/usr/bin/axis-compositor"
         mkdir -p /usr/share/axis-compositor-qt
         cp -rf "$REPO_ROOT/compositor-qt/"*.qml /usr/share/axis-compositor-qt/ 2>/dev/null || true
+    fi
+    if [ -f "$REPO_ROOT/compositor/axis-compositor" ]; then
+        cp -f "$REPO_ROOT/compositor/axis-compositor" "/usr/local/bin/axis-compositor"
+        chmod 755 "/usr/local/bin/axis-compositor"
+        ln -sfn "/usr/local/bin/axis-compositor" "/usr/bin/axis-compositor"
     fi
 fi
 
