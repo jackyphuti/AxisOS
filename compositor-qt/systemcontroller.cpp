@@ -429,7 +429,14 @@ void SystemController::checkpointWindow(const QString &title)
         QStringLiteral("/usr/local/bin/axis-rewind"),
         { QStringLiteral("checkpoint"), cleanTitle }
     );
-    emit notificationReceived(QStringLiteral("Axis Rewind"), QStringLiteral("Snapshot saved for ") + cleanTitle);
+    emit notificationReceived(
+        ++m_notificationCounter,
+        QStringLiteral("Axis Rewind"),
+        QStringLiteral("Window Snapshot"),
+        QStringLiteral("Snapshot saved for ") + cleanTitle,
+        QStringLiteral("document-save-symbolic"),
+        4000
+    );
 }
 
 void SystemController::rewindWindow(const QString &title)
@@ -439,7 +446,14 @@ void SystemController::rewindWindow(const QString &title)
         QStringLiteral("/usr/local/bin/axis-rewind"),
         { QStringLiteral("rewind"), cleanTitle }
     );
-    emit notificationReceived(QStringLiteral("Axis Rewind"), QStringLiteral("Restored snapshot for ") + cleanTitle);
+    emit notificationReceived(
+        ++m_notificationCounter,
+        QStringLiteral("Axis Rewind"),
+        QStringLiteral("Window Snapshot"),
+        QStringLiteral("Restored snapshot for ") + cleanTitle,
+        QStringLiteral("document-revert-symbolic"),
+        4000
+    );
 }
 
 void SystemController::connectLiquidNode(const QString &sourceTitle, const QString &targetTitle)
@@ -457,8 +471,12 @@ void SystemController::connectLiquidNode(const QString &sourceTitle, const QStri
     QProcess::startDetached(QStringLiteral("mkfifo"), { pipeName });
 
     emit notificationReceived(
+        ++m_notificationCounter,
+        QStringLiteral("LiquidNodes"),
         QStringLiteral("LiquidNode Connected"),
-        sourceTitle + QStringLiteral(" ⟶ ") + targetTitle
+        sourceTitle + QStringLiteral(" ⟶ ") + targetTitle,
+        QStringLiteral("insert-link-symbolic"),
+        4000
     );
 }
 
@@ -501,7 +519,7 @@ QVariantList SystemController::getInstalledApps()
                 } else if (line.startsWith(QStringLiteral("Exec=")) && exec.isEmpty()) {
                     exec = line.mid(5).trimmed();
                     static const QRegularExpression fieldCodeRegex(QStringLiteral("%[a-zA-Z]"));
-                    exec.replace(fieldCodeRegex, QString()).trimmed();
+                    exec = exec.replace(fieldCodeRegex, QString()).trimmed();
                 } else if (line.startsWith(QStringLiteral("Icon=")) && icon.isEmpty()) {
                     icon = line.mid(5).trimmed();
                 } else if (line.startsWith(QStringLiteral("Categories="))) {

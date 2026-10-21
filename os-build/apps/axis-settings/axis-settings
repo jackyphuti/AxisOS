@@ -1,5 +1,4 @@
 #!/bin/sh
-# AxisOS Settings Launcher
 if [ "$1" = "about" ] || [ "$1" = "--about" ] || [ "$1" = "-a" ]; then
     exec /usr/local/bin/axisos-settings-panel about
 elif [ "$1" = "updates" ] || [ "$1" = "--updates" ] || [ "$1" = "-u" ]; then

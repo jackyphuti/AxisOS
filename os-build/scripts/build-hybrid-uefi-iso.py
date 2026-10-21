@@ -459,7 +459,7 @@ if os.path.exists(liquid_src):
         dst_qml_dir = os.path.join(chroot_dir, "usr", "share", "axis-compositor-qt")
         os.makedirs(dst_qml_dir, exist_ok=True)
         for item in os.listdir(qml_dir):
-            if item.endswith(".qml") or item.endswith(".js"):
+            if item.endswith(".qml") or item.endswith(".js") or item == "qmldir":
                 copy_text_lf(os.path.join(qml_dir, item), os.path.join(dst_qml_dir, item))
         print("    Synced Qt 6 QML desktop files -> /usr/share/axis-compositor-qt/")
     liquid_sess_dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "liquidnodes.desktop")
