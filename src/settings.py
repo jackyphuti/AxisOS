@@ -553,7 +553,22 @@ class AxisSettingsApp(Gtk.Window):
                 print("Error setting Waybar position:", e)
 
     def apply_theme_mode(self, mode):
-        if mode == "dark":
+        is_dark = (mode == "dark")
+        try:
+            conf_dir = os.path.expanduser("~/.config/axisos")
+            os.makedirs(conf_dir, exist_ok=True)
+            conf_path = os.path.join(conf_dir, "theme.json")
+            data = {
+                "theme": "dark" if is_dark else "light",
+                "isDark": is_dark,
+                "accent": "#7d95ff" if is_dark else "#1428a0"
+            }
+            with open(conf_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+        except Exception as e:
+            print("Error syncing theme.json:", e)
+
+        if is_dark:
             subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"], stderr=subprocess.DEVNULL)
             subprocess.run(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", "Adwaita-dark"], stderr=subprocess.DEVNULL)
         else:

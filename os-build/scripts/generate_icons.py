@@ -1,96 +1,173 @@
 #!/usr/bin/env python3
 """
-AxisOS High-Craft Icon Generator (Black, Grey, White / Titanium Architecture)
+AxisOS High-Craft Icon Generator (One UI / Titanium Architecture)
 Generates:
-1. High-precision symbolic vector icons (with multi-layer depth & currentColor reactivity)
+1. High-precision 2px stroke symbolic vector icons categorized semantically:
+   - status/ (Network, Battery, Audio, Power states, Weather, Emblems)
+   - places/ (Folder, Drives)
+   - actions/ (Search, Close, Tabs, App Grid, Playback, Power Actions)
+   - apps/ (Application launchers)
 2. Premium 64x64 squircle desktop application icons for the dock and launcher
+3. AxisHarmony/index.theme with explicit Inherits=Papirus,Adwaita,hicolor fallback
 """
 
 import os
 import shutil
 
-SYMBOLIC_ICONS = {
-    "system-search-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <circle cx="10.5" cy="10.5" r="7" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M7.5 7.5a4.2 4.2 0 0 1 4.5-.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.75"/>
-  <path d="M15.8 15.8L21 21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+STATUS_ICONS = {
+    # Network states
+    "network-wireless-signal-excellent-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="currentColor"/>
+  <path d="M8.5 16.2a5 5 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M5.5 13a9.2 9.2 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M2.5 9.8a13.5 13.5 0 0 1 19 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
 </svg>""",
 
-    "preferences-system-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.8"/>
-  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+    "network-wireless-signal-good-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="currentColor"/>
+  <path d="M8.5 16.2a5 5 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M5.5 13a9.2 9.2 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M2.5 9.8a13.5 13.5 0 0 1 19 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.25"/>
 </svg>""",
 
-    "utilities-terminal-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <rect x="2.5" y="3.5" width="19" height="17" rx="3.5" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
-  <line x1="2.5" y1="8" x2="21.5" y2="8" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
-  <circle cx="5.5" cy="5.8" r="0.9" fill="currentColor"/>
-  <circle cx="8" cy="5.8" r="0.9" fill="currentColor"/>
-  <circle cx="10.5" cy="5.8" r="0.9" fill="currentColor"/>
-  <path d="M6 11.5l3.5 2.5L6 16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-  <line x1="12" y1="16.5" x2="17.5" y2="16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    "network-wireless-signal-ok-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="currentColor"/>
+  <path d="M8.5 16.2a5 5 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M5.5 13a9.2 9.2 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.25"/>
+  <path d="M2.5 9.8a13.5 13.5 0 0 1 19 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.25"/>
 </svg>""",
 
-    "system-file-manager-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M2.5 7.5a2 2 0 0 1 2-2h4.5a2 2 0 0 1 1.4.6L12 7.5H19.5a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-11z" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-  <path d="M2.5 11.5h19v5a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-5z" fill="currentColor" fill-opacity="0.32" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-  <line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+    "network-wireless-signal-weak-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="currentColor"/>
+  <path d="M8.5 16.2a5 5 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.25"/>
+  <path d="M5.5 13a9.2 9.2 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.25"/>
+  <path d="M2.5 9.8a13.5 13.5 0 0 1 19 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.25"/>
 </svg>""",
 
-    "folder-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M2.5 7.5a2 2 0 0 1 2-2h4.5a2 2 0 0 1 1.4.6L12 7.5H19.5a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-11z" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
-  <path d="M2.5 11.5h19v5a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-5z" fill="currentColor" fill-opacity="0.32" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+    "network-wireless-signal-none-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="currentColor"/>
+  <path d="M8.5 16.2a5 5 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.2"/>
+  <path d="M5.5 13a9.2 9.2 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.2"/>
+  <path d="M2.5 9.8a13.5 13.5 0 0 1 19 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.2"/>
 </svg>""",
 
-    "web-browser-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <circle cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.8"/>
-  <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.4" opacity="0.7"/>
-  <ellipse cx="12" cy="12" rx="4.8" ry="9" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.85"/>
-  <polygon points="12 4.5 14.5 11 12 10 9.5 11" fill="currentColor"/>
-  <polygon points="12 19.5 9.5 13 12 14 14.5 13" fill="currentColor" fill-opacity="0.5"/>
+    "network-wireless-offline-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z" fill="currentColor" opacity="0.3"/>
+  <path d="M8.5 16.2a5 5 0 0 1 7 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.3"/>
+  <path d="M5.5 13a9.2 9.2 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.3"/>
+  <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>""",
 
-    "system-software-install-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <rect x="3.5" y="7" width="17" height="13.5" rx="3.5" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
-  <path d="M8 7V5.5a4 4 0 0 1 8 0V7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-  <path d="M12 10.5v5m0 0l-2.6-2.6m2.6 2.6l2.6-2.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    "network-wired-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="4" width="18" height="13" rx="3" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M7 17v3h10v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="12" y1="20" x2="12" y2="22" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="12" cy="10.5" r="2" fill="currentColor"/>
 </svg>""",
 
-    "view-app-grid-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="2.5" fill="currentColor"/>
-  <rect x="14" y="3.5" width="6.5" height="6.5" rx="2.5" fill="currentColor" fill-opacity="0.45"/>
-  <rect x="3.5" y="14" width="6.5" height="6.5" rx="2.5" fill="currentColor" fill-opacity="0.45"/>
-  <rect x="14" y="14" width="6.5" height="6.5" rx="2.5" fill="currentColor"/>
+    "network-wired-disconnected-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="4" width="18" height="13" rx="3" fill="none" stroke="currentColor" stroke-width="1.8" opacity="0.4"/>
+  <path d="M7 17v3h10v-3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
+  <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>""",
 
-    "text-editor-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M5 4a2 2 0 0 1 2-2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4z" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-  <path d="M14 2v5.5a1.5 1.5 0 0 0 1.5 1.5H21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
-  <path d="M8.5 13.5l-2 2 2 2m7-4l2 2-2 2m-4.5 1.5l2-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    # Battery levels
+    "battery-level-100-charged-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="6" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M21 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <rect x="5.5" y="8.5" width="11" height="7" rx="1.5" fill="currentColor"/>
 </svg>""",
 
-    "camera-photo-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <rect x="2.5" y="6.5" width="19" height="14" rx="3.8" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
-  <path d="M8 6.5V5a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 1 16 5v1.5" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.6"/>
-  <circle cx="12" cy="13.5" r="4.2" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.8"/>
-  <circle cx="12" cy="13.5" r="2" fill="currentColor"/>
-  <circle cx="18" cy="9.5" r="1.1" fill="currentColor"/>
+    "battery-level-80-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="6" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M21 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <rect x="5.5" y="8.5" width="8.8" height="7" rx="1.5" fill="currentColor"/>
 </svg>""",
 
-    "media-playback-start-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M9 16.5V6.5l10-2v10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M9 10.5l10-2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-  <ellipse cx="6.5" cy="16.5" rx="3" ry="2.2" transform="rotate(-15 6.5 16.5)" fill="currentColor"/>
-  <ellipse cx="16.5" cy="14.5" rx="3" ry="2.2" transform="rotate(-15 16.5 14.5)" fill="currentColor"/>
+    "battery-level-60-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="6" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M21 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <rect x="5.5" y="8.5" width="6.6" height="7" rx="1.5" fill="currentColor"/>
 </svg>""",
 
-    "applications-games-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M6 5.5h12a4.5 4.5 0 0 1 4.3 5.3l-1.3 6.8a2.8 2.8 0 0 1-2.7 2.2h-.2a3 3 0 0 1-2.5-1.4l-1.5-2.8a2.5 2.5 0 0 0-2.1-1.3h-.1a2.5 2.5 0 0 0-2.1 1.3l-1.5 2.8A3 3 0 0 1 5.9 20h-.2a2.8 2.8 0 0 1-2.7-2.2L1.7 11A4.5 4.5 0 0 1 6 5.5z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-  <path d="M7 9v4m-2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="17" cy="9.5" r="1.1" fill="currentColor"/>
-  <circle cx="15" cy="11.5" r="1.1" fill="currentColor"/>
-  <circle cx="19" cy="11.5" r="1.1" fill="currentColor"/>
-  <circle cx="17" cy="13.5" r="1.1" fill="currentColor"/>
+    "battery-level-40-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="6" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M21 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <rect x="5.5" y="8.5" width="4.4" height="7" rx="1.5" fill="currentColor"/>
+</svg>""",
+
+    "battery-level-20-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="6" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M21 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <rect x="5.5" y="8.5" width="2.4" height="7" rx="1" fill="currentColor"/>
+</svg>""",
+
+    "battery-level-0-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="6" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M21 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="11" y1="9" x2="11" y2="15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" opacity="0.5"/>
+</svg>""",
+
+    "battery-charging-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="6" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M21 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <path d="M11.5 8L8.5 12.5H12L10.5 16L14.5 11.5H11L11.5 8Z" fill="currentColor"/>
+</svg>""",
+
+    "battery-missing-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3" y="6" width="16" height="12" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="2 2"/>
+  <path d="M21 10v4" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <line x1="8" y1="12" x2="14" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>""",
+
+    # Audio Volume
+    "audio-volume-high-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M4 9h4l5-4v14l-5-4H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M18.8 6a9 9 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</svg>""",
+
+    "audio-volume-medium-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M4 9h4l5-4v14l-5-4H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</svg>""",
+
+    "audio-volume-low-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M4 9h4l5-4v14l-5-4H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M16 10.5a2.5 2.5 0 0 1 0 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</svg>""",
+
+    "audio-volume-muted-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M4 9h4l5-4v14l-5-4H4a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  <line x1="16" y1="10" x2="21" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="21" y1="10" x2="16" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>""",
+
+    # System Power Actions in status
+    "system-shutdown-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  <line x1="12" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+</svg>""",
+
+    "system-reboot-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M21 12a9 9 0 1 1-2.6-6.4L21 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M21 3v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>""",
+
+    "system-lock-screen-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="5" y="11" width="14" height="10" rx="3" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="12" cy="15.5" r="1.5" fill="currentColor"/>
+</svg>""",
+
+    "system-suspend-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+</svg>""",
+
+    # Weather & Emblems
+    "emblem-ok-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <circle cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M8 12.2l2.8 2.8L16.2 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>""",
 
     "weather-clear-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
@@ -109,10 +186,20 @@ SYMBOLIC_ICONS = {
   <path d="M19 13.5A7.8 7.8 0 1 1 10.5 5a6.2 6.2 0 0 0 8.5 8.5z" fill="currentColor" fill-opacity="0.22" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
   <path d="M19 4l.6 1.2 1.2.6-1.2.6-.6 1.2-.6-1.2-1.2-.6 1.2-.6.6-1.2z" fill="currentColor"/>
 </svg>""",
+}
 
-    "emblem-ok-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <circle cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.8"/>
-  <path d="M8 12.2l2.8 2.8L16.2 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+PLACES_ICONS = {
+    "folder-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M2.5 7.5a2 2 0 0 1 2-2h4.5a2 2 0 0 1 1.4.6L12 7.5H19.5a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-11z" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  <path d="M2.5 11.5h19v5a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-5z" fill="currentColor" fill-opacity="0.32" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+</svg>""",
+}
+
+ACTIONS_ICONS = {
+    "system-search-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <circle cx="10.5" cy="10.5" r="7" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M7.5 7.5a4.2 4.2 0 0 1 4.5-.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" opacity="0.75"/>
+  <path d="M15.8 15.8L21 21" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
 </svg>""",
 
     "window-close-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
@@ -130,10 +217,104 @@ SYMBOLIC_ICONS = {
   <rect x="3.5" y="3.5" width="17" height="17" rx="4" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
   <line x1="12" y1="8" x2="12" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
   <line x1="8" y1="12" x2="16" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-</svg>"""
+</svg>""",
+
+    "view-app-grid-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3.5" y="3.5" width="6.5" height="6.5" rx="2.5" fill="currentColor"/>
+  <rect x="14" y="3.5" width="6.5" height="6.5" rx="2.5" fill="currentColor" fill-opacity="0.45"/>
+  <rect x="3.5" y="14" width="6.5" height="6.5" rx="2.5" fill="currentColor" fill-opacity="0.45"/>
+  <rect x="14" y="14" width="6.5" height="6.5" rx="2.5" fill="currentColor"/>
+</svg>""",
+
+    "media-playback-start-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M9 16.5V6.5l10-2v10" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M9 10.5l10-2" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <ellipse cx="6.5" cy="16.5" rx="3" ry="2.2" transform="rotate(-15 6.5 16.5)" fill="currentColor"/>
+  <ellipse cx="16.5" cy="14.5" rx="3" ry="2.2" transform="rotate(-15 16.5 14.5)" fill="currentColor"/>
+</svg>""",
+
+    "system-shutdown-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  <line x1="12" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+</svg>""",
+
+    "system-reboot-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M21 12a9 9 0 1 1-2.6-6.4L21 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M21 3v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>""",
+
+    "system-lock-screen-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="5" y="11" width="14" height="10" rx="3" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="12" cy="15.5" r="1.5" fill="currentColor"/>
+</svg>""",
+
+    "system-suspend-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+</svg>""",
 }
 
-# Rich 64x64 Monochrome & Titanium Desktop Application Icons
+APPS_SYMBOLIC_ICONS = {
+    "utilities-terminal-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="2.5" y="3.5" width="19" height="17" rx="3.5" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
+  <line x1="2.5" y1="8" x2="21.5" y2="8" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+  <circle cx="5.5" cy="5.8" r="0.9" fill="currentColor"/>
+  <circle cx="8" cy="5.8" r="0.9" fill="currentColor"/>
+  <circle cx="10.5" cy="5.8" r="0.9" fill="currentColor"/>
+  <path d="M6 11.5l3.5 2.5L6 16.5" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="12" y1="16.5" x2="17.5" y2="16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>""",
+
+    "system-file-manager-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M2.5 7.5a2 2 0 0 1 2-2h4.5a2 2 0 0 1 1.4.6L12 7.5H19.5a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-11z" fill="currentColor" fill-opacity="0.15" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  <path d="M2.5 11.5h19v5a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-5z" fill="currentColor" fill-opacity="0.32" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+  <line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+</svg>""",
+
+    "preferences-system-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+</svg>""",
+
+    "web-browser-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <circle cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.8"/>
+  <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="1.4" opacity="0.7"/>
+  <ellipse cx="12" cy="12" rx="4.8" ry="9" fill="none" stroke="currentColor" stroke-width="1.4" opacity="0.85"/>
+  <polygon points="12 4.5 14.5 11 12 10 9.5 11" fill="currentColor"/>
+  <polygon points="12 19.5 9.5 13 12 14 14.5 13" fill="currentColor" fill-opacity="0.5"/>
+</svg>""",
+
+    "system-software-install-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="3.5" y="7" width="17" height="13.5" rx="3.5" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M8 7V5.5a4 4 0 0 1 8 0V7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M12 10.5v5m0 0l-2.6-2.6m2.6 2.6l2.6-2.6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>""",
+
+    "text-editor-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M5 4a2 2 0 0 1 2-2h7l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4z" fill="currentColor" fill-opacity="0.14" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M14 2v5.5a1.5 1.5 0 0 0 1.5 1.5H21" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M8.5 13.5l-2 2 2 2m7-4l2 2-2 2m-4.5 1.5l2-7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>""",
+
+    "camera-photo-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="2.5" y="6.5" width="19" height="14" rx="3.8" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M8 6.5V5a1.5 1.5 0 0 1 1.5-1.5h5A1.5 1.5 0 0 1 16 5v1.5" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.6"/>
+  <circle cx="12" cy="13.5" r="4.2" fill="currentColor" fill-opacity="0.25" stroke="currentColor" stroke-width="1.8"/>
+  <circle cx="12" cy="13.5" r="2" fill="currentColor"/>
+  <circle cx="18" cy="9.5" r="1.1" fill="currentColor"/>
+</svg>""",
+
+    "applications-games-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <path d="M6 5.5h12a4.5 4.5 0 0 1 4.3 5.3l-1.3 6.8a2.8 2.8 0 0 1-2.7 2.2h-.2a3 3 0 0 1-2.5-1.4l-1.5-2.8a2.5 2.5 0 0 0-2.1-1.3h-.1a2.5 2.5 0 0 0-2.1 1.3l-1.5 2.8A3 3 0 0 1 5.9 20h-.2a2.8 2.8 0 0 1-2.7-2.2L1.7 11A4.5 4.5 0 0 1 6 5.5z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M7 9v4m-2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="17" cy="9.5" r="1.1" fill="currentColor"/>
+  <circle cx="15" cy="11.5" r="1.1" fill="currentColor"/>
+  <circle cx="19" cy="11.5" r="1.1" fill="currentColor"/>
+  <circle cx="17" cy="13.5" r="1.1" fill="currentColor"/>
+</svg>""",
+}
+
+# Rich 64x64 Desktop Application Icons (for apps/ category)
 APP_ICONS = {
     "utilities-terminal.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
@@ -280,6 +461,43 @@ APP_ICONS = {
 </svg>"""
 }
 
+INDEX_THEME_CONTENT = """[Icon Theme]
+Name=AxisHarmony
+Comment=Samsung One UI & HarmonyOS-inspired 2px stroke symbolic icon theme for AxisOS
+Inherits=Papirus,Adwaita,hicolor
+Directories=scalable/apps,scalable/actions,scalable/categories,scalable/places,scalable/status
+
+[scalable/apps]
+Size=24
+MinSize=16
+MaxSize=512
+Type=Scalable
+
+[scalable/actions]
+Size=24
+MinSize=16
+MaxSize=512
+Type=Scalable
+
+[scalable/categories]
+Size=24
+MinSize=16
+MaxSize=512
+Type=Scalable
+
+[scalable/places]
+Size=24
+MinSize=16
+MaxSize=512
+Type=Scalable
+
+[scalable/status]
+Size=24
+MinSize=16
+MaxSize=512
+Type=Scalable
+"""
+
 def generate_all_icons():
     repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     
@@ -289,35 +507,69 @@ def generate_all_icons():
     ]
 
     for base_dir in target_bases:
-        categories = ["apps", "actions", "places", "status", "categories"]
-        for cat in categories:
-            os.makedirs(os.path.join(base_dir, "AxisHarmony", "scalable", cat), exist_ok=True)
-            os.makedirs(os.path.join(base_dir, cat), exist_ok=True)
-        os.makedirs(base_dir, exist_ok=True)
+        if not os.path.exists(base_dir):
+            continue
 
-        # 1. Write symbolic icons everywhere they might be searched
-        for name, svg in SYMBOLIC_ICONS.items():
-            # Root of icons
-            with open(os.path.join(base_dir, name), "w", encoding="utf-8") as f:
+        harmony_dir = os.path.join(base_dir, "AxisHarmony")
+        os.makedirs(harmony_dir, exist_ok=True)
+
+        # 1. Clean old duplicated subdirectories
+        for cat in ["apps", "actions", "places", "status", "categories"]:
+            cat_dir = os.path.join(harmony_dir, "scalable", cat)
+            if os.path.exists(cat_dir):
+                shutil.rmtree(cat_dir)
+            os.makedirs(cat_dir, exist_ok=True)
+
+        # 2. Clean loose SVGs in the parent icons base directory
+        for item in os.listdir(base_dir):
+            item_p = os.path.join(base_dir, item)
+            if os.path.isfile(item_p) and item.endswith(".svg"):
+                os.remove(item_p)
+            # Remove legacy redundant flat dirs (e.g. data/icons/apps) outside AxisHarmony
+            if os.path.isdir(item_p) and item in ["apps", "actions", "places", "status", "categories"]:
+                shutil.rmtree(item_p)
+
+        # 3. Write semantic category files into AxisHarmony/scalable/
+        # Status icons
+        status_target = os.path.join(harmony_dir, "scalable", "status")
+        for name, svg in STATUS_ICONS.items():
+            with open(os.path.join(status_target, name), "w", encoding="utf-8") as f:
                 f.write(svg)
-            # In each category
-            for cat in ["apps", "actions", "places", "status"]:
-                dest = os.path.join(base_dir, "AxisHarmony", "scalable", cat, name)
-                with open(dest, "w", encoding="utf-8") as f:
-                    f.write(svg)
 
-        # 2. Write full rich application icons
+        # Places icons
+        places_target = os.path.join(harmony_dir, "scalable", "places")
+        for name, svg in PLACES_ICONS.items():
+            with open(os.path.join(places_target, name), "w", encoding="utf-8") as f:
+                f.write(svg)
+
+        # Actions icons
+        actions_target = os.path.join(harmony_dir, "scalable", "actions")
+        for name, svg in ACTIONS_ICONS.items():
+            with open(os.path.join(actions_target, name), "w", encoding="utf-8") as f:
+                f.write(svg)
+
+        # Apps icons (both symbolic and 64x64)
+        apps_target = os.path.join(harmony_dir, "scalable", "apps")
+        for name, svg in APPS_SYMBOLIC_ICONS.items():
+            with open(os.path.join(apps_target, name), "w", encoding="utf-8") as f:
+                f.write(svg)
         for name, svg in APP_ICONS.items():
-            for d in [
-                os.path.join(base_dir, "AxisHarmony", "scalable", "apps", name),
-                os.path.join(base_dir, "apps", name),
-                os.path.join(base_dir, name)
-            ]:
-                os.makedirs(os.path.dirname(d), exist_ok=True)
-                with open(d, "w", encoding="utf-8") as f:
-                    f.write(svg)
+            with open(os.path.join(apps_target, name), "w", encoding="utf-8") as f:
+                f.write(svg)
 
-    print(f"Generated {len(SYMBOLIC_ICONS)} symbolic icons and {len(APP_ICONS)} rich app icons.")
+        # 4. Write index.theme with explicit Inherits=Papirus,Adwaita,hicolor
+        with open(os.path.join(harmony_dir, "index.theme"), "w", encoding="utf-8") as f:
+            f.write(INDEX_THEME_CONTENT)
+        # Also maintain top-level index.theme in base_dir
+        with open(os.path.join(base_dir, "index.theme"), "w", encoding="utf-8") as f:
+            f.write(INDEX_THEME_CONTENT)
+
+    print("Generated semantic AxisHarmony icons:")
+    print(f"  - status: {len(STATUS_ICONS)} icons")
+    print(f"  - places: {len(PLACES_ICONS)} icons")
+    print(f"  - actions: {len(ACTIONS_ICONS)} icons")
+    print(f"  - apps: {len(APPS_SYMBOLIC_ICONS) + len(APP_ICONS)} icons")
+    print("  - Inherits: Papirus,Adwaita,hicolor")
 
 if __name__ == "__main__":
     generate_all_icons()

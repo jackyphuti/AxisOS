@@ -16,37 +16,48 @@ Item {
     width: shellItem.width + 16
     height: shellItem.height + 56
 
-    // Spawn centered with subtle 200ms ease-out scale
+    // Spawn centered with smooth fluid spring scale
     x: (parent.width - width) * 0.5 + Math.floor(Math.random() * 30) - 15
     y: (parent.height - height) * 0.5 + Math.floor(Math.random() * 20) - 10
 
     scale: 1.0
     Behavior on scale {
-        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        SpringAnimation { spring: Theme.springConstant; damping: Theme.springDamping; epsilon: Theme.springEpsilon }
     }
 
     Behavior on x {
         enabled: !dragArea.drag.active
-        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        SmoothedAnimation { velocity: 1200 }
     }
     Behavior on y {
         enabled: !dragArea.drag.active
-        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        SmoothedAnimation { velocity: 1200 }
     }
 
     // -------------------------------------------------------------------------
-    // One UI Window Frame: Large Rounded Corners & Soft Drop Shadow
+    // One UI Window Frame: 24px Rounded Corners & Soft Drop Shadow
     // -------------------------------------------------------------------------
     Rectangle {
         id: windowFrame
         anchors.fill: parent
-        radius: 24
-        color: "#FFFFFF"
-        border.color: dragArea.drag.active ? "#1428A0" : "#E5E7EE"
+        radius: Theme.radiusLg
+        color: Theme.surface
+        border.color: dragArea.drag.active ? Theme.accent : Theme.divider
         border.width: 1
 
         Behavior on border.color {
             ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
+        }
+
+        // 1px Inner specular highlight border for contrast & legibility guards
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: Theme.radiusLg - 1
+            color: "transparent"
+            border.color: Theme.specularBorder
+            border.width: 1
+            z: 10
         }
 
         // Soft elevation shadow (no glowing neon rim)
@@ -54,9 +65,9 @@ Item {
             anchors.fill: parent
             anchors.topMargin: 4
             z: -1
-            radius: 24
+            radius: Theme.radiusLg
             color: "transparent"
-            border.color: "#0D1428A0"
+            border.color: Theme.shadowColor
             border.width: 8
             opacity: 0.6
         }
@@ -70,15 +81,15 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 42
-            radius: 24
-            color: "#FFFFFF"
+            radius: Theme.radiusLg
+            color: Theme.surface
 
             Rectangle {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
                 anchors.right: parent.right
                 height: 1
-                color: "#E5E7EE"
+                color: Theme.divider
             }
 
             RowLayout {
@@ -95,7 +106,7 @@ Item {
                     Text {
                         visible: windowRoot.rewindStatusText.length > 0
                         text: windowRoot.rewindStatusText
-                        color: "#2BB673"
+                        color: Theme.success
                         font.pixelSize: 11
                         font.bold: true
                         font.family: "Inter, -apple-system, system-ui, sans-serif"
@@ -104,9 +115,10 @@ Item {
                     // Feature 2A: Time-Travel Checkpoint Button (Clean Vector Clock/Snap)
                     Rectangle {
                         width: 26; height: 24; radius: 12
-                        color: cpMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
-                        border.color: cpMouse.containsMouse ? "#1428A0" : "#E5E7EE"; border.width: 1
-                        Text { anchors.centerIn: parent; text: "◷"; font.pixelSize: 13; color: "#1428A0" }
+                        color: cpMouse.containsMouse ? Theme.accentSoft : Theme.surfaceAlt
+                        border.color: cpMouse.containsMouse ? Theme.accent : Theme.divider
+                        border.width: 1
+                        Text { anchors.centerIn: parent; text: "◷"; font.pixelSize: 13; color: Theme.accent }
                         MouseArea {
                             id: cpMouse
                             anchors.fill: parent
@@ -123,13 +135,14 @@ Item {
                     // Feature 4: Privacy Shield Toggle (Clean Vector Shield/Lock Glyph)
                     Rectangle {
                         width: 26; height: 24; radius: 12
-                        color: windowRoot.privacyShieldEnabled ? "#1428A0" : (psMouse.containsMouse ? "#E6EBFF" : "#F4F6FB")
-                        border.color: windowRoot.privacyShieldEnabled ? "#1428A0" : "#E5E7EE"; border.width: 1
+                        color: windowRoot.privacyShieldEnabled ? Theme.accent : (psMouse.containsMouse ? Theme.accentSoft : Theme.surfaceAlt)
+                        border.color: windowRoot.privacyShieldEnabled ? Theme.accent : Theme.divider
+                        border.width: 1
                         Text {
                             anchors.centerIn: parent
                             text: "⛉"
                             font.pixelSize: 12
-                            color: windowRoot.privacyShieldEnabled ? "#FFFFFF" : "#6B6F7B"
+                            color: windowRoot.privacyShieldEnabled ? "#FFFFFF" : Theme.textSecondary
                         }
                         MouseArea {
                             id: psMouse
@@ -143,14 +156,14 @@ Item {
                     // Feature 1: LiquidNode Piping Port
                     Rectangle {
                         width: 26; height: 24; radius: 12
-                        color: (windowRoot.parent && windowRoot.parent.pendingNodeSource === windowRoot) ? "#2BB673" : (npMouse.containsMouse ? "#E6EBFF" : "#F4F6FB")
-                        border.color: (windowRoot.parent && windowRoot.parent.pendingNodeSource === windowRoot) ? "#2BB673" : "#E5E7EE"
+                        color: (windowRoot.parent && windowRoot.parent.pendingNodeSource === windowRoot) ? Theme.success : (npMouse.containsMouse ? Theme.accentSoft : Theme.surfaceAlt)
+                        border.color: (windowRoot.parent && windowRoot.parent.pendingNodeSource === windowRoot) ? Theme.success : Theme.divider
                         border.width: 1
                         Text {
                             anchors.centerIn: parent
                             text: "◉"
                             font.pixelSize: 11
-                            color: (windowRoot.parent && windowRoot.parent.pendingNodeSource === windowRoot) ? "#FFFFFF" : "#1428A0"
+                            color: (windowRoot.parent && windowRoot.parent.pendingNodeSource === windowRoot) ? "#FFFFFF" : Theme.accent
                         }
                         MouseArea {
                             id: npMouse
@@ -170,7 +183,7 @@ Item {
                 Text {
                     Layout.fillWidth: true
                     text: toplevel && toplevel.title ? toplevel.title : "Application Window"
-                    color: "#1C1C1E"
+                    color: Theme.textPrimary
                     font.bold: true
                     font.pixelSize: 13
                     font.family: "Inter, -apple-system, system-ui, sans-serif"
@@ -185,8 +198,8 @@ Item {
                     // Minimize Button
                     Rectangle {
                         width: 26; height: 26; radius: 13
-                        color: btnMinMouse.containsMouse ? "#F4F6FB" : "transparent"
-                        Text { anchors.centerIn: parent; text: "−"; font.pixelSize: 14; font.bold: true; color: "#6B6F7B" }
+                        color: btnMinMouse.containsMouse ? Theme.surfaceAlt : "transparent"
+                        Text { anchors.centerIn: parent; text: "−"; font.pixelSize: 14; font.bold: true; color: Theme.textSecondary }
                         MouseArea {
                             id: btnMinMouse
                             anchors.fill: parent
@@ -199,8 +212,8 @@ Item {
                     // Maximize / Restore Button
                     Rectangle {
                         width: 26; height: 26; radius: 13
-                        color: btnMaxMouse.containsMouse ? "#F4F6FB" : "transparent"
-                        Text { anchors.centerIn: parent; text: "◻"; font.pixelSize: 11; font.bold: true; color: "#6B6F7B" }
+                        color: btnMaxMouse.containsMouse ? Theme.surfaceAlt : "transparent"
+                        Text { anchors.centerIn: parent; text: "◻"; font.pixelSize: 11; font.bold: true; color: Theme.textSecondary }
                         MouseArea {
                             id: btnMaxMouse
                             anchors.fill: parent
@@ -231,98 +244,113 @@ Item {
                     // Close Button
                     Rectangle {
                         width: 26; height: 26; radius: 13
-                        color: btnCloseMouse.containsMouse ? "#FEE2E2" : "transparent"
-                        Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: btnCloseMouse.containsMouse ? "#DC2626" : "#6B6F7B" }
+                        color: btnCloseMouse.containsMouse ? (Theme.isDark ? "#4C1D24" : "#FEE2E2") : "transparent"
+                        Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: btnCloseMouse.containsMouse ? Theme.danger : Theme.textSecondary }
                         MouseArea {
                             id: btnCloseMouse
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                if (toplevel) toplevel.sendClose();
+                                if (windowRoot.shellSurface) {
+                                    windowRoot.shellSurface.sendClose();
+                                } else {
+                                    windowRoot.destroy();
+                                }
                             }
                         }
                     }
                 }
             }
 
-            // Drag Area for Titlebar
+            // Window Dragging Area
             MouseArea {
                 id: dragArea
                 anchors.fill: parent
                 drag.target: windowRoot
                 drag.axis: Drag.XAndYAxis
-                drag.minimumX: -windowRoot.width + 120
-                drag.maximumX: (windowRoot.parent ? windowRoot.parent.width : 1920) - 120
-                drag.minimumY: 38
-                drag.maximumY: (windowRoot.parent ? windowRoot.parent.height : 1080) - 60
+                z: -1
 
                 onPressed: {
-                    windowRoot.z = ++windowRoot.parent.topZ;
-                    windowRoot.isFocusedWindow = true;
-                    var t = (windowRoot.toplevel && windowRoot.toplevel.title) ? windowRoot.toplevel.title : "Application";
-                    SystemController.boostFocusedWindow(t, false);
+                    if (windowRoot.parent && windowRoot.parent.topZ !== undefined) {
+                        windowRoot.z = ++windowRoot.parent.topZ;
+                    }
+                }
+
+                onDoubleClicked: {
+                    if (!windowRoot.isMaximized) {
+                        windowRoot.savedX = windowRoot.x;
+                        windowRoot.savedY = windowRoot.y;
+                        windowRoot.isMaximized = true;
+                        windowRoot.x = 8;
+                        windowRoot.y = 44;
+                        if (windowRoot.parent) {
+                            windowRoot.width = windowRoot.parent.width - 16;
+                            windowRoot.height = windowRoot.parent.height - 52 - 68;
+                        }
+                    } else {
+                        windowRoot.isMaximized = false;
+                        windowRoot.x = windowRoot.savedX;
+                        windowRoot.y = windowRoot.savedY;
+                        windowRoot.width = shellItem.width + 16;
+                        windowRoot.height = shellItem.height + 56;
+                    }
                 }
             }
         }
 
         // ---------------------------------------------------------------------
-        // Grouped Content Area on --surface-alt (#F4F6FB)
+        // Client Wayland Surface Area
         // ---------------------------------------------------------------------
-        Rectangle {
+        Item {
             id: contentContainer
             anchors.top: titleBar.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.margins: 4
-            radius: 20
-            color: "#F4F6FB"
+            anchors.margins: 8
+            clip: true
 
-            // Client Surface Container
             ShellSurfaceItem {
                 id: shellItem
-                anchors.centerIn: parent
                 shellSurface: windowRoot.shellSurface
-                opacity: (windowRoot.privacyShieldEnabled && (AuthManager.shoulderSurfingDetected || !windowRoot.isFocusedWindow)) ? 0.05 : 1.0
-                onSurfaceDestroyed: windowRoot.destroy()
+                autoCreatePopupItems: true
+                anchors.centerIn: parent
+
+                onSurfaceDestroyed: {
+                    windowRoot.destroy();
+                }
             }
 
-            // Biometric Privacy Veil
+            // Privacy Shield Glassmorphic Overlay
             Rectangle {
-                id: privacyVeil
                 anchors.fill: parent
-                radius: 20
-                color: "#EBF0FA"
-                border.color: "#1428A0"
-                border.width: 1
-                visible: windowRoot.privacyShieldEnabled && (AuthManager.shoulderSurfingDetected || !windowRoot.isFocusedWindow)
+                visible: windowRoot.privacyShieldEnabled
+                color: Theme.isDark ? "#F21F2231" : "#F2FFFFFF"
+                radius: Theme.radiusMd
 
                 ColumnLayout {
                     anchors.centerIn: parent
                     spacing: 8
+
+                    Text {
+                        Layout.alignment: Qt.AlignHCenter
+                        text: "⛉"
+                        font.pixelSize: 32
+                        color: Theme.accent
+                    }
                     Text {
                         Layout.alignment: Qt.AlignHCenter
                         text: "Privacy Shield Active"
-                        color: "#1428A0"
                         font.bold: true
                         font.pixelSize: 14
-                        font.family: "Inter, -apple-system, system-ui, sans-serif"
+                        color: Theme.textPrimary
                     }
                     Text {
                         Layout.alignment: Qt.AlignHCenter
-                        text: "Window content veiled to prevent shoulder-surfing."
-                        color: "#6B6F7B"
+                        text: "Window contents masked from screen capture"
                         font.pixelSize: 12
-                        font.family: "Inter, -apple-system, system-ui, sans-serif"
-                    }
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: {
-                        windowRoot.isFocusedWindow = true;
-                        AuthManager.shoulderSurfingDetected = false;
+                        color: Theme.textSecondary
                     }
                 }
             }

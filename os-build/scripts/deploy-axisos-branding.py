@@ -118,7 +118,7 @@ def deploy_branding(target_root="/build/chroot"):
         print("    [OK] Deployed official AxisOS 20-wallpaper collection to /usr/share/backgrounds/axisos/")
 
     # Deploy primary wallpaper to standard targets (authentic 1080p PNG)
-    primary_wp = os.path.join(REPO_ROOT, "data", "theme", "axis-wallpaper.png")
+    primary_wp = os.path.join(REPO_ROOT, "data", "branding", "axis-wallpaper.png")
     if not os.path.exists(primary_wp):
         primary_wp = boot_png_path
     if not os.path.exists(primary_wp):

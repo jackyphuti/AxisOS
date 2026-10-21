@@ -945,14 +945,33 @@ class AxisSettingsApp(Gtk.Window):
         card.pack_start(title, False, False, 0)
         card.pack_start(sub, False, False, 0)
 
+        def set_theme_mode(dark: bool):
+            try:
+                conf_dir = os.path.expanduser("~/.config/axisos")
+                os.makedirs(conf_dir, exist_ok=True)
+                conf_path = os.path.join(conf_dir, "theme.json")
+                data = {
+                    "theme": "dark" if dark else "light",
+                    "isDark": dark,
+                    "accent": "#7d95ff" if dark else "#1428a0"
+                }
+                with open(conf_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, indent=2)
+            except Exception as e:
+                print(f"Error saving theme: {e}")
+            scheme = "prefer-dark" if dark else "prefer-light"
+            theme = "Adwaita-dark" if dark else "Adwaita"
+            subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", scheme])
+            subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "gtk-theme", theme])
+
         row_theme = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         btn_light = Gtk.Button(label="One UI Light Theme")
         btn_light.get_style_context().add_class("btn-primary")
-        btn_light.connect("clicked", lambda _: subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-light"]))
+        btn_light.connect("clicked", lambda _: set_theme_mode(False))
 
         btn_dark = Gtk.Button(label="One UI Dark Theme")
         btn_dark.get_style_context().add_class("btn-secondary")
-        btn_dark.connect("clicked", lambda _: subprocess.Popen(["gsettings", "set", "org.gnome.desktop.interface", "color-scheme", "prefer-dark"]))
+        btn_dark.connect("clicked", lambda _: set_theme_mode(True))
 
         row_theme.pack_start(btn_light, False, False, 0)
         row_theme.pack_start(btn_dark, False, False, 0)

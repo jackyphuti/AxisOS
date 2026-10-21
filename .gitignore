@@ -27,6 +27,8 @@ chroot/
 *.order
 *.symvers
 compositor/axis-compositor
+compositor-qt/LiquidNodesOS
+LiquidNodesOS
 axis-compositor
 os-build/updater/axis-update
 os-build/updater/axis

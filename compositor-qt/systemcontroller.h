@@ -9,10 +9,22 @@
 #include <QDBusMessage>
 #include <QTimer>
 #include <QVariantList>
+#include <QVariantMap>
+#include <QFileSystemWatcher>
 #include <memory>
 
 class SystemController : public QObject {
     Q_OBJECT
+    Q_CLASSINFO("D-Bus Interface", "org.freedesktop.Notifications")
+
+    // Theming & Design Tokens
+    Q_PROPERTY(bool isDarkMode READ isDarkMode WRITE setDarkMode NOTIFY themeChanged)
+    Q_PROPERTY(QString activeTheme READ activeTheme NOTIFY themeChanged)
+
+    // Hardware Audio & Display Controls
+    Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged)
+    Q_PROPERTY(bool isMuted READ isMuted WRITE setMuted NOTIFY volumeChanged)
+    Q_PROPERTY(int brightness READ brightness WRITE setBrightness NOTIFY brightnessChanged)
 
     // Connectivity & Hardware
     Q_PROPERTY(bool wifiConnected READ wifiConnected NOTIFY wifiChanged)
@@ -39,6 +51,12 @@ public:
     ~SystemController() override = default;
 
     // Getters
+    [[nodiscard]] bool isDarkMode() const noexcept { return m_isDarkMode; }
+    [[nodiscard]] QString activeTheme() const { return m_activeTheme; }
+    [[nodiscard]] int volume() const noexcept { return m_volume; }
+    [[nodiscard]] bool isMuted() const noexcept { return m_isMuted; }
+    [[nodiscard]] int brightness() const noexcept { return m_brightness; }
+
     [[nodiscard]] bool wifiConnected() const noexcept { return m_wifiConnected; }
     [[nodiscard]] QString wifiSsid() const { return m_wifiSsid; }
     [[nodiscard]] int wifiStrength() const noexcept { return m_wifiStrength; }
@@ -70,12 +88,37 @@ public:
     Q_INVOKABLE void rewindWindow(const QString &title);
     Q_INVOKABLE void connectLiquidNode(const QString &sourceTitle, const QString &targetTitle);
 
+    // Theme & OSD controls
+    Q_INVOKABLE void setDarkMode(bool dark);
+    Q_INVOKABLE void toggleDarkMode();
+    Q_INVOKABLE void setVolume(int vol);
+    Q_INVOKABLE void setMuted(bool muted);
+    Q_INVOKABLE void setBrightness(int b);
+    Q_INVOKABLE void triggerOsd(const QString &type, int value, const QString &icon);
+
+public slots:
+    // org.freedesktop.Notifications Specification Implementation
+    uint Notify(const QString &app_name, uint replaces_id, const QString &app_icon,
+                const QString &summary, const QString &body, const QStringList &actions,
+                const QVariantMap &hints, int expire_timeout);
+    void CloseNotification(uint id);
+    QStringList GetCapabilities();
+    void GetServerInformation(QString &name, QString &vendor, QString &version, QString &spec_version);
+
 signals:
+    void themeChanged();
+    void volumeChanged();
+    void brightnessChanged();
+    void osdTriggered(const QString &type, int value, const QString &icon);
+    void notificationReceived(uint id, const QString &appName, const QString &summary,
+                              const QString &body, const QString &appIcon, int timeout);
+    void NotificationClosed(uint id, uint reason);
+    void ActionInvoked(uint id, const QString &actionKey);
+
     void wifiChanged();
     void bluetoothChanged();
     void batteryChanged();
     void telemetryChanged();
-    void notificationReceived(const QString &title, const QString &body);
     void neuralPulseChanged();
     void nodeLinksChanged();
 
@@ -84,9 +127,12 @@ private slots:
     void updateNetworkManager();
     void updateUPower();
     void updateBlueZ();
+    void onThemeConfigFileChanged(const QString &path);
 
 private:
     void initDBusSubscribers();
+    void initNotificationDaemon();
+    void initThemeConfig();
     void readKernelVersion();
 
     // D-Bus interfaces
@@ -96,6 +142,12 @@ private:
     std::unique_ptr<QDBusInterface> m_loginInterface;
 
     // States
+    bool m_isDarkMode{false};
+    QString m_activeTheme{"AxisOneUI-Light"};
+    int m_volume{65};
+    bool m_isMuted{false};
+    int m_brightness{80};
+
     bool m_wifiConnected{false};
     QString m_wifiSsid{"Offline"};
     int m_wifiStrength{0};
@@ -111,9 +163,13 @@ private:
     QString m_neuralPulseTarget{"Desktop"};
     int m_activeNodeLinks{0};
 
+    uint m_notificationCounter{1};
+
     // CPU telemetry tracking
     unsigned long long m_prevIdle{0};
     unsigned long long m_prevTotal{0};
 
     std::unique_ptr<QTimer> m_pollTimer;
+    std::unique_ptr<QFileSystemWatcher> m_themeWatcher;
+    QString m_themeConfigPath;
 };

@@ -8,9 +8,20 @@ Rectangle {
     anchors.left: parent.left
     anchors.right: parent.right
     height: 38
-    color: "#FFFFFF"
-    border.color: "#E5E7EE"
+    color: Theme.surface
+    border.color: Theme.divider
     border.width: 1
+
+    signal quickSettingsRequested()
+
+    // 1px specular border at bottom for legibility guard
+    Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: 1
+        color: Theme.specularBorder
+    }
 
     RowLayout {
         anchors.fill: parent
@@ -26,8 +37,8 @@ Rectangle {
                 id: brandBtn
                 height: 28
                 width: brandRow.implicitWidth + 12
-                radius: 8
-                color: brandMouse.containsMouse ? "#F4F6FB" : "transparent"
+                radius: Theme.radiusSm
+                color: brandMouse.containsMouse ? Theme.surfaceAlt : "transparent"
                 border.width: 0
 
                 Behavior on color { ColorAnimation { duration: 150; easing.type: Easing.OutCubic } }
@@ -42,12 +53,12 @@ Rectangle {
                         width: 8
                         height: 8
                         radius: 4
-                        color: "#1428A0"
+                        color: Theme.accent
                     }
 
                     Text {
                         text: "AxisOS"
-                        color: "#1C1C1E"
+                        color: Theme.textPrimary
                         font.bold: true
                         font.pixelSize: 13
                         font.letterSpacing: -0.2
@@ -67,178 +78,228 @@ Rectangle {
                     }
                 }
             }
+
+            Rectangle {
+                width: 1
+                height: 16
+                color: Theme.divider
+            }
+
+            // Virtual Workspace Indicator Pills (Clean, Borderless Pills)
+            RowLayout {
+                spacing: 4
+
+                Repeater {
+                    model: ["1", "2", "3"]
+                    Rectangle {
+                        width: index === 0 ? 22 : 18
+                        height: 18
+                        radius: Theme.radiusPill
+                        color: index === 0 ? Theme.accent : Theme.surfaceAlt
+
+                        Text {
+                            anchors.centerIn: parent
+                            text: modelData
+                            color: index === 0 ? "#FFFFFF" : Theme.textSecondary
+                            font.bold: index === 0
+                            font.pixelSize: 10
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: console.log("[LiquidNodesOS] Switch to Workspace " + modelData)
+                        }
+                    }
+                }
+            }
         }
 
         Item { Layout.fillWidth: true }
 
-        // Center Date & Time Clock (Clean One UI typography)
+        // Center Time & Date
         Text {
-            id: clockDisplay
-            color: "#1C1C1E"
-            font.bold: true
+            id: clockText
+            color: Theme.textPrimary
             font.pixelSize: 13
+            font.weight: Font.SemiBold
+            font.letterSpacing: -0.1
             font.family: "Inter, -apple-system, system-ui, sans-serif"
 
-            Timer {
-                interval: 1000
-                running: true
-                repeat: true
-                triggeredOnStart: true
-                onTriggered: {
-                    var now = new Date();
-                    clockDisplay.text = Qt.formatDateTime(now, "ddd, MMM d   •   h:mm AP");
-                }
+            function updateTime() {
+                var d = new Date();
+                var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                var h = d.getHours().toString().padStart(2, '0');
+                var m = d.getMinutes().toString().padStart(2, '0');
+                clockText.text = days[d.getDay()] + " " + months[d.getMonth()] + " " + d.getDate() + "  " + h + ":" + m;
             }
+
+            Component.onCompleted: updateTime()
+        }
+
+        Timer {
+            interval: 1000
+            running: true
+            repeat: true
+            onTriggered: clockText.updateTime()
         }
 
         Item { Layout.fillWidth: true }
 
-        // Right Telemetry & Status Area (Calm, clean outline indicators)
+        // Right Telemetry & Status Icons (Quick Settings Trigger Group)
         RowLayout {
-            spacing: 14
+            spacing: 12
 
-            // Focus pill (NeuralPulse) in subtle soft-blue pill
+            // Interactive Quick Settings Trigger Capsule
             Rectangle {
-                height: 24
-                width: focusRow.implicitWidth + 14
-                radius: 12
-                color: "#F4F6FB"
-                border.color: "#E5E7EE"
+                height: 28
+                width: statusRow.implicitWidth + 14
+                radius: Theme.radiusPill
+                color: qsMouse.containsMouse ? Theme.surfaceAlt : "transparent"
+                border.color: qsMouse.containsMouse ? Theme.divider : "transparent"
                 border.width: 1
 
+                Behavior on color { ColorAnimation { duration: 150 } }
+
                 RowLayout {
-                    id: focusRow
+                    id: statusRow
                     anchors.centerIn: parent
-                    spacing: 6
+                    spacing: 10
 
+                    // Audio Volume Indicator
                     Text {
-                        text: SystemController.neuralPulseTarget
-                        color: "#1C1C1E"
-                        font.pixelSize: 11
-                        font.bold: true
-                        font.family: "Inter, -apple-system, system-ui, sans-serif"
-                    }
-                }
-            }
-
-            // Wi-Fi Status (Clean Vector Icon + Live Active SSID)
-            RowLayout {
-                spacing: 6
-
-                // Vector Wi-Fi Signal Icon (3 Arcs Canvas)
-                Canvas {
-                    id: wifiCanvas
-                    width: 16
-                    height: 14
-                    renderTarget: Canvas.FramebufferObject
-                    onPaint: {
-                        var ctx = getContext("2d");
-                        ctx.reset();
-                        ctx.lineWidth = 1.75;
-                        ctx.lineCap = "round";
-                        var active = SystemController.wifiConnected;
-                        ctx.strokeStyle = active ? "#1428A0" : "#6B6F7B";
-                        ctx.fillStyle = active ? "#1428A0" : "#6B6F7B";
-
-                        // Base dot
-                        ctx.beginPath();
-                        ctx.arc(8, 12, 1.4, 0, 2 * Math.PI);
-                        ctx.fill();
-
-                        // Inner arc
-                        ctx.beginPath();
-                        ctx.arc(8, 12, 4.5, -0.75 * Math.PI, -0.25 * Math.PI);
-                        ctx.stroke();
-
-                        // Outer arc
-                        ctx.beginPath();
-                        ctx.arc(8, 12, 8.5, -0.75 * Math.PI, -0.25 * Math.PI);
-                        ctx.stroke();
+                        text: SystemController.isMuted ? "🔇" : (SystemController.volume > 60 ? "🔊" : "🔉")
+                        color: Theme.textPrimary
+                        font.pixelSize: 12
                     }
 
-                    Connections {
-                        target: SystemController
-                        function onWifiChanged() { wifiCanvas.requestPaint(); }
-                    }
-                }
+                    // Network SSID / Status
+                    RowLayout {
+                        spacing: 5
+                        Canvas {
+                            id: wifiCanvas
+                            width: 14
+                            height: 14
 
-                Text {
-                    text: SystemController.wifiSsid
-                    color: "#1C1C1E"
-                    font.pixelSize: 12
-                    font.weight: Font.Medium
-                    font.family: "Inter, -apple-system, system-ui, sans-serif"
-                }
-            }
+                            onPaint: {
+                                var ctx = getContext("2d");
+                                ctx.reset();
+                                var active = SystemController.wifiConnected;
+                                ctx.lineWidth = 1.6;
+                                ctx.lineCap = "round";
+                                ctx.strokeStyle = active ? Theme.accent : Theme.textSecondary;
+                                ctx.fillStyle = active ? Theme.accent : Theme.textSecondary;
 
-            // Battery / Power Status (Clean Vector Battery Pill)
-            RowLayout {
-                spacing: 6
-                visible: SystemController.hasBattery || SystemController.batteryPercent > 0
+                                ctx.beginPath();
+                                ctx.arc(7, 11, 1.2, 0, 2 * Math.PI);
+                                ctx.fill();
 
-                // Vector Battery Pill
-                Item {
-                    width: 24
-                    height: 12
+                                ctx.beginPath();
+                                ctx.arc(7, 11, 4.0, -0.75 * Math.PI, -0.25 * Math.PI);
+                                ctx.stroke();
 
-                    // Battery Body Outline
-                    Rectangle {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 20
-                        height: 11
-                        radius: 2.5
-                        color: "transparent"
-                        border.color: (SystemController.batteryPercent < 20 && !SystemController.batteryCharging) ? "#D92D20" : "#1C1C1E"
-                        border.width: 1
+                                ctx.beginPath();
+                                ctx.arc(7, 11, 7.2, -0.75 * Math.PI, -0.25 * Math.PI);
+                                ctx.stroke();
+                            }
 
-                        // Battery Capacity Fill
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 1.5
-                            anchors.verticalCenter: parent.verticalCenter
-                            height: 7
-                            width: Math.max(2, Math.min(16, (SystemController.batteryPercent / 100.0) * 16))
-                            radius: 1.5
-                            color: SystemController.batteryCharging ? "#2BB673" :
-                                   (SystemController.batteryPercent < 20 ? "#D92D20" : "#1428A0")
+                            Connections {
+                                target: SystemController
+                                function onWifiChanged() { wifiCanvas.requestPaint(); }
+                            }
+                        }
+
+                        Text {
+                            text: SystemController.wifiSsid
+                            color: Theme.textPrimary
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                            font.family: "Inter, -apple-system, system-ui, sans-serif"
                         }
                     }
 
-                    // Battery Terminal Cap
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.rightMargin: 1
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 2
-                        height: 5
-                        radius: 1
-                        color: (SystemController.batteryPercent < 20 && !SystemController.batteryCharging) ? "#D92D20" : "#1C1C1E"
+                    // Battery Indicator Pill
+                    RowLayout {
+                        spacing: 5
+                        visible: SystemController.hasBattery || SystemController.batteryPercent > 0
+
+                        Item {
+                            width: 22
+                            height: 12
+
+                            Rectangle {
+                                anchors.left: parent.left
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 18
+                                height: 11
+                                radius: 2.5
+                                color: "transparent"
+                                border.color: (SystemController.batteryPercent < 20 && !SystemController.batteryCharging) ? Theme.danger : Theme.textPrimary
+                                border.width: 1
+
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 1.5
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    height: 7
+                                    width: Math.max(2, Math.min(14, (SystemController.batteryPercent / 100.0) * 14))
+                                    radius: 1.5
+                                    color: SystemController.batteryCharging ? Theme.success :
+                                           (SystemController.batteryPercent < 20 ? Theme.danger : Theme.accent)
+                                }
+                            }
+
+                            Rectangle {
+                                anchors.right: parent.right
+                                anchors.rightMargin: 1
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 2
+                                height: 5
+                                radius: 1
+                                color: (SystemController.batteryPercent < 20 && !SystemController.batteryCharging) ? Theme.danger : Theme.textPrimary
+                            }
+                        }
+
+                        Text {
+                            text: (SystemController.batteryCharging ? "⚡ " : "") + SystemController.batteryPercent + "%"
+                            color: (SystemController.batteryPercent < 20 && !SystemController.batteryCharging) ? Theme.danger : Theme.textPrimary
+                            font.pixelSize: 11
+                            font.weight: Font.Medium
+                            font.family: "Inter, -apple-system, system-ui, sans-serif"
+                        }
+                    }
+
+                    // Control Center Dropdown Arrow
+                    Text {
+                        text: "▾"
+                        color: Theme.textSecondary
+                        font.pixelSize: 11
                     }
                 }
 
-                Text {
-                    text: (SystemController.batteryCharging ? "Charging " : "") + SystemController.batteryPercent + "%"
-                    color: (SystemController.batteryPercent < 20 && !SystemController.batteryCharging) ? "#D92D20" : "#1C1C1E"
-                    font.pixelSize: 12
-                    font.weight: Font.Medium
-                    font.family: "Inter, -apple-system, system-ui, sans-serif"
+                MouseArea {
+                    id: qsMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: topBar.quickSettingsRequested()
                 }
             }
 
             Rectangle {
                 width: 1
                 height: 16
-                color: "#E5E7EE"
+                color: Theme.divider
             }
 
             // Power Session Trigger
             Rectangle {
                 width: 26
                 height: 26
-                radius: 13
-                color: pwrMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
-                border.color: pwrMouse.containsMouse ? "#1428A0" : "#E5E7EE"
+                radius: Theme.radiusPill
+                color: pwrMouse.containsMouse ? Theme.accentSoft : Theme.surfaceAlt
+                border.color: pwrMouse.containsMouse ? Theme.accent : Theme.divider
                 border.width: 1
 
                 Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -246,7 +307,7 @@ Rectangle {
                 Text {
                     anchors.centerIn: parent
                     text: "⏻"
-                    color: pwrMouse.containsMouse ? "#1428A0" : "#1C1C1E"
+                    color: pwrMouse.containsMouse ? Theme.accent : Theme.textPrimary
                     font.pixelSize: 12
                 }
 

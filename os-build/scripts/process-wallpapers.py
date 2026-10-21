@@ -94,9 +94,8 @@ def main():
     # Copy to theme & branding
     os.makedirs(THEME_DIR, exist_ok=True)
     os.makedirs(BRANDING_DIR, exist_ok=True)
-    shutil.copyfile(primary_png_path, os.path.join(THEME_DIR, "axis-wallpaper.png"))
     shutil.copyfile(primary_png_path, os.path.join(BRANDING_DIR, "axis-wallpaper.png"))
-    print("  [OK] Updated data/theme/axis-wallpaper.png and data/branding/axis-wallpaper.png")
+    print("  [OK] Updated data/branding/axis-wallpaper.png")
 
     print("\nWallpaper standardization complete!")
 

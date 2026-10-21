@@ -66,7 +66,7 @@ Item {
     // Soft airy backdrop blur
     Rectangle {
         anchors.fill: parent
-        color: "#801C1C1E"
+        color: Theme.isDark ? "#990A0B0D" : "#4D000000"
 
         MouseArea {
             anchors.fill: parent
@@ -80,10 +80,21 @@ Item {
         width: Math.min(parent.width - 64, 880)
         height: Math.min(parent.height - 80, 680)
         anchors.centerIn: parent
-        radius: 24
-        color: "#FFFFFF"
-        border.color: "#E5E7EE"
+        radius: Theme.radiusLg
+        color: Theme.surface
+        border.color: Theme.divider
         border.width: 1
+
+        // 1px inner specular highlight
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 1
+            radius: Theme.radiusLg - 1
+            color: "transparent"
+            border.color: Theme.specularBorder
+            border.width: 1
+            z: 10
+        }
 
         // Soft elevation shadow
         Rectangle {
@@ -92,7 +103,7 @@ Item {
             z: -1
             radius: 24
             color: "transparent"
-            border.color: "#0D1428A0"
+            border.color: Theme.shadowColor
             border.width: 10
             opacity: 0.8
         }
@@ -111,7 +122,7 @@ Item {
                     spacing: 2
                     Text {
                         text: "Applications"
-                        color: "#1C1C1E"
+                        color: Theme.textPrimary
                         font.bold: true
                         font.pixelSize: 28
                         font.letterSpacing: -0.5
@@ -119,7 +130,7 @@ Item {
                     }
                     Text {
                         text: "All installed software, system utilities, and configuration panels"
-                        color: "#6B6F7B"
+                        color: Theme.textSecondary
                         font.pixelSize: 13
                         font.family: "Inter, -apple-system, system-ui, sans-serif"
                     }
@@ -133,13 +144,13 @@ Item {
                     height: 32
                     radius: 16
                     color: closeMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
-                    border.color: "#E5E7EE"
+                    border.color: Theme.divider
                     border.width: 1
 
                     Text {
                         anchors.centerIn: parent
                         text: "✕"
-                        color: "#1C1C1E"
+                        color: Theme.textPrimary
                         font.pixelSize: 12
                         font.bold: true
                     }
@@ -159,7 +170,7 @@ Item {
                 Layout.fillWidth: true
                 height: 46
                 radius: 999
-                color: "#F4F6FB"
+                color: Theme.surfaceAlt
                 border.color: searchInput.activeFocus ? "#1428A0" : "#E5E7EE"
                 border.width: searchInput.activeFocus ? 2 : 1
 
@@ -199,7 +210,7 @@ Item {
                     TextInput {
                         id: searchInput
                         Layout.fillWidth: true
-                        color: "#1C1C1E"
+                        color: Theme.textPrimary
                         font.pixelSize: 14
                         font.family: "Inter, -apple-system, system-ui, sans-serif"
                         verticalAlignment: TextInput.AlignVCenter
@@ -232,7 +243,7 @@ Item {
                     Text {
                         visible: searchInput.text.length > 0
                         text: "✕"
-                        color: "#6B6F7B"
+                        color: Theme.textSecondary
                         font.pixelSize: 12
                         MouseArea {
                             anchors.fill: parent
@@ -310,7 +321,7 @@ Item {
                             scale: tileMouse.containsMouse ? 1.04 : 1.0
 
                             Behavior on scale {
-                                NumberAnimation { duration: 180; easing.type: Easing.OutCubic }
+                                SpringAnimation { spring: Theme.springConstant; damping: Theme.springDamping; epsilon: Theme.springEpsilon }
                             }
                             Behavior on color {
                                 ColorAnimation { duration: 180; easing.type: Easing.OutCubic }
@@ -340,7 +351,7 @@ Item {
                                         width: 20
                                         height: 20
                                         radius: 10
-                                        color: "#1428A0"
+                                        color: Theme.accent
                                         visible: parent.status !== Image.Ready
                                     }
                                 }
@@ -348,7 +359,7 @@ Item {
                                 Text {
                                     Layout.fillWidth: true
                                     text: modelData.name
-                                    color: "#1C1C1E"
+                                    color: Theme.textPrimary
                                     font.pixelSize: 12
                                     font.bold: true
                                     font.family: "Inter, -apple-system, system-ui, sans-serif"
@@ -380,7 +391,7 @@ Item {
 
                 Text {
                     text: launcherRoot.filteredAppsList.length + " applications"
-                    color: "#6B6F7B"
+                    color: Theme.textSecondary
                     font.pixelSize: 12
                     font.family: "Inter, -apple-system, system-ui, sans-serif"
                 }
@@ -400,7 +411,7 @@ Item {
                         width: fText.implicitWidth + 18
                         radius: 999
                         color: fMouse.containsMouse ? "#E6EBFF" : "#F4F6FB"
-                        border.color: "#E5E7EE"
+                        border.color: Theme.divider
                         border.width: 1
 
                         Behavior on color { ColorAnimation { duration: 180; easing.type: Easing.OutCubic } }
@@ -409,7 +420,7 @@ Item {
                             id: fText
                             anchors.centerIn: parent
                             text: modelData.name
-                            color: "#1C1C1E"
+                            color: Theme.textPrimary
                             font.pixelSize: 11
                             font.bold: true
                             font.family: "Inter, -apple-system, system-ui, sans-serif"

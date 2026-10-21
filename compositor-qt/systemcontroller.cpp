@@ -11,6 +11,10 @@
 #include <QSet>
 #include <algorithm>
 #include <sys/utsname.h>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QStandardPaths>
+#include <QDBusConnectionInterface>
 
 SystemController::SystemController(QObject *parent)
     : QObject(parent),
@@ -23,6 +27,8 @@ SystemController::SystemController(QObject *parent)
     updateNetworkManager();
     updateUPower();
     updateBlueZ();
+    initThemeConfig();
+    initNotificationDaemon();
     pollTelemetry();
 
     // Setup high-performance non-blocking telemetry polling (every 1000ms)
@@ -549,4 +555,181 @@ QVariantList SystemController::getInstalledApps()
     });
 
     return apps;
+}
+
+
+// -----------------------------------------------------------------------------
+// Unified Design Token & Theming Engine
+// -----------------------------------------------------------------------------
+void SystemController::initThemeConfig()
+{
+    const QString configDir = QDir::homePath() + QStringLiteral("/.config/axisos");
+    QDir().mkpath(configDir);
+    m_themeConfigPath = configDir + QStringLiteral("/theme.json");
+
+    if (!QFile::exists(m_themeConfigPath)) {
+        QFile file(m_themeConfigPath);
+        if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+            QJsonObject obj;
+            obj[QStringLiteral("theme")] = QStringLiteral("light");
+            obj[QStringLiteral("isDark")] = false;
+            obj[QStringLiteral("accent")] = QStringLiteral("#1428a0");
+            file.write(QJsonDocument(obj).toJson(QJsonDocument::Indented));
+        }
+    }
+
+    onThemeConfigFileChanged(m_themeConfigPath);
+
+    m_themeWatcher = std::make_unique<QFileSystemWatcher>(this);
+    m_themeWatcher->addPath(m_themeConfigPath);
+    connect(m_themeWatcher.get(), &QFileSystemWatcher::fileChanged,
+            this, &SystemController::onThemeConfigFileChanged);
+}
+
+void SystemController::onThemeConfigFileChanged(const QString &path)
+{
+    Q_UNUSED(path);
+    QFile file(m_themeConfigPath);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+        if (doc.isObject()) {
+            QJsonObject obj = doc.object();
+            bool dark = obj.value(QStringLiteral("isDark")).toBool();
+            if (m_isDarkMode != dark) {
+                m_isDarkMode = dark;
+                m_activeTheme = dark ? QStringLiteral("AxisOneUI-Dark") : QStringLiteral("AxisOneUI-Light");
+                emit themeChanged();
+            }
+        }
+    }
+    if (m_themeWatcher && !m_themeWatcher->files().contains(m_themeConfigPath) && QFile::exists(m_themeConfigPath)) {
+        m_themeWatcher->addPath(m_themeConfigPath);
+    }
+}
+
+void SystemController::setDarkMode(bool dark)
+{
+    m_isDarkMode = dark;
+    m_activeTheme = dark ? QStringLiteral("AxisOneUI-Dark") : QStringLiteral("AxisOneUI-Light");
+
+    QFile file(m_themeConfigPath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QJsonObject obj;
+        obj[QStringLiteral("theme")] = dark ? QStringLiteral("dark") : QStringLiteral("light");
+        obj[QStringLiteral("isDark")] = dark;
+        obj[QStringLiteral("accent")] = dark ? QStringLiteral("#7d95ff") : QStringLiteral("#1428a0");
+        file.write(QJsonDocument(obj).toJson(QJsonDocument::Indented));
+    }
+
+    // Sync GNOME / GTK settings live
+    QProcess::startDetached(QStringLiteral("gsettings"), {
+        QStringLiteral("set"), QStringLiteral("org.gnome.desktop.interface"),
+        QStringLiteral("color-scheme"), dark ? QStringLiteral("prefer-dark") : QStringLiteral("prefer-light")
+    });
+    QProcess::startDetached(QStringLiteral("gsettings"), {
+        QStringLiteral("set"), QStringLiteral("org.gnome.desktop.interface"),
+        QStringLiteral("gtk-theme"), dark ? QStringLiteral("Adwaita-dark") : QStringLiteral("Adwaita")
+    });
+
+    emit themeChanged();
+}
+
+void SystemController::toggleDarkMode()
+{
+    setDarkMode(!m_isDarkMode);
+}
+
+// -----------------------------------------------------------------------------
+// Hardware Audio Volume & Display Brightness Control
+// -----------------------------------------------------------------------------
+void SystemController::setVolume(int vol)
+{
+    m_volume = std::clamp(vol, 0, 100);
+    m_isMuted = false;
+
+    QProcess::startDetached(QStringLiteral("wpctl"), {
+        QStringLiteral("set-volume"), QStringLiteral("@DEFAULT_AUDIO_SINK@"),
+        QString::number(m_volume / 100.0, 'f', 2)
+    });
+
+    emit volumeChanged();
+    triggerOsd(QStringLiteral("volume"), m_volume, m_volume > 60 ? QStringLiteral("audio-volume-high-symbolic") : QStringLiteral("audio-volume-medium-symbolic"));
+}
+
+void SystemController::setMuted(bool muted)
+{
+    m_isMuted = muted;
+    QProcess::startDetached(QStringLiteral("wpctl"), {
+        QStringLiteral("set-mute"), QStringLiteral("@DEFAULT_AUDIO_SINK@"),
+        muted ? QStringLiteral("1") : QStringLiteral("0")
+    });
+    emit volumeChanged();
+    triggerOsd(QStringLiteral("volume"), muted ? 0 : m_volume, QStringLiteral("audio-volume-muted-symbolic"));
+}
+
+void SystemController::setBrightness(int b)
+{
+    m_brightness = std::clamp(b, 5, 100);
+    QProcess::startDetached(QStringLiteral("brightnessctl"), {
+        QStringLiteral("set"), QString::number(m_brightness) + QStringLiteral("%")
+    });
+    emit brightnessChanged();
+    triggerOsd(QStringLiteral("brightness"), m_brightness, QStringLiteral("weather-clear-symbolic"));
+}
+
+void SystemController::triggerOsd(const QString &type, int value, const QString &icon)
+{
+    emit osdTriggered(type, value, icon);
+}
+
+// -----------------------------------------------------------------------------
+// org.freedesktop.Notifications Daemon Implementation
+// -----------------------------------------------------------------------------
+void SystemController::initNotificationDaemon()
+{
+    auto sessionBus = QDBusConnection::sessionBus();
+    if (!sessionBus.isConnected()) {
+        qWarning() << "[SystemController] Session bus not connected; skipping Notification Daemon";
+        return;
+    }
+
+    if (sessionBus.registerService(QStringLiteral("org.freedesktop.Notifications"))) {
+        sessionBus.registerObject(
+            QStringLiteral("/org/freedesktop/Notifications"),
+            this,
+            QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals
+        );
+        qInfo() << "[SystemController] Registered org.freedesktop.Notifications daemon on session bus";
+    } else {
+        qInfo() << "[SystemController] Notice: org.freedesktop.Notifications owned by another provider";
+    }
+}
+
+uint SystemController::Notify(const QString &app_name, uint replaces_id, const QString &app_icon,
+                              const QString &summary, const QString &body, const QStringList &actions,
+                              const QVariantMap &hints, int expire_timeout)
+{
+    Q_UNUSED(actions);
+    Q_UNUSED(hints);
+    uint id = replaces_id > 0 ? replaces_id : m_notificationCounter++;
+    emit notificationReceived(id, app_name, summary, body, app_icon, expire_timeout > 0 ? expire_timeout : 5000);
+    return id;
+}
+
+void SystemController::CloseNotification(uint id)
+{
+    emit NotificationClosed(id, 3);
+}
+
+QStringList SystemController::GetCapabilities()
+{
+    return QStringList{QStringLiteral("body"), QStringLiteral("actions"), QStringLiteral("icon-static")};
+}
+
+void SystemController::GetServerInformation(QString &name, QString &vendor, QString &version, QString &spec_version)
+{
+    name = QStringLiteral("LiquidNodes");
+    vendor = QStringLiteral("AxisOS");
+    version = QStringLiteral("2.1");
+    spec_version = QStringLiteral("1.2");
 }

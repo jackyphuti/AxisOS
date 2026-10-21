@@ -1,7 +1,7 @@
 [Icon Theme]
 Name=AxisHarmony
-Comment=HarmonyOS-inspired 1.5px stroke symbolic icon theme for AxisOS
-Inherits=Adwaita,hicolor
+Comment=Samsung One UI & HarmonyOS-inspired 2px stroke symbolic icon theme for AxisOS
+Inherits=Papirus,Adwaita,hicolor
 Directories=scalable/apps,scalable/actions,scalable/categories,scalable/places,scalable/status
 
 [scalable/apps]

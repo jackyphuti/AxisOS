@@ -33,12 +33,16 @@ qt_add_qml_module(LiquidNodesOS
     VERSION 1.0
     QML_FILES
         Main.qml
+        Theme.qml
         GlassmorphicWindow.qml
         LiquidBackground.qml
         LiquidTopBar.qml
         LiquidDock.qml
         LoginScreen.qml
         LiquidAppLauncher.qml
+        QuickSettingsPanel.qml
+        NotificationPopup.qml
+        OSDOverlay.qml
 )
 
 target_link_libraries(LiquidNodesOS

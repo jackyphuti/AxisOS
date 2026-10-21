@@ -18,7 +18,7 @@ WaylandCompositor {
             visible: true
             visibility: Window.FullScreen
             title: "AxisOS - LiquidNodes Wayland Desktop"
-            color: "#06070A"
+            color: Theme.surface
 
             // Desktop Keyboard Shortcuts
             Shortcut {
@@ -56,6 +56,14 @@ WaylandCompositor {
                 property int topZ: 10
                 property var pendingNodeSource: null
                 property var nodeConnections: []
+
+                MouseArea {
+                    anchors.fill: parent
+                    z: -1
+                    onClicked: {
+                        if (quickSettings.visible) quickSettings.visible = false;
+                    }
+                }
 
                 function handleNodePortClicked(winObj) {
                     if (!pendingNodeSource) {
@@ -131,9 +139,32 @@ WaylandCompositor {
             LiquidTopBar {
                 id: topBar
                 visible: !AuthManager.isLocked
+                onQuickSettingsRequested: quickSettings.visible = !quickSettings.visible
             }
 
-            // 4. Floating Glassmorphic Prism Dock with Papirus SVG Vector Icons
+            // Quick Settings / Control Center Popover (One UI Glassmorphic Card)
+            QuickSettingsPanel {
+                id: quickSettings
+                anchors.top: topBar.bottom
+                anchors.topMargin: 6
+                anchors.right: parent.right
+                anchors.rightMargin: 16
+                z: 9000
+            }
+
+            // Freedesktop Desktop Notification Center (Daemon Integrated)
+            NotificationPopup {
+                id: notificationCenter
+                z: 9100
+            }
+
+            // Hardware On-Screen Display Overlay (Volume / Brightness)
+            OSDOverlay {
+                id: osdOverlay
+                z: 9200
+            }
+
+            // 4. Floating Glassmorphic Prism Dock with Papirus & AxisHarmony SVG Vector Icons
             LiquidDock {
                 id: floatingDock
                 visible: !AuthManager.isLocked
