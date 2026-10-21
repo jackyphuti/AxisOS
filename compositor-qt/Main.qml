@@ -13,8 +13,8 @@ WaylandCompositor {
 
         window: Window {
             id: rootWindow
-            width: 1440
-            height: 900
+            width: Screen.width > 0 ? Screen.width : 1280
+            height: Screen.height > 0 ? Screen.height : 800
             visible: true
             visibility: Window.FullScreen
             title: "AxisOS - LiquidNodes Wayland Desktop"

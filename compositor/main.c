@@ -197,6 +197,12 @@ static void spawn_command(const char *cmd) {
 	if (pid == 0) {
 		/* Child process */
 		setsid();
+		setenv("QT_QPA_PLATFORM", "wayland", 1);
+		setenv("GDK_BACKEND", "wayland", 1);
+		setenv("MOZ_ENABLE_WAYLAND", "1", 1);
+		setenv("OZONE_PLATFORM", "wayland", 1);
+		setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
+		setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
 		execl("/bin/sh", "/bin/sh", "-c", cmd, (void *)NULL);
 		_exit(1);
 	}
@@ -878,13 +884,20 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 
 	wlr_output_init_render(wlr_output, server->allocator, server->renderer);
 
+	/* Determine optimal mode, falling back to 1280x800@60Hz for virtual VM displays without EDID */
 	if (!wl_list_empty(&wlr_output->modes)) {
 		struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);
-		wlr_output_set_mode(wlr_output, mode);
-		wlr_output_enable(wlr_output, true);
-		if (!wlr_output_commit(wlr_output)) {
-			return;
+		if (mode) {
+			wlr_output_set_mode(wlr_output, mode);
 		}
+	} else {
+		wlr_output_set_custom_mode(wlr_output, 1280, 800, 60000);
+	}
+
+	wlr_output_enable(wlr_output, true);
+	if (!wlr_output_commit(wlr_output)) {
+		wlr_log(WLR_ERROR, "Failed to commit output mode");
+		return;
 	}
 
 	struct axis_output *output = calloc(1, sizeof(struct axis_output));
@@ -897,6 +910,12 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 	wl_list_insert(&server->outputs, &output->link);
 
 	wlr_output_layout_add_auto(server->output_layout, wlr_output);
+
+	/* Trigger initial frame render so monitor does not remain in power-saving / black state */
+	struct wlr_scene_output *scene_output = wlr_scene_get_scene_output(server->scene, wlr_output);
+	if (scene_output) {
+		wlr_scene_output_commit(scene_output);
+	}
 }
 
 /* ========================================================================= */
@@ -1131,6 +1150,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	setenv("WAYLAND_DISPLAY", socket, true);
+	setenv("QT_QPA_PLATFORM", "wayland", true);
+	setenv("GDK_BACKEND", "wayland", true);
+	setenv("MOZ_ENABLE_WAYLAND", "1", true);
+	setenv("OZONE_PLATFORM", "wayland", true);
+	setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", true);
+	setenv("WLR_NO_HARDWARE_CURSORS", "1", true);
+	setenv("XDG_CURRENT_DESKTOP", "AxisOS-LiquidNodes", true);
+	setenv("XDG_SESSION_TYPE", "wayland", true);
 	wlr_log(WLR_INFO, "[AxisOS] Running wlroots Wayland compositor on WAYLAND_DISPLAY=%s", socket);
 
 	/* Launch background session components */

@@ -1,12 +1,38 @@
 #!/bin/sh
-# AxisOS Shell & Compositor Entrypoint
-if [ -x /usr/local/bin/LiquidNodesOS ]; then
+# ==============================================================================
+# AxisOS Universal Shell & Compositor Entrypoint
+# ==============================================================================
+
+# Force software rendering fallbacks for VMs / QEMU / VirtualBox compatibility
+export WLR_RENDERER_ALLOW_SOFTWARE=1
+export WLR_NO_HARDWARE_CURSORS=1
+export QT_QPA_PLATFORM=wayland
+export QSG_RHI_PREFER_SOFTWARE_RENDERER=1
+export GDK_BACKEND=wayland
+export MOZ_ENABLE_WAYLAND=1
+export OZONE_PLATFORM=wayland
+export XDG_SESSION_TYPE=wayland
+export XDG_CURRENT_DESKTOP=AxisOS-LiquidNodes
+
+# Setup XDG runtime directory with 0700 permissions
+if [ -z "$XDG_RUNTIME_DIR" ]; then
+    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+    mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null || true
+    chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+fi
+
+# Prefer native wlroots axis-compositor if available
+if [ -x /usr/local/bin/axis-compositor ]; then
+    exec /usr/local/bin/axis-compositor "$@"
+elif [ -x /usr/bin/axis-compositor ]; then
+    exec /usr/bin/axis-compositor "$@"
+elif [ -x /usr/local/bin/LiquidNodesOS ]; then
     exec /usr/local/bin/LiquidNodesOS "$@"
 elif [ -x /usr/bin/LiquidNodesOS ]; then
     exec /usr/bin/LiquidNodesOS "$@"
 elif [ -f @AXIS_DIR@/shell.py ]; then
     exec python3 @AXIS_DIR@/shell.py "$@"
 else
-    echo "Error: Neither LiquidNodesOS nor AxisOS Python shell could be found." >&2
+    echo "Error: Neither axis-compositor nor LiquidNodesOS could be found." >&2
     exit 1
 fi

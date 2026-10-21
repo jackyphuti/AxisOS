@@ -55,3 +55,7 @@ __pycache__/
 
 # Temporary patch helper scripts
 push-*.sh
+
+# Generated Wayland protocols
+compositor/*-protocol.c
+compositor/*-protocol.h
