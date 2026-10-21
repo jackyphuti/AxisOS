@@ -94,8 +94,11 @@ def main():
     # Copy to theme & branding
     os.makedirs(THEME_DIR, exist_ok=True)
     os.makedirs(BRANDING_DIR, exist_ok=True)
-    shutil.copyfile(primary_png_path, os.path.join(BRANDING_DIR, "axis-wallpaper.png"))
-    print("  [OK] Updated data/branding/axis-wallpaper.png")
+    # Clean up obsolete duplicate if present
+    obsolete_branding_wp = os.path.join(BRANDING_DIR, "axis-wallpaper.png")
+    if os.path.exists(obsolete_branding_wp):
+        os.remove(obsolete_branding_wp)
+
 
     print("\nWallpaper standardization complete!")
 

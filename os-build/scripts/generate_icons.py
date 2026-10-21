@@ -143,28 +143,48 @@ STATUS_ICONS = {
   <line x1="21" y1="10" x2="16" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>""",
 
-    # System Power Actions in status
-    "system-shutdown-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-  <line x1="12" y1="2" x2="12" y2="12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
+    # Display & Audio Sensor Status
+    "display-brightness-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/>
+  <line x1="12" y1="2" x2="12" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="12" y1="19" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="2" y1="12" x2="5" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="19" y1="12" x2="22" y2="12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="4.93" y1="4.93" x2="7.05" y2="7.05" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="16.95" y1="16.95" x2="19.07" y2="19.07" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="4.93" y1="19.07" x2="7.05" y2="16.95" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="16.95" y1="7.05" x2="19.07" y2="4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>""",
 
-    "system-reboot-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M21 12a9 9 0 1 1-2.6-6.4L21 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M21 3v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    "microphone-sensitivity-high-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M5 10v1a7 7 0 0 0 14 0v-1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="12" y1="18" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>""",
 
-    "system-lock-screen-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <rect x="5" y="11" width="14" height="10" rx="3" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8"/>
-  <path d="M8 11V7a4 4 0 0 1 8 0v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-  <circle cx="12" cy="15.5" r="1.5" fill="currentColor"/>
+    "microphone-sensitivity-muted-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="1.8"/>
+  <path d="M5 10v1a7 7 0 0 0 14 0v-1" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <line x1="12" y1="18" x2="12" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="3" y1="3" x2="21" y2="21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
 </svg>""",
 
-    "system-suspend-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
-  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>
-</svg>""",
 
     # Weather & Emblems
+    "emblem-ok.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ok_bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#252932"/>
+      <stop offset="100%" stop-color="#101215"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#ok_bg)" stroke="#4B5563" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="18" fill="#1F2937" stroke="#D1D5DB" stroke-width="2"/>
+  <path d="M23 32.5l6.5 6.5 12-13" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>""",
+
     "emblem-ok-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
   <circle cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.18" stroke="currentColor" stroke-width="1.8"/>
   <path d="M8 12.2l2.8 2.8L16.2 9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -232,6 +252,22 @@ ACTIONS_ICONS = {
   <ellipse cx="6.5" cy="16.5" rx="3" ry="2.2" transform="rotate(-15 6.5 16.5)" fill="currentColor"/>
   <ellipse cx="16.5" cy="14.5" rx="3" ry="2.2" transform="rotate(-15 16.5 14.5)" fill="currentColor"/>
 </svg>""",
+
+    "media-playback-start.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="mus_bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#282C36"/>
+      <stop offset="100%" stop-color="#111317"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#mus_bg)" stroke="#4B5563" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="18" fill="#1F2937" stroke="#9CA3AF" stroke-width="2"/>
+  <path d="M26 40V22l16-4v17" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M26 28l16-4" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+  <circle cx="22" cy="40" r="4" fill="#FFFFFF"/>
+  <circle cx="38" cy="36" r="4" fill="#FFFFFF"/>
+</svg>""",
+
 
     "system-shutdown-symbolic.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
   <path d="M18.36 6.64A9 9 0 1 1 5.64 6.64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
@@ -389,17 +425,6 @@ APP_ICONS = {
   <path d="M48 32a16 16 0 0 0-.4-3.5l4-3.1-3.6-6.2-4.8 1.6a16 16 0 0 0-3-1.8L39 14h-7.2l-1.2 4.9a16 16 0 0 0-3 1.8l-4.8-1.6-3.6 6.2 4 3.1a16 16 0 0 0 0 7.2l-4 3.1 3.6 6.2 4.8-1.6a16 16 0 0 0 3 1.8L31.8 50h7.2l1.2-4.9a16 16 0 0 0 3-1.8l4.8 1.6 3.6-6.2-4-3.1a16 16 0 0 0 .4-3.6z" fill="none" stroke="#E5E7EB" stroke-width="2.5" stroke-linejoin="round"/>
 </svg>""",
 
-    "emblem-ok.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <defs>
-    <linearGradient id="ok_bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#252932"/>
-      <stop offset="100%" stop-color="#101215"/>
-    </linearGradient>
-  </defs>
-  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#ok_bg)" stroke="#4B5563" stroke-width="1.5"/>
-  <circle cx="32" cy="32" r="18" fill="#1F2937" stroke="#D1D5DB" stroke-width="2"/>
-  <path d="M23 32.5l6.5 6.5 12-13" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>""",
 
     "text-editor.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
@@ -429,20 +454,6 @@ APP_ICONS = {
   <circle cx="44" cy="27" r="2" fill="#E5E7EB"/>
 </svg>""",
 
-    "media-playback-start.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
-  <defs>
-    <linearGradient id="mus_bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#282C36"/>
-      <stop offset="100%" stop-color="#111317"/>
-    </linearGradient>
-  </defs>
-  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#mus_bg)" stroke="#4B5563" stroke-width="1.5"/>
-  <circle cx="32" cy="32" r="18" fill="#1F2937" stroke="#9CA3AF" stroke-width="2"/>
-  <path d="M26 40V22l16-4v17" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M26 28l16-4" fill="none" stroke="#FFFFFF" stroke-width="3"/>
-  <circle cx="22" cy="40" r="4" fill="#FFFFFF"/>
-  <circle cx="38" cy="36" r="4" fill="#FFFFFF"/>
-</svg>""",
 
     "applications-games.svg": """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
   <defs>
@@ -520,7 +531,10 @@ def generate_all_icons():
                 shutil.rmtree(cat_dir)
             os.makedirs(cat_dir, exist_ok=True)
 
-        # 2. Clean loose SVGs in the parent icons base directory
+        # 2. Clean loose SVGs and orphaned index.theme in the parent icons base directory
+        top_idx = os.path.join(base_dir, "index.theme")
+        if os.path.exists(top_idx):
+            os.remove(top_idx)
         for item in os.listdir(base_dir):
             item_p = os.path.join(base_dir, item)
             if os.path.isfile(item_p) and item.endswith(".svg"):
@@ -560,9 +574,7 @@ def generate_all_icons():
         # 4. Write index.theme with explicit Inherits=Papirus,Adwaita,hicolor
         with open(os.path.join(harmony_dir, "index.theme"), "w", encoding="utf-8") as f:
             f.write(INDEX_THEME_CONTENT)
-        # Also maintain top-level index.theme in base_dir
-        with open(os.path.join(base_dir, "index.theme"), "w", encoding="utf-8") as f:
-            f.write(INDEX_THEME_CONTENT)
+
 
     print("Generated semantic AxisHarmony icons:")
     print(f"  - status: {len(STATUS_ICONS)} icons")

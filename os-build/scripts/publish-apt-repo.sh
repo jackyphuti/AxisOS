@@ -126,7 +126,10 @@ if [ -f "os-build/configs/gnome/axisos-wallpapers.xml" ]; then
     cp -f "os-build/configs/gnome/axisos-wallpapers.xml" "${DEB_DIR}/usr/share/gnome-background-properties/axisos-wallpapers.xml"
     chmod 644 "${DEB_DIR}/usr/share/gnome-background-properties/axisos-wallpapers.xml"
 fi
-if [ -f "data/branding/axis-wallpaper.png" ]; then
+if [ -f "data/wallpapers/01-axisos-signature-core.png" ]; then
+    cp -f "data/wallpapers/01-axisos-signature-core.png" "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
+    chmod 644 "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
+elif [ -f "data/branding/axis-wallpaper.png" ]; then
     cp -f "data/branding/axis-wallpaper.png" "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
     chmod 644 "${DEB_DIR}/usr/share/backgrounds/axis-wallpaper.png"
 elif [ -f "data/theme/axis-wallpaper.png" ]; then

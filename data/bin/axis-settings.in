@@ -1,7 +1,9 @@
 #!/bin/sh
-# AxisOS Settings wrapper — delegates default execution to gnome-control-center
-if [ $# -eq 0 ]; then
-    exec gnome-control-center "$@"
+# AxisOS Settings wrapper — delegates execution to axisos-settings-panel / settings.py
+if [ -x /usr/local/bin/axisos-settings-panel ]; then
+    exec /usr/local/bin/axisos-settings-panel "$@"
+elif [ -x /usr/bin/axisos-settings-panel ]; then
+    exec /usr/bin/axisos-settings-panel "$@"
 else
     exec python3 @AXIS_DIR@/settings.py "$@"
 fi

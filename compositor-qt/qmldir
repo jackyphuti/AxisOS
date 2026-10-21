@@ -1,0 +1,12 @@
+module LiquidNodes
+singleton Theme 1.0 Theme.qml
+Main 1.0 Main.qml
+GlassmorphicWindow 1.0 GlassmorphicWindow.qml
+LiquidBackground 1.0 LiquidBackground.qml
+LiquidTopBar 1.0 LiquidTopBar.qml
+LiquidDock 1.0 LiquidDock.qml
+LoginScreen 1.0 LoginScreen.qml
+LiquidAppLauncher 1.0 LiquidAppLauncher.qml
+QuickSettingsPanel 1.0 QuickSettingsPanel.qml
+NotificationPopup 1.0 NotificationPopup.qml
+OSDOverlay 1.0 OSDOverlay.qml

@@ -40,10 +40,6 @@ install_subdir(
   'data/icons/AxisHarmony',
   install_dir: icons_dir
 )
-install_data(
-  files('data/icons/index.theme'),
-  install_dir: icons_dir / 'AxisHarmony'
-)
 
 # AxisOS Core Applications and Modules installation
 axis_lib_dir = datadir / 'axis'

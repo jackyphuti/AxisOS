@@ -12,8 +12,8 @@
   </wallpaper>
   <wallpaper>
     <name>AxisOS RGB Honeycomb</name>
-    <filename>/usr/share/backgrounds/axisos/01-axisos-rgb-honeycomb.jpg</filename>
-    <filename-dark>/usr/share/backgrounds/axisos/01-axisos-rgb-honeycomb.jpg</filename-dark>
+    <filename>/usr/share/backgrounds/axisos/02-axisos-rgb-honeycomb.jpg</filename>
+    <filename-dark>/usr/share/backgrounds/axisos/02-axisos-rgb-honeycomb.jpg</filename-dark>
     <options>zoom</options>
     <pcolor>#0B0D13</pcolor>
     <scolor>#0B0D13</scolor>

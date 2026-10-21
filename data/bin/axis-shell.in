@@ -1,2 +1,12 @@
 #!/bin/sh
-exec python3 @AXIS_DIR@/shell.py "$@"
+# AxisOS Shell & Compositor Entrypoint
+if [ -x /usr/local/bin/LiquidNodesOS ]; then
+    exec /usr/local/bin/LiquidNodesOS "$@"
+elif [ -x /usr/bin/LiquidNodesOS ]; then
+    exec /usr/bin/LiquidNodesOS "$@"
+elif [ -f @AXIS_DIR@/shell.py ]; then
+    exec python3 @AXIS_DIR@/shell.py "$@"
+else
+    echo "Error: Neither LiquidNodesOS nor AxisOS Python shell could be found." >&2
+    exit 1
+fi
