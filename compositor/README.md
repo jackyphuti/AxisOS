@@ -1,6 +1,6 @@
 <div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
 
-# AxisOS Native wlroots Wayland Compositor (Nobara Edition)
+# AxisOS Native wlroots Wayland Compositor
 
 `axis-compositor` is a native, GPU-accelerated Wayland display server and window manager built directly with `wlroots` and `wlr_scene`.
 
@@ -29,7 +29,7 @@ The compositor follows the official wlroots 6-step initialization pipeline:
    - Listeners for `new_input` (keyboards with XKB layouts and cursor pointers with `wlr_cursor`).
    - Interactive window move (`Alt + Left Click`) and resize (`Alt + Right Click`).
 6. **Server Start & Event Loop Execution**:
-   - Spawns background session utilities (`waybar`, `swaybg`, `mako`, `nobara-welcome`).
+   - Spawns background session utilities (`waybar`, `swaybg`, `mako`, `axis-welcome`).
    - `wlr_backend_start(server.backend)` and `wl_display_run(server.wl_display)`.
 
 ---
@@ -40,7 +40,7 @@ The compositor follows the official wlroots 6-step initialization pipeline:
 | :--- | :--- |
 | <kbd>Super</kbd> + <kbd>Return</kbd> / <kbd>Super</kbd> + <kbd>T</kbd> | Launch Foot Terminal |
 | <kbd>Super</kbd> + <kbd>D</kbd> / <kbd>Super</kbd> + <kbd>Space</kbd> | Launch Wofi Application Menu |
-| <kbd>Super</kbd> + <kbd>H</kbd> | Open Nobara Hardware Driver & Codec Manager |
+| <kbd>Super</kbd> + <kbd>H</kbd> | Open Axis Hardware Driver & Codec Manager |
 | <kbd>Super</kbd> + <kbd>G</kbd> | Launch Steam |
 | <kbd>Super</kbd> + <kbd>B</kbd> / <kbd>Super</kbd> + <kbd>W</kbd> | Launch Web Browser (Chromium / Firefox) |
 | <kbd>Super</kbd> + <kbd>E</kbd> | Launch File Manager |

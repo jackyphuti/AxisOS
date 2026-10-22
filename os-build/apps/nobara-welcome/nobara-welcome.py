@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AxisOS Nobara Edition - Hardware Driver & Codec Manager (Welcome Suite)
+AxisOS - Hardware Driver & Codec Manager
 Native GTK3 tool for out-of-the-box hardware drivers, multimedia codecs, and gaming optimizations.
 """
 
@@ -116,9 +116,9 @@ def run_cmd(cmd):
     except Exception:
         return ""
 
-class NobaraWelcomeWindow(Gtk.Window):
+class AxisHardwareWindow(Gtk.Window):
     def __init__(self):
-        super().__init__(title="Nobara Hardware & Codec Suite")
+        super().__init__(title="Axis Hardware & Codec Suite")
         self.set_default_size(780, 560)
         if Gtk.Settings.get_default():
             Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme', True)
@@ -136,7 +136,7 @@ class NobaraWelcomeWindow(Gtk.Window):
         # HeaderBar
         header = Gtk.HeaderBar()
         header.set_show_close_button(True)
-        header.set_title("Nobara Hardware & Codec Suite")
+        header.set_title("Axis Hardware & Codec Suite")
         header.set_subtitle("AxisOS Gaming & Performance Hub")
         self.set_titlebar(header)
 
@@ -178,7 +178,7 @@ class NobaraWelcomeWindow(Gtk.Window):
         hero = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         hero.get_style_context().add_class("hero-card")
         hero_title = Gtk.Label()
-        hero_title.set_markup("<b><big><big>Welcome to Nobara-Axis Edition</big></big></b>")
+        hero_title.set_markup("<b><big><big>Welcome to AxisOS</big></big></b>")
         hero_title.set_halign(Gtk.Align.START)
         hero_desc = Gtk.Label(
             label="Engineered for high-performance PC gaming, content creation, and out-of-the-box hardware readiness.\n"
@@ -404,7 +404,7 @@ class NobaraWelcomeWindow(Gtk.Window):
 
         card = self.create_card(
             "Gaming Tools & Proton Compatibility",
-            "Nobara-tuned gaming runtime for Steam, Windows compatibility, and performance telemetry."
+            "AxisOS-tuned gaming runtime for Steam, Windows compatibility, and performance telemetry."
         )
 
         grid = Gtk.Grid()
@@ -472,7 +472,7 @@ class NobaraWelcomeWindow(Gtk.Window):
 
         card = self.create_card(
             "Kernel & Performance Tweaks",
-            "Nobara-grade kernel sysctl parameters for memory allocation and responsiveness."
+            "AxisOS-grade kernel sysctl parameters for memory allocation and responsiveness."
         )
 
         grid = Gtk.Grid()
@@ -507,7 +507,7 @@ class NobaraWelcomeWindow(Gtk.Window):
         self.notebook.append_page(scroll, Gtk.Label(label="Tweaks"))
 
 def main():
-    win = NobaraWelcomeWindow()
+    win = AxisHardwareWindow()
     win.connect("destroy", Gtk.main_quit)
     win.show_all()
     Gtk.main()

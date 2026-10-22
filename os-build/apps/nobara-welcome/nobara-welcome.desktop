@@ -1,7 +1,7 @@
 [Desktop Entry]
-Name=Nobara Hardware & Codecs
-Comment=Driver & Codec Manager for AxisOS Nobara Edition
-Exec=/usr/local/bin/nobara-welcome
+Name=Axis Hardware & Codecs
+Comment=Driver & Codec Manager for AxisOS
+Exec=/usr/local/bin/axis-hardware-manager
 Icon=preferences-system
 Terminal=false
 Type=Application

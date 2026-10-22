@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# AxisOS Nobara Edition - Native Wayland Desktop Session Launcher
+# AxisOS - Native Wayland Desktop Session Launcher
 # Runs custom wlroots compositor (axis-compositor) with native Waybar, Swaybg,
-# Mako notifications, and Nobara Driver & Codec Manager.
+# Mako notifications, and Axis Welcome & Driver Manager.
 # ==============================================================================
 
 # Setup XDG runtime directory with required 0700 permissions
@@ -59,10 +59,10 @@ fi
 # Background wallpaper path
 WALLPAPER="/usr/share/backgrounds/axisos/01-axisos-signature-core.png"
 if [ ! -f "$WALLPAPER" ]; then
-    WALLPAPER="/usr/share/backgrounds/nobara-gaming.png"
+    WALLPAPER="/usr/share/backgrounds/axis-wallpaper.png"
 fi
 if [ ! -f "$WALLPAPER" ]; then
-    WALLPAPER="/usr/share/backgrounds/axis-wallpaper.png"
+    WALLPAPER="/usr/share/backgrounds/nobara-gaming.png"
 fi
 
 # Check if running in Live ISO environment
@@ -76,10 +76,14 @@ fi
 FIRST_BOOT_FLAG="/var/lib/axisos/first-boot-pending"
 if [ -f "$FIRST_BOOT_FLAG" ] && command -v axis-oobe >/dev/null 2>&1; then
     echo "[AxisOS] First-boot pending: launching Out-of-Box Experience (OOBE)..." >> "$HOME/.axis-session.log"
-    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & axis-oobe"
+    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & (sleep 1 && axis-oobe) &"
 elif [ "$IS_LIVE" -eq 1 ]; then
-    echo "[AxisOS] Live ISO boot: launching Desktop with AxisOS Installer..." >> "$HOME/.axis-session.log"
-    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & (sleep 2 && /usr/local/bin/axis-installer) &"
+    echo "[AxisOS] Live ISO boot: launching Desktop..." >> "$HOME/.axis-session.log"
+    if grep -q "axisos.try=1" /proc/cmdline 2>/dev/null; then
+        STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & (sleep 1 && axis-welcome) &"
+    else
+        STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & waybar & (sleep 2 && /usr/local/bin/axis-installer) &"
+    fi
 else
     # Show the Welcome Center once for each newly installed user.
     WELCOME_SHOWN_FLAG="$HOME/.config/axisos/welcome-shown"

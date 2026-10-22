@@ -355,11 +355,16 @@ class AxisFriendlyInstaller(Gtk.Window):
         self.btn_back.connect("clicked", self.on_back_clicked)
         self.btn_back.set_sensitive(False)
 
+        self.btn_try = Gtk.Button(label="🧪 Try AxisOS (Test without installing)")
+        self.btn_try.get_style_context().add_class("btn-secondary")
+        self.btn_try.connect("clicked", self.on_try_os_clicked)
+
         self.btn_next = Gtk.Button(label="Next →")
         self.btn_next.get_style_context().add_class("btn-primary")
         self.btn_next.connect("clicked", self.on_next_clicked)
 
         nav_bar.pack_start(self.btn_back, False, False, 0)
+        nav_bar.pack_start(self.btn_try, False, False, 0)
         nav_bar.pack_end(self.btn_next, False, False, 0)
         root.pack_end(nav_bar, False, False, 0)
 
@@ -383,6 +388,12 @@ class AxisFriendlyInstaller(Gtk.Window):
             elif i < self.step_index:
                 ctx.add_class("done")
 
+        if self.step_index == 0:
+            self.btn_try.set_visible(True)
+            self.btn_back.set_visible(False)
+        else:
+            self.btn_try.set_visible(False)
+            self.btn_back.set_visible(self.step_index in [1, 2, 3])
         self.btn_back.set_sensitive(self.step_index in [1, 2, 3])
         if self.step_index == 3:
             self.btn_next.set_label("🚀 Install AxisOS Now")
@@ -402,7 +413,7 @@ class AxisFriendlyInstaller(Gtk.Window):
     def build_step_welcome(self):
         vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=14)
 
-        t = Gtk.Label(label="Welcome to AxisOS Linux 2.0", xalign=0)
+        t = Gtk.Label(label="Welcome to AxisOS 2.1", xalign=0)
         t.get_style_context().add_class("title-large")
         s = Gtk.Label(
             label="You are about to install AxisOS Linux onto your computer.\n"
@@ -441,6 +452,39 @@ class AxisFriendlyInstaller(Gtk.Window):
 
         card.pack_start(grid, False, False, 0)
         vbox.pack_start(card, False, False, 0)
+
+        # Test vs Install Card
+        try_card = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        try_card.get_style_context().add_class("card")
+
+        try_title = Gtk.Label(label="Testing AxisOS vs Installing to Disk", xalign=0)
+        try_title.get_style_context().add_class("card-title")
+
+        try_desc = Gtk.Label(
+            label="You can test AxisOS directly in live RAM without modifying your computer's hard drives or partitions.\n"
+                  "Safely test your Wi-Fi, audio, display, Bluetooth, and gaming performance.\n\n"
+                  "• Click 'Try AxisOS Live' to explore the desktop freely.\n"
+                  "• Click 'Install AxisOS' to proceed with permanent hard drive installation.",
+            xalign=0
+        )
+        try_desc.get_style_context().add_class("subtitle")
+
+        try_btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        btn_inline_try = Gtk.Button(label="🧪 Try AxisOS Live (Test Mode)")
+        btn_inline_try.get_style_context().add_class("btn-secondary")
+        btn_inline_try.connect("clicked", self.on_try_os_clicked)
+
+        btn_inline_install = Gtk.Button(label="Install AxisOS →")
+        btn_inline_install.get_style_context().add_class("btn-primary")
+        btn_inline_install.connect("clicked", self.on_next_clicked)
+
+        try_btn_box.pack_start(btn_inline_try, False, False, 0)
+        try_btn_box.pack_start(btn_inline_install, False, False, 0)
+
+        try_card.pack_start(try_title, False, False, 0)
+        try_card.pack_start(try_desc, False, False, 0)
+        try_card.pack_start(try_btn_box, False, False, 4)
+        vbox.pack_start(try_card, False, False, 0)
 
         self.stack.add_named(vbox, "step_0")
 
@@ -754,6 +798,18 @@ class AxisFriendlyInstaller(Gtk.Window):
     # -------------------------------------------------------------------------
     # Navigation Handlers
     # -------------------------------------------------------------------------
+    def on_try_os_clicked(self, btn):
+        try:
+            subprocess.Popen([
+                "notify-send", "-i", "dialog-information",
+                "AxisOS Live Testing",
+                "You are now exploring AxisOS in Live Mode. Your hard drives remain untouched. When you are ready to install, click 'Install AxisOS' on the taskbar or desktop!"
+            ])
+        except Exception:
+            pass
+        Gtk.main_quit()
+        sys.exit(0)
+
     def on_back_clicked(self, btn):
         if self.step_index > 0:
             self.step_index -= 1

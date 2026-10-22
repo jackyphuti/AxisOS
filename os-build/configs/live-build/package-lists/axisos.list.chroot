@@ -156,7 +156,7 @@ xdg-desktop-portal
 xdg-desktop-portal-wlr
 
 # ==============================================================================
-# Nobara Linux Native Desktop & Multimedia Codec Stack
+# AxisOS Native Desktop & Multimedia Codec Stack
 # ==============================================================================
 libwlroots-dev
 libwayland-dev

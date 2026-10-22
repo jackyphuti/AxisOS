@@ -621,6 +621,7 @@ public:
     GtkWidget* stack;
     GtkWidget* btn_back;
     GtkWidget* btn_next;
+    GtkWidget* btn_try_os;
     int current_step = 0;
 
     // User preferences
@@ -726,7 +727,7 @@ public:
         // Headerbar
         GtkWidget* hb = gtk_header_bar_new();
         gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
-        gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "AxisOS 2.0 Setup Wizard");
+        gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "AxisOS 2.1 Setup Wizard");
         gtk_header_bar_set_subtitle(GTK_HEADER_BAR(hb), "Liquid Nodes Edition");
         gtk_window_set_titlebar(GTK_WINDOW(window), hb);
 
@@ -748,11 +749,16 @@ public:
         gtk_style_context_add_class(gtk_widget_get_style_context(btn_back), "btn-secondary");
         g_signal_connect_swapped(btn_back, "clicked", G_CALLBACK(on_back_clicked), this);
 
+        btn_try_os = gtk_button_new_with_label("🧪 Try AxisOS (Test without installing)");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_try_os), "btn-secondary");
+        g_signal_connect_swapped(btn_try_os, "clicked", G_CALLBACK(on_try_os_clicked), this);
+
         btn_next = gtk_button_new_with_label("Continue →");
         gtk_style_context_add_class(gtk_widget_get_style_context(btn_next), "btn-primary");
         g_signal_connect_swapped(btn_next, "clicked", G_CALLBACK(on_next_clicked), this);
 
         gtk_box_pack_start(GTK_BOX(footer), btn_back, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(footer), btn_try_os, FALSE, FALSE, 0);
         gtk_box_pack_end(GTK_BOX(footer), btn_next, FALSE, FALSE, 0);
         gtk_box_pack_end(GTK_BOX(root_box), footer, FALSE, FALSE, 0);
 
@@ -883,7 +889,7 @@ public:
         if (logo_img) gtk_box_pack_start(GTK_BOX(header_row), logo_img, FALSE, FALSE, 0);
 
         GtkWidget* title_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
-        GtkWidget* title = gtk_label_new("Welcome to AxisOS 2.0");
+        GtkWidget* title = gtk_label_new("Welcome to AxisOS 2.1");
         gtk_label_set_xalign(GTK_LABEL(title), 0.0);
         gtk_style_context_add_class(gtk_widget_get_style_context(title), "win-title");
 
@@ -959,6 +965,35 @@ public:
 
         gtk_box_pack_start(GTK_BOX(card), grid, FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(box), card, FALSE, FALSE, 4);
+
+        // Testing Mode Card
+        GtkWidget* try_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+        gtk_style_context_add_class(gtk_widget_get_style_context(try_card), "info-card");
+        GtkWidget* try_title = gtk_label_new("Testing AxisOS vs Installing to Disk");
+        gtk_label_set_xalign(GTK_LABEL(try_title), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(try_title), "field-label");
+
+        GtkWidget* try_desc = gtk_label_new("You can safely test AxisOS directly in RAM without modifying your computer's hard drives or partitions. Try Wi-Fi, audio, display resolution, and apps freely.\n\n• Click 'Try AxisOS Live' below to test the desktop.\n• Click 'Continue' to proceed with permanent hard drive installation.");
+        gtk_label_set_xalign(GTK_LABEL(try_desc), 0.0);
+        gtk_label_set_line_wrap(GTK_LABEL(try_desc), TRUE);
+        gtk_style_context_add_class(gtk_widget_get_style_context(try_desc), "win-subtitle");
+
+        GtkWidget* try_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+        GtkWidget* btn_inline_try = gtk_button_new_with_label("🧪 Try AxisOS Live (Test Mode)");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_inline_try), "btn-secondary");
+        g_signal_connect_swapped(btn_inline_try, "clicked", G_CALLBACK(on_try_os_clicked), this);
+
+        GtkWidget* btn_inline_install = gtk_button_new_with_label("Install AxisOS Now →");
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn_inline_install), "btn-primary");
+        g_signal_connect_swapped(btn_inline_install, "clicked", G_CALLBACK(on_next_clicked), this);
+
+        gtk_box_pack_start(GTK_BOX(try_row), btn_inline_try, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(try_row), btn_inline_install, FALSE, FALSE, 0);
+
+        gtk_box_pack_start(GTK_BOX(try_card), try_title, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(try_card), try_desc, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(try_card), try_row, FALSE, FALSE, 4);
+        gtk_box_pack_start(GTK_BOX(box), try_card, FALSE, FALSE, 6);
 
         GtkWidget* scroller = wrap_in_scroller(box);
         gtk_stack_add_named(GTK_STACK(stack), scroller, "step_0");
@@ -1738,14 +1773,17 @@ public:
         std::string name = "step_" + std::to_string(current_step);
         gtk_stack_set_visible_child_name(GTK_STACK(stack), name.c_str());
 
-        // Back button configuration
+        // Back & Try OS button configuration
         if (current_step == 0) {
             gtk_widget_set_visible(btn_back, FALSE);
+            gtk_widget_set_visible(btn_try_os, TRUE);
         } else if (current_step <= 4) {
+            gtk_widget_set_visible(btn_try_os, FALSE);
             gtk_widget_set_visible(btn_back, TRUE);
             gtk_widget_set_sensitive(btn_back, TRUE);
             gtk_button_set_label(GTK_BUTTON(btn_back), "← Back");
         } else { // 5 (Installing) or 6 (Finished)
+            gtk_widget_set_visible(btn_try_os, FALSE);
             gtk_widget_set_visible(btn_back, FALSE);
         }
 
@@ -1777,6 +1815,11 @@ public:
             gtk_widget_set_sensitive(btn_next, TRUE);
             gtk_button_set_label(GTK_BUTTON(btn_next), "Restart Now");
         }
+    }
+
+    static void on_try_os_clicked(AxisInstallerApp* app) {
+        system("notify-send -i dialog-information 'AxisOS Live Testing' 'You are now exploring AxisOS in Live Mode. Your hard drives remain untouched. When you are ready to install, click \"Install AxisOS\" on the taskbar or desktop!' &");
+        gtk_widget_destroy(app->window);
     }
 
     static void on_back_clicked(AxisInstallerApp* app) {

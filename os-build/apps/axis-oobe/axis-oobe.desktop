@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=AxisOS First-Boot Setup
-Comment=AxisOS Nobara Edition Out-of-Box Experience Setup Wizard
+Comment=AxisOS Out-of-Box Experience Setup Wizard
 Exec=/usr/local/bin/axis-oobe
 Icon=preferences-system
 Terminal=false

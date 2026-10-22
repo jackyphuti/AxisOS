@@ -107,6 +107,11 @@ def copy_text_lf(src, dst, mode=None):
 
 def copy_binary_or_text(src, dst, mode=None):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if os.path.islink(dst) or os.path.lexists(dst):
+        try:
+            os.unlink(dst)
+        except Exception:
+            pass
     with open(src, "rb") as f:
         magic = f.read(4)
     if magic == b"\x7fELF":
@@ -121,6 +126,11 @@ def copy_binary_or_text(src, dst, mode=None):
 
 def write_text_lf(dst, text, mode=None):
     os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if os.path.islink(dst) or os.path.lexists(dst):
+        try:
+            os.unlink(dst)
+        except Exception:
+            pass
     with open(dst, "w", newline="\n", encoding="utf-8") as f:
         f.write(text.replace("\r\n", "\n").replace("\r", "\n"))
     if mode is not None:
@@ -340,6 +350,9 @@ if os.path.exists(apps_dir):
                 dst = os.path.join(chroot_dir, *bin_sub, app_name)
                 os.makedirs(os.path.dirname(dst), exist_ok=True)
                 copy_binary_or_text(app_bin, dst, 0o755)
+                if app_name == "nobara-welcome":
+                    hw_dst = os.path.join(chroot_dir, *bin_sub, "axis-hardware-manager")
+                    copy_binary_or_text(app_bin, hw_dst, 0o755)
         if os.path.exists(app_desktop):
             dst = os.path.join(chroot_dir, "usr", "share", "applications", f"{app_name}.desktop")
             os.makedirs(os.path.dirname(dst), exist_ok=True)
@@ -394,7 +407,7 @@ if os.path.exists(browser_configs):
 # Deploy Wayland Desktop Configs (Waybar, Wofi, Mako, Foot, Backgrounds)
 wayland_configs = os.path.join(workspace_dir, "os-build", "configs", "wayland")
 if os.path.exists(wayland_configs):
-    print("    Syncing Nobara Wayland configurations (Waybar, Wofi, Mako, Foot)...")
+    print("    Syncing Axis Wayland configurations (Waybar, Wofi, Mako, Foot)...")
     for cfg in ["waybar", "wofi", "mako", "foot"]:
         src_dir = os.path.join(wayland_configs, cfg)
         if os.path.exists(src_dir):
@@ -444,14 +457,22 @@ if os.path.exists(wayland_configs):
                 pass
     print("    Configured GNOME background properties and isolated only AxisOS wallpapers for Settings")
 
-# Deploy Nobara-Axis Wayland Session
-nobara_sess_dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "nobara-axis.desktop")
-write_text_lf(nobara_sess_dst, """[Desktop Entry]
-Name=AxisOS Nobara Edition
+# Deploy Axis Wayland Session
+axis_sess_dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "axisos.desktop")
+write_text_lf(axis_sess_dst, """[Desktop Entry]
+Name=AxisOS
 Comment=Native wlroots Wayland Compositor Session
 Exec=/usr/local/bin/axisos-kiosk.sh
 Type=Application
-DesktopNames=Nobara-Axis
+DesktopNames=AxisOS
+""")
+nobara_sess_dst = os.path.join(chroot_dir, "usr", "share", "wayland-sessions", "nobara-axis.desktop")
+write_text_lf(nobara_sess_dst, """[Desktop Entry]
+Name=AxisOS
+Comment=Native wlroots Wayland Compositor Session
+Exec=/usr/local/bin/axisos-kiosk.sh
+Type=Application
+DesktopNames=AxisOS
 """)
 
 # Deploy Qt 6 LiquidNodes Wayland Compositor (LiquidNodesOS)
@@ -1031,7 +1052,7 @@ if [ -f /boot/grub/splash.png ]; then
 fi
 
 menuentry "Try AxisOS 2.1 (LiquidNodes Desktop)" --class axisos --class gnu-linux --class gnu {
-    linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 amdgpu.freesync_video=1
+    linux /live/vmlinuz boot=live components username=axis user-fullname=AxisOS user-default-groups=audio,video,render,input,seat,sudo,netdev,gamemode,games,docker live-config.locales=en_US.UTF-8 live-config.timezone=UTC quiet splash loglevel=0 vt.global_cursor_default=0 systemd.show_status=false rd.udev.log_level=3 udev.log_priority=3 axisos.try=1 amdgpu.freesync_video=1
     initrd /live/initrd.img
 }
 

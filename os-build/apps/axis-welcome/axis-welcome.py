@@ -392,7 +392,7 @@ class AxisWelcomeWindow(Gtk.Window):
             ("Software Manager", "Browse and install Debian APT, Flatpak, and .axis packages.", "/usr/local/bin/axis-software-manager"),
             ("Update Manager", "Apply security updates with automatic Btrfs snapshot protection.", "/usr/local/bin/axis-update-manager"),
             ("Package Installer", "Install standalone .deb and .axis packages.", "/usr/local/bin/axis-package-installer"),
-            ("Hardware Drivers & Codecs", "Configure GPU drivers and multimedia codecs.", "/usr/local/bin/nobara-welcome"),
+            ("Hardware Drivers & Codecs", "Configure GPU drivers and multimedia codecs.", "/usr/local/bin/axis-hardware-manager"),
             ("Task Manager", "Inspect CPU, RAM, and running processes in real time.", "/usr/local/bin/axis-task-manager"),
         ]
         for name, desc, cmd in apps:

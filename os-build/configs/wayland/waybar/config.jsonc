@@ -44,8 +44,8 @@
     },
     "custom/welcome": {
         "format": "󰌆 Drivers & Codecs",
-        "tooltip": "Open Nobara Driver & Codec Manager",
-        "on-click": "nobara-welcome"
+        "tooltip": "Open Axis Driver & Codec Manager",
+        "on-click": "axis-welcome"
     },
     "custom/steam": {
         "format": "󰓓 Steam",

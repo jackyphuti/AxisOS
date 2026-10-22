@@ -1,5 +1,5 @@
 /*
- * AxisOS Native wlroots Wayland Compositor (Horizon Nobara Edition)
+ * AxisOS Native wlroots Wayland Compositor
  *
  * Implements a modern, lightweight, GPU-accelerated Wayland desktop compositor
  * powered by wlroots and wlr_scene.
@@ -242,15 +242,15 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 		return true;
 	}
 
-	/* Super + D or Super + Space: Nobara App Launcher */
+	/* Super + D or Super + Space: Axis App Launcher */
 	if (is_super && (sym == XKB_KEY_d || sym == XKB_KEY_D || sym == XKB_KEY_space)) {
 		spawn_command("wofi --show drun --prompt 'Search Apps...' &");
 		return true;
 	}
 
-	/* Super + H: Nobara Welcome & Hardware Driver / Codec Manager */
+	/* Super + H: Axis Welcome & Hardware Driver / Codec Manager */
 	if (is_super && (sym == XKB_KEY_h || sym == XKB_KEY_H)) {
-		spawn_command("nobara-welcome &");
+		spawn_command("axis-welcome &");
 		return true;
 	}
 

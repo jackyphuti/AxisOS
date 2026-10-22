@@ -1322,7 +1322,9 @@ chroot /mnt update-grub 2>/dev/null || chroot /mnt grub-mkconfig -o /boot/grub/g
 
 # Set Out-of-Box Experience (OOBE) first boot flag for initial setup
 mkdir -p /mnt/var/lib/axisos
+chmod 777 /mnt/var/lib/axisos 2>/dev/null || true
 touch /mnt/var/lib/axisos/first-boot-pending
+chmod 666 /mnt/var/lib/axisos/first-boot-pending 2>/dev/null || true
 log "Configured /var/lib/axisos/first-boot-pending for first-boot OOBE wizard"
 
 report 96 "Cleaning up mounts..."

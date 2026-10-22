@@ -1,5 +1,5 @@
 /*
- * AxisOS Nobara Edition - Hardware Driver & Codec Manager (Welcome Suite)
+ * AxisOS - Hardware Driver & Codec Manager (Welcome Suite)
  * Written in C++ using GTK 3
  * Features:
  *  - Triple GPU driver manager: NVIDIA Proprietary/DKMS, AMD ROCm/RADV, Intel ANV
@@ -28,7 +28,7 @@ static std::string exec_cmd(const std::string& cmd) {
     return result;
 }
 
-static const char* CSS_NOBARA = R"(
+static const char* CSS_AXIS = R"(
 window {
     background-color: #0A0B0D;
     color: #f8fafc;
@@ -97,20 +97,20 @@ notebook tab:checked {
 }
 )";
 
-class NobaraWelcomeApp {
+class AxisHardwareApp {
 public:
     GtkWidget* window;
     GtkWidget* notebook;
 
-    NobaraWelcomeApp() {
+    AxisHardwareApp() {
         window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-        gtk_window_set_title(GTK_WINDOW(window), "Nobara Hardware & Codec Suite - AxisOS");
+        gtk_window_set_title(GTK_WINDOW(window), "Axis Hardware & Codec Suite");
         gtk_window_set_default_size(GTK_WINDOW(window), 820, 580);
         gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
         // CSS
         GtkCssProvider* prov = gtk_css_provider_new();
-        gtk_css_provider_load_from_data(prov, CSS_NOBARA, -1, NULL);
+        gtk_css_provider_load_from_data(prov, CSS_AXIS, -1, NULL);
         gtk_style_context_add_provider_for_screen(
             gdk_screen_get_default(),
             GTK_STYLE_PROVIDER(prov),
@@ -121,7 +121,7 @@ public:
         // Headerbar
         GtkWidget* hb = gtk_header_bar_new();
         gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
-        gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "Nobara Hardware & Codec Suite");
+        gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "Axis Hardware & Codec Suite");
         gtk_header_bar_set_subtitle(GTK_HEADER_BAR(hb), "Gaming Drivers, Codecs & System Optimization");
         gtk_window_set_titlebar(GTK_WINDOW(window), hb);
 
@@ -170,7 +170,7 @@ private:
         GtkWidget* hero = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
         gtk_style_context_add_class(gtk_widget_get_style_context(hero), "hero-card");
 
-        GtkWidget* h_t = gtk_label_new("Welcome to Nobara-Axis Edition");
+        GtkWidget* h_t = gtk_label_new("Welcome to AxisOS");
         gtk_label_set_xalign(GTK_LABEL(h_t), 0.0);
         PangoAttrList* attrs = pango_attr_list_new();
         pango_attr_list_insert(attrs, pango_attr_scale_new(1.3));
@@ -276,7 +276,7 @@ private:
         gtk_notebook_append_page(GTK_NOTEBOOK(notebook), vbox, gtk_label_new("Gaming"));
     }
 
-    static void on_install_nvidia_cb(NobaraWelcomeApp* app) {
+    static void on_install_nvidia_cb(AxisHardwareApp* app) {
         exec_cmd("pkexec /usr/local/bin/nvidia-auto-install.sh &");
         GtkWidget* dlg = gtk_message_dialog_new(GTK_WINDOW(app->window),
             GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
@@ -285,7 +285,7 @@ private:
         gtk_widget_destroy(dlg);
     }
 
-    static void on_verify_amd_cb(NobaraWelcomeApp* app) {
+    static void on_verify_amd_cb(AxisHardwareApp* app) {
         std::string res = exec_cmd("vulkaninfo --summary 2>&1 | grep -i radv || echo 'AMD RADV driver ready'");
         GtkWidget* dlg = gtk_message_dialog_new(GTK_WINDOW(app->window),
             GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
@@ -294,7 +294,7 @@ private:
         gtk_widget_destroy(dlg);
     }
 
-    static void on_verify_intel_cb(NobaraWelcomeApp* app) {
+    static void on_verify_intel_cb(AxisHardwareApp* app) {
         std::string res = exec_cmd("vainfo 2>&1 | grep -i 'driver' || echo 'Intel Media VA-API ready'");
         GtkWidget* dlg = gtk_message_dialog_new(GTK_WINDOW(app->window),
             GTK_DIALOG_MODAL, GTK_MESSAGE_INFO, GTK_BUTTONS_OK,
@@ -303,7 +303,7 @@ private:
         gtk_widget_destroy(dlg);
     }
 
-    static void on_install_codecs_cb(NobaraWelcomeApp* app) {
+    static void on_install_codecs_cb(AxisHardwareApp* app) {
         std::thread([]() {
             exec_cmd("pkexec apt-get update && pkexec apt-get install -y ffmpeg gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-libav libavcodec-extra");
         }).detach();
@@ -314,11 +314,11 @@ private:
         gtk_widget_destroy(dlg);
     }
 
-    static void on_launch_steam_cb(NobaraWelcomeApp*) {
+    static void on_launch_steam_cb(AxisHardwareApp*) {
         system("/usr/local/bin/steam &");
     }
 
-    static void on_install_lutris_cb(NobaraWelcomeApp* app) {
+    static void on_install_lutris_cb(AxisHardwareApp* app) {
         std::thread([]() {
             exec_cmd("pkexec apt-get update && pkexec apt-get install -y lutris");
         }).detach();
@@ -332,7 +332,7 @@ private:
 
 int main(int argc, char* argv[]) {
     gtk_init(&argc, &argv);
-    NobaraWelcomeApp app;
+    AxisHardwareApp app;
     app.show();
     gtk_main();
     return 0;

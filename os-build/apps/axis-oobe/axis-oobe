@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-AxisOS Nobara Edition - Out-of-Box Experience (OOBE) First-Boot Setup Wizard
+AxisOS - Out-of-Box Experience (OOBE) First-Boot Setup Wizard
 Hardware detection, NetworkManager Wi-Fi/Internet enforcement, and system onboarding.
 """
 
@@ -217,7 +217,7 @@ class AxisOOBEWizard(Gtk.Window):
         title.get_style_context().add_class("title-header")
         title.set_xalign(0)
 
-        subtitle = Gtk.Label(label="Nobara Gaming Edition — Out-of-Box First-Boot Experience")
+        subtitle = Gtk.Label(label="AxisOS — Out-of-Box First-Boot Experience")
         subtitle.get_style_context().add_class("subtitle-header")
         subtitle.set_xalign(0)
 
@@ -644,7 +644,7 @@ class AxisOOBEWizard(Gtk.Window):
         card.pack_start(title, False, False, 0)
 
         summary = Gtk.Label(
-            label="AxisOS Nobara Edition is fully configured with native Wayland desktop architecture.\n\n"
+            label="AxisOS is fully configured with native Wayland desktop architecture.\n\n"
                   "Features active on your system:\n"
                   "  • Steam pre-installed with Proton compatibility & GameMode\n"
                   "  • High-performance XanMod kernel scheduling\n"
@@ -670,7 +670,7 @@ class AxisOOBEWizard(Gtk.Window):
         step_label.get_style_context().add_class("stepper-active")
         footer.pack_start(step_label, True, True, 0)
 
-        btn_finish = Gtk.Button(label="Enter Nobara Desktop  🚀")
+        btn_finish = Gtk.Button(label="Enter Axis Desktop")
         btn_finish.get_style_context().add_class("btn-primary")
         btn_finish.connect("clicked", self.on_finish_clicked)
         footer.pack_end(btn_finish, False, False, 0)
@@ -679,18 +679,41 @@ class AxisOOBEWizard(Gtk.Window):
         return page
 
     def on_finish_clicked(self, btn):
-        # 1. Clear first boot pending flag
+        # 1. Clear first boot pending flag via non-interactive sudo
+        try:
+            subprocess.run(["sudo", "-n", "rm", "-f", PENDING_FLAG], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except Exception:
+            pass
         if os.path.exists(PENDING_FLAG):
             try:
                 os.remove(PENDING_FLAG)
             except Exception as e:
                 print(f"Error removing {PENDING_FLAG}: {e}")
 
-        # 2. Launch normal desktop suite (Waybar, Swaybg, Mako, Nobara Welcome)
-        subprocess.Popen(["waybar"])
-        subprocess.Popen(["nobara-welcome"])
+        # 2. Mark welcome/oobe complete in user home
+        try:
+            user_flag = os.path.expanduser("~/.config/axisos/welcome-shown")
+            os.makedirs(os.path.dirname(user_flag), exist_ok=True)
+            with open(user_flag, "w") as f:
+                f.write("completed\n")
+        except Exception:
+            pass
 
-        # 3. Quit OOBE wizard
+        # 3. Ensure Waybar is active
+        try:
+            res = subprocess.run(["pgrep", "-x", "waybar"], stdout=subprocess.DEVNULL)
+            if res.returncode != 0:
+                subprocess.Popen(["waybar"])
+        except Exception:
+            subprocess.Popen(["waybar"])
+
+        # 4. Launch Axis Welcome Center
+        try:
+            subprocess.Popen(["axis-welcome"])
+        except Exception:
+            pass
+
+        # 5. Quit OOBE wizard
         Gtk.main_quit()
 
 
