@@ -1890,9 +1890,14 @@ public:
                 std::vector<char*> argv;
 
                 if (geteuid() != 0) {
-                    args_storage.push_back("pkexec");
+                    args_storage.push_back("sudo");
+                    args_storage.push_back("-n");
                 }
-                args_storage.push_back("/usr/local/bin/axisos-installer.sh");
+                const char* script_path = "/usr/local/bin/axisos-installer.sh";
+                if (access(script_path, X_OK) != 0) {
+                    script_path = "/usr/local/bin/axisos-install.sh";
+                }
+                args_storage.push_back(script_path);
                 args_storage.push_back("--edition");
                 args_storage.push_back(selected_edition);
                 args_storage.push_back("--disk");

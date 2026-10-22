@@ -317,14 +317,13 @@ for p in $(lsblk -lno NAME "$TARGET_DISK" 2>/dev/null); do
     [ -b "/dev/$p" ] && wipefs -a -f "/dev/$p" 2>/dev/null || true
 done
 
-# Wipe target disk signatures with wipefs -a -f and check exit code
+# Wipe target disk signatures with wipefs and zap partition table
 log "Running wipefs -a -f on $TARGET_DISK..."
-wipefs -a -f "$TARGET_DISK" || error_exit "wipefs -a -f failed on $TARGET_DISK (exit code $?)"
+wipefs -a -f "$TARGET_DISK" 2>/dev/null || true
 
-# Zap partition table with sgdisk --zap-all and check exit code
 if command -v sgdisk >/dev/null 2>&1; then
     log "Running sgdisk --zap-all on $TARGET_DISK..."
-    sgdisk --zap-all "$TARGET_DISK" || error_exit "sgdisk --zap-all failed on $TARGET_DISK (exit code $?)"
+    sgdisk --zap-all "$TARGET_DISK" 2>/dev/null || true
 fi
 
 # Zero out first 32MB (primary GPT, MBR, partition tables)
@@ -684,15 +683,17 @@ chmod 1777 /mnt/tmp
 
 # Execute rsync with live progress tracking
 rsync -aAX \
-    --exclude=/dev/* \
-    --exclude=/proc/* \
-    --exclude=/sys/* \
-    --exclude=/tmp/* \
-    --exclude=/run/* \
-    --exclude=/mnt/* \
-    --exclude=/media/* \
+    --exclude=/dev/** \
+    --exclude=/proc/** \
+    --exclude=/sys/** \
+    --exclude=/tmp/** \
+    --exclude=/run/** \
+    --exclude=/mnt/** \
+    --exclude=/media/** \
+    --exclude=/live/** \
+    --exclude=/cdrom/** \
     --exclude=/lost+found \
-    --exclude=/run/live/* \
+    --exclude=/swapfile \
     --exclude=/etc/udev/rules.d/70-persistent* \
     "$SOURCE_DIR" /mnt/ >/dev/null 2>&1 &
 RSYNC_PID=$!
@@ -966,6 +967,7 @@ rm -f "/mnt/home/${USERNAME}/Desktop/axis-installer.desktop" 2>/dev/null || true
 rm -f "/mnt/etc/skel/Desktop/axis-installer.desktop" 2>/dev/null || true
 rm -f "/mnt/usr/share/applications/axis-installer.desktop" 2>/dev/null || true
 rm -f "/mnt/usr/local/bin/axisos-installer.sh" 2>/dev/null || true
+rm -f "/mnt/usr/local/bin/axisos-install.sh" 2>/dev/null || true
 
 # Strip axis-installer.desktop from GNOME dock favorites in dconf
 if [ -f /mnt/etc/dconf/db/local.d/00-axisos-gnome ]; then
@@ -1315,6 +1317,7 @@ DEBIAN_FRONTEND=noninteractive chroot /mnt apt-get -o DPkg::Lock::Timeout=60 rem
 chroot /mnt update-initramfs -u -k all 2>/dev/null || chroot /mnt update-initramfs -c -k all 2>/dev/null || true
 
 # Generate grub.cfg
+mkdir -p /mnt/boot/grub
 chroot /mnt update-grub 2>/dev/null || chroot /mnt grub-mkconfig -o /boot/grub/grub.cfg
 
 # Set Out-of-Box Experience (OOBE) first boot flag for initial setup

@@ -144,16 +144,20 @@ ln -sf /etc/systemd/system/axisos-daemon.service config/includes.chroot/etc/syst
 
 # 5. Sudoers & Polkit rules for live session
 mkdir -p config/includes.chroot/etc/sudoers.d
-echo "axis ALL=(ALL:ALL) NOPASSWD: ALL" > config/includes.chroot/etc/sudoers.d/axis
+cat << 'EOF' > config/includes.chroot/etc/sudoers.d/axis
+# AxisOS standard sudoer configuration
+axis ALL=(ALL:ALL) NOPASSWD: ALL
+Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Defaults !use_pty
+Defaults !requiretty
+EOF
 chmod 0440 config/includes.chroot/etc/sudoers.d/axis
 
 mkdir -p config/includes.chroot/etc/polkit-1/rules.d
 cat << 'EOF' > config/includes.chroot/etc/polkit-1/rules.d/49-axisos.rules
-// Allow axis user and sudo group to perform power operations and storage management
+// Allow axis user and sudo group full administrative permissions in live environment
 polkit.addRule(function(action, subject) {
-    if ((action.id.indexOf("org.freedesktop.login1.") === 0 ||
-         action.id.indexOf("org.freedesktop.udisks2.") === 0) &&
-        (subject.isInGroup("sudo") || subject.user === "axis")) {
+    if (subject.isInGroup("sudo") || subject.user === "axis") {
         return polkit.Result.YES;
     }
 });

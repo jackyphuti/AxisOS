@@ -123,9 +123,21 @@ def main():
         "# AxisOS standard sudoer configuration\n"
         "axis ALL=(ALL:ALL) NOPASSWD: ALL\n"
         "Defaults secure_path=\"/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\"\n"
-        "Defaults use_pty\n"
+        "Defaults !use_pty\n"
+        "Defaults !requiretty\n"
     )
     write_chroot_file("/etc/sudoers.d/axis", sudoers_axis, mode=0o440)
+
+    # 6b. Deploy Polkit rule allowing live session full administrative permissions
+    polkit_rule = (
+        "// Allow axis user and sudo group full administrative permissions in live environment\n"
+        "polkit.addRule(function(action, subject) {\n"
+        "    if (subject.isInGroup(\"sudo\") || subject.user === \"axis\") {\n"
+        "        return polkit.Result.YES;\n"
+        "    }\n"
+        "});\n"
+    )
+    write_chroot_file("/etc/polkit-1/rules.d/49-axisos.rules", polkit_rule, mode=0o644)
 
     # 7. Register axis-terminal as default x-terminal-emulator
     run_cmd([
