@@ -4,7 +4,7 @@ This guide provides troubleshooting steps, diagnostic procedures, and manual dis
 
 ---
 
-## 🔑 Live Session Credentials & Root Access
+## Live Session Credentials & Root Access
 
 When booted into the AxisOS Live USB / VM environment:
 
@@ -22,7 +22,7 @@ When booted into the AxisOS Live USB / VM environment:
 
 ---
 
-## 🔍 Step 1: Checking the Installer Error Log
+## Step 1: Checking the Installer Error Log
 
 The installer automatically logs all partitioning, formatting, and installation steps to `/tmp/axisos-installer.log`.
 
@@ -45,7 +45,7 @@ grep -i "error" /tmp/axisos-installer.log
 
 ---
 
-## 🧹 Step 2: Preparing and Wiping the Target Drive Clean
+## Step 2: Preparing and Wiping the Target Drive Clean
 
 If an existing partition table (Windows BitLocker, Linux LVM, dirty partition table, or corrupt GPT backup header) is blocking the installer, wiping the disk signatures on the terminal resolves the issue.
 
@@ -58,7 +58,7 @@ lsblk -o NAME,SIZE,TYPE,FSTYPE,MODEL,MOUNTPOINTS
 
 > [!CAUTION]
 > Identify your **internal** drive (e.g. `/dev/nvme0n1` for NVMe SSD, `/dev/sda` for SATA SSD/HDD).  
-> **DO NOT select your Live USB drive!** (Look at the `SIZE` and `MOUNTPOINTS` column—the live USB usually has `/run/live/medium` or `/cdrom`).
+> **DO NOT select your Live USB drive.** (Look at the `SIZE` and `MOUNTPOINTS` column—the live USB usually has `/run/live/medium` or `/cdrom`).
 
 ---
 
@@ -127,7 +127,7 @@ sudo partprobe /dev/nvme0n1
 
 ---
 
-## ⚙️ Step 3: BIOS / UEFI Firmware Settings Check
+## Step 3: BIOS / UEFI Firmware Settings Check
 
 If `lsblk` does not show your internal hard drive or NVMe SSD at all:
 
@@ -145,21 +145,21 @@ If `lsblk` does not show your internal hard drive or NVMe SSD at all:
 
 ---
 
-## 🚀 Step 4: Re-launching the Installer
+## Step 4: Re-launching the Installer
 
 Once the disk is wiped clean and unlocked:
 
 ### Option A: Launch Graphical Installer (GUI)
 Run in terminal:
 ```bash
-sudo axis-installer
+axis-installer
 ```
 *(Or double-click the **Install AxisOS 2.1** desktop icon).*
 
 1. Select your target drive from the dropdown.
 2. Select your filesystem type (**Btrfs** with snapshot protection or **EXT4**).
 3. Set your username and password.
-4. Click **Install AxisOS**.
+4. Click **Install AxisOS Now**.
 
 ---
 
@@ -167,7 +167,7 @@ sudo axis-installer
 If you prefer installing entirely from the command line or need detailed real-time console feedback, run the installation script directly:
 
 ```bash
-sudo /usr/local/bin/axisos-install.sh \
+sudo -n /usr/local/bin/axisos-install.sh \
   --disk /dev/sdX \
   --username axis \
   --password password \
@@ -179,12 +179,12 @@ sudo /usr/local/bin/axisos-install.sh \
 
 ---
 
-## 📋 Post-Installation Note
+## Post-Installation Note
 
 Once AxisOS finishes installing to disk and you reboot into the installed system:
 - **`axis-installer` is automatically hidden** from the application menu and desktop.
 - This is intentional to safeguard your installed operating system from accidentally re-partitioning or wiping itself.
-- For post-install management and updates, use **GNOME Settings** or run:
+- For post-install management and updates, use **Settings** or run:
   ```bash
   axis-sysupgrade
   ```

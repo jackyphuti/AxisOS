@@ -1,46 +1,43 @@
-# AxisOS Development & Build Guide 🛠️
+# AxisOS Development & Build Guide
 
-Welcome to the comprehensive development guide for **AxisOS**. This document provides detailed, step-by-step instructions on setting up your local environment, developing the desktop shell, testing system daemons, compiling native binaries, and building/testing the full bootable Linux operating system.
-
----
-
-## 📋 Table of Contents
-1. [Prerequisites & System Requirements](#-prerequisites--system-requirements)
-2. [Setting Up the Development Environment](#-setting-up-the-development-environment)
-3. [Developing the Desktop Shell](#-developing-the-desktop-shell)
-   - [Running in Development Mode](#running-in-development-mode)
-   - [Building the Production Bundle](#building-the-production-bundle)
-   - [Running the Native Electron Wrapper](#running-the-native-electron-wrapper)
-4. [Running the System Management Daemon](#-running-the-system-management-daemon)
-5. [Compiling Native Systems & Kernel Drivers](#-compiling-native-systems--kernel-drivers)
-   - [Atomic Update Engine (`axis update`)](#atomic-update-engine-axis-update)
-   - [Linux Kernel Device Driver](#linux-kernel-device-driver)
-6. [Testing in QEMU Virtual Machine](#-testing-in-qemu-virtual-machine)
-7. [Building the Bootable Linux ISO](#-building-the-bootable-linux-iso)
-8. [Troubleshooting & FAQs](#-troubleshooting--faqs)
+Welcome to the development guide for **AxisOS**. This document provides detailed instructions on setting up your local environment, developing the native Wayland compositor and Qt 6 desktop shell, compiling native C++ applications, and generating bootable hybrid UEFI/BIOS ISOs.
 
 ---
 
-## 💻 Prerequisites & System Requirements
+## Table of Contents
+1. [Prerequisites & System Requirements](#prerequisites--system-requirements)
+2. [Setting Up the Development Environment](#setting-up-the-development-environment)
+3. [Building the Native Wayland Compositor](#building-the-native-wayland-compositor)
+4. [Developing the Qt 6 Desktop Shell](#developing-the-qt-6-desktop-shell)
+5. [Compiling Native C++ Applications](#compiling-native-c-applications)
+6. [Testing in QEMU Virtual Machine](#testing-in-qemu-virtual-machine)
+7. [Building the Bootable Linux ISO](#building-the-bootable-linux-iso)
+8. [Troubleshooting & FAQs](#troubleshooting--faqs)
+9. [Related Resources](#related-resources)
+
+---
+
+## Prerequisites & System Requirements
 
 ### Host Operating Systems Supported:
 - **Linux** (Debian 12+, Ubuntu 22.04+, Fedora 38+, Arch Linux)
 - **Windows 11 / 10** via **WSL 2** (Ubuntu or Debian recommended)
-- **macOS** (For Desktop Shell development)
 
 ### Required Toolchains:
 | Tool | Minimum Version | Purpose |
 | :--- | :--- | :--- |
-| **Node.js** | `>= 20.x` | Desktop shell build system and system daemon |
-| **npm** | `>= 10.x` | Package management for the shell |
-| **GCC / Clang** | `>= 12.x` | Compiling native C update engine and kernel modules |
+| **GCC / G++** | `>= 12.x` | Compiling native C compositor and C++ applications |
 | **Make** | `>= 4.x` | Native build scripts |
+| **wayland-scanner** | `>= 1.20` | Dynamic Wayland protocol generation |
+| **wlroots** | `>= 0.16` | Wayland display server library |
+| **Qt 6 / QML** | `>= 6.4` | Glassmorphic desktop shell runtime |
+| **Python** | `>= 3.10` | ISO builder engine and tooling |
+| **xorriso** | `>= 1.5` | Hybrid ISO image assembly |
 | **QEMU** | `>= 7.x` | Local virtual machine hardware simulation |
-| **live-build** | `>= 20230131` | Debian Linux live filesystem builder (for ISO creation) |
 
 ---
 
-## 🚀 Setting Up the Development Environment
+## Setting Up the Development Environment
 
 1. **Clone the repository**:
    ```bash
@@ -48,99 +45,78 @@ Welcome to the comprehensive development guide for **AxisOS**. This document pro
    cd AxisOS
    ```
 
-2. **Install Desktop Shell dependencies**:
+2. **Install Build Dependencies (Debian / Ubuntu / WSL)**:
    ```bash
-   cd shell
-   npm install
+   sudo apt-get update
+   sudo apt-get install -y \
+       build-essential cmake pkg-config \
+       libwlroots-dev libwayland-dev wayland-protocols \
+       libxkbcommon-dev libinput-dev libdrm-dev libpixman-1-dev \
+       qt6-base-dev qt6-declarative-dev qml6-module-qtquick \
+       libgtk-3-dev libvte-2.91-dev \
+       xorriso squashfs-tools dosfstools mtools isolinux syslinux-utils \
+       qemu-system-x86 ovmf
    ```
 
 ---
 
-## 🖥️ Developing the Desktop Shell
+## Building the Native Wayland Compositor
 
-The AxisOS desktop shell is built with **React 19**, **TypeScript**, **Vite**, and **Tailwind CSS**, styled with modern glassmorphism.
+The native compositor (`compositor/`) is built on `wlroots` and `wlr_scene`. Wayland protocol bindings (`xdg-shell`, `wlr-layer-shell-unstable-v1`) are compiled dynamically via `wayland-scanner`:
 
-### Running in Development Mode
-To start the Vite hot-reloading development server:
 ```bash
-cd shell
-npm run dev
+cd compositor
+make clean all
 ```
-By default, the dev server runs on `http://localhost:5173`. Open this URL in any modern browser to inspect UI components, window management, the floating dock, top bar, and applications.
 
-### Building the Production Bundle
-To compile TypeScript and bundle static assets with Vite:
-```bash
-cd shell
-npm run build
+This generates the native executable:
 ```
-This outputs optimized, minified production assets into `shell/dist/`:
-- `index.html`
-- `assets/index-*.js`
-- `assets/index-*.css`
+compositor/axis-compositor
+```
 
-### Running the Native Electron Wrapper
-To test the desktop shell as a native standalone desktop application:
+To install the compositor locally:
 ```bash
-cd shell
-npm start
+sudo make install
 ```
 
 ---
 
-## ⚡ Running the System Management Daemon
+## Developing the Qt 6 Desktop Shell
 
-The **AxisOS System Daemon** (`os-build/configs/cage-session/axisos-daemon.cjs`) is a high-performance, asynchronous Node.js backend providing REST APIs for:
-- Live system telemetry (CPU, RAM, GPU, storage, battery, temperatures)
-- Real Linux bash command execution (`/api/terminal-exec`)
-- Posix filesystem operations, MIME detection, and permissions (`/api/fs-*`)
-- Freedesktop.org XDG Trash integration (`/api/fs-trash/*`)
-- NetworkManager Wi-Fi and BlueZ Bluetooth scanning
-- Real block device detection and mounting (`/api/disks`)
-- Atomic OS installer execution (`/api/installer/*`)
+The **LiquidNodes** desktop shell (`compositor-qt/`) provides the visual desktop experience (dock, top bar, application launcher, and lock screen):
 
-### Running the Daemon Locally:
+- **Main entry point**: `compositor-qt/Main.qml`
+- **Shell layout components**:
+  - `LiquidTopBar.qml`: Status indicators, clock, network, and audio controls.
+  - `LiquidDock.qml`: Floating application dock with launch animations.
+  - `LiquidAppLauncher.qml`: Fullscreen application grid with search.
+  - `QuickSettingsPanel.qml`: Hardware toggles (Wi-Fi, Bluetooth, Dark Mode, Performance).
+  - `Theme.qml`: Centralized One UI design tokens (palette, corner radii, typography).
+
+To run the shell in standalone preview mode with `qml6`:
 ```bash
-# From the shell directory:
-cd shell
-npm run serve
-
-# Or directly using Node.js:
-node os-build/configs/cage-session/axisos-daemon.cjs
-```
-The daemon listens on `http://127.0.0.1:3000`. You can test endpoints via `curl`:
-```bash
-curl http://127.0.0.1:3000/api/system-info
+qml6 compositor-qt/Main.qml
 ```
 
 ---
 
-## ⚙️ Compiling Native Systems & Kernel Drivers
+## Compiling Native C++ Applications
 
-### Atomic Update Engine (`axis update`)
-The native C update engine handles atomic A/B root filesystem staging, kexec near-instant reboots, and bootloader rollbacks:
-```bash
-cd os-build/updater
-gcc -O2 -Wall -Wextra axis_update.c -o axis
-```
-To install it to your local `/usr/bin/axis`:
-```bash
-sudo cp axis /usr/bin/axis
-sudo ln -sf /usr/bin/axis /usr/bin/axis-update
-sudo chmod +x /usr/bin/axis
-```
+Core AxisOS applications are written in native C++ for minimal memory overhead and zero runtime lag:
 
-### Linux Kernel Device Driver
-AxisOS includes custom Linux platform and character drivers in `os-build/drivers/`:
+- **Installer (`os-build/apps/axis-installer/`)**: GTK 3 / C++17 graphical disk partitioning and installation wizard.
+- **Terminal (`os-build/apps/axis-terminal/`)**: Low-latency terminal emulator built with VTE and GTK 3.
+- **Settings (`os-build/apps/axis-settings/`)**: Unified control center for hardware, display, and OS editions.
+- **Task Manager (`os-build/apps/axis-task-manager/`)**: Real-time hardware telemetry HUD reading directly from `/proc` and `/sys`.
+
+To compile all applications:
 ```bash
-cd os-build/drivers
-# Build kernel module against active kernel headers
-make -C /lib/modules/$(uname -r)/build M=$(pwd) modules
+./os-build/scripts/compile-native-apps.sh
 ```
 
 ---
 
-## 🧪 Testing in QEMU Virtual Machine
+## Testing in QEMU Virtual Machine
 
 To test AxisOS on virtual hardware without formatting physical media:
 
@@ -149,71 +125,68 @@ To test AxisOS on virtual hardware without formatting physical media:
 ./os-build/scripts/run-qemu.sh
 ```
 
-### On Windows PowerShell:
-```powershell
-.\os-build\scripts\run-qemu.ps1
-```
-
 ### What QEMU Simulates:
-1. Allocates a 20GB QCOW2 virtual hard drive (`axisos-disk.qcow2`).
-2. Boots the hybrid ISO with UEFI firmware (OVMF) or BIOS.
-3. Launches the live Wayland desktop session.
-4. Allows end-to-end testing of the **Install AxisOS** app (GPT partitioning, Btrfs subvolumes, GRUB install).
-5. Tests direct boot from the newly installed disk after rebooting.
+1. Allocates a virtual hard drive (`axisos-disk.qcow2`).
+2. Boots the hybrid ISO with UEFI firmware (OVMF) or Legacy BIOS.
+3. Launches the native Wayland desktop session with software rendering fallback.
+4. Allows end-to-end testing of the **Install AxisOS** installer (GPT partitioning, Btrfs/EXT4 formatting, GRUB EFI setup).
+5. Verifies direct booting from the installed drive after reboot.
 
 ---
 
-## 💿 Building the Bootable Linux ISO
+## Building the Bootable Linux ISO
 
-> [!NOTE]
-> The full production ISO release for v2.0 is scheduled for December. However, developers can build local ISO images for testing anytime.
+The hybrid UEFI + Legacy BIOS ISO engine is driven by `os-build/scripts/build-hybrid-uefi-iso.py`:
 
-### On Linux / Debian / Ubuntu / WSL 2:
-Make sure `live-build` and `debootstrap` are installed:
 ```bash
-sudo apt-get update
-sudo apt-get install -y live-build debootstrap squashfs-tools xorriso
+sudo python3 os-build/scripts/build-hybrid-uefi-iso.py
 ```
-Execute the build script:
-```bash
-sudo ./os-build/scripts/build-iso.sh
-```
+
+### Build Pipeline:
+1. Synchronizes workspace assets into the target chroot.
+2. Compiles native desktop applications and the Wayland compositor.
+3. Generates high-compression Squashfs filesystem (`live/filesystem.squashfs`).
+4. Configures ISOLINUX (Legacy BIOS) and Microsoft-signed Shim + GRUB (UEFI Secure Boot).
+5. Assembles the hybrid ISO using `xorriso` and applies `isohybrid` partition flags.
 
 ### Output:
-The completed hybrid bootable image is generated at:
 ```
-axisos-live-amd64.iso
+axisos-v2.1-live-amd64.iso
 ```
-This image can be flashed to a USB drive via Rufus, BalenaEtcher, Ventoy, or `dd`.
+The ISO can be written to a USB drive via Rufus, BalenaEtcher, Ventoy, or `dd`.
 
 ---
 
-## ❓ Troubleshooting & FAQs
+## Troubleshooting & FAQs
 
-### 1. `GLIBC` Version Mismatch
-If compiling native binaries on a host with a newer glibc (e.g. Fedora with glibc 2.38+) targeting Debian 12 (glibc 2.36), compile the binary inside the target Debian chroot:
+### 1. Black Screen in Virtual Machines
+If running in QEMU, VirtualBox, or VMware without 3D acceleration, ensure software rendering environment variables are present:
 ```bash
-sudo chroot /path/to/chroot gcc -O2 axis_update.c -o /usr/bin/axis
+export WLR_RENDERER_ALLOW_SOFTWARE=1
+export WLR_NO_HARDWARE_CURSORS=1
+export QT_QPA_PLATFORM=wayland
 ```
 
-### 2. Port 3000 Already in Use
-If starting the daemon fails with `EADDRINUSE`:
+### 2. Missing Wayland Protocol Headers
+Protocol headers are generated automatically during the build:
 ```bash
-# Check what is using port 3000
-lsof -i :3000
-# Or kill previous daemon instance:
-pkill -f axisos-daemon.cjs
+cd compositor
+make clean all
 ```
+Ensure `wayland-scanner` is installed via `libwayland-bin` or `wayland-protocols`.
 
-### 3. Wayland Compositor (Cage) Display Issues
-When running in kiosk mode on real hardware, Cage requires access to `/dev/dri/card*` and `/dev/input/*`. Ensure the session user is a member of the `video`, `render`, and `input` groups:
-```bash
-sudo usermod -aG video,render,input $USER
+### 3. Non-Interactive Sudo Execution
+The live installer runs non-interactively. Ensure `/etc/sudoers.d/axis` contains:
+```
+axis ALL=(ALL:ALL) NOPASSWD: ALL
+Defaults secure_path="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Defaults !use_pty
+Defaults !requiretty
 ```
 
 ---
 
-## 🔗 Related Resources
+## Related Resources
 - [Installation & Deployment Guide](INSTALLATION_GUIDE.md)
+- [Installer Troubleshooting Guide](INSTALLER_TROUBLESHOOTING.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
-- [Axis Package Manager Documentation](pkg-mgr/README.md)

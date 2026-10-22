@@ -14,18 +14,18 @@
   </p>
 
   <p>
-    <a href="./INSTALLATION_GUIDE.md"><b>📖 Installation Guide</b></a> •
-    <a href="./INSTALLER_TROUBLESHOOTING.md"><b>🔧 Installer Troubleshooting</b></a> •
-    <a href="./DEVELOPMENT.md"><b>🛠️ Developer Guide</b></a> •
-    <a href="https://github.com/jackyphuti/AxisOS/releases"><b>⬇️ Download ISO</b></a> •
-    <a href="https://github.com/jackyphuti/AxisOS/issues"><b>🐛 Report Issue</b></a>
+    <a href="./INSTALLATION_GUIDE.md"><b>Installation Guide</b></a> •
+    <a href="./INSTALLER_TROUBLESHOOTING.md"><b>Installer Troubleshooting</b></a> •
+    <a href="./DEVELOPMENT.md"><b>Developer Guide</b></a> •
+    <a href="https://github.com/jackyphuti/AxisOS/releases"><b>Download ISO</b></a> •
+    <a href="https://github.com/jackyphuti/AxisOS/issues"><b>Report Issue</b></a>
   </p>
 
 </div>
 
 ---
 
-## ⚡ About AxisOS
+## About AxisOS
 
 **AxisOS** is an independent Linux distribution engineered for speed, low latency, and aesthetic precision. It completely eliminates third-party desktop shells (GNOME/KDE/XFCE) in favor of **LiquidNodesOS** — an in-house native Wayland compositor and glassmorphic graphical environment crafted in C++20 and Qt 6.
 
@@ -33,7 +33,7 @@ Powered by the Debian 12 Bookworm core and the XanMod performance kernel, AxisOS
 
 ---
 
-## 🖥️ System Specifications
+## System Specifications
 
 | Component | Specification |
 | :--- | :--- |
@@ -49,7 +49,7 @@ Powered by the Debian 12 Bookworm core and the XanMod performance kernel, AxisOS
 
 ---
 
-## 🚀 Native C++ / Qt 6 Application Suite
+## Native C++ / Qt 6 Application Suite
 
 AxisOS features zero Electron or web-wrapper overhead. All core utilities run natively on top of the Wayland compositor:
 
@@ -64,7 +64,7 @@ AxisOS features zero Electron or web-wrapper overhead. All core utilities run na
 
 ---
 
-## 🔗 Quick Links & Documentation
+## Quick Links & Documentation
 
 - **[Installation Guide](INSTALLATION_GUIDE.md)** — Step-by-step flashing, BIOS/UEFI setup, and drive partitioning guide.
 - **[Installer Troubleshooting Guide](INSTALLER_TROUBLESHOOTING.md)** — Live session credentials (`axis` / `axis`), partition wiping (`wipefs`/`sgdisk`), and installer error diagnosis.
@@ -74,6 +74,6 @@ AxisOS features zero Electron or web-wrapper overhead. All core utilities run na
 
 ---
 
-## 📄 License
+## License
 
 AxisOS is free and open-source software licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the [LICENSE](LICENSE) file for details.

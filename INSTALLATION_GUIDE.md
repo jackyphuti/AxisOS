@@ -1,8 +1,8 @@
 # AxisOS Installation & Hardware Deployment Guide
 
-Welcome to the official deployment and installation guide for **AxisOS 2.0 (Beta Edition)**.
+Welcome to the official deployment and installation guide for **AxisOS 2.1**.
 
-AxisOS is a modern, high-performance Linux operating system powered by Debian 12 (Bookworm), XanMod low-latency kernel, native Wayland / X11 desktop environments, and a responsive C++ / Qt 6 application suite. It features the **GameBoost Extreme Performance Engine**, automated Btrfs/EXT4 partition orchestration, and a seamless graphical setup experience.
+AxisOS is a modern, high-performance Linux operating system powered by Debian 12 (Bookworm), XanMod low-latency kernel, native Wayland desktop environment, and a responsive C++ / Qt 6 application suite. It features the **GameBoost Extreme Performance Engine**, automated Btrfs/EXT4 partition orchestration, and a seamless graphical setup experience.
 
 ---
 
@@ -21,14 +21,13 @@ AxisOS is a modern, high-performance Linux operating system powered by Debian 12
 
 ## 2. Creating a Bootable USB Drive
 
-Download `axisos-v2.0-live-amd64.iso` and `SHA256SUMS.txt` from the [GitHub Releases](https://github.com/jackyphuti/AxisOS/releases) page.
+Download `axisos-v2.1-live-amd64.iso` and `SHA256SUMS.txt` from the [GitHub Releases](https://github.com/jackyphuti/AxisOS/releases) page.
 
 ### Integrity Verification (Recommended):
 - **Windows (PowerShell)**:
   ```powershell
-  (Get-FileHash axisos-v2.0-live-amd64.iso -Algorithm SHA256).Hash
+  (Get-FileHash axisos-v2.1-live-amd64.iso -Algorithm SHA256).Hash
   ```
-  Expected: `04B5B9AD99D5AE63E7C4C07E9A560E77EBA9FB8D26EFBC4ED68DB7886A47D297`
 - **Linux / macOS**:
   ```bash
   sha256sum -c SHA256SUMS.txt
@@ -38,7 +37,7 @@ Download `axisos-v2.0-live-amd64.iso` and `SHA256SUMS.txt` from the [GitHub Rele
 1. Download and run [Rufus](https://rufus.ie/).
 2. Insert your USB flash drive (at least 4 GB).
 3. Under **Device**, select your USB flash drive.
-4. Under **Boot selection**, click **SELECT** and choose `axisos-v2.0-live-amd64.iso`.
+4. Under **Boot selection**, click **SELECT** and choose `axisos-v2.1-live-amd64.iso`.
 5. Under **Partition scheme**:
    - Choose **GPT** (Target system: **UEFI (non CSM)**) for modern computers.
    - Choose **MBR** (Target system: **BIOS or UEFI**) for older legacy hardware.
@@ -46,17 +45,17 @@ Download `axisos-v2.0-live-amd64.iso` and `SHA256SUMS.txt` from the [GitHub Rele
 
 ### Method B: Using BalenaEtcher (Windows, macOS, Linux)
 1. Download and launch [BalenaEtcher](https://etcher.balena.io/).
-2. Click **Flash from file** and select `axisos-v2.0-live-amd64.iso`.
+2. Click **Flash from file** and select `axisos-v2.1-live-amd64.iso`.
 3. Click **Select target** and pick your USB drive.
 4. Click **Flash!**.
 
 ### Method C: Using Ventoy (Multi-ISO USB)
 1. Install [Ventoy](https://www.ventoy.net/) onto your USB drive.
-2. Copy `axisos-v2.0-live-amd64.iso` directly onto the Ventoy USB drive partition.
+2. Copy `axisos-v2.1-live-amd64.iso` directly onto the Ventoy USB drive partition.
 
 ### Method D: Linux Terminal (`dd`)
 ```bash
-sudo dd if=axisos-v2.0-live-amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
+sudo dd if=axisos-v2.1-live-amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ```
 *(Replace `/dev/sdX` with your target USB drive, e.g. `/dev/sdb`)*
 
@@ -125,9 +124,9 @@ AxisOS features an automated graphical installer with verified drive safety chec
 
 Once installed into your drive, take advantage of built-in hardware acceleration:
 
-### ⚡ Enabling GameBoost Extreme Performance:
+### Enabling GameBoost Extreme Performance:
 1. Open **Settings** from the dock or application menu.
-2. Navigate to **⚡ Gaming Boost & Performance**.
+2. Navigate to **Gaming Boost & Performance**.
 3. Toggle the switch to **ON (Extreme Boost)**.
    - Unlocks maximum CPU turbo frequencies and pins governor to `performance`.
    - Engages peak GPU wattage, NVIDIA PowerMizer Level 1, and AMD Radeon high-performance DPM.
@@ -147,6 +146,6 @@ Once installed into your drive, take advantage of built-in hardware acceleration
 - **Q: Screen is blank / black on boot**:
   - *Fix*: Select option **3. AxisOS 2.1 (Safe Graphics Mode)** from the GRUB boot menu.
 - **Q: Can I test AxisOS without wiping my Windows drive?**:
-  - *Answer*: Yes! Boot in Live Mode from the USB. Everything runs entirely in RAM, leaving internal hard drives and partitions 100% untouched.
+  - *Answer*: Yes. Boot in Live Mode from the USB. Everything runs entirely in RAM, leaving internal hard drives and partitions untouched.
 - **Q: Installer fails during partition or drive formatting**:
   - *Fix*: Consult **[INSTALLER_TROUBLESHOOTING.md](INSTALLER_TROUBLESHOOTING.md)** for instructions on using `wipefs` and `sgdisk` to clean target drives before running `axis-installer`.

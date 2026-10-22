@@ -1,10 +1,10 @@
 # AxisOS Linux System Architecture & Build System
 
-AxisOS is a modern, responsive Linux-based operating system featuring a custom glassmorphic shell built with modern web technologies, running directly on top of the Linux kernel and Wayland compositor.
+AxisOS is a modern, responsive Linux-based operating system featuring a custom glassmorphic shell built with Qt 6 and QML, running directly on top of the Linux kernel and a native wlroots Wayland compositor.
 
 ---
 
-## 🏗️ System Architecture
+## System Architecture
 
 ```mermaid
 flowchart TD
@@ -25,38 +25,38 @@ flowchart TD
 
     subgraph Display & Graphics Layer
         Session --> Seat[seatd / logind]
-        Seat --> Compositor[Wayland Compositor (Cage / Weston)]
+        Seat --> Compositor[Wayland Compositor (axis-compositor)]
     end
 
     subgraph AxisOS Shell & User Experience
-        Compositor --> Shell[AxisOS Modern Shell (Electron / Kiosk)]
-        Shell --> Desktop[AxisOS Desktop & Window Manager]
+        Compositor --> Shell[LiquidNodes Desktop (Qt 6 / QML)]
+        Shell --> Desktop[AxisOS Desktop & Window Management]
         Shell --> Installer[AxisOS System Installer]
-        Shell --> Apps[Settings, Terminal, File Manager, Editor]
+        Shell --> Apps[Settings, Terminal, Task Manager, OOBE]
     end
 ```
 
 ---
 
-## 📂 Directory Structure
+## Directory Structure
 
-- `shell/`: The AxisOS custom Desktop Shell, Window Manager, and Installer.
-- `os-build/configs/`: System configurations (Wayland kiosk, systemd units, live-build package lists).
+- `compositor-qt/`: The AxisOS custom Desktop Shell (QML/Qt6), Window Manager, and components.
+- `compositor/`: Native C wlroots compositor (`axis-compositor`) with dynamic protocol scanner.
+- `os-build/configs/`: System configurations (Wayland session, systemd units, Polkit rules, GRUB/ISOLINUX).
+- `os-build/apps/`: Native C++ desktop applications (installer, terminal, settings, task manager).
 - `os-build/scripts/`: Build automation scripts:
-  - `build-shell.sh`: Compiles the UI shell into an optimized bundle.
-  - `build-iso.sh`: Generates a bootable hybrid ISO (`axisos-amd64.iso`) using `live-build`.
-  - `run-qemu.sh`: Launches QEMU virtual machine to test AxisOS without needing a physical USB/machine.
+  - `build-hybrid-uefi-iso.py`: Assembles a bootable dual-boot UEFI + BIOS hybrid live ISO.
+  - `compile-native-apps.sh`: Compiles C/C++ native applications.
+  - `run-qemu.sh`: Launches QEMU virtual machine for rapid OS testing.
 
 ---
 
-## 🚀 How to Test & Develop
+## How to Test & Develop
 
-### 1. Test Shell Locally (Instant Preview)
+### 1. Compile Native Applications
 ```bash
-cd shell
-npm run dev
+./os-build/scripts/compile-native-apps.sh
 ```
-Open the browser or launch the desktop preview window.
 
 ### 2. Test in QEMU VM
 ```bash
@@ -65,6 +65,6 @@ Open the browser or launch the desktop preview window.
 
 ### 3. Build Full Bootable Live ISO
 ```bash
-sudo ./os-build/scripts/build-iso.sh
+sudo python3 ./os-build/scripts/build-hybrid-uefi-iso.py
 ```
-The resulting ISO can be burned to a USB drive with `dd` or Rufus, or booted in VirtualBox/VMware/QEMU.
+The resulting ISO can be written to a USB drive with `dd`, BalenaEtcher, Ventoy, or Rufus, or booted in VirtualBox/VMware/QEMU.
