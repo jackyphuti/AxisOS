@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 <div align="center">
 
   <img src="data/branding/axisos-logo.svg" alt="AxisOS" width="420" />
@@ -10,6 +12,7 @@
     <img src="https://img.shields.io/badge/Architecture-x86__64-informational?style=flat-square" alt="Arch">
     <img src="https://img.shields.io/badge/Compositor-LiquidNodes%20Wayland-00F2FE?style=flat-square" alt="LiquidNodes Wayland">
     <img src="https://img.shields.io/badge/UI%20Stack-Qt%206%20%2F%20C%2B%2B%20%2F%20QML-8B5CF6?style=flat-square" alt="Qt 6 QML">
+    <img src="https://img.shields.io/badge/Typography-IBM%20Plex%20Sans%20%26%20Mono-1428A0?style=flat-square" alt="IBM Plex Typography">
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-green?style=flat-square" alt="License"></a>
   </p>
 
@@ -29,7 +32,7 @@
 
 **AxisOS** is an independent Linux distribution engineered for speed, low latency, and aesthetic precision. It completely eliminates third-party desktop shells (GNOME/KDE/XFCE) in favor of **LiquidNodesOS** — an in-house native Wayland compositor and glassmorphic graphical environment crafted in C++20 and Qt 6.
 
-Powered by the Debian 12 Bookworm core and the XanMod performance kernel, AxisOS brings an organic glassmorphic interface, spring physics, per-app Btrfs rewind checkpoints, and focus-driven kernel boosting.
+Powered by the Debian 12 Bookworm core and the XanMod performance kernel, AxisOS brings an organic glassmorphic interface, spring physics, per-app Btrfs rewind checkpoints, and focus-driven kernel boosting. System typography is standardized on **IBM Plex Sans** and **IBM Plex Mono**, aligning with the official Linux Kernel documentation design language.
 
 ---
 
@@ -41,6 +44,7 @@ Powered by the Debian 12 Bookworm core and the XanMod performance kernel, AxisOS
 | **Linux Kernel** | XanMod Realtime / Performance Linux Kernel (`linux-image-xanmod-x64v3`) |
 | **Display Server & Compositor** | Native Qt 6 Wayland Compositor (`LiquidNodesOS`) with XDG-Shell & hardware acceleration |
 | **Desktop Shell** | Glassmorphic LiquidNodes UI (Unified Top Bar, Floating Prism Dock, App Launchpad, Biometric PAM Lock Screen) |
+| **System Typography** | IBM Plex Sans (Prose & UI) and IBM Plex Mono (Code & Terminal) |
 | **Audio Server** | PipeWire + WirePlumber pro-audio stack |
 | **Graphics & Compute** | Mesa RADV (AMD ACO), Intel Arc ANV, NVIDIA PRIME offload, Vulkan, VA-API hardware decoding |
 | **Default Shell** | GNU Bash with modern interactive completions |
@@ -56,7 +60,7 @@ AxisOS features zero Electron or web-wrapper overhead. All core utilities run na
 - **LiquidNodes Compositor (`LiquidNodesOS`)**: Bespoke Wayland display server featuring organic jelly window physics, live Bezier window piping, and integrated biometric login.
 - **Settings (`axis-settings`)**: Dedicated AxisOS Settings control center featuring system hardware specs, OTA software updates, and the OS Edition switcher (Home & Gaming, Enterprise, Work & School).
 - **GameBoost (`axis-game-boost`)**: Dedicated hardware acceleration daemon and CLI utility optimizing CPU governors, GPU clocks, memory maps, and `gamemoded`.
-- **Terminal (`axis-terminal`)**: Ultra-low-latency PTY terminal emulator powered by `libvterm` and OpenGL rendering.
+- **Terminal (`axis-terminal`)**: Ultra-low-latency PTY terminal emulator powered by `libvterm`, OpenGL rendering, and styled with IBM Plex Mono.
 - **Installer (`axis-installer`)**: High-reliability graphical system installer supporting automated Btrfs/EXT4 disk partitioning, user creation, dynamic device node polling, and GRUB EFI setup.
 - **Software Center (`axis-software-manager`)**: Native package manager front-end for APT and Flatpak.
 - **Welcome Center (`axis-welcome`)**: Out-of-the-box system setup, driver verification, and onboarding.
@@ -77,3 +81,5 @@ AxisOS features zero Electron or web-wrapper overhead. All core utilities run na
 ## License
 
 AxisOS is free and open-source software licensed under the **GNU General Public License v3.0 (GPL-3.0)**. See the [LICENSE](LICENSE) file for details.
+
+</div>

@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # Security Policy
 
 The AxisOS team takes the security of our operating system, desktop shell, system daemons, and package management infrastructure very seriously. We appreciate the efforts of the security research community and open-source contributors in helping keep AxisOS secure.
@@ -58,3 +60,6 @@ We adhere to coordinated vulnerability disclosure best practices:
 - **Packaging (`axis`)**: Package archives are checked for filesystem containment and cryptographic checksums prior to installation.
 
 Thank you for helping us keep AxisOS secure for everyone!
+
+</div>
+

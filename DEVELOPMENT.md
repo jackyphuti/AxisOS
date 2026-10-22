@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # AxisOS Development & Build Guide
 
 Welcome to the development guide for **AxisOS**. This document provides detailed instructions on setting up your local environment, developing the native Wayland compositor and Qt 6 desktop shell, compiling native C++ applications, and generating bootable hybrid UEFI/BIOS ISOs.
@@ -190,3 +192,5 @@ Defaults !requiretty
 - [Installation & Deployment Guide](INSTALLATION_GUIDE.md)
 - [Installer Troubleshooting Guide](INSTALLER_TROUBLESHOOTING.md)
 - [Contributing Guidelines](CONTRIBUTING.md)
+
+</div>

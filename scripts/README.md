@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # AxisOS Codebase Scanner
 
 `scan-codebase.sh` is a read-only helper for finding common syntax and
@@ -82,3 +84,5 @@ fi
 Each check is shown as `OK`, `FAILED`, or `SKIPPED`. Failed checks include the
 diagnostic output from the relevant tool. The summary at the end reports the
 number of performed checks, skipped checks, and failures.
+
+</div>

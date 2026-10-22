@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # AxisOS Installation & Hardware Deployment Guide
 
 Welcome to the official deployment and installation guide for **AxisOS 2.1**.
@@ -149,3 +151,6 @@ Once installed into your drive, take advantage of built-in hardware acceleration
   - *Answer*: Yes. Boot in Live Mode from the USB. Everything runs entirely in RAM, leaving internal hard drives and partitions untouched.
 - **Q: Installer fails during partition or drive formatting**:
   - *Fix*: Consult **[INSTALLER_TROUBLESHOOTING.md](INSTALLER_TROUBLESHOOTING.md)** for instructions on using `wipefs` and `sgdisk` to clean target drives before running `axis-installer`.
+
+</div>
+

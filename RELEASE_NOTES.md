@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # AxisOS 2.1 — Live Hybrid ISO (Community Testing & Feedback Edition)
 
 Welcome to the latest community testing release of **AxisOS 2.1**! This bootable live ISO includes the unified desktop environment, genuine hardware telemetry HUD, automatic remote OTA updates with atomic rollback snapshots, and full hybrid boot support.
@@ -64,3 +66,6 @@ Please test and let us know your findings:
 - Overall desktop fluidity
 
 Open issues and share feedback at [GitHub Issues](https://github.com/jackyphuti/AxisOS/issues) or [Discussions](https://github.com/jackyphuti/AxisOS/discussions)!
+
+</div>
+

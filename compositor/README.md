@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # AxisOS Native wlroots Wayland Compositor (Nobara Edition)
 
 `axis-compositor` is a native, GPU-accelerated Wayland display server and window manager built directly with `wlroots` and `wlr_scene`.
@@ -58,3 +60,6 @@ The compositor follows the official wlroots 6-step initialization pipeline:
 make
 sudo make install
 ```
+
+</div>
+

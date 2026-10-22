@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # AxisOS Installer & Partitioning Troubleshooting Guide
 
 This guide provides troubleshooting steps, diagnostic procedures, and manual disk preparation instructions for resolving installation and partition issues in **AxisOS 2.1**.
@@ -188,3 +190,6 @@ Once AxisOS finishes installing to disk and you reboot into the installed system
   ```bash
   axis-sysupgrade
   ```
+
+</div>
+

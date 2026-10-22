@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # Contributing to AxisOS
 
 Thank you for your interest in contributing to **AxisOS**!
@@ -228,3 +230,5 @@ If you discover a bug or have a feature idea:
 - **Issue Tracker**: Submit feature requests, bug reports, and hardware compatibility feedback.
 
 Thank you for helping make AxisOS the best desktop Linux experience possible!
+
+</div>

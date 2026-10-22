@@ -1,3 +1,5 @@
+<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+
 # AxisOS Linux System Architecture & Build System
 
 AxisOS is a modern, responsive Linux-based operating system featuring a custom glassmorphic shell built with Qt 6 and QML, running directly on top of the Linux kernel and a native wlroots Wayland compositor.
@@ -68,3 +70,6 @@ flowchart TD
 sudo python3 ./os-build/scripts/build-hybrid-uefi-iso.py
 ```
 The resulting ISO can be written to a USB drive with `dd`, BalenaEtcher, Ventoy, or Rufus, or booted in VirtualBox/VMware/QEMU.
+
+</div>
+
