@@ -167,9 +167,13 @@ static void handle_usb_device(struct udev_device *dev, const char *action) {
 
 static void handle_block_device(struct udev_device *dev, const char *action) {
     const char *fs_usage = udev_device_get_property_value(dev, "ID_FS_USAGE");
+    const char *id_bus = udev_device_get_property_value(dev, "ID_BUS");
+    const char *usb_driver = udev_device_get_property_value(dev, "ID_USB_DRIVER");
     const char *devnode = udev_device_get_devnode(dev);
 
     if (!devnode || strncmp(devnode, "/dev/", 5) != 0) return;
+    /* Strictly ignore internal SATA/NVMe/virtio block devices — only mount actual USB storage */
+    if ((!id_bus || strcmp(id_bus, "usb") != 0) && !usb_driver) return;
 
     if (fs_usage && strcmp(fs_usage, "filesystem") == 0 && strcmp(action, "add") == 0) {
         const char *raw_label = udev_device_get_property_value(dev, "ID_FS_LABEL");

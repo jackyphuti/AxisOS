@@ -11,7 +11,7 @@ echo "=================================================="
 
 # Step 1: Build the AxisOS Shell bundle
 echo "[1/4] Building AxisOS Desktop Shell..."
-"$SCRIPT_DIR/build-shell.sh"
+echo "Skipping legacy web shell; using native C++20/Qt6 LiquidNodesOS"
 
 # Step 2: Prepare workspace
 echo "[2/4] Setting up build workspace in $BUILD_DIR..."

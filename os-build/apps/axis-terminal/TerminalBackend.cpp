@@ -90,7 +90,7 @@ void TerminalBackend::applyLiquidNodesPalette()
     vterm_state_set_default_colors(state, &defFg, &defBg);
 }
 
-bool TerminalBackend::startShell(const QString &shellProgram)
+bool TerminalBackend::startShell(const QString &shellProgram, const QString &command)
 {
     closeShell();
 
@@ -116,6 +116,13 @@ bool TerminalBackend::startShell(const QString &shellProgram)
 
         QByteArray progBytes = shellProgram.toUtf8();
         const char *prog = progBytes.constData();
+
+        if (!command.trimmed().isEmpty()) {
+            QByteArray cmdBytes = command.toUtf8();
+            execl(prog, prog, "-c", cmdBytes.constData(), nullptr);
+            execl("/bin/sh", "/bin/sh", "-c", cmdBytes.constData(), nullptr);
+            _exit(127);
+        }
 
         execl(prog, prog, "-i", nullptr);
 

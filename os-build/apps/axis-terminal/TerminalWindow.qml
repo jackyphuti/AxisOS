@@ -19,7 +19,7 @@ Window {
     TerminalBackend {
         id: terminalBackend
         Component.onCompleted: {
-            startShell("/bin/bash");
+            startShell("/bin/bash", (typeof StartupCommand !== "undefined") ? StartupCommand : "");
         }
         onShellExited: (code) => {
             rootWindow.close();

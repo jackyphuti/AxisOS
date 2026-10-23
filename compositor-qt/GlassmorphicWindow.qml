@@ -12,6 +12,38 @@ Item {
     property bool isMaximized: false
     property real savedX: 0
     property real savedY: 0
+    property real savedW: 900
+    property real savedH: 600
+
+    function toggleMaximizeWindow() {
+        if (!windowRoot.isMaximized) {
+            windowRoot.savedX = windowRoot.x;
+            windowRoot.savedY = windowRoot.y;
+            windowRoot.savedW = shellItem.width > 0 ? shellItem.width : 900;
+            windowRoot.savedH = shellItem.height > 0 ? shellItem.height : 600;
+            windowRoot.isMaximized = true;
+            windowRoot.x = 8;
+            windowRoot.y = 8;
+            if (windowRoot.parent) {
+                var targetW = windowRoot.parent.width - 16;
+                var targetH = windowRoot.parent.height - 16;
+                windowRoot.width = targetW;
+                windowRoot.height = targetH;
+                if (windowRoot.toplevel) {
+                    windowRoot.toplevel.sendMaximized(Qt.size(targetW - 16, targetH - 56));
+                }
+            }
+        } else {
+            windowRoot.isMaximized = false;
+            windowRoot.x = windowRoot.savedX;
+            windowRoot.y = windowRoot.savedY;
+            if (windowRoot.toplevel) {
+                windowRoot.toplevel.sendUnmaximized(Qt.size(windowRoot.savedW, windowRoot.savedH));
+            }
+            windowRoot.width = Qt.binding(function() { return shellItem.width + 16; });
+            windowRoot.height = Qt.binding(function() { return shellItem.height + 56; });
+        }
+    }
 
     width: shellItem.width + 16
     height: shellItem.height + 56
@@ -220,23 +252,7 @@ Item {
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
                             onClicked: {
-                                if (!windowRoot.isMaximized) {
-                                    windowRoot.savedX = windowRoot.x;
-                                    windowRoot.savedY = windowRoot.y;
-                                    windowRoot.isMaximized = true;
-                                    windowRoot.x = 8;
-                                    windowRoot.y = 44;
-                                    if (windowRoot.parent) {
-                                        windowRoot.width = windowRoot.parent.width - 16;
-                                        windowRoot.height = windowRoot.parent.height - 52 - 68;
-                                    }
-                                } else {
-                                    windowRoot.isMaximized = false;
-                                    windowRoot.x = windowRoot.savedX;
-                                    windowRoot.y = windowRoot.savedY;
-                                    windowRoot.width = shellItem.width + 16;
-                                    windowRoot.height = shellItem.height + 56;
-                                }
+                                windowRoot.toggleMaximizeWindow();
                             }
                         }
                     }
@@ -278,23 +294,7 @@ Item {
                 }
 
                 onDoubleClicked: {
-                    if (!windowRoot.isMaximized) {
-                        windowRoot.savedX = windowRoot.x;
-                        windowRoot.savedY = windowRoot.y;
-                        windowRoot.isMaximized = true;
-                        windowRoot.x = 8;
-                        windowRoot.y = 44;
-                        if (windowRoot.parent) {
-                            windowRoot.width = windowRoot.parent.width - 16;
-                            windowRoot.height = windowRoot.parent.height - 52 - 68;
-                        }
-                    } else {
-                        windowRoot.isMaximized = false;
-                        windowRoot.x = windowRoot.savedX;
-                        windowRoot.y = windowRoot.savedY;
-                        windowRoot.width = shellItem.width + 16;
-                        windowRoot.height = shellItem.height + 56;
-                    }
+                    windowRoot.toggleMaximizeWindow();
                 }
             }
         }

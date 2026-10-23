@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
 # AxisOS FastBoot Hotfix & Performance Patch
 # Resolves slow boot delays (60-90s hangs) on installed AxisOS machines without
@@ -16,7 +16,7 @@ echo "=================================================="
 echo "   AxisOS Instant FastBoot Hotfix (OTA Update)    "
 echo "=================================================="
 
-# 1. Fix axisos-session.service (remove plymouth timeout stall and add PAM login)
+# 1. Fix axisos-session.service (ensure QT_QPA_PLATFORM is NOT set to wayland on root compositor)
 echo "--> Optimizing graphical session service..."
 CURRENT_USER=$(id -un 1000 2>/dev/null || who | awk '{print $1}' | head -n1 || echo "axis")
 if [ -z "$CURRENT_USER" ] || [ "$CURRENT_USER" = "root" ]; then
@@ -25,7 +25,7 @@ fi
 
 cat << EOF > /etc/systemd/system/axisos-session.service
 [Unit]
-Description=AxisOS Desktop Environment
+Description=AxisOS LiquidNodes Desktop Environment
 After=systemd-user-sessions.service seatd.service
 Wants=seatd.service
 Conflicts=getty@tty1.service
@@ -34,13 +34,16 @@ After=getty@tty1.service
 [Service]
 Type=simple
 User=${CURRENT_USER}
+Group=${CURRENT_USER}
 PAMName=login
 WorkingDirectory=/home/${CURRENT_USER}
 Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_CURRENT_DESKTOP=AxisOS-LiquidNodes
-Environment=WAYLAND_DISPLAY=wayland-0
-Environment=QT_QPA_PLATFORM=wayland
+Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
+Environment=WLR_NO_HARDWARE_CURSORS=1
 Environment=LIBSEAT_BACKEND=seatd
+Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStartPre=/bin/sh -c 'mkdir -p /run/user/1000 && chown ${CURRENT_USER}:${CURRENT_USER} /run/user/1000 && chmod 0700 /run/user/1000'
 ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=on-failure
 RestartSec=2
@@ -48,8 +51,9 @@ StandardInput=tty
 StandardOutput=journal
 StandardError=journal
 TTYPath=/dev/tty1
-TTYReset=no
-TTYVHangup=no
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
 
 [Install]
 WantedBy=graphical.target
@@ -72,7 +76,6 @@ systemctl enable seatd.service 2>/dev/null || true
 # 4. Patch /etc/fstab swap timeout (prevent 90s swap device discovery timeout)
 echo "--> Tuning filesystem and swap mount timeouts..."
 if [ -f /etc/fstab ]; then
-    # Replace bare 'sw' with 'defaults,nofail,x-systemd.device-timeout=5s' on swap entries
     sed -i -E 's/(\s+swap\s+)sw(\s+)/\1defaults,nofail,x-systemd.device-timeout=5s\2/g' /etc/fstab
 fi
 

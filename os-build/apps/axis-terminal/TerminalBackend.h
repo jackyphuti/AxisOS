@@ -39,7 +39,7 @@ public:
     explicit TerminalBackend(int rows = 24, int cols = 80, QObject *parent = nullptr);
     ~TerminalBackend() override;
 
-    bool startShell(const QString &shellProgram = QStringLiteral("/bin/bash"));
+    Q_INVOKABLE bool startShell(const QString &shellProgram = QStringLiteral("/bin/bash"), const QString &command = QString());
     void closeShell();
 
     int rows() const { return m_rows; }

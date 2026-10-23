@@ -826,24 +826,7 @@ for dup_d in [
         except Exception:
             pass
 
-# Deploy AxisOS-branded org.gnome.Settings.desktop override (adds Desktop Actions for AxisOS panels)
-gnome_settings_override = os.path.join(workspace_dir, "os-build", "configs", "gnome", "org.gnome.Settings.desktop")
-if os.path.exists(gnome_settings_override):
-    dst_settings = os.path.join(apps_menu_dir, "org.gnome.Settings.desktop")
-    copy_text_lf(gnome_settings_override, dst_settings, 0o644)
-    print("    Deployed org.gnome.Settings.desktop override with AxisOS panel Actions")
-
-# Deploy GNOME Settings panel search integration files
-for p_desk in [
-    "axis-health-panel.desktop",
-    "axis-gaming-panel.desktop",
-    "axis-biometrics-panel.desktop",
-    "axis-signature-panel.desktop",
-]:
-    p_src = os.path.join(workspace_dir, "os-build", "configs", "gnome", p_desk)
-    if os.path.exists(p_src):
-        copy_text_lf(p_src, os.path.join(apps_menu_dir, p_desk), 0o644)
-        print(f"    Deployed GNOME Settings panel search entry: {p_desk}")
+# Native axis-settings is the sole Settings app; no GNOME Control Center overrides deployed
 
 # Deploy axisos-settings-panel symlink or forwarder to axis-settings
 panel_src = os.path.join(apps_dir, "axis-settings", "axis-settings")

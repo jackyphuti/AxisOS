@@ -4,6 +4,7 @@
 #include <QQuickWindow>
 #include <QIcon>
 #include <QUrl>
+#include <QStringList>
 #include <QDebug>
 
 #include "TerminalBackend.h"
@@ -11,10 +12,7 @@
 
 int main(int argc, char *argv[])
 {
-    // Automatically detect and support hardware acceleration, with graceful
-    // fallback to software rasterizer in VirtualBox / QEMU / VMs.
     if (qEnvironmentVariableIsEmpty("QSG_RHI_PREFER_SOFTWARE_RENDERER")) {
-        // Allow Qt Quick to fall back to software renderer if GPU initialization fails
         qputenv("QSG_RHI_PREFER_SOFTWARE_RENDERER", "0");
     }
     qputenv("QSG_INFO", "1");
@@ -22,17 +20,26 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("axis-terminal"));
     app.setOrganizationName(QStringLiteral("AxisOS"));
-    app.setApplicationVersion(QStringLiteral("2.0.0"));
+    app.setApplicationVersion(QStringLiteral("2.1.0"));
     app.setWindowIcon(QIcon::fromTheme(QStringLiteral("utilities-terminal")));
 
-    // Enable transparent alpha buffer for frosted glassmorphism
+    // Parse optional -e / --command flags passed by launchers or scripts
+    QString startupCommand;
+    const QStringList args = app.arguments();
+    for (int i = 1; i < args.size(); ++i) {
+        if ((args[i] == QStringLiteral("-e") || args[i] == QStringLiteral("--command") || args[i] == QStringLiteral("-c")) && i + 1 < args.size()) {
+            startupCommand = args.mid(i + 1).join(QLatin1Char(' '));
+            break;
+        }
+    }
+
     QQuickWindow::setDefaultAlphaBuffer(true);
 
-    // Register native C++ QQuickItem & Backend with QML engine
     qmlRegisterType<TerminalScreenItem>("AxisTerminal", 1, 0, "TerminalScreenItem");
     qmlRegisterType<TerminalBackend>("AxisTerminal", 1, 0, "TerminalBackend");
 
     QQmlApplicationEngine engine;
+    engine.rootContext()->setContextProperty(QStringLiteral("StartupCommand"), startupCommand);
 
     const QUrl url(u"qrc:/AxisTerminal/TerminalWindow.qml"_qs);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
