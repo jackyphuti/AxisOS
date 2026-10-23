@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import AxisWelcome
 
 ApplicationWindow {
     id: root
@@ -14,17 +15,17 @@ ApplicationWindow {
     color: "transparent"
     flags: Qt.Window | Qt.FramelessWindowHint
 
-    // One UI Design System Color Tokens
-    readonly property color cBg: "#F4F6FB"
-    readonly property color cCardBg: "#FFFFFF"
-    readonly property color cCardHover: "#E6EBFF"
-    readonly property color cBorder: "#E5E7EE"
-    readonly property color cBorderHover: "#1428A0"
-    readonly property color cAccentTeal: "#1428A0"
-    readonly property color cAccentViolet: "#1428A0"
-    readonly property color cTextMain: "#1C1C1E"
-    readonly property color cTextMuted: "#6B6F7B"
-    readonly property color cSuccess: "#2BB673"
+    // Unified AxisOS One UI Design System Color Tokens
+    readonly property color cBg: Theme.surface
+    readonly property color cCardBg: Theme.surfaceAlt
+    readonly property color cCardHover: Theme.accentSoft
+    readonly property color cBorder: Theme.divider
+    readonly property color cBorderHover: Theme.accent
+    readonly property color cAccentTeal: Theme.accent
+    readonly property color cAccentViolet: Theme.accent
+    readonly property color cTextMain: Theme.textPrimary
+    readonly property color cTextMuted: Theme.textSecondary
+    readonly property color cSuccess: Theme.success
 
     // Window Dragging
     MouseArea {
@@ -61,7 +62,7 @@ ApplicationWindow {
             anchors.left: parent.left
             anchors.right: parent.right
             height: 2
-            color: "#1428A0"
+            color: Theme.accent
         }
 
         ColumnLayout {
@@ -112,7 +113,7 @@ ApplicationWindow {
                     Layout.preferredHeight: 26
                     Layout.preferredWidth: 120
                     radius: 13
-                    color: "#2A1838"
+                    color: Theme.accentSoft
                     border.color: root.cAccentViolet
                     border.width: 1
 
@@ -127,7 +128,7 @@ ApplicationWindow {
                         }
                         Text {
                             text: "LIVE ENVIRONMENT"
-                            color: "#D8B4FE"
+                            color: Theme.accent
                             font.pixelSize: 9
                             font.bold: true
                         }
@@ -139,7 +140,7 @@ ApplicationWindow {
                     Layout.preferredWidth: 32
                     Layout.preferredHeight: 32
                     radius: 8
-                    color: closeHover.hovered ? "#EF4444" : "#1B2030"
+                    color: closeHover.hovered ? Theme.danger : Theme.surfaceAlt
                     Behavior on color { ColorAnimation { duration: 150 } }
 
                     Text {
@@ -337,7 +338,7 @@ ApplicationWindow {
                                         Layout.preferredHeight: 8
                                         height: 8
                                         radius: 4
-                                        color: "#23283B"
+                                        color: Theme.base
                                         Rectangle {
                                             width: parent.width * Math.min(1.0, Math.max(0.0, WelcomeBackend.ramPercent / 100.0))
                                             height: parent.height
@@ -386,7 +387,7 @@ ApplicationWindow {
                                         Layout.preferredHeight: 8
                                         height: 8
                                         radius: 4
-                                        color: "#23283B"
+                                        color: Theme.base
                                         Rectangle {
                                             width: WelcomeBackend.zramTotalGb > 0 ? (parent.width * Math.min(1.0, Math.max(0.0, WelcomeBackend.zramUsedGb / WelcomeBackend.zramTotalGb))) : 0
                                             height: parent.height
@@ -483,7 +484,7 @@ ApplicationWindow {
                                         Layout.preferredWidth: 48
                                         Layout.preferredHeight: 48
                                         radius: 10
-                                        color: "#182A3A"
+                                        color: Theme.accentSoft
                                         Text { anchors.centerIn: parent; text: "⚡"; font.pixelSize: 22 }
                                     }
 
@@ -521,7 +522,7 @@ ApplicationWindow {
                                         Layout.preferredWidth: 48
                                         Layout.preferredHeight: 48
                                         radius: 10
-                                        color: "#2C1838"
+                                        color: Theme.accentSoft
                                         Text { anchors.centerIn: parent; text: "📦"; font.pixelSize: 22 }
                                     }
 
@@ -559,7 +560,7 @@ ApplicationWindow {
                                         Layout.preferredWidth: 48
                                         Layout.preferredHeight: 48
                                         radius: 10
-                                        color: "#183228"
+                                        color: Theme.accentSoft
                                         Text { anchors.centerIn: parent; text: "⚙️"; font.pixelSize: 22 }
                                     }
 
@@ -597,7 +598,7 @@ ApplicationWindow {
                                         Layout.preferredWidth: 48
                                         Layout.preferredHeight: 48
                                         radius: 10
-                                        color: "#16331C"
+                                        color: Theme.accentSoft
                                         Text { anchors.centerIn: parent; text: "🎮"; font.pixelSize: 22 }
                                     }
 
@@ -625,7 +626,7 @@ ApplicationWindow {
                                 Layout.preferredHeight: 52
                                 Layout.minimumHeight: 52
                                 radius: 8
-                                color: WelcomeBackend.gameModeActive ? "#164E63" : root.cCardBg
+                                color: WelcomeBackend.gameModeActive ? Theme.accentSoft : root.cCardBg
                                 border.color: WelcomeBackend.gameModeActive ? root.cAccentTeal : root.cBorder
 
                                 RowLayout {
@@ -732,7 +733,7 @@ ApplicationWindow {
                                     Text {
                                         anchors.centerIn: parent
                                         text: WelcomeBackend.isLiveSession ? "Launch AxisOS Disk Installer" : "✓ AxisOS Is Installed and Active"
-                                        color: WelcomeBackend.isLiveSession ? "#05070A" : "#FFFFFF"
+                                        color: "#FFFFFF"
                                         font.bold: true
                                         font.pixelSize: 14
                                     }
@@ -858,7 +859,7 @@ ApplicationWindow {
                             visible: WelcomeBackend.showOnStartup
                             anchors.centerIn: parent
                             text: "✓"
-                            color: "#05070A"
+                            color: "#FFFFFF"
                             font.bold: true
                             font.pixelSize: 11
                         }

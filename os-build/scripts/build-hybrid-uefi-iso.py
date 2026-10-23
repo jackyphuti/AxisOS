@@ -219,10 +219,12 @@ Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=always
 RestartSec=3
-StandardInput=null
+StandardInput=tty
 StandardOutput=journal
 StandardError=journal
 TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
 
 [Install]
 WantedBy=graphical.target
@@ -339,12 +341,10 @@ if os.path.exists(apps_dir):
     ]:
         app_bin = os.path.join(apps_dir, app_name, app_name)
         if not os.path.exists(app_bin):
-            app_bin = os.path.join(apps_dir, app_name, f"{app_name}.py")
+            py_candidate = os.path.join(apps_dir, app_name, f"{app_name}.py")
+            if os.path.exists(py_candidate):
+                app_bin = py_candidate
         app_desktop = os.path.join(apps_dir, app_name, f"{app_name}.desktop")
-        # Prefer .py implementation for GTK3 apps so stale Qt6 binaries never break launch
-        py_candidate = os.path.join(apps_dir, app_name, f"{app_name}.py")
-        if app_name in ["axis-terminal", "axis-welcome", "nobara-welcome", "axis-settings", "axis-package-installer", "axis-scheduler-manager", "axis-oobe"] and os.path.exists(py_candidate):
-            app_bin = py_candidate
         if os.path.exists(app_bin):
             for bin_sub in [("usr", "local", "bin"), ("usr", "bin")]:
                 dst = os.path.join(chroot_dir, *bin_sub, app_name)
@@ -845,8 +845,12 @@ for p_desk in [
         copy_text_lf(p_src, os.path.join(apps_menu_dir, p_desk), 0o644)
         print(f"    Deployed GNOME Settings panel search entry: {p_desk}")
 
-# Deploy axisos-settings-panel helper (replaces standalone axis-settings)
-panel_src = os.path.join(apps_dir, "axis-settings", "axis-settings.py")
+# Deploy axisos-settings-panel symlink or forwarder to axis-settings
+panel_src = os.path.join(apps_dir, "axis-settings", "axis-settings")
+if not os.path.exists(panel_src):
+    panel_src = os.path.join(apps_dir, "axis-settings", "axisos-settings-panel")
+if not os.path.exists(panel_src):
+    panel_src = os.path.join(apps_dir, "axis-settings", "axis-settings.py")
 if os.path.exists(panel_src):
     panel_dst = os.path.join(chroot_dir, "usr", "local", "bin", "axisos-settings-panel")
     copy_binary_or_text(panel_src, panel_dst, 0o755)

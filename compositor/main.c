@@ -238,7 +238,7 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 
 	/* Super + Return or Super + T: Terminal */
 	if (is_super && (sym == XKB_KEY_Return || sym == XKB_KEY_KP_Enter || sym == XKB_KEY_t || sym == XKB_KEY_T)) {
-		spawn_command("foot &");
+		spawn_command("axis-terminal &");
 		return true;
 	}
 
@@ -910,6 +910,13 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 	wl_list_insert(&server->outputs, &output->link);
 
 	wlr_output_layout_add_auto(server->output_layout, wlr_output);
+
+	/* Create solid AxisOS One UI Dark (#141826) base rectangle so screen is never blank before clients map */
+	float bg_color[4] = { 0x14 / 255.0f, 0x18 / 255.0f, 0x26 / 255.0f, 1.0f };
+	struct wlr_scene_rect *bg_rect = wlr_scene_rect_create(&server->scene->node, wlr_output->width, wlr_output->height, bg_color);
+	if (bg_rect) {
+		wlr_scene_node_lower_to_bottom(&bg_rect->node);
+	}
 
 	/* Trigger initial frame render so monitor does not remain in power-saving / black state */
 	struct wlr_scene_output *scene_output = wlr_scene_get_scene_output(server->scene, wlr_output);

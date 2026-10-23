@@ -66,7 +66,7 @@ Item {
     // Soft airy backdrop blur
     Rectangle {
         anchors.fill: parent
-        color: Theme.isDark ? "#990A0B0D" : "#4D000000"
+        color: Theme.glassTint
 
         MouseArea {
             anchors.fill: parent
@@ -190,7 +190,7 @@ Item {
                         onPaint: {
                             var ctx = getContext("2d");
                             ctx.reset();
-                            ctx.strokeStyle = "#6B6F7B";
+                            ctx.strokeStyle = Theme.textSecondary.toString();
                             ctx.lineWidth = 1.75;
                             ctx.lineCap = "round";
 
@@ -221,7 +221,7 @@ Item {
                             anchors.fill: parent
                             verticalAlignment: Text.AlignVCenter
                             text: "Search apps, tools, settings..."
-                            color: "#9EA3B5"
+                            color: Theme.textSecondary
                             font.pixelSize: 14
                             font.family: "Inter, -apple-system, system-ui, sans-serif"
                             visible: !searchInput.text && !searchInput.activeFocus

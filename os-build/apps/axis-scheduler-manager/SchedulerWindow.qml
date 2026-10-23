@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import AxisSchedulerManager
 
 Window {
     id: rootWindow
@@ -19,9 +20,9 @@ Window {
         id: windowFrame
         anchors.fill: parent
         radius: 18
-        color: "#E6080B10"
+        color: Theme.surface
         border.width: 1
-        border.color: "#283446"
+        border.color: Theme.divider
 
         // Cyber-Teal Ambient Glow
         Rectangle {
@@ -29,7 +30,7 @@ Window {
             radius: parent.radius
             color: "transparent"
             border.width: 1
-            border.color: "#3300F2FE"
+            border.color: Theme.specularBorder
             opacity: 0.8
         }
 
@@ -43,7 +44,7 @@ Window {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 46
-                color: "#CC0E141E"
+                color: Theme.surfaceAlt
                 radius: 18
 
                 Rectangle {
@@ -67,15 +68,15 @@ Window {
                     RowLayout {
                         spacing: 8
                         Rectangle {
-                            width: 12; height: 12; radius: 6; color: "#FF007A"
+                            width: 12; height: 12; radius: 6; color: Theme.danger
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: rootWindow.close() }
                         }
                         Rectangle {
-                            width: 12; height: 12; radius: 6; color: "#FFD600"
+                            width: 12; height: 12; radius: 6; color: Theme.warning
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: rootWindow.showMinimized() }
                         }
                         Rectangle {
-                            width: 12; height: 12; radius: 6; color: "#00FF9D"
+                            width: 12; height: 12; radius: 6; color: Theme.success
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
@@ -91,12 +92,12 @@ Window {
                             text: "Kernel Scheduler Manager"
                             font.pixelSize: 14
                             font.weight: Font.DemiBold
-                            color: "#F8FAFC"
+                            color: Theme.textPrimary
                         }
                         Text {
                             text: "• sched-ext (SCX) & XanMod Engine"
                             font.pixelSize: 12
-                            color: "#00F2FE"
+                            color: Theme.accent
                         }
                     }
 
@@ -105,22 +106,22 @@ Window {
                         Layout.preferredWidth: 140
                         Layout.preferredHeight: 24
                         radius: 12
-                        color: "#16202E"
+                        color: Theme.surfaceElevated
                         border.width: 1
-                        border.color: SchedulerBackend.isRunning ? "#00F2FE" : "#334155"
+                        border.color: SchedulerBackend.isRunning ? Theme.accent : Theme.divider
 
                         RowLayout {
                             anchors.centerIn: parent
                             spacing: 6
                             Rectangle {
                                 width: 8; height: 8; radius: 4
-                                color: SchedulerBackend.isRunning ? "#00FF9D" : "#64748B"
+                                color: SchedulerBackend.isRunning ? Theme.success : Theme.textSecondary
                             }
                             Text {
                                 text: SchedulerBackend.isRunning ? "SCX ACTIVE" : "STANDARD CFS"
                                 font.pixelSize: 10
                                 font.weight: Font.Bold
-                                color: SchedulerBackend.isRunning ? "#00FF9D" : "#94A3B8"
+                                color: SchedulerBackend.isRunning ? Theme.success : Theme.textSecondary
                             }
                         }
                     }
@@ -140,20 +141,20 @@ Window {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 84
                     radius: 14
-                    color: "#0F1622"
+                    color: Theme.surfaceAlt
                     border.width: 1
-                    border.color: "#243248"
+                    border.color: Theme.divider
 
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 4
-                        Text { text: "ACTIVE SCHEDULER"; font.pixelSize: 10; font.weight: Font.Bold; color: "#64748B" }
+                        Text { text: "ACTIVE SCHEDULER"; font.pixelSize: 10; font.weight: Font.Bold; color: Theme.textSecondary }
                         Text {
                             text: SchedulerBackend.activeScheduler
                             font.pixelSize: 15
                             font.weight: Font.DemiBold
-                            color: "#00F2FE"
+                            color: Theme.accent
                             elide: Text.ElideRight
                         }
                     }
@@ -164,20 +165,20 @@ Window {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 84
                     radius: 14
-                    color: "#0F1622"
+                    color: Theme.surfaceAlt
                     border.width: 1
-                    border.color: "#243248"
+                    border.color: Theme.divider
 
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 4
-                        Text { text: "CPU CLOCK FREQUENCY"; font.pixelSize: 10; font.weight: Font.Bold; color: "#64748B" }
+                        Text { text: "CPU CLOCK FREQUENCY"; font.pixelSize: 10; font.weight: Font.Bold; color: Theme.textSecondary }
                         Text {
                             text: SchedulerBackend.cpuFreqGhz.toFixed(2) + " GHz"
                             font.pixelSize: 18
                             font.weight: Font.Bold
-                            color: "#7928CA"
+                            color: Theme.accent
                         }
                     }
                 }
@@ -187,33 +188,33 @@ Window {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 84
                     radius: 14
-                    color: "#0F1622"
+                    color: Theme.surfaceAlt
                     border.width: 1
-                    border.color: "#243248"
+                    border.color: Theme.divider
 
                     ColumnLayout {
                         anchors.fill: parent
                         anchors.margins: 12
                         spacing: 4
-                        Text { text: "CPU UTILIZATION"; font.pixelSize: 10; font.weight: Font.Bold; color: "#64748B" }
+                        Text { text: "CPU UTILIZATION"; font.pixelSize: 10; font.weight: Font.Bold; color: Theme.textSecondary }
                         RowLayout {
                             spacing: 8
                             Text {
                                 text: SchedulerBackend.cpuUsagePercent + "%"
                                 font.pixelSize: 18
                                 font.weight: Font.Bold
-                                color: "#00FF9D"
+                                color: Theme.success
                             }
                             Rectangle {
                                 Layout.fillWidth: true
                                 height: 8
                                 radius: 4
-                                color: "#16202E"
+                                color: Theme.surfaceElevated
                                 Rectangle {
                                     width: parent.width * (SchedulerBackend.cpuUsagePercent / 100.0)
                                     height: parent.height
                                     radius: 4
-                                    color: "#00FF9D"
+                                    color: Theme.success
                                     Behavior on width { NumberAnimation { duration: 250 } }
                                 }
                             }
@@ -231,9 +232,9 @@ Window {
                 Layout.rightMargin: 16
                 Layout.preferredHeight: 52
                 radius: 12
-                color: "#0E141E"
+                color: Theme.surfaceAlt
                 border.width: 1
-                border.color: "#222D3E"
+                border.color: Theme.divider
 
                 RowLayout {
                     anchors.fill: parent
@@ -244,7 +245,7 @@ Window {
                         text: "CPU Scaling Governor:"
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
-                        color: "#E2E8F0"
+                        color: Theme.textPrimary
                     }
 
                     Repeater {
@@ -254,16 +255,16 @@ Window {
                             Layout.preferredWidth: 110
                             Layout.fillHeight: true
                             radius: 8
-                            color: SchedulerBackend.activeGovernor === modelData ? "#00F2FE" : (govMouse.containsMouse ? "#1E2B3C" : "#141D2A")
+                            color: SchedulerBackend.activeGovernor === modelData ? Theme.accent : (govMouse.containsMouse ? Theme.accentSoft : Theme.surfaceElevated)
                             border.width: 1
-                            border.color: SchedulerBackend.activeGovernor === modelData ? "#00F2FE" : "#2E3E56"
+                            border.color: SchedulerBackend.activeGovernor === modelData ? Theme.accent : Theme.divider
 
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData.toUpperCase()
                                 font.pixelSize: 11
                                 font.weight: Font.Bold
-                                color: SchedulerBackend.activeGovernor === modelData ? "#06070A" : "#94A3B8"
+                                color: SchedulerBackend.activeGovernor === modelData ? "#FFFFFF" : Theme.textSecondary
                             }
 
                             MouseArea {
@@ -287,7 +288,7 @@ Window {
                 text: "Available Kernel Schedulers (sched-ext)"
                 font.pixelSize: 13
                 font.weight: Font.DemiBold
-                color: "#94A3B8"
+                color: Theme.textSecondary
             }
 
             ScrollView {
@@ -305,9 +306,9 @@ Window {
                         width: parent.width
                         height: 64
                         radius: 12
-                        color: "#0F1622"
+                        color: Theme.surfaceAlt
                         border.width: 1
-                        border.color: SchedulerBackend.activeScheduler.startsWith(modelData.split(' ')[0]) ? "#00F2FE" : "#1E293B"
+                        border.color: SchedulerBackend.activeScheduler.startsWith(modelData.split(' ')[0]) ? Theme.accent : Theme.divider
 
                         RowLayout {
                             anchors.fill: parent
@@ -317,16 +318,16 @@ Window {
 
                             Rectangle {
                                 width: 36; height: 36; radius: 18
-                                color: "#16202E"
+                                color: Theme.surfaceElevated
                                 border.width: 1
-                                border.color: "#00F2FE"
+                                border.color: Theme.accent
 
                                 Canvas {
                                     anchors.centerIn: parent
                                     width: 18; height: 18
                                     onPaint: {
                                         var ctx = getContext("2d"); ctx.reset();
-                                        ctx.strokeStyle = "#00F2FE"; ctx.lineWidth = 1.8;
+                                        ctx.strokeStyle = Theme.accent.toString(); ctx.lineWidth = 1.8;
                                         // Speedometer / Gauge
                                         ctx.beginPath(); ctx.arc(9, 9, 7, 0.8 * Math.PI, 2.2 * Math.PI); ctx.stroke();
                                         ctx.beginPath(); ctx.moveTo(9, 9); ctx.lineTo(13, 5); ctx.stroke();
@@ -342,7 +343,7 @@ Window {
                                     text: modelData
                                     font.pixelSize: 13
                                     font.weight: Font.DemiBold
-                                    color: "#F8FAFC"
+                                    color: Theme.textPrimary
                                 }
                                 Text {
                                     text: modelData.includes("lavd") ? "Gaming & strict latency control for smooth frame times" :
@@ -350,7 +351,7 @@ Window {
                                           modelData.includes("rusty") ? "High throughput parallel compilation and render scheduler" :
                                           "Custom eBPF sched-ext pluggable scheduler"
                                     font.pixelSize: 11
-                                    color: "#64748B"
+                                    color: Theme.textSecondary
                                 }
                             }
 
@@ -360,10 +361,10 @@ Window {
                                 Layout.preferredHeight: 32
                                 radius: 16
                                 color: SchedulerBackend.activeScheduler.startsWith(modelData.split(' ')[0]) ?
-                                       "#122E22" : "#1A2536"
+                                       Theme.surfaceElevated : Theme.accentSoft
                                 border.width: 1
                                 border.color: SchedulerBackend.activeScheduler.startsWith(modelData.split(' ')[0]) ?
-                                              "#00FF9D" : "#00F2FE"
+                                              Theme.success : Theme.accent
 
                                 Text {
                                     anchors.centerIn: parent
@@ -372,7 +373,7 @@ Window {
                                     font.pixelSize: 11
                                     font.weight: Font.Bold
                                     color: SchedulerBackend.activeScheduler.startsWith(modelData.split(' ')[0]) ?
-                                           "#00FF9D" : "#00F2FE"
+                                           Theme.success : Theme.accent
                                 }
 
                                 MouseArea {
@@ -390,9 +391,9 @@ Window {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 48
-                color: "#CC0B0F16"
+                color: Theme.surfaceAlt
                 border.width: 1
-                border.color: "#1E2736"
+                border.color: Theme.divider
 
                 RowLayout {
                     anchors.fill: parent
@@ -404,7 +405,7 @@ Window {
                               SchedulerBackend.statusMessage :
                               "XanMod kernel sched-ext ready."
                         font.pixelSize: 12
-                        color: "#94A3B8"
+                        color: Theme.textSecondary
                     }
 
                     Item { Layout.fillWidth: true }
@@ -413,15 +414,15 @@ Window {
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 28
                         radius: 14
-                        color: "#1A202E"
+                        color: Theme.surfaceElevated
                         border.width: 1
-                        border.color: "#334155"
+                        border.color: Theme.divider
 
                         Text {
                             anchors.centerIn: parent
                             text: "Restore Default"
                             font.pixelSize: 11
-                            color: "#E2E8F0"
+                            color: Theme.textPrimary
                         }
 
                         MouseArea {

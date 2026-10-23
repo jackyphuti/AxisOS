@@ -15,7 +15,7 @@ Item {
     // Background base layer: Deep Obsidian with subtle neon vignette
     Rectangle {
         anchors.fill: parent
-        color: "#06070A"
+        color: Theme.base
 
         // Ambient radial cyber-glow (cyber-teal & electric-violet)
         Rectangle {
@@ -26,8 +26,8 @@ Item {
             opacity: 0.12
             gradient: Gradient {
                 orientation: Gradient.Vertical
-                GradientStop { position: 0.0; color: "#00F2FE" }
-                GradientStop { position: 0.6; color: "#7928CA" }
+                GradientStop { position: 0.0; color: Theme.accent }
+                GradientStop { position: 0.6; color: Theme.accentSoft }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
@@ -68,7 +68,7 @@ Item {
         anchors.centerIn: parent
         anchors.horizontalCenterOffset: loginRoot.shakeOffset
         radius: 24
-        color: "#CC121622" // Frosted obsidian glass
+        color: Theme.surface
 
         // Elastic jelly animation on card height as biometric items expand/collapse
         Behavior on implicitHeight {
@@ -77,7 +77,7 @@ Item {
 
         // Cyber-Teal / Electric-Violet Glassmorphic Border Highlight
         border.width: 1
-        border.color: AuthManager.authError ? "#80FF007A" : (passwordInput.activeFocus ? "#6600F2FE" : "#26334D")
+        border.color: AuthManager.authError ? Theme.danger : (passwordInput.activeFocus ? Theme.accent : Theme.divider)
 
         Behavior on border.color {
             ColorAnimation { duration: 250 }
@@ -106,7 +106,7 @@ Item {
                         radius: 38
                         color: "transparent"
                         border.width: 2
-                        border.color: AuthManager.isAuthenticating ? "#00F2FE" : "#2EC4B6"
+                        border.color: AuthManager.isAuthenticating ? Theme.accent : Theme.divider
                         opacity: 0.85
 
                         // Pulsing ring when authenticating
@@ -123,7 +123,7 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 4
                         radius: 34
-                        color: "#18212D"
+                        color: Theme.surfaceAlt
 
                         // User profile glyph (SVG vector canvas)
                         Canvas {
@@ -133,7 +133,7 @@ Item {
                             onPaint: {
                                 var ctx = getContext("2d");
                                 ctx.reset();
-                                ctx.fillStyle = "#E6EDE8";
+                                ctx.fillStyle = Theme.textPrimary.toString();
                                 // Head
                                 ctx.beginPath();
                                 ctx.arc(16, 11, 7, 0, 2 * Math.PI);
@@ -156,7 +156,7 @@ Item {
                     text: AuthManager.displayName
                     font.pixelSize: 22
                     font.weight: Font.DemiBold
-                    color: "#F8FAFC"
+                    color: Theme.textPrimary
                 }
 
                 // Username & Session Subtitle
@@ -165,7 +165,7 @@ Item {
                     text: AuthManager.username + "@axis-station"
                     font.pixelSize: 12
                     font.letterSpacing: 0.5
-                    color: "#94A3B8"
+                    color: Theme.textSecondary
                 }
             }
 
@@ -205,7 +205,7 @@ Item {
                             id: fpPulseGlow
                             anchors.fill: parent
                             radius: 34
-                            color: "#00F2FE"
+                            color: Theme.accent
                             opacity: 0.15
                             scale: 1.0
 
@@ -230,9 +230,9 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 4
                             radius: 30
-                            color: "#151C28"
+                            color: Theme.surfaceAlt
                             border.width: 1.5
-                            border.color: AuthManager.isFingerprintActive ? "#00F2FE" : "#2EC4B6"
+                            border.color: AuthManager.isFingerprintActive ? Theme.accent : Theme.divider
 
                             // Hardware-rendered Cyber-Teal Fingerprint Vector
                             Canvas {
@@ -243,7 +243,7 @@ Item {
                                 onPaint: {
                                     var ctx = getContext("2d");
                                     ctx.reset();
-                                    ctx.strokeStyle = AuthManager.isFingerprintActive ? "#00F2FE" : "#2EC4B6";
+                                    ctx.strokeStyle = (AuthManager.isFingerprintActive ? Theme.accent : Theme.textSecondary).toString();
                                     ctx.lineWidth = 2.0;
                                     ctx.lineCap = "round";
 
@@ -292,7 +292,7 @@ Item {
                         text: AuthManager.isFingerprintActive ? "Touch fingerprint reader" : "Fingerprint scan ready"
                         font.pixelSize: 12
                         font.weight: Font.Medium
-                        color: AuthManager.isFingerprintActive ? "#00F2FE" : "#8A9A92"
+                        color: AuthManager.isFingerprintActive ? Theme.accent : Theme.textSecondary
                     }
                 }
 
@@ -312,16 +312,16 @@ Item {
                             id: irisScan
                             anchors.fill: parent
                             radius: 13
-                            color: "#151C28"
+                            color: Theme.surfaceAlt
                             border.width: 2
-                            border.color: AuthManager.isFaceAuthActive ? "#00F2FE" : "#2EC4B6"
+                            border.color: AuthManager.isFaceAuthActive ? Theme.accent : Theme.divider
 
                             Rectangle {
                                 anchors.centerIn: parent
                                 width: 10
                                 height: 10
                                 radius: 5
-                                color: AuthManager.isFaceAuthActive ? "#00F2FE" : "#2EC4B6"
+                                color: AuthManager.isFaceAuthActive ? Theme.accent : Theme.textSecondary
                             }
 
                             RotationAnimation on rotation {
@@ -341,7 +341,7 @@ Item {
                     Text {
                         text: AuthManager.isFaceAuthActive ? "Scanning iris via IR sensor..." : "Iris / IR scanner ready (click to scan)"
                         font.pixelSize: 12
-                        color: AuthManager.isFaceAuthActive ? "#00F2FE" : "#8A9A92"
+                        color: AuthManager.isFaceAuthActive ? Theme.accent : Theme.textSecondary
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
@@ -357,11 +357,11 @@ Item {
                     height: 44
                     radius: 14
                     visible: AuthManager.passwordlessUnlock
-                    color: "#00F2FE"
+                    color: Theme.accent
                     Text {
                         anchors.centerIn: parent
                         text: "Click to Unlock Session (No Password Required)"
-                        color: "#06070A"
+                        color: Theme.base
                         font.pixelSize: 13
                         font.weight: Font.Bold
                     }
@@ -386,9 +386,9 @@ Item {
                     visible: !AuthManager.passwordlessUnlock && (loginRoot.showPasswordOverride || (AuthManager.lockAuthMode !== "fingerprint_only" && AuthManager.lockAuthMode !== "iris_only"))
                     height: 48
                     radius: 14
-                    color: "#18211D"
+                    color: Theme.surfaceAlt
                     border.width: 1.5
-                    border.color: passwordInput.activeFocus ? "#00F2FE" : (AuthManager.authError ? "#FF007A" : "#2A3644")
+                    border.color: passwordInput.activeFocus ? Theme.accent : (AuthManager.authError ? Theme.danger : Theme.divider)
 
                     Behavior on border.color {
                         ColorAnimation { duration: 200 }
@@ -405,7 +405,7 @@ Item {
                             id: passwordInput
                             Layout.fillWidth: true
                             echoMode: TextInput.Password
-                            color: "#F8FAFC"
+                            color: Theme.textPrimary
                             font.pixelSize: 14
                             focus: true
                             clip: true
@@ -413,7 +413,7 @@ Item {
                             Text {
                                 anchors.fill: parent
                                 text: "Enter Password or PIN..."
-                                color: "#64748B"
+                                color: Theme.textSecondary
                                 font.pixelSize: 14
                                 visible: !passwordInput.text && !passwordInput.inputMethodComposing
                             }
@@ -430,9 +430,9 @@ Item {
                             width: 34
                             height: 34
                             radius: 17
-                            color: passwordInput.text.length > 0 ? "#00F2FE" : "#223029"
+                            color: passwordInput.text.length > 0 ? Theme.accent : Theme.surfaceElevated
                             border.width: 1
-                            border.color: passwordInput.text.length > 0 ? "#00F2FE" : "#2EC4B6"
+                            border.color: passwordInput.text.length > 0 ? Theme.accent : Theme.divider
                             opacity: AuthManager.isAuthenticating ? 0.6 : 1.0
 
                             Behavior on color {
@@ -446,7 +446,7 @@ Item {
                                 onPaint: {
                                     var ctx = getContext("2d");
                                     ctx.reset();
-                                    ctx.strokeStyle = passwordInput.text.length > 0 ? "#06070A" : "#8A9A92";
+                                    ctx.strokeStyle = (passwordInput.text.length > 0 ? "#FFFFFF" : Theme.textSecondary).toString();
                                     ctx.lineWidth = 2.0;
                                     ctx.lineCap = "round";
                                     ctx.lineJoin = "round";
@@ -484,7 +484,7 @@ Item {
                     visible: !AuthManager.passwordlessUnlock && !inputContainer.visible
                     text: "Use Password or PIN instead"
                     font.pixelSize: 11
-                    color: "#94A3B8"
+                    color: Theme.textSecondary
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
@@ -498,7 +498,7 @@ Item {
                     text: AuthManager.authMessage
                     font.pixelSize: 12
                     font.weight: Font.Medium
-                    color: AuthManager.authError ? "#FF007A" : (AuthManager.isAuthenticating ? "#00F2FE" : "#2EC4B6")
+                    color: AuthManager.authError ? Theme.danger : (AuthManager.isAuthenticating ? Theme.accent : Theme.success)
                     visible: text.length > 0
                 }
             }
@@ -519,9 +519,9 @@ Item {
             width: 44
             height: 44
             radius: 22
-            color: "#18211D"
+            color: Theme.surfaceAlt
             border.width: 1
-            border.color: "#2EC4B6"
+            border.color: Theme.divider
             opacity: 0.8
 
             Canvas {
@@ -531,7 +531,7 @@ Item {
                 onPaint: {
                     var ctx = getContext("2d");
                     ctx.reset();
-                    ctx.strokeStyle = "#E6EDE8";
+                    ctx.strokeStyle = Theme.textPrimary.toString();
                     ctx.lineWidth = 1.8;
                     // Crescent moon (sleep)
                     ctx.beginPath();
@@ -555,9 +555,9 @@ Item {
             width: 44
             height: 44
             radius: 22
-            color: "#18211D"
+            color: Theme.surfaceAlt
             border.width: 1
-            border.color: "#2EC4B6"
+            border.color: Theme.divider
             opacity: 0.8
 
             Canvas {
@@ -567,7 +567,7 @@ Item {
                 onPaint: {
                     var ctx = getContext("2d");
                     ctx.reset();
-                    ctx.strokeStyle = "#E6EDE8";
+                    ctx.strokeStyle = Theme.textPrimary.toString();
                     ctx.lineWidth = 1.8;
                     // Refresh circular arrow
                     ctx.beginPath();
@@ -595,9 +595,9 @@ Item {
             width: 44
             height: 44
             radius: 22
-            color: "#18211D"
+            color: Theme.surfaceAlt
             border.width: 1
-            border.color: "#FF007A"
+            border.color: Theme.danger
             opacity: 0.8
 
             Canvas {
@@ -607,7 +607,7 @@ Item {
                 onPaint: {
                     var ctx = getContext("2d");
                     ctx.reset();
-                    ctx.strokeStyle = "#FF007A";
+                    ctx.strokeStyle = Theme.danger.toString();
                     ctx.lineWidth = 1.8;
                     // Power icon
                     ctx.beginPath();

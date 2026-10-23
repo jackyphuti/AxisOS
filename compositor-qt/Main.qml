@@ -7,6 +7,11 @@ import QtWayland.Compositor.XdgShell
 WaylandCompositor {
     id: compositor
 
+    Component.onCompleted: {
+        // Automatically launch Welcome Center on first desktop startup
+        SystemController.launchApp("if [ -f /var/lib/axisos/first-boot-pending ]; then axis-oobe; elif grep -q 'axisos.autoinstall=1' /proc/cmdline 2>/dev/null; then axis-installer; elif [ ! -f ~/.config/axisos/welcome-shown ]; then mkdir -p ~/.config/axisos && touch ~/.config/axisos/welcome-shown && axis-welcome; fi");
+    }
+
     WaylandOutput {
         id: defaultOutput
         sizeFollowsWindow: true
@@ -102,9 +107,9 @@ WaylandCompositor {
                             var dx = Math.abs(x2 - x1) * 0.45 + 60;
 
                             var grad = ctx.createLinearGradient(x1, y1, x2, y2);
-                            grad.addColorStop(0.0, "#00F2FE");
-                            grad.addColorStop(0.5, "#8B5CF6");
-                            grad.addColorStop(1.0, "#00FF9D");
+                            grad.addColorStop(0.0, Theme.accent.toString());
+                            grad.addColorStop(0.5, Theme.accentSoft.toString());
+                            grad.addColorStop(1.0, Theme.success.toString());
 
                             ctx.strokeStyle = grad;
                             ctx.lineWidth = 3.0;
@@ -113,13 +118,13 @@ WaylandCompositor {
                             ctx.bezierCurveTo(x1 + dx, y1, x2 - dx, y2, x2, y2);
                             ctx.stroke();
 
-                            // Glowing endpoints
-                            ctx.fillStyle = "#00F2FE";
+                            // Endpoints
+                            ctx.fillStyle = Theme.accent.toString();
                             ctx.beginPath();
                             ctx.arc(x1, y1, 5, 0, 2 * Math.PI);
                             ctx.fill();
 
-                            ctx.fillStyle = "#00FF9D";
+                            ctx.fillStyle = Theme.success.toString();
                             ctx.beginPath();
                             ctx.arc(x2, y2, 5, 0, 2 * Math.PI);
                             ctx.fill();

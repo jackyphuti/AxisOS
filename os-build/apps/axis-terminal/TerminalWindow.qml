@@ -36,12 +36,12 @@ Window {
         NumberAnimation { target: glassBorder; property: "opacity"; to: 0.25; duration: 180 }
     }
 
-    // One UI Toned Terminal Window Container
+    // Unified One UI Terminal Window Container
     Rectangle {
         id: windowFrame
         anchors.fill: parent
-        radius: 24
-        color: "#1E1E2E"
+        radius: Theme.radiusLg
+        color: Theme.base
 
         // Subtle 1px Border
         Rectangle {
@@ -50,8 +50,8 @@ Window {
             radius: parent.radius
             color: "transparent"
             border.width: 1
-            border.color: terminalScreen.activeFocus ? "#7D95FF" : "#2E3349"
-            opacity: 0.8
+            border.color: terminalScreen.activeFocus ? Theme.accent : Theme.divider
+            opacity: 0.85
 
             Behavior on border.color {
                 ColorAnimation { duration: 180 }
@@ -62,21 +62,25 @@ Window {
             anchors.fill: parent
             spacing: 0
 
-            // -----------------------------------------------------------------
-            // One UI Header Bar (Draggable, centered title, plain subtle buttons)
-            // -----------------------------------------------------------------
+            // Header Bar
             Rectangle {
                 Layout.fillWidth: true
-                Layout.preferredHeight: 38
-                color: "#181825"
-                radius: 24
+                Layout.preferredHeight: 40
+                color: Theme.surface
+                radius: Theme.radiusLg
 
-                // Flatten bottom corners
                 Rectangle {
                     anchors.bottom: parent.bottom
                     width: parent.width
                     height: 12
                     color: parent.color
+                }
+
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    width: parent.width
+                    height: 1
+                    color: Theme.divider
                 }
 
                 DragHandler {
@@ -90,46 +94,47 @@ Window {
                     anchors.rightMargin: 16
                     spacing: 12
 
-                    // Plain Centered Terminal Title
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        color: Theme.accent
+                    }
+
                     Text {
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignVCenter
                         text: terminalBackend.title.length > 0 ? terminalBackend.title : "Terminal — " + terminalBackend.cols + " × " + terminalBackend.rows
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
-                        font.family: "Inter, -apple-system, system-ui, sans-serif"
-                        color: "#F2F3F7"
+                        font.family: "IBM Plex Sans, Inter, sans-serif"
+                        color: Theme.textPrimary
                         horizontalAlignment: Text.AlignHCenter
                         elide: Text.ElideMiddle
                     }
 
-                    // Terminal Dimension / Status Badge
                     Rectangle {
                         Layout.preferredWidth: 64
                         Layout.preferredHeight: 20
                         radius: 10
-                        color: "#2A3366"
+                        color: Theme.accentSoft
                         border.width: 1
-                        border.color: "#7D95FF"
+                        border.color: Theme.accent
 
                         Text {
                             anchors.centerIn: parent
                             text: terminalBackend.cols + " × " + terminalBackend.rows
                             font.pixelSize: 10
                             font.weight: Font.DemiBold
-                            color: "#7D95FF"
+                            color: Theme.accent
                         }
                     }
 
-                    // Window Control Icons (Plain Subtle Monochrome Buttons - No colored traffic lights)
                     RowLayout {
                         spacing: 4
 
-                        // Minimize Button
                         Rectangle {
                             width: 24; height: 24; radius: 12
-                            color: minMouse.containsMouse ? "#2E3349" : "transparent"
-                            Text { anchors.centerIn: parent; text: "−"; font.pixelSize: 13; font.bold: true; color: "#9EA3B5" }
+                            color: minMouse.containsMouse ? Theme.surfaceAlt : "transparent"
+                            Text { anchors.centerIn: parent; text: "−"; font.pixelSize: 13; font.bold: true; color: Theme.textSecondary }
                             MouseArea {
                                 id: minMouse
                                 anchors.fill: parent
@@ -139,31 +144,23 @@ Window {
                             }
                         }
 
-                        // Maximize Button
                         Rectangle {
                             width: 24; height: 24; radius: 12
-                            color: maxMouse.containsMouse ? "#2E3349" : "transparent"
-                            Text { anchors.centerIn: parent; text: "◻"; font.pixelSize: 11; color: "#9EA3B5" }
+                            color: maxMouse.containsMouse ? Theme.surfaceAlt : "transparent"
+                            Text { anchors.centerIn: parent; text: "◻"; font.pixelSize: 11; color: Theme.textSecondary }
                             MouseArea {
                                 id: maxMouse
                                 anchors.fill: parent
                                 hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    if (rootWindow.visibility === Window.Maximized) {
-                                        rootWindow.showNormal()
-                                    } else {
-                                        rootWindow.showMaximized()
-                                    }
-                                }
+                                onClicked: rootWindow.visibility === Window.Maximized ? rootWindow.showNormal() : rootWindow.showMaximized()
                             }
                         }
 
-                        // Close Button
                         Rectangle {
                             width: 24; height: 24; radius: 12
-                            color: clsMouse.containsMouse ? "#E11D48" : "transparent"
-                            Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: clsMouse.containsMouse ? "#FFFFFF" : "#9EA3B5" }
+                            color: clsMouse.containsMouse ? Theme.danger : "transparent"
+                            Text { anchors.centerIn: parent; text: "✕"; font.pixelSize: 11; font.bold: true; color: clsMouse.containsMouse ? "#FFFFFF" : Theme.textSecondary }
                             MouseArea {
                                 id: clsMouse
                                 anchors.fill: parent
@@ -176,20 +173,17 @@ Window {
                 }
             }
 
-            // -----------------------------------------------------------------
             // Terminal Scene Graph Surface
-            // -----------------------------------------------------------------
             Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.margins: 8
 
-                // Hardware-accelerated Scene Graph Renderer
                 TerminalScreenItem {
                     id: terminalScreen
                     anchors.fill: parent
                     backend: terminalBackend
-                    fontFamily: "monospace"
+                    fontFamily: "IBM Plex Mono, DejaVu Sans Mono, monospace"
                     fontSize: 12
                     cursorBlink: true
                     focus: true
@@ -200,9 +194,7 @@ Window {
                 }
             }
 
-            // -----------------------------------------------------------------
-            // Feature 6: Offline "Self-Healing" Terminal Doctor Action Pill
-            // -----------------------------------------------------------------
+            // Offline "Self-Healing" Terminal Doctor Action Pill
             Rectangle {
                 id: selfHealingPill
                 Layout.fillWidth: true
@@ -211,10 +203,10 @@ Window {
                 Layout.rightMargin: 12
                 Layout.bottomMargin: terminalBackend.hasDiagnosticSuggestion ? 10 : 0
                 visible: terminalBackend.hasDiagnosticSuggestion
-                radius: 12
-                color: "#E6101826"
+                radius: Theme.radiusSm
+                color: Theme.surfaceAlt
                 border.width: 1
-                border.color: "#00F2FE"
+                border.color: Theme.accent
                 clip: true
 
                 RowLayout {
@@ -225,7 +217,7 @@ Window {
 
                     Text {
                         text: "🩺 " + terminalBackend.diagnosticTitle
-                        color: "#00F2FE"
+                        color: Theme.accent
                         font.pixelSize: 12
                         font.bold: true
                     }
@@ -233,7 +225,7 @@ Window {
                     Text {
                         Layout.fillWidth: true
                         text: "Suggested fix: " + terminalBackend.diagnosticFixCommand
-                        color: "#E2E8F0"
+                        color: Theme.textPrimary
                         font.pixelSize: 11
                         font.family: "monospace"
                         elide: Text.ElideRight
@@ -243,11 +235,11 @@ Window {
                         width: 108
                         height: 28
                         radius: 8
-                        color: "#00F2FE"
+                        color: Theme.accent
                         Text {
                             anchors.centerIn: parent
                             text: "⚡ Fix & Retry"
-                            color: "#06070A"
+                            color: "#FFFFFF"
                             font.pixelSize: 11
                             font.bold: true
                         }
@@ -265,11 +257,11 @@ Window {
                         width: 24
                         height: 24
                         radius: 6
-                        color: "#1E293B"
+                        color: Theme.surfaceElevated
                         Text {
                             anchors.centerIn: parent
                             text: "✕"
-                            color: "#94A3B8"
+                            color: Theme.textSecondary
                             font.pixelSize: 11
                         }
                         MouseArea {

@@ -911,10 +911,11 @@ User=${USERNAME}
 PAMName=login
 WorkingDirectory=/home/${USERNAME}
 Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_CURRENT_DESKTOP=AxisOS-LiquidNodes
-Environment=WAYLAND_DISPLAY=wayland-0
-Environment=QT_QPA_PLATFORM=wayland
+Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
+Environment=WLR_NO_HARDWARE_CURSORS=1
 Environment=LIBSEAT_BACKEND=seatd
+Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=on-failure
 RestartSec=2

@@ -360,8 +360,20 @@ void SystemController::pollTelemetry()
 void SystemController::launchApp(const QString &command)
 {
     if (command.trimmed().isEmpty()) return;
-    qInfo() << "[SystemController] Launching native application:" << command;
-    QProcess::startDetached(QStringLiteral("/bin/sh"), {QStringLiteral("-c"), command});
+    qInfo() << "[SystemController] Launching native Qt6 application:" << command;
+    QProcess proc;
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert(QStringLiteral("QT_QPA_PLATFORM"), QStringLiteral("wayland"));
+    env.insert(QStringLiteral("GDK_BACKEND"), QStringLiteral("wayland"));
+    env.insert(QStringLiteral("MOZ_ENABLE_WAYLAND"), QStringLiteral("1"));
+    env.insert(QStringLiteral("OZONE_PLATFORM"), QStringLiteral("wayland"));
+    if (env.value(QStringLiteral("WAYLAND_DISPLAY")).isEmpty()) {
+        env.insert(QStringLiteral("WAYLAND_DISPLAY"), QStringLiteral("wayland-0"));
+    }
+    proc.setProcessEnvironment(env);
+    proc.setProgram(QStringLiteral("/bin/sh"));
+    proc.setArguments({QStringLiteral("-c"), command});
+    proc.startDetached();
 }
 
 void SystemController::toggleWifi(bool enabled)
@@ -589,9 +601,9 @@ void SystemController::initThemeConfig()
         QFile file(m_themeConfigPath);
         if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
             QJsonObject obj;
-            obj[QStringLiteral("theme")] = QStringLiteral("light");
-            obj[QStringLiteral("isDark")] = false;
-            obj[QStringLiteral("accent")] = QStringLiteral("#1428a0");
+            obj[QStringLiteral("theme")] = QStringLiteral("dark");
+            obj[QStringLiteral("isDark")] = true;
+            obj[QStringLiteral("accent")] = QStringLiteral("#7d95ff");
             file.write(QJsonDocument(obj).toJson(QJsonDocument::Indented));
         }
     }

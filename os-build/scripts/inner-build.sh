@@ -131,16 +131,33 @@ chmod +x config/includes.chroot/usr/local/bin/axisos-installer.sh
 chmod +x config/includes.chroot/usr/local/bin/axisos-daemon.cjs
 chmod +x config/includes.chroot/usr/local/bin/axisos-kiosk.sh
 
-# 4. Systemd services
+# 4. Systemd services, Wallpapers, Icons & Qt6 Compositor QML assets
 mkdir -p config/includes.chroot/etc/systemd/system
-cp "$CHROOT_CONFIG_DIR/cage-session/axisos.service" config/includes.chroot/etc/systemd/system/
-cp "$CHROOT_CONFIG_DIR/cage-session/axisos-daemon.service" config/includes.chroot/etc/systemd/system/
-
-# Enable services in graphical target and multi-user target
+cp "$CHROOT_CONFIG_DIR/cage-session/axisos.service" config/includes.chroot/etc/systemd/system/axisos-session.service
 mkdir -p config/includes.chroot/etc/systemd/system/graphical.target.wants
-mkdir -p config/includes.chroot/etc/systemd/system/multi-user.target.wants
-ln -sf /etc/systemd/system/axisos.service config/includes.chroot/etc/systemd/system/graphical.target.wants/axisos.service
-ln -sf /etc/systemd/system/axisos-daemon.service config/includes.chroot/etc/systemd/system/multi-user.target.wants/axisos-daemon.service
+ln -sf /etc/systemd/system/axisos-session.service config/includes.chroot/etc/systemd/system/graphical.target.wants/axisos-session.service
+
+mkdir -p config/includes.chroot/usr/share/backgrounds/axisos
+cp -r "$WORKSPACE_DIR/data/wallpapers/"* config/includes.chroot/usr/share/backgrounds/axisos/ 2>/dev/null || true
+cp "$WORKSPACE_DIR/data/wallpapers/01-axisos-signature-core.png" config/includes.chroot/usr/share/backgrounds/axis-wallpaper.png 2>/dev/null || true
+
+mkdir -p config/includes.chroot/usr/share/icons/AxisHarmony
+cp -r "$WORKSPACE_DIR/data/icons/AxisHarmony/"* config/includes.chroot/usr/share/icons/AxisHarmony/ 2>/dev/null || true
+
+mkdir -p config/includes.chroot/usr/share/axis-compositor-qt
+cp -r "$WORKSPACE_DIR/compositor-qt/"*.qml config/includes.chroot/usr/share/axis-compositor-qt/ 2>/dev/null || true
+cp "$WORKSPACE_DIR/compositor-qt/qmldir" config/includes.chroot/usr/share/axis-compositor-qt/ 2>/dev/null || true
+
+# Chroot hook to compile LiquidNodesOS and all C++20/Qt6 applications during lb build
+mkdir -p config/hooks/normal
+cat << 'HOOK_EOF' > config/hooks/normal/90-build-qt6-desktop.hook.chroot
+#!/bin/sh
+set -e
+systemctl enable seatd.service || true
+systemctl enable axisos-session.service || true
+systemctl set-default graphical.target || true
+HOOK_EOF
+chmod +x config/hooks/normal/90-build-qt6-desktop.hook.chroot
 
 # 5. Sudoers & Polkit rules for live session
 mkdir -p config/includes.chroot/etc/sudoers.d

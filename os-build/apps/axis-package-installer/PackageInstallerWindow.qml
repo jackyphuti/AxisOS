@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
+import AxisPackageInstaller
 
 Window {
     id: rootWindow
@@ -21,9 +22,9 @@ Window {
         id: windowFrame
         anchors.fill: parent
         radius: 18
-        color: "#E6080B10" // Deep obsidian glass
+        color: Theme.surface
         border.width: 1
-        border.color: "#283446"
+        border.color: Theme.divider
 
         // Cyber-Teal Ambient Glow
         Rectangle {
@@ -31,7 +32,7 @@ Window {
             radius: parent.radius
             color: "transparent"
             border.width: 1
-            border.color: "#3300F2FE"
+            border.color: Theme.specularBorder
             opacity: 0.8
         }
 
@@ -45,7 +46,7 @@ Window {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 46
-                color: "#CC0E141E"
+                color: Theme.surfaceAlt
                 radius: 18
 
                 Rectangle {
@@ -71,17 +72,17 @@ Window {
                         spacing: 8
                         Rectangle {
                             width: 12; height: 12; radius: 6
-                            color: "#FF007A"
+                            color: Theme.danger
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: rootWindow.close() }
                         }
                         Rectangle {
                             width: 12; height: 12; radius: 6
-                            color: "#FFD600"
+                            color: Theme.warning
                             MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: rootWindow.showMinimized() }
                         }
                         Rectangle {
                             width: 12; height: 12; radius: 6
-                            color: "#00FF9D"
+                            color: Theme.success
                             MouseArea {
                                 anchors.fill: parent
                                 cursorShape: Qt.PointingHandCursor
@@ -100,12 +101,12 @@ Window {
                             text: "Package Installer"
                             font.pixelSize: 14
                             font.weight: Font.DemiBold
-                            color: "#F8FAFC"
+                            color: Theme.textPrimary
                         }
                         Text {
                             text: "• Debian APT Application Manager"
                             font.pixelSize: 12
-                            color: "#00F2FE"
+                            color: Theme.accent
                         }
                     }
 
@@ -114,16 +115,16 @@ Window {
                         Layout.preferredWidth: 120
                         Layout.preferredHeight: 24
                         radius: 12
-                        color: "#16202E"
+                        color: Theme.surfaceElevated
                         border.width: 1
-                        border.color: PackageBackend.isBusy ? "#00F2FE" : "#283446"
+                        border.color: PackageBackend.isBusy ? Theme.accent : Theme.divider
 
                         Text {
                             anchors.centerIn: parent
                             text: PackageBackend.isBusy ? "Installing..." : "Ready"
                             font.pixelSize: 11
                             font.weight: Font.Medium
-                            color: PackageBackend.isBusy ? "#00F2FE" : "#94A3B8"
+                            color: PackageBackend.isBusy ? Theme.accent : Theme.textSecondary
                         }
                     }
                 }
@@ -141,7 +142,7 @@ Window {
                 Rectangle {
                     Layout.preferredWidth: 200
                     Layout.fillHeight: true
-                    color: "#A60C1017"
+                    color: Theme.base
                     border.width: 0
 
                     ListView {
@@ -158,9 +159,9 @@ Window {
                             height: 40
                             anchors.horizontalCenter: parent.horizontalCenter
                             radius: 10
-                            color: currentCategory === modelData ? "#243248" : (catMouse.containsMouse ? "#182232" : "transparent")
+                            color: currentCategory === modelData ? Theme.accentSoft : (catMouse.containsMouse ? Theme.surfaceAlt : "transparent")
                             border.width: currentCategory === modelData ? 1 : 0
-                            border.color: "#00F2FE"
+                            border.color: Theme.accent
 
                             RowLayout {
                                 anchors.fill: parent
@@ -172,7 +173,7 @@ Window {
                                     text: modelData
                                     font.pixelSize: 13
                                     font.weight: currentCategory === modelData ? Font.DemiBold : Font.Normal
-                                    color: currentCategory === modelData ? "#00F2FE" : "#E2E8F0"
+                                    color: currentCategory === modelData ? Theme.accent : Theme.textPrimary
                                 }
                             }
 
@@ -194,7 +195,7 @@ Window {
                 Rectangle {
                     Layout.preferredWidth: 1
                     Layout.fillHeight: true
-                    color: "#1E2736"
+                    color: Theme.divider
                 }
 
                 // Package Grid View
@@ -228,9 +229,9 @@ Window {
                                 width: 244
                                 height: 124
                                 radius: 14
-                                color: modelData.selected ? "#1E2B3E" : (cardMouse.containsMouse ? "#141C28" : "#0F1622")
+                                color: modelData.selected ? Theme.accentSoft : (cardMouse.containsMouse ? Theme.surfaceElevated : Theme.surfaceAlt)
                                 border.width: 1
-                                border.color: modelData.selected ? "#00F2FE" : (modelData.installed ? "#1E3A2F" : "#1F2937")
+                                border.color: modelData.selected ? Theme.accent : (modelData.installed ? Theme.success : Theme.divider)
 
                                 Behavior on color { ColorAnimation { duration: 150 } }
                                 Behavior on border.color { ColorAnimation { duration: 150 } }
@@ -256,7 +257,7 @@ Window {
                                             Rectangle {
                                                 anchors.centerIn: parent
                                                 width: 14; height: 14; radius: 7
-                                                color: "#00F2FE"
+                                                color: Theme.accent
                                                 visible: parent.status !== Image.Ready
                                             }
                                         }
@@ -269,14 +270,14 @@ Window {
                                                 text: modelData.name
                                                 font.pixelSize: 13
                                                 font.weight: Font.DemiBold
-                                                color: "#F8FAFC"
+                                                color: Theme.textPrimary
                                                 elide: Text.ElideRight
                                             }
 
                                             Text {
                                                 text: modelData.id
                                                 font.pixelSize: 10
-                                                color: "#64748B"
+                                                color: Theme.textSecondary
                                             }
                                         }
 
@@ -285,9 +286,9 @@ Window {
                                             Layout.preferredWidth: modelData.installed ? 64 : 22
                                             Layout.preferredHeight: 22
                                             radius: modelData.installed ? 6 : 11
-                                            color: modelData.installed ? "#122E22" : (modelData.selected ? "#00F2FE" : "#1A2434")
+                                            color: modelData.installed ? Theme.surface : (modelData.selected ? Theme.accent : Theme.surfaceElevated)
                                             border.width: 1
-                                            border.color: modelData.installed ? "#00FF9D" : (modelData.selected ? "#00F2FE" : "#334155")
+                                            border.color: modelData.installed ? Theme.success : (modelData.selected ? Theme.accent : Theme.divider)
 
                                             Text {
                                                 anchors.centerIn: parent
@@ -295,7 +296,7 @@ Window {
                                                 text: "INSTALLED"
                                                 font.pixelSize: 9
                                                 font.weight: Font.Bold
-                                                color: "#00FF9D"
+                                                color: Theme.success
                                             }
 
                                             Canvas {
@@ -304,7 +305,7 @@ Window {
                                                 visible: !modelData.installed && modelData.selected
                                                 onPaint: {
                                                     var ctx = getContext("2d"); ctx.reset();
-                                                    ctx.strokeStyle = "#06070A"; ctx.lineWidth = 2.0;
+                                                    ctx.strokeStyle = "#FFFFFF"; ctx.lineWidth = 2.0;
                                                     ctx.beginPath(); ctx.moveTo(1, 5); ctx.lineTo(4, 8); ctx.lineTo(9, 2); ctx.stroke();
                                                 }
                                             }
@@ -317,7 +318,7 @@ Window {
                                         Layout.fillHeight: true
                                         text: modelData.description
                                         font.pixelSize: 11
-                                        color: "#94A3B8"
+                                        color: Theme.textSecondary
                                         wrapMode: Text.WordWrap
                                         elide: Text.ElideRight
                                         maximumLineCount: 2
@@ -347,9 +348,9 @@ Window {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: 62
-                color: "#CC0B0F16"
+                color: Theme.surfaceAlt
                 border.width: 1
-                border.color: "#1E2736"
+                border.color: Theme.divider
 
                 RowLayout {
                     anchors.fill: parent
@@ -362,7 +363,7 @@ Window {
                               "Select packages to install"
                         font.pixelSize: 13
                         font.weight: Font.Medium
-                        color: PackageBackend.selectedCount > 0 ? "#00F2FE" : "#64748B"
+                        color: PackageBackend.selectedCount > 0 ? Theme.accent : Theme.textSecondary
                     }
 
                     Item { Layout.fillWidth: true }
@@ -372,16 +373,16 @@ Window {
                         Layout.preferredWidth: 84
                         Layout.preferredHeight: 36
                         radius: 12
-                        color: "#182232"
+                        color: Theme.surfaceElevated
                         border.width: 1
-                        border.color: "#28384E"
+                        border.color: Theme.divider
                         visible: PackageBackend.selectedCount > 0 && !PackageBackend.isBusy
 
                         Text {
                             anchors.centerIn: parent
                             text: "Clear"
                             font.pixelSize: 12
-                            color: "#94A3B8"
+                            color: Theme.textSecondary
                         }
 
                         MouseArea {
@@ -396,9 +397,9 @@ Window {
                         Layout.preferredWidth: 160
                         Layout.preferredHeight: 36
                         radius: 18
-                        color: PackageBackend.selectedCount > 0 && !PackageBackend.isBusy ? "#00F2FE" : "#1A2535"
+                        color: PackageBackend.selectedCount > 0 && !PackageBackend.isBusy ? Theme.accent : Theme.surfaceElevated
                         border.width: 1
-                        border.color: PackageBackend.selectedCount > 0 && !PackageBackend.isBusy ? "#00F2FE" : "#283446"
+                        border.color: PackageBackend.selectedCount > 0 && !PackageBackend.isBusy ? Theme.accent : Theme.divider
                         opacity: PackageBackend.selectedCount > 0 && !PackageBackend.isBusy ? 1.0 : 0.6
 
                         Text {
@@ -406,7 +407,7 @@ Window {
                             text: PackageBackend.isBusy ? "Installing..." : "Install Selected"
                             font.pixelSize: 12
                             font.weight: Font.Bold
-                            color: PackageBackend.selectedCount > 0 && !PackageBackend.isBusy ? "#06070A" : "#64748B"
+                            color: PackageBackend.selectedCount > 0 && !PackageBackend.isBusy ? "#FFFFFF" : Theme.textSecondary
                         }
 
                         MouseArea {
@@ -432,9 +433,9 @@ Window {
             width: parent.width
             height: parent.height * 0.55
             radius: 18
-            color: "#F2080B10"
+            color: Theme.surface
             border.width: 1
-            border.color: "#00F2FE"
+            border.color: Theme.accent
             visible: PackageBackend.isBusy
 
             ColumnLayout {
@@ -449,7 +450,7 @@ Window {
                         text: PackageBackend.statusMessage
                         font.pixelSize: 13
                         font.weight: Font.DemiBold
-                        color: "#00F2FE"
+                        color: Theme.accent
                     }
 
                     Item { Layout.fillWidth: true }
@@ -458,14 +459,14 @@ Window {
                         Layout.preferredWidth: 70
                         Layout.preferredHeight: 28
                         radius: 8
-                        color: "#1E2736"
+                        color: Theme.divider
                         visible: !PackageBackend.isBusy
 
                         Text {
                             anchors.centerIn: parent
                             text: "Close"
                             font.pixelSize: 11
-                            color: "#E2E8F0"
+                            color: Theme.textPrimary
                         }
 
                         MouseArea {
@@ -481,9 +482,9 @@ Window {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     radius: 10
-                    color: "#05070B"
+                    color: Theme.base
                     border.width: 1
-                    border.color: "#182230"
+                    border.color: Theme.divider
 
                     ScrollView {
                         anchors.fill: parent
@@ -495,7 +496,7 @@ Window {
                             text: PackageBackend.currentLog
                             font.family: "monospace"
                             font.pixelSize: 11
-                            color: "#00FF9D"
+                            color: Theme.success
                             wrapMode: Text.WrapAnywhere
                             background: null
                         }

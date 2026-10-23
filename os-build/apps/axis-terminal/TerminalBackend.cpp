@@ -53,24 +53,24 @@ void TerminalBackend::applyLiquidNodesPalette()
     VTermState *state = vterm_obtain_state(m_vterm);
     if (!state) return;
 
-    // Liquid Nodes 16-Color Palette
+    // Unified AxisOS One UI Dark 16-Color Palette
     const uint32_t palette[16] = {
-        0x06070A, // 0: Obsidian Black
-        0xFF007A, // 1: Neon Magenta / Red
-        0x00FF9D, // 2: Cyber Mint / Green
-        0xFFD600, // 3: Cyber Amber / Yellow
-        0x0088FF, // 4: Electric Blue
-        0x7928CA, // 5: Electric Violet
-        0x00F2FE, // 6: Cyber Teal / Cyan
-        0xE6EDE8, // 7: Titanium White
+        0x141826, // 0: Base Navy
+        0xF43F5E, // 1: Danger Rose
+        0x2BB673, // 2: Success Emerald
+        0xF59E0B, // 3: Warning Amber
+        0x7D95FF, // 4: Accent Blue
+        0xA78BFA, // 5: Soft Violet
+        0x38BDF8, // 6: Sky Cyan
+        0xF2F3F7, // 7: Text Primary
         // Bright variations
-        0x4B5563, // 8: Bright Obsidian Grey
-        0xFF3399, // 9: Bright Neon Magenta
-        0x33FFAA, // 10: Bright Mint
-        0xFFE033, // 11: Bright Amber
-        0x3399FF, // 12: Bright Blue
-        0x9933FF, // 13: Bright Electric Violet
-        0x33F6FF, // 14: Bright Cyber Teal
+        0x2E3349, // 8: Divider Slate
+        0xFB7185, // 9: Bright Rose
+        0x4ADE80, // 10: Bright Green
+        0xFBBF24, // 11: Bright Amber
+        0x93C5FD, // 12: Bright Blue
+        0xC4B5FD, // 13: Bright Violet
+        0x7DD3FC, // 14: Bright Cyan
         0xFFFFFF  // 15: Pure White
     };
 
@@ -83,10 +83,10 @@ void TerminalBackend::applyLiquidNodesPalette()
         vterm_state_set_palette_color(state, i, &col);
     }
 
-    // Default Foreground & Background
+    // Default Foreground & Background (Unified One UI Dark)
     VTermColor defFg, defBg;
-    vterm_color_rgb(&defFg, 0xF8, 0xFA, 0xFC); // Bright Titanium
-    vterm_color_rgb(&defBg, 0x06, 0x07, 0x0A); // Deep Obsidian
+    vterm_color_rgb(&defFg, 0xF2, 0xF3, 0xF7); // Text Primary #F2F3F7
+    vterm_color_rgb(&defBg, 0x14, 0x18, 0x26); // Base #141826
     vterm_state_set_default_colors(state, &defFg, &defBg);
 }
 

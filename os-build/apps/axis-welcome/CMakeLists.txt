@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(AxisWelcome VERSION 2.0.0 LANGUAGES CXX)
+project(AxisWelcome VERSION 2.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,10 +23,16 @@ qt_add_executable(axis-welcome
     WelcomeBackend.cpp
 )
 
+set_source_files_properties(Theme.qml
+    PROPERTIES
+        QT_QML_SINGLETON_TYPE TRUE
+)
+
 qt_add_qml_module(axis-welcome
     URI AxisWelcome
     VERSION 1.0
     QML_FILES
+        Theme.qml
         WelcomeWindow.qml
 )
 

@@ -1,20 +1,25 @@
 /*
- * AxisOS Design Tokens — One UI Inspired Design System
+ * AxisOS Design Tokens — Unified One UI Design System
  * Clean, airy surfaces, single Samsung deep blue accent, large rounded corners, and soft elevation shadows.
  */
 
 :root {
   --bg-wallpaper: linear-gradient(160deg, #e9eefc 0%, #f6f1fb 100%);
+  --base: #f4f6fb;
   --surface: #ffffff;
-  --surface-alt: #f4f6fb;          /* grouped list backgrounds */
+  --surface-alt: #f4f6fb;
+  --surface-elevated: #ffffff;
   --text-primary: #1c1c1e;
   --text-secondary: #6b6f7b;
-  --accent: #1428a0;               /* Samsung-style deep blue */
-  --accent-soft: #e6ebff;          /* selected/hover states */
+  --accent: #1428a0;
+  --accent-soft: #e6ebff;
   --divider: #e5e7ee;
   --success: #2bb673;
-  --radius-lg: 24px;
+  --warning: #f59e0b;
+  --danger: #e11d48;
+  --radius-sm: 12px;
   --radius-md: 16px;
+  --radius-lg: 24px;
   --radius-pill: 999px;
   --shadow-soft: 0 4px 20px rgba(20, 40, 160, 0.08);
 }
@@ -22,38 +27,56 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg-wallpaper: linear-gradient(160deg, #141826 0%, #1b1d2b 100%);
+    --base: #141826;
     --surface: #1f2231;
     --surface-alt: #262a3d;
+    --surface-elevated: #282c40;
     --text-primary: #f2f3f7;
     --text-secondary: #9ea3b5;
     --divider: #2e3349;
     --accent: #7d95ff;
     --accent-soft: #2a3366;
+    --success: #2bb673;
+    --warning: #f59e0b;
+    --danger: #f43f5e;
     --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.35);
   }
 }
 
 /* -------------------------------------------------------------------------
  * GTK 3 & GTK 4 Compatibility Mapping (@define-color)
+ * Complete token definitions for both axis-dark.css and axis-light.css
  * ------------------------------------------------------------------------- */
 @define-color axis_light_base #F4F6FB;
 @define-color axis_light_surface #FFFFFF;
 @define-color axis_light_surface_raised #F4F6FB;
 @define-color axis_light_accent #1428A0;
+@define-color axis_light_accent_2 #6B6F7B;
 @define-color axis_light_accent_soft #E6EBFF;
 @define-color axis_light_text #1C1C1E;
 @define-color axis_light_text_muted #6B6F7B;
 @define-color axis_light_outline #E5E7EE;
+@define-color axis_light_tile_fill #F4F6FB;
+@define-color axis_light_dock_highlight rgba(20, 40, 160, 0.12);
+@define-color axis_light_launcher_overlay rgba(244, 246, 251, 0.85);
 @define-color axis_light_success #2BB673;
+@define-color axis_light_danger #E11D48;
 @define-color axis_light_shadow rgba(20, 40, 160, 0.08);
+@define-color axis_light_btn_text #FFFFFF;
 
 @define-color axis_dark_base #141826;
 @define-color axis_dark_surface #1F2231;
 @define-color axis_dark_surface_raised #262A3D;
 @define-color axis_dark_accent #7D95FF;
+@define-color axis_dark_accent_2 #9EA3B5;
 @define-color axis_dark_accent_soft #2A3366;
 @define-color axis_dark_text #F2F3F7;
 @define-color axis_dark_text_muted #9EA3B5;
 @define-color axis_dark_outline #2E3349;
+@define-color axis_dark_tile_fill #262A3D;
+@define-color axis_dark_dock_highlight rgba(125, 149, 255, 0.18);
+@define-color axis_dark_launcher_overlay rgba(20, 24, 38, 0.85);
 @define-color axis_dark_success #2BB673;
+@define-color axis_dark_danger #F43F5E;
 @define-color axis_dark_shadow rgba(0, 0, 0, 0.35);
+@define-color axis_dark_btn_text #141826;

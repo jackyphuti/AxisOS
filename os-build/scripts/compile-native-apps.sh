@@ -4,15 +4,42 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 APPS_DIR="${1:-$REPO_ROOT/os-build/apps}"
+JOBS="$(nproc 2>/dev/null || echo 2)"
 
-echo "=== AxisOS Native & GTK3 Desktop Applications Builder ==="
+echo "=== AxisOS 2.1 Native C++20 / Qt 6 & GTK3 Desktop Application Suite Builder ==="
 
-# 1. Deploy GTK3 Self-Healing axis-terminal (zero Qt6 dependency, works on X11/Wayland/VMs)
-echo "--> Configuring axis-terminal..."
-if [ -f "$APPS_DIR/axis-terminal/axis-terminal.py" ]; then
-    cp -f "$APPS_DIR/axis-terminal/axis-terminal.py" "$APPS_DIR/axis-terminal/axis-terminal"
+# Helper to build a CMake C++/Qt6 application directory
+build_qt_app() {
+    local app_name="$1"
+    local app_dir="$APPS_DIR/$app_name"
+    if [ ! -f "$app_dir/CMakeLists.txt" ]; then
+        return 0
+    fi
+    echo "--> Building C++20 / Qt 6 application: $app_name..."
+    mkdir -p "$app_dir/build"
+    (
+        cd "$app_dir/build"
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+        make -j"$JOBS"
+        if [ -f "$app_name" ]; then
+            cp -f "$app_name" "$app_dir/$app_name"
+            chmod 755 "$app_dir/$app_name"
+        fi
+    ) || echo "[WARN] Qt6 build for $app_name failed or skipped."
+}
+
+# 1. Build C++20 / Qt 6 QML Applications
+if command -v cmake >/dev/null 2>&1; then
+    for app in axis-terminal axis-package-installer axis-scheduler-manager axis-welcome; do
+        build_qt_app "$app"
+    done
 fi
-chmod 755 "$APPS_DIR/axis-terminal/axis-terminal"
+
+# Fallback for axis-terminal if Qt6 build didn't run or failed
+if [ ! -f "$APPS_DIR/axis-terminal/axis-terminal" ] && [ -f "$APPS_DIR/axis-terminal/axis-terminal.py" ]; then
+    cp -f "$APPS_DIR/axis-terminal/axis-terminal.py" "$APPS_DIR/axis-terminal/axis-terminal"
+    chmod 755 "$APPS_DIR/axis-terminal/axis-terminal"
+fi
 
 # 2. Compile axis-installer (C++ with GTK 3) or fallback to Python GTK3
 echo "--> Building axis-installer..."
@@ -55,13 +82,13 @@ if command -v g++ >/dev/null 2>&1 && pkg-config --exists gtk+-3.0 2>/dev/null; t
 fi
 chmod 755 "$APPS_DIR/axis-task-manager/axis-task-manager" 2>/dev/null || true
 
-# 6. Deploy GTK3 axis-package-installer, axis-scheduler-manager, and axis-welcome
-for py_app in axis-package-installer axis-scheduler-manager axis-welcome; do
-    echo "--> Configuring $py_app..."
-    if [ -f "$APPS_DIR/$py_app/$py_app.py" ]; then
+# 6. Fallback launchers for package installer, scheduler manager, welcome, oobe, nobara-welcome
+for py_app in axis-package-installer axis-scheduler-manager axis-welcome axis-oobe nobara-welcome; do
+    if [ ! -f "$APPS_DIR/$py_app/$py_app" ] && [ -f "$APPS_DIR/$py_app/$py_app.py" ]; then
+        echo "--> Configuring fallback launcher for $py_app..."
         cp -f "$APPS_DIR/$py_app/$py_app.py" "$APPS_DIR/$py_app/$py_app"
+        chmod 755 "$APPS_DIR/$py_app/$py_app"
     fi
-    chmod 755 "$APPS_DIR/$py_app/$py_app"
 done
 
 # 7. Compile axis-update (Atomic Btrfs/A-B System Update Engine)
@@ -70,25 +97,31 @@ if [ -d "$REPO_ROOT/os-build/updater" ] && command -v gcc >/dev/null 2>&1; then
     make -C "$REPO_ROOT/os-build/updater" clean all || true
 fi
 
-# 8. Compile Qt 6 LiquidNodesOS Wayland Compositor
+# 8. Compile Native C wlroots Fallback Compositor (axis-compositor)
+if [ -d "$REPO_ROOT/compositor" ] && command -v gcc >/dev/null 2>&1 && pkg-config --exists wlroots 2>/dev/null; then
+    echo "--> Compiling native wlroots fallback compositor (axis-compositor)..."
+    make -C "$REPO_ROOT/compositor" clean all || true
+fi
+
+# 9. Compile Primary C++20 / Qt 6 LiquidNodesOS Wayland Compositor
 if [ -d "$REPO_ROOT/compositor-qt" ] && command -v cmake >/dev/null 2>&1; then
     echo "--> Building Qt6 LiquidNodesOS Wayland Compositor..."
     mkdir -p "$REPO_ROOT/compositor-qt/build"
     (
         cd "$REPO_ROOT/compositor-qt/build"
         cmake .. -DCMAKE_BUILD_TYPE=Release
-        make -j"$(nproc 2>/dev/null || echo 2)"
+        make -j"$JOBS"
         if [ -f "LiquidNodesOS" ]; then
             cp -f LiquidNodesOS "$REPO_ROOT/compositor-qt/LiquidNodesOS"
             chmod 755 "$REPO_ROOT/compositor-qt/LiquidNodesOS"
         fi
-    ) || echo "Warning: LiquidNodesOS build skipped or failed, using pre-existing binary."
+    ) || echo "[WARN] LiquidNodesOS build skipped or failed, using pre-existing binary."
 fi
 
-# 9. Install to /usr/local/bin and /usr/bin if running as root
+# 10. Install to /usr/local/bin and /usr/bin if running as root
 if [ -d "/usr/local/bin" ] && [ "${EUID:-$(id -u)}" -eq 0 ]; then
     echo "--> Installing applications to /usr/local/bin and /usr/bin..."
-    for app in axis-terminal axis-package-installer axis-scheduler-manager axis-welcome axis-installer axis-settings axis-software-manager axis-update-manager axis-usb-daemon axis-task-manager axis-oobe; do
+    for app in axis-terminal axis-package-installer axis-scheduler-manager axis-welcome axis-installer axis-settings axis-software-manager axis-update-manager axis-usb-daemon axis-task-manager axis-oobe nobara-welcome; do
         if [ -f "$APPS_DIR/$app/$app" ]; then
             cp -f "$APPS_DIR/$app/$app" "/usr/local/bin/$app"
             chmod 755 "/usr/local/bin/$app"

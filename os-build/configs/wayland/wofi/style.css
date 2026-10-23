@@ -1,56 +1,48 @@
 window {
     margin: 0px;
-    border: 2px solid #2563eb;
-    background-color: #0a0c10;
-    border-radius: 10px;
-    font-family: "Inter", "Cantarell", sans-serif;
+    border: 1px solid #2E3349;
+    background-color: #1F2231;
+    border-radius: 24px;
+    font-family: "IBM Plex Sans", "Inter", sans-serif;
     font-size: 14px;
 }
 
 #input {
-    margin: 12px;
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: #161e2e;
-    color: #f8fafc;
+    margin: 14px;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid #2E3349;
+    background-color: #262A3D;
+    color: #F2F3F7;
 }
 
 #input:focus {
-    border-color: #2563eb;
+    border-color: #7D95FF;
     outline: none;
 }
 
-#inner-box {
-    margin: 6px 12px 12px 12px;
+#inner-box, #outer-box, #scroll {
+    margin: 6px 12px;
     background-color: transparent;
-}
-
-#outer-box {
-    margin: 0px;
-    background-color: transparent;
-}
-
-#scroll {
-    margin: 0px;
 }
 
 #text {
     margin: 4px;
-    color: #cbd5e1;
+    color: #9EA3B5;
 }
 
 #entry {
-    padding: 6px 10px;
-    border-radius: 6px;
+    padding: 8px 12px;
+    border-radius: 16px;
 }
 
 #entry:selected {
-    background-color: #2563eb;
-    color: #ffffff;
+    background-color: #2A3366;
+    border: 1px solid #7D95FF;
+    color: #F2F3F7;
 }
 
 #entry:selected #text {
-    color: #ffffff;
+    color: #F2F3F7;
     font-weight: 600;
 }

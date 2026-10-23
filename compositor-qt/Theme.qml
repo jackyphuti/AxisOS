@@ -4,10 +4,12 @@ import QtQuick
 QtObject {
     id: theme
 
-    // Unified Samsung One UI Dark Mode (Enforced)
-    readonly property bool isDark: true
+    // Live binding to SystemController.isDarkMode when running inside compositor, defaulting to Dark Mode (true)
+    readonly property bool isDark: (typeof SystemController !== "undefined" && SystemController !== null && SystemController.isDarkMode !== undefined)
+                                   ? SystemController.isDarkMode : true
 
-    // Color tokens (Samsung One UI Desktop Palette)
+    // Unified AxisOS One UI Dark & Light Color Tokens
+    readonly property color base: isDark ? "#141826" : "#F4F6FB"
     readonly property color surface: isDark ? "#1F2231" : "#FFFFFF"
     readonly property color surfaceAlt: isDark ? "#262A3D" : "#F4F6FB"
     readonly property color surfaceElevated: isDark ? "#282C40" : "#FFFFFF"
@@ -17,11 +19,12 @@ QtObject {
     readonly property color accentSoft: isDark ? "#2A3366" : "#E6EBFF"
     readonly property color divider: isDark ? "#2E3349" : "#E5E7EE"
     readonly property color success: "#2BB673"
+    readonly property color warning: "#F59E0B"
     readonly property color danger: isDark ? "#F43F5E" : "#E11D48"
 
     // Glassmorphic Legibility & Specular Guards
-    readonly property color glassTint: isDark ? "#381F2231" : "#38FFFFFF" // ~22% legibility tint
-    readonly property color specularBorder: isDark ? "#26FFFFFF" : "#1A1428A0" // 1px specular highlight
+    readonly property color glassTint: isDark ? "#381F2231" : "#38FFFFFF"
+    readonly property color specularBorder: isDark ? "#26FFFFFF" : "#1A1428A0"
 
     // Radii (One UI design system)
     readonly property real radiusSm: 12

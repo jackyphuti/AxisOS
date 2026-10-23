@@ -192,7 +192,7 @@ void WelcomeBackend::launchApp(const QString &appId)
     } else if (appId == QStringLiteral("installer")) {
         QProcess::startDetached(QStringLiteral("/usr/local/bin/axis-package-installer"), {});
     } else if (appId == QStringLiteral("settings")) {
-        QProcess::startDetached(QStringLiteral("gnome-control-center"), {});
+        QProcess::startDetached(QStringLiteral("/usr/local/bin/axis-settings"), {});
     } else if (appId == QStringLiteral("terminal")) {
         QProcess::startDetached(QStringLiteral("/usr/local/bin/axis-terminal"), {});
     } else if (appId == QStringLiteral("os-installer")) {

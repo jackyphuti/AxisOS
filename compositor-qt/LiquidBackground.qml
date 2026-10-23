@@ -5,13 +5,13 @@ Item {
     id: root
     anchors.fill: parent
 
-    property bool isDarkMode: true
+    property bool isDarkMode: Theme.isDark
     property bool blurRequested: false
 
-    // Dark base layer
+    // Unified Base Layer
     Rectangle {
         anchors.fill: parent
-        color: "#141824"
+        color: Theme.base
     }
 
     // High-res AxisOS Signature Wallpaper
@@ -32,10 +32,10 @@ Item {
         visible: root.blurRequested
     }
 
-    // Frosted glass dark overlay when menu/launcher is open
+    // Frosted glass overlay when menu/launcher is open
     Rectangle {
         anchors.fill: parent
-        color: root.blurRequested ? "#550A0B0D" : "transparent"
+        color: root.blurRequested ? Theme.glassTint : "transparent"
         Behavior on color {
             ColorAnimation { duration: 200 }
         }

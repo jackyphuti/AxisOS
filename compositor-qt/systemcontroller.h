@@ -142,8 +142,8 @@ private:
     std::unique_ptr<QDBusInterface> m_loginInterface;
 
     // States
-    bool m_isDarkMode{false};
-    QString m_activeTheme{"AxisOneUI-Light"};
+    bool m_isDarkMode{true};
+    QString m_activeTheme{"AxisOneUI-Dark"};
     int m_volume{65};
     bool m_isMuted{false};
     int m_brightness{80};

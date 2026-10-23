@@ -16,16 +16,30 @@ int main(int argc, char *argv[])
 {
     // Setup XDG runtime directory with required 0700 permissions
     if (qEnvironmentVariableIsEmpty("XDG_RUNTIME_DIR")) {
-        qputenv("XDG_RUNTIME_DIR", "/tmp/runtime-axis");
+        qputenv("XDG_RUNTIME_DIR", "/run/user/1000");
+        if (!QDir(QStringLiteral("/run/user/1000")).exists()) {
+            qputenv("XDG_RUNTIME_DIR", "/tmp/runtime-axis");
+        }
     }
     QString runtimeDir = QString::fromLocal8Bit(qgetenv("XDG_RUNTIME_DIR"));
     QDir().mkpath(runtimeDir);
     QFile::setPermissions(runtimeDir, QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner);
 
-    // Dynamic QPA platform selection (avoid invalid semicolon syntax)
-    if (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM")) {
-        if (!qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY") &&
-            QFile::exists(runtimeDir + QLatin1Char('/') + QString::fromLocal8Bit(qgetenv("WAYLAND_DISPLAY")))) {
+    // Ensure QT_QPA_PLATFORM is selected for a root Wayland Compositor:
+    // If QT_QPA_PLATFORM was set to "wayland" by a session script but no parent Wayland socket exists yet,
+    // clear it so LiquidNodesOS binds directly to DRM/KMS (eglfs) or Framebuffer (linuxfb).
+    QString currentQpa = QString::fromLocal8Bit(qgetenv("QT_QPA_PLATFORM"));
+    QString wlDisplay = QString::fromLocal8Bit(qgetenv("WAYLAND_DISPLAY"));
+    bool parentWaylandSocketExists = !wlDisplay.isEmpty() &&
+                                     QFile::exists(runtimeDir + QLatin1Char('/') + wlDisplay);
+
+    if (currentQpa == QStringLiteral("wayland") && !parentWaylandSocketExists) {
+        qunsetenv("QT_QPA_PLATFORM");
+        currentQpa.clear();
+    }
+
+    if (currentQpa.isEmpty()) {
+        if (parentWaylandSocketExists) {
             qputenv("QT_QPA_PLATFORM", "wayland");
         } else if (!qEnvironmentVariableIsEmpty("DISPLAY")) {
             qputenv("QT_QPA_PLATFORM", "xcb");
@@ -35,8 +49,16 @@ int main(int argc, char *argv[])
                 qputenv("QT_QPA_EGLFS_INTEGRATION", "eglfs_kms");
             }
         } else {
-            // Software frame buffer fallback for VMs without 3D DRM
+            // Software framebuffer fallback for VMs without 3D DRM
             qputenv("QT_QPA_PLATFORM", "linuxfb");
+        }
+    }
+
+    // Allow software scenegraph rendering fallback on VMs without hardware 3D acceleration
+    if (qEnvironmentVariableIsEmpty("QSG_RHI_PREFER_SOFTWARE_RENDERER")) {
+        if (qgetenv("QT_QPA_PLATFORM") == "linuxfb") {
+            qputenv("QT_QPA_PLATFORM", "linuxfb");
+            qputenv("QT_QUICK_BACKEND", "software");
         }
     }
 
@@ -44,7 +66,7 @@ int main(int argc, char *argv[])
         qputenv("QSG_INFO", "1");
     }
 
-    // Wayland Compositor server environment setup
+    // Wayland Compositor server environment setup for child clients
     if (qEnvironmentVariableIsEmpty("WAYLAND_DISPLAY")) {
         qputenv("WAYLAND_DISPLAY", "wayland-0");
     }
@@ -54,7 +76,7 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("LiquidNodesOS"));
     app.setOrganizationName(QStringLiteral("AxisOS"));
-    app.setApplicationVersion(QStringLiteral("2.0.0"));
+    app.setApplicationVersion(QStringLiteral("2.1.0"));
 
     // Enable high-quality anti-aliasing and depth buffer
     QQuickWindow::setDefaultAlphaBuffer(true);

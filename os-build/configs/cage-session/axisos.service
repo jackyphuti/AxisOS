@@ -1,24 +1,33 @@
 [Unit]
-Description=AxisOS Desktop Shell Session
-After=systemd-user-sessions.service network.target sound.target axisos-daemon.service seatd.service
-Wants=network.target sound.target axisos-daemon.service seatd.service
+Description=AxisOS LiquidNodes Desktop Environment
+After=systemd-user-sessions.service plymouth-quit-wait.service seatd.service
+Wants=seatd.service
 Conflicts=getty@tty1.service
+After=getty@tty1.service
 
 [Service]
+Type=simple
 User=axis
 Group=axis
 PAMName=login
-Type=simple
-StandardInput=null
-StandardOutput=journal
-StandardError=journal
+WorkingDirectory=/home/axis
 Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_CURRENT_DESKTOP=AxisOS
-Environment=WAYLAND_DISPLAY=wayland-0
+Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
+Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
+Environment=WLR_NO_HARDWARE_CURSORS=1
+Environment=LIBSEAT_BACKEND=seatd
 Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStartPre=/bin/sh -c 'mkdir -p /run/user/1000 && chown axis:axis /run/user/1000 && chmod 0700 /run/user/1000'
 ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=always
 RestartSec=2
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
 
 [Install]
 WantedBy=graphical.target
