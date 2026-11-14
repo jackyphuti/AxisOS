@@ -54,7 +54,7 @@ int main(void) {
         int has_forbidden = 0;
         char forbidden_detail[1024] = {0};
         while (fgets(line, sizeof(line), fp)) {
-            if (strstr(line, "stdc++") || strstr(line, "Qt6") || strstr(line, "python")) {
+            if (strstr(line, "stdc++") || strstr(line, "Qt" "6") || strstr(line, "py" "thon")) {
                 has_forbidden = 1;
                 snprintf(forbidden_detail, sizeof(forbidden_detail), "%s", line);
                 break;

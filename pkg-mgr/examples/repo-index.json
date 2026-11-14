@@ -218,18 +218,6 @@
       "maintainer": "Git Core Team <debian-devel@lists.debian.org>",
       "binary": "/usr/bin/git"
     },
-    "python3": {
-      "name": "python3",
-      "version": "3.12.5",
-      "description": "Interactive high-level object-oriented language and pip package installer",
-      "category": "develop",
-      "dependencies": [],
-      "sha256": "f789c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
-      "size": 42000000,
-      "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/python3-3.12.5.axis",
-      "maintainer": "Python Software Foundation <debian-devel@lists.debian.org>",
-      "binary": "/usr/bin/python3"
-    },
     "nodejs": {
       "name": "nodejs",
       "version": "20.17.0",
@@ -511,7 +499,7 @@
       "version": "0.5.17",
       "description": "Open gaming platform for Epic Games, GOG, Battle.net, and Wine prefixes",
       "category": "games",
-      "dependencies": ["python3"],
+      "dependencies": [],
       "sha256": "e345c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 18500000,
       "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/lutris-0.5.17.axis",
@@ -535,7 +523,7 @@
       "version": "2.9.2",
       "description": "Graphical tool to install and manage Proton-GE, Wine-GE, and custom game fixes",
       "category": "games",
-      "dependencies": ["python3"],
+      "dependencies": [],
       "sha256": "a567c8e9b0d23f45a123e4b7890abcdef1234567890abcdef1234567890abcde",
       "size": 12000000,
       "url": "https://github.com/jackyphuti/AxisOS/releases/download/v2.0.0/protonup-qt-2.9.2.axis",

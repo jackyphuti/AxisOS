@@ -151,5 +151,5 @@ summary({
   'Language': 'Pure C11 / C17 (-std=gnu11)',
   'GUI Stack': 'GTK 3, Cairo, VTE, Pango',
   'C++ Runtime': 'None (libstdc++ never linked)',
-  'Python Runtime': 'None (0 .py files in OS)'
+  'Scripting Runtime': 'None (0 interpreted scripts in OS)'
 }, section: 'AxisOS Pure C Architecture')

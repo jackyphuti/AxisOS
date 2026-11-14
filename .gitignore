@@ -28,6 +28,7 @@ chroot/
 *.symvers
 compositor/axis-compositor
 shell-c/axisos-shell
+shell-c/axis-shell
 shell-c/LiquidNodesOS
 LiquidNodesOS
 axis-compositor

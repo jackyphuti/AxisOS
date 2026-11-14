@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=AxisOS LiquidNodes (Qt 6 QML)
-Comment=Glassmorphic LiquidNodes Wayland Desktop Environment
-Exec=/usr/local/bin/LiquidNodesOS
+Name=AxisOS LiquidNodes (Wayland)
+Comment=Glassmorphic LiquidNodes Pure C Wayland Desktop Environment
+Exec=/usr/local/bin/axisos-kiosk.sh
 Type=Application
 DesktopNames=LiquidNodes;AxisOS

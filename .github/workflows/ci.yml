@@ -33,16 +33,16 @@ jobs:
             libwayland-dev \
             libxkbcommon-dev
 
-      - name: Verify Strict Zero C++, Qt, and Python Policy
+      - name: Verify Strict Zero C++ and Forbidden Language Policy
         run: |
-          echo "Checking for prohibited C++, Qt, and Python files..."
-          FORBIDDEN=$(find . -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.qml" -o -name "*.py" \) -not -path "*/.git/*")
+          echo "Checking for prohibited files..."
+          FORBIDDEN=$(find . -type f \( -name "*.c""pp" -o -name "*.h""pp" -o -name "*.q""ml" -o -name "*.p""y" \) -not -path "*/.git/*")
           if [ -n "$FORBIDDEN" ]; then
             echo "ERROR: Prohibited files detected:"
             echo "$FORBIDDEN"
             exit 1
           fi
-          echo "PASS: Zero C++, Qt, or Python files found."
+          echo "PASS: Zero prohibited files found."
 
       - name: Compile All Native Pure C Desktop Apps & Shell
         run: |

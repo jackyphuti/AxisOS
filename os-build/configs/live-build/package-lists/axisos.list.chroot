@@ -141,13 +141,12 @@ steam-installer
 # ==============================================================================
 build-essential
 gcc
-g++
 clang
-cmake
 make
 gdb
 git
 pkg-config
+jq
 distrobox
 podman
 flatpak

@@ -2,7 +2,7 @@
 
 # AxisOS Linux System Architecture & Build System
 
-AxisOS is a modern, responsive Linux-based operating system featuring a custom glassmorphic shell built with Qt 6 and QML, running directly on top of the Linux kernel and a native wlroots Wayland compositor.
+AxisOS is a modern, responsive Linux-based operating system built strictly in 100% Pure C (-std=gnu11 / -std=c17), featuring a custom glassmorphic shell built with GTK 3, Cairo, and gtk-layer-shell, running directly on top of the Linux kernel and a native wlroots Wayland compositor.
 
 ---
 
@@ -31,7 +31,7 @@ flowchart TD
     end
 
     subgraph AxisOS Shell & User Experience
-        Compositor --> Shell[LiquidNodes Desktop (Qt 6 / QML)]
+        Compositor --> Shell[LiquidNodes Desktop (Pure C / GTK 3 / Layer-Shell)]
         Shell --> Desktop[AxisOS Desktop & Window Management]
         Shell --> Installer[AxisOS System Installer]
         Shell --> Apps[Settings, Terminal, Task Manager, OOBE]
@@ -42,34 +42,30 @@ flowchart TD
 
 ## Directory Structure
 
-- `compositor-qt/`: The AxisOS custom Desktop Shell (QML/Qt6), Window Manager, and components.
+- `shell-c/`: The AxisOS custom Desktop Shell (Pure C11 / GTK 3 / Layer-Shell), Window Manager, and components.
 - `compositor/`: Native C wlroots compositor (`axis-compositor`) with dynamic protocol scanner.
 - `os-build/configs/`: System configurations (Wayland session, systemd units, Polkit rules, GRUB/ISOLINUX).
-- `os-build/apps/`: Native C++ desktop applications (installer, terminal, settings, task manager).
-- `os-build/scripts/`: Build automation scripts:
-  - `build-hybrid-uefi-iso.py`: Assembles a bootable dual-boot UEFI + BIOS hybrid live ISO.
-  - `compile-native-apps.sh`: Compiles C/C++ native applications.
-  - `run-qemu.sh`: Launches QEMU virtual machine for rapid OS testing.
+- `os-build/apps/`: Native Pure C11 desktop applications (installer, terminal, settings, task manager, software manager, etc.).
+- `os-build/scripts/`: Build automation and system utility programs compiled from pure C.
+- `pkg-mgr/`: Pure C package manager CLI (`axis`) and repository builder (`axis_repo_builder`).
+- `os-build/updater/`: Pure C atomic system updater (`axis-update`).
 
 ---
 
-## How to Test & Develop
+## Build Automation
 
-### 1. Compile Native Applications
+To compile all native applications and shell components:
+
 ```bash
 ./os-build/scripts/compile-native-apps.sh
 ```
 
-### 2. Test in QEMU VM
+To assemble a bootable hybrid ISO image:
+
 ```bash
-./os-build/scripts/run-qemu.sh
+./os-build/scripts/build-iso.sh
 ```
 
-### 3. Build Full Bootable Live ISO
-```bash
-sudo bash ./os-build/scripts/build-hybrid-uefi-iso.sh
-```
-The resulting ISO can be written to a USB drive with `dd`, BalenaEtcher, Ventoy, or Rufus, or booted in VirtualBox/VMware/QEMU.
+---
 
 </div>
-

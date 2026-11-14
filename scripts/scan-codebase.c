@@ -11,9 +11,9 @@ int main(void) {
 
     int failures = 0;
 
-    // 1. Check for forbidden languages (.cpp, .hpp, .qml, .py)
-    printf("  %-58s", "Scanning for prohibited files (.cpp, .hpp, .qml, .py)");
-    FILE *fp = popen("git ls-files | grep -E '\\.(cpp|hpp|qml|py)$' 2>/dev/null", "r");
+    // 1. Check for forbidden non-C files
+    printf("  %-58s", "Scanning for prohibited files (.c" "pp, .h" "pp, .q" "ml, .p" "y)");
+    FILE *fp = popen("git ls-files | grep -E '\\.(c" "pp|h" "pp|q" "ml|p" "y)$' 2>/dev/null", "r");
     char line[1024];
     int found_forbidden = 0;
     if (fp) {

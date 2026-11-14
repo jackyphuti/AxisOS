@@ -1688,7 +1688,7 @@ static void build_about_page(AxisSettingsApp *app) {
     if (strstr(ed_name, "Enterprise") != NULL) {
         ed_desc = "Enterprise Profile: Hardened sysctl security, UFW firewall, Active Directory / SSSD domain join.";
     } else if (strstr(ed_name, "School") != NULL || strstr(ed_name, "Work") != NULL) {
-        ed_desc = "Work & School Profile: Full LibreOffice productivity suite, VS Code, Python STEM development tools.";
+        ed_desc = "Work & School Profile: Full LibreOffice productivity suite, VS Code, STEM development tools.";
     }
     g_free(ed_name);
 

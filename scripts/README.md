@@ -1,88 +1,25 @@
 <div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
 
-# AxisOS Codebase Scanner
+# AxisOS Pure C Codebase Scanner
 
-`scan-codebase.sh` is a read-only helper for finding common syntax and
-configuration errors in the AxisOS repository. It scans Git-tracked files and
-non-ignored working-tree files; it does not build the project, execute
-application code, or modify repository files.
-
-## Requirements
-
-The script requires:
-
-- Bash
-- Git
-
-These checks run when the corresponding tool is available:
-
-- `jq` for Python syntax and JSON validation
-- `node` for JavaScript, CommonJS, and ECMAScript module syntax
-- `shellcheck` for optional shell-script linting
-
-If `jq`, `node`, or `shellcheck` is unavailable, the related check is
-reported as `SKIPPED`. A skipped optional check does not cause the scan to
-fail.
+`scripts/scan-codebase.c` is a read-only helper for finding common syntax and
+architecture errors in the AxisOS repository. It scans Git-tracked files and
+verifies 100% Pure C language compliance.
 
 ## Running the scanner
 
 From the repository root:
 
 ```bash
-./scripts/scan-codebase.sh
+gcc -std=gnu11 -O2 scripts/scan-codebase.c -o scripts/scan-codebase
+./scripts/scan-codebase
 ```
 
-The script can also be started from another directory using its path:
+## Running Linkage Verification
 
 ```bash
-/path/to/AxisOS/scripts/scan-codebase.sh
+gcc -std=gnu11 -O2 scripts/verify-pure-c.c -o scripts/verify-pure-c
+./scripts/verify-pure-c
 ```
-
-To display the command usage:
-
-```bash
-./scripts/scan-codebase.sh --help
-```
-
-The scanner creates temporary compiler output outside the repository and
-removes it when the scan finishes.
-
-## Checks performed
-
-The scanner checks:
-
-- Python files (`.py`) with `jq -m py_compile`
-- Shell files (`.sh`) with `bash -n`
-- JavaScript files (`.js`, `.cjs`, `.mjs`) with `node --check`
-- JSON files (`.json`) with Python's JSON parser
-- Shell files with `shellcheck` when ShellCheck is installed
-
-The scan includes files known to Git as well as non-ignored files in the
-working tree, so newly created files can be checked before they are staged.
-
-## Exit codes
-
-| Code | Meaning |
-| ---: | --- |
-| `0` | All performed checks passed. |
-| `1` | At least one performed check found an error. |
-| `2` | The command was used incorrectly or was run outside a Git repository. |
-
-Example of using the exit code in automation:
-
-```bash
-if ./scripts/scan-codebase.sh; then
-    echo "Codebase scan passed"
-else
-    echo "Codebase scan found errors"
-    exit 1
-fi
-```
-
-## Reading the output
-
-Each check is shown as `OK`, `FAILED`, or `SKIPPED`. Failed checks include the
-diagnostic output from the relevant tool. The summary at the end reports the
-number of performed checks, skipped checks, and failures.
 
 </div>

@@ -1,6 +1,6 @@
 # ==============================================================================
 # AxisOS Pure C Native Desktop Applications Manifest
-# Zero GNOME Shell / Zero Mutter / Zero Qt 6 / Zero Python Overhead
+# Zero GNOME Shell / Zero Mutter / Zero C++ Overhead
 # Powered by Pure C11 GTK 3, gtk-layer-shell, and wlroots Wayland Compositor
 # ==============================================================================
 
