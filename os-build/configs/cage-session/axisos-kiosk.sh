@@ -93,12 +93,12 @@ fi
 
 if [ -n "$COMPOSITOR_BIN" ]; then
     echo "[AxisOS] Launching Native Pure C wlroots axis-compositor..." | tee -a "$HOME/.axis-session.log"
-    if ! "$COMPOSITOR_BIN" -s "$STARTUP_CMD" >> "$HOME/.axis-session.log" 2>&1; then
+    if ! "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a "$HOME/.axis-session.log"; then
         echo "[AxisOS] Compositor exited. Retrying with pixman software rendering fallback..." | tee -a "$HOME/.axis-session.log"
         export WLR_RENDERER=pixman
         export WLR_RENDERER_ALLOW_SOFTWARE=1
         export WLR_NO_HARDWARE_CURSORS=1
-        if ! "$COMPOSITOR_BIN" -s "$STARTUP_CMD" >> "$HOME/.axis-session.log" 2>&1; then
+        if ! "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a "$HOME/.axis-session.log"; then
             echo "[AxisOS] Compositor failed. Launching fallback kiosk..." | tee -a "$HOME/.axis-session.log"
             if command -v cage >/dev/null 2>&1; then
                 exec cage -s -- /usr/local/bin/$STARTUP_APP

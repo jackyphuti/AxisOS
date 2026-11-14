@@ -939,6 +939,9 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 
 	wlr_output_layout_add_auto(server->output_layout, wlr_output);
 
+	/* Attach output to scene graph so frames are actively rendered and committed to display */
+	struct wlr_scene_output *scene_output = wlr_scene_output_create(server->scene, wlr_output);
+
 	/* Create solid AxisOS One UI Dark (#141826) base rectangle so screen is never blank before clients map */
 	float bg_color[4] = { 0x14 / 255.0f, 0x18 / 255.0f, 0x26 / 255.0f, 1.0f };
 	struct wlr_scene_rect *bg_rect = wlr_scene_rect_create(&server->scene->node, wlr_output->width, wlr_output->height, bg_color);
@@ -947,7 +950,6 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 	}
 
 	/* Trigger initial frame render so monitor does not remain in power-saving / black state */
-	struct wlr_scene_output *scene_output = wlr_scene_get_scene_output(server->scene, wlr_output);
 	if (scene_output) {
 		wlr_scene_output_commit(scene_output);
 	}
