@@ -44,6 +44,7 @@ packagekit
 # Typography, Themes & Icon Stack
 papirus-icon-theme
 fonts-font-awesome
+fonts-ibm-plex
 fonts-cantarell
 fonts-dejavu-core
 fonts-liberation

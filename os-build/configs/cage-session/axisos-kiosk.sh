@@ -4,7 +4,7 @@
 # Launches native wlroots axis-compositor with pure C desktop shell and GTK 3 apps
 # ==============================================================================
 
-set -eu
+set -u
 
 # 1. Setup XDG runtime directory safely without touching /run/user/1000/systemd/inaccessible
 UID_NUM=$(id -u)
@@ -16,12 +16,19 @@ if [ ! -d "$XDG_RUNTIME_DIR" ] || [ ! -w "$XDG_RUNTIME_DIR" ]; then
 fi
 
 # 2. Configure libseat / logind session backend
-# When launched via systemd PAMName=login, XDG_SESSION_ID is set and logind owns the VT/DRM master.
-# Only force LIBSEAT_BACKEND=seatd if no logind session is active and /run/seatd.sock is writable.
-if [ -z "${XDG_SESSION_ID:-}" ] && [ -w "/run/seatd.sock" ]; then
+# When launched via systemd PAMName=axisos-autologin, systemd-logind owns the VT/DRM master on tty1.
+# Query loginctl if XDG_SESSION_ID is not present in service environment.
+if [ -z "${XDG_SESSION_ID:-}" ] && command -v loginctl >/dev/null 2>&1; then
+    XDG_SESSION_ID=$(loginctl session-status 2>/dev/null | head -n1 | awk '{print $1}')
+    [ -n "$XDG_SESSION_ID" ] && export XDG_SESSION_ID
+fi
+
+if [ -d "/run/systemd/seats" ] || pgrep -x systemd-logind >/dev/null 2>&1; then
+    export LIBSEAT_BACKEND=logind
+elif [ -w "/run/seatd.sock" ]; then
     export LIBSEAT_BACKEND=seatd
 else
-    unset LIBSEAT_BACKEND
+    export LIBSEAT_BACKEND=builtin
 fi
 
 export XDG_SESSION_TYPE=wayland
@@ -29,10 +36,17 @@ export XDG_CURRENT_DESKTOP="AxisOS:LiquidNodes"
 export GDK_BACKEND=wayland
 export WLR_RENDERER_ALLOW_SOFTWARE=1
 export WLR_NO_HARDWARE_CURSORS=1
-export LIBGL_ALWAYS_SOFTWARE=1
 export MOZ_ENABLE_WAYLAND=1
 export OZONE_PLATFORM=wayland
 export SDL_VIDEODRIVER=wayland
+
+# Auto-detect hypervisors with broken/unsupported host EGL (e.g. VirtualBox VMSVGA without 3D)
+# and select pixman CPU rasterization up front to prevent EGL initialization crashes.
+if grep -qa "VirtualBox\|VMware" /sys/class/dmi/id/product_name 2>/dev/null || \
+   grep -qa "innotek GmbH" /sys/class/dmi/id/sys_vendor 2>/dev/null; then
+    echo "[AxisOS] Hypervisor detected without reliable 3D EGL; defaulting to pixman software renderer."
+    export WLR_RENDERER=pixman
+fi
 
 # Unset parent display server variables
 unset WAYLAND_DISPLAY
@@ -72,14 +86,15 @@ else
     STARTUP_APP="axis-welcome"
 fi
 
-# 7. Configure Desktop Shell Component (axis-shell or waybar + wofi)
+# 7. Configure Desktop Shell Component (waybar taskbar + optional axis-shell topbar)
 SHELL_CMD=""
-if [ -x "/usr/local/bin/axis-shell" ]; then
-    SHELL_CMD="/usr/local/bin/axis-shell &"
-elif [ -x "/usr/bin/axis-shell" ]; then
-    SHELL_CMD="/usr/bin/axis-shell &"
-elif command -v waybar >/dev/null 2>&1; then
+if command -v waybar >/dev/null 2>&1; then
     SHELL_CMD="waybar &"
+fi
+if [ -x "/usr/local/bin/axis-shell" ]; then
+    SHELL_CMD="$SHELL_CMD /usr/local/bin/axis-shell &"
+elif [ -x "/usr/bin/axis-shell" ]; then
+    SHELL_CMD="$SHELL_CMD /usr/bin/axis-shell &"
 fi
 
 STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & $SHELL_CMD (sleep 1 && GDK_BACKEND=wayland $STARTUP_APP) &"
@@ -94,18 +109,17 @@ fi
 
 if [ -n "$COMPOSITOR_BIN" ]; then
     echo "[AxisOS] Launching Native Pure C wlroots axis-compositor..."
-    "$COMPOSITOR_BIN" -s "$STARTUP_CMD"
-    RET=$?
+    RET=0
+    "$COMPOSITOR_BIN" -s "$STARTUP_CMD" || RET=$?
     if [ $RET -ne 0 ]; then
         echo "[AxisOS] Compositor exited ($RET). Retrying with pixman software rendering fallback..."
         export WLR_RENDERER=pixman
         export WLR_RENDERER_ALLOW_SOFTWARE=1
         export WLR_NO_HARDWARE_CURSORS=1
-        export LIBGL_ALWAYS_SOFTWARE=1
-        "$COMPOSITOR_BIN" -s "$STARTUP_CMD"
-        RET=$?
+        RET=0
+        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" || RET=$?
         if [ $RET -ne 0 ]; then
-            echo "[AxisOS] Compositor failed. Launching fallback kiosk..."
+            echo "[AxisOS] Compositor failed ($RET). Launching fallback kiosk..."
             if command -v cage >/dev/null 2>&1; then
                 exec cage -s -- /usr/local/bin/$STARTUP_APP
             fi

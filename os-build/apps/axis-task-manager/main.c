@@ -186,86 +186,98 @@ typedef struct {
 
 static const char *CSS_TASK_MANAGER =
     "* {"
-    "    font-family: \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Cantarell, \"DejaVu Sans\", sans-serif;"
+    "    font-family: \"IBM Plex Sans\", \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Cantarell, \"DejaVu Sans\", sans-serif;"
     "    outline-style: none;"
     "}"
     "window, .background {"
-    "    background-color: #F4F6FB;"
-    "    color: #1C1C1E;"
+    "    background-color: #141826;"
+    "    color: #FFFFFF;"
     "}"
     "headerbar {"
-    "    background-color: #FFFFFF;"
-    "    border-bottom: 1px solid #E5E7EE;"
-    "    color: #1C1C1E;"
+    "    background-color: #1A1D2B;"
+    "    border-bottom: 1px solid #2E3349;"
+    "    color: #FFFFFF;"
     "}"
     "headerbar .title {"
     "    font-weight: 700;"
     "    font-size: 15px;"
-    "    color: #1C1C1E;"
+    "    color: #FFFFFF;"
     "}"
     ".sidebar {"
-    "    background-color: #FFFFFF;"
-    "    border-right: 1px solid #E5E7EE;"
+    "    background-color: #1A1D2B;"
+    "    border-right: 1px solid #2E3349;"
     "}"
     ".sidebar button {"
     "    border-radius: 999px;"
     "    padding: 10px 14px;"
     "    margin: 3px 8px;"
-    "    color: #6B6F7B;"
+    "    color: #94A3B8;"
     "    font-weight: 600;"
     "    font-size: 13px;"
     "    border: none;"
     "    background-color: transparent;"
     "}"
     ".sidebar button:hover {"
-    "    background-color: #E6EBFF;"
-    "    color: #1428A0;"
+    "    background-color: #262A3D;"
+    "    color: #FFFFFF;"
     "}"
     ".sidebar button.active {"
-    "    background-color: #1428A0;"
-    "    color: #FFFFFF;"
+    "    background-color: #262A3D;"
+    "    color: #7D95FF;"
     "    font-weight: 700;"
+    "    border: 1px solid #7D95FF;"
     "}"
     ".content-pane {"
     "    padding: 16px 20px;"
+    "    background-color: #141826;"
     "}"
     ".card {"
-    "    background-color: #FFFFFF;"
-    "    border: 1px solid #E5E7EE;"
+    "    background-color: #1F2231;"
+    "    border: 1px solid #2E3349;"
     "    border-radius: 16px;"
     "    padding: 14px 18px;"
     "    margin-bottom: 12px;"
-    "    box-shadow: 0 2px 12px rgba(20, 40, 160, 0.04);"
+    "    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);"
     "}"
     ".card-title {"
     "    font-size: 13px;"
     "    font-weight: 700;"
-    "    color: #1C1C1E;"
+    "    color: #FFFFFF;"
     "    margin-bottom: 6px;"
     "}"
     ".btn-primary {"
-    "    background: #1428A0;"
-    "    color: #FFFFFF;"
+    "    background: #7D95FF;"
+    "    color: #141826;"
     "    font-weight: 700;"
     "    border-radius: 999px;"
     "    border: none;"
     "    padding: 6px 16px;"
     "}"
+    ".btn-primary:hover {"
+    "    background: #6B82F0;"
+    "}"
+    ".btn-primary:active {"
+    "    background: #5A71E0;"
+    "}"
     ".btn-secondary {"
-    "    background: #FFFFFF;"
-    "    color: #1C1C1E;"
-    "    border: 1px solid #E5E7EE;"
+    "    background: #262A3D;"
+    "    color: #FFFFFF;"
+    "    border: 1px solid #2E3349;"
     "    border-radius: 999px;"
     "    padding: 6px 14px;"
     "    font-weight: 600;"
     "}"
+    ".btn-secondary:hover {"
+    "    background: #2E3349;"
+    "    border-color: #7D95FF;"
+    "}"
     "treeview {"
-    "    background-color: #FFFFFF;"
-    "    color: #1C1C1E;"
+    "    background-color: #1F2231;"
+    "    color: #FFFFFF;"
     "}"
     "treeview:selected, treeview row:selected {"
-    "    background-color: #E6EBFF;"
-    "    color: #1428A0;"
+    "    background-color: #262A3D;"
+    "    color: #7D95FF;"
     "}";
 
 static double get_time_seconds(void) {
@@ -330,7 +342,7 @@ static gboolean draw_sparklines_cb(GtkWidget *widget, cairo_t *cr, gpointer data
     int w = gtk_widget_get_allocated_width(widget);
     int h = gtk_widget_get_allocated_height(widget);
 
-    cairo_set_source_rgb(cr, 0.05, 0.06, 0.09);
+    cairo_set_source_rgb(cr, 0x14 / 255.0, 0x18 / 255.0, 0x26 / 255.0);
     cairo_paint(cr);
 
     cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.05);
@@ -486,7 +498,7 @@ static gboolean draw_memory_bar_cb(GtkWidget *widget, cairo_t *cr, gpointer data
     int w = gtk_widget_get_allocated_width(widget);
     int h = gtk_widget_get_allocated_height(widget);
 
-    cairo_set_source_rgb(cr, 0.08, 0.10, 0.14);
+    cairo_set_source_rgb(cr, 0x26 / 255.0, 0x2A / 255.0, 0x3D / 255.0);
     cairo_rectangle(cr, 0, 4, w, h - 8);
     cairo_fill(cr);
 
@@ -1349,12 +1361,12 @@ static AxisTaskManagerApp *axis_task_manager_app_create(void) {
         const char *id;
     } NavDef;
     static const NavDef navs[] = {
-        {"⚡ Processes", "processes"},
-        {"📈 Performance", "performance"},
-        {"🕒 App History", "apphistory"},
-        {"🚀 Startup Apps", "startup"},
-        {"👥 Users", "users"},
-        {"⚙️ Services", "services"}
+        {"Processes", "processes"},
+        {"Performance", "performance"},
+        {"App History", "apphistory"},
+        {"Startup Apps", "startup"},
+        {"Users", "users"},
+        {"Services", "services"}
     };
 
     for (size_t i = 0; i < sizeof(navs)/sizeof(navs[0]); ++i) {

@@ -9,7 +9,7 @@
 
 window#waybar {
     background-color: #1F2231;
-    border-bottom: 1px solid #2E3349;
+    border-top: 1px solid #2E3349;
     color: #F2F3F7;
 }
 
@@ -20,6 +20,21 @@ window#waybar {
     padding: 0 14px;
     margin: 4px 4px 4px 6px;
     border-radius: 12px;
+}
+
+#custom-installer {
+    background: #10B981;
+    color: #141826;
+    font-weight: 700;
+    padding: 0 12px;
+    margin: 4px 2px;
+    border-radius: 12px;
+    border: 1px solid #059669;
+}
+
+#custom-installer:hover {
+    background: #34D399;
+    color: #0F172A;
 }
 
 #custom-settings,
@@ -61,10 +76,18 @@ window#waybar {
     border: 1px solid #7D95FF;
 }
 
-#clock, #pulseaudio, #network, #battery, #cpu, #memory, #tray {
+#clock, #pulseaudio, #network, #battery, #cpu, #memory, #custom-gamemode, #backlight, #custom-power, #tray {
     padding: 0 10px;
     margin: 4px 2px;
     border-radius: 12px;
     background: #262A3D;
     color: #F2F3F7;
+    border: 1px solid #2E3349;
+}
+
+#custom-gamemode:hover,
+#custom-power:hover {
+    background: #2A3366;
+    color: #FFFFFF;
+    border-color: #7D95FF;
 }

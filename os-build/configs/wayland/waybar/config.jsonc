@@ -33,7 +33,7 @@
         "on-click": "wofi --show drun --prompt 'Search Applications...'"
     },
     "custom/installer": {
-        "format": "💿 Install AxisOS",
+        "format": "󰉉  Install AxisOS",
         "tooltip": "Install AxisOS permanently to your drive",
         "on-click": "/usr/local/bin/axis-installer"
     },

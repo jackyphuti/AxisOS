@@ -99,131 +99,154 @@ static char *exec_cmd(const char *cmd) {
 
 static const char *CSS_THEME =
     "* {"
-    "    font-family: \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Cantarell, sans-serif;"
+    "    font-family: \"IBM Plex Sans\", \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Cantarell, sans-serif;"
     "}"
     "window {"
-    "    background-color: #F4F6FB;"
-    "    color: #1C1C1E;"
+    "    background-color: #141826;"
+    "    color: #FFFFFF;"
     "}"
     "headerbar {"
-    "    background: #FFFFFF;"
-    "    border-bottom: 1px solid #E5E7EE;"
-    "    color: #1C1C1E;"
+    "    background: #1A1D2B;"
+    "    border-bottom: 1px solid #2E3349;"
+    "    color: #FFFFFF;"
     "}"
     "headerbar .title {"
     "    font-weight: 700;"
     "    font-size: 15px;"
-    "    color: #1C1C1E;"
+    "    color: #FFFFFF;"
     "}"
     "headerbar .subtitle {"
     "    font-size: 12px;"
-    "    color: #6B6F7B;"
+    "    color: #94A3B8;"
     "}"
     ".sidebar {"
-    "    background-color: #FFFFFF;"
-    "    border-right: 1px solid #E5E7EE;"
+    "    background-color: #1A1D2B;"
+    "    border-right: 1px solid #2E3349;"
+    "}"
+    ".sidebar list {"
+    "    background-color: transparent;"
     "}"
     ".sidebar list row {"
     "    padding: 12px 18px;"
-    "    color: #6B6F7B;"
+    "    color: #94A3B8;"
     "    font-weight: 600;"
     "    font-size: 13px;"
     "    border-left: 3px solid transparent;"
     "}"
+    ".sidebar list row:hover {"
+    "    background-color: #262A3D;"
+    "    color: #FFFFFF;"
+    "}"
     ".sidebar list row:selected {"
-    "    background-color: #E6EBFF;"
-    "    color: #1428A0;"
-    "    border-left: 3px solid #1428A0;"
+    "    background-color: #262A3D;"
+    "    color: #FFFFFF;"
+    "    border-left: 3px solid #7D95FF;"
     "}"
     ".content-pane {"
     "    padding: 24px 32px;"
+    "    background-color: #141826;"
     "}"
     ".card {"
-    "    background-color: #FFFFFF;"
-    "    border: 1px solid #E5E7EE;"
+    "    background-color: #1F2231;"
+    "    border: 1px solid #2E3349;"
     "    border-radius: 16px;"
     "    padding: 18px 22px;"
     "    margin-bottom: 16px;"
-    "    box-shadow: 0 2px 12px rgba(20, 40, 160, 0.04);"
+    "    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);"
     "}"
     ".card-title {"
     "    font-size: 15px;"
     "    font-weight: 700;"
-    "    color: #1C1C1E;"
+    "    color: #FFFFFF;"
     "    margin-bottom: 4px;"
     "}"
     ".card-subtitle {"
     "    font-size: 12px;"
-    "    color: #6B6F7B;"
+    "    color: #94A3B8;"
     "    margin-bottom: 12px;"
     "}"
     ".btn-primary {"
-    "    background: #1428A0;"
-    "    color: #FFFFFF;"
+    "    background: #7D95FF;"
+    "    color: #141826;"
     "    font-weight: 700;"
     "    border-radius: 999px;"
     "    border: none;"
     "    padding: 8px 20px;"
     "}"
     ".btn-primary:hover {"
-    "    background: #0F1F7A;"
+    "    background: #6B82F0;"
+    "}"
+    ".btn-primary:active {"
+    "    background: #5A71E0;"
     "}"
     ".btn-secondary {"
-    "    background: #FFFFFF;"
-    "    color: #1C1C1E;"
-    "    border: 1px solid #E5E7EE;"
+    "    background: #262A3D;"
+    "    color: #FFFFFF;"
+    "    border: 1px solid #2E3349;"
     "    border-radius: 999px;"
     "    padding: 8px 18px;"
     "    font-weight: 600;"
     "}"
     ".btn-secondary:hover {"
-    "    background: #E6EBFF;"
-    "    color: #1428A0;"
+    "    background: #2E3349;"
+    "    border-color: #7D95FF;"
+    "    color: #FFFFFF;"
     "}"
     ".badge-blue {"
-    "    background: #E6EBFF;"
-    "    color: #1428A0;"
-    "    border: 1px solid #C7D5FF;"
+    "    background: #262A3D;"
+    "    color: #7D95FF;"
+    "    border: 1px solid #7D95FF;"
     "    border-radius: 999px;"
     "    padding: 4px 12px;"
     "    font-size: 11px;"
     "    font-weight: 700;"
     "}"
     ".badge-green {"
-    "    background: #E6F8EE;"
-    "    color: #2BB673;"
-    "    border: 1px solid #B7EBCE;"
+    "    background: #16382B;"
+    "    color: #34D399;"
+    "    border: 1px solid #059669;"
     "    border-radius: 999px;"
     "    padding: 4px 12px;"
     "    font-size: 11px;"
     "    font-weight: 700;"
     "}"
     "progressbar progress {"
-    "    background: #1428A0;"
+    "    background: #7D95FF;"
     "    border-radius: 999px;"
     "}"
     "progressbar trough {"
-    "    background: #E5E7EE;"
+    "    background: #262A3D;"
     "    border-radius: 999px;"
     "    min-height: 8px;"
     "}"
     "entry {"
-    "    background-color: #FFFFFF;"
-    "    color: #1C1C1E;"
-    "    border: 1px solid #E5E7EE;"
+    "    background-color: #1F2231;"
+    "    color: #FFFFFF;"
+    "    border: 1px solid #2E3349;"
     "    border-radius: 10px;"
     "    padding: 8px 14px;"
     "}"
     "entry:focus {"
-    "    border-color: #1428A0;"
+    "    border-color: #7D95FF;"
     "}"
     "scale trough {"
-    "    background-color: #E5E7EE;"
+    "    background-color: #262A3D;"
     "    border-radius: 999px;"
     "    min-height: 6px;"
     "}"
     "scale highlight {"
-    "    background-color: #1428A0;"
+    "    background-color: #7D95FF;"
+    "    border-radius: 999px;"
+    "}"
+    "switch {"
+    "    background: #2E3349;"
+    "    border-radius: 999px;"
+    "}"
+    "switch:checked {"
+    "    background: #7D95FF;"
+    "}"
+    "switch slider {"
+    "    background: #FFFFFF;"
     "    border-radius: 999px;"
     "}";
 
@@ -1556,7 +1579,7 @@ static void build_about_page(AxisSettingsApp *app) {
     GtkWidget *title_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     gtk_widget_set_valign(title_box, GTK_ALIGN_CENTER);
     GtkWidget *title_lbl = gtk_label_new(NULL);
-    gtk_label_set_markup(GTK_LABEL(title_lbl), "<span size='x-large' weight='bold'>AxisOS 2.0</span>");
+    gtk_label_set_markup(GTK_LABEL(title_lbl), "<span size='x-large' weight='bold'>AxisOS 2.1</span>");
     gtk_label_set_xalign(GTK_LABEL(title_lbl), 0.0);
     gtk_box_pack_start(GTK_BOX(title_box), title_lbl, FALSE, FALSE, 0);
 
@@ -1568,7 +1591,7 @@ static void build_about_page(AxisSettingsApp *app) {
     gtk_box_pack_start(GTK_BOX(header_box), title_box, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(page), header_box, FALSE, FALSE, 0);
 
-    GtkWidget *card = create_card("System Specifications & Hardware", "AxisOS 2.0 (Liquid Nodes Edition)");
+    GtkWidget *card = create_card("System Specifications & Hardware", "AxisOS 2.1 Pure C Edition");
 
     struct utsname u;
     memset(&u, 0, sizeof(u));
@@ -1835,17 +1858,17 @@ static AxisSettingsApp *axis_settings_app_create(void) {
     } PageDef;
 
     static const PageDef pages[] = {
-        {"🖥️  Display & Graphics", "display"},
-        {"⚡  Gaming Boost & Performance", "game_boost"},
-        {"☀️  Brightness & Sound", "audio_display"},
-        {"📶  Wi-Fi & Network", "network"},
-        {"󰂯  Bluetooth", "bluetooth"},
-        {"🔌  USB & Connected Devices", "usb"},
-        {"🎨  Appearance & Taskbar", "appearance"},
-        {"🔄  Software & Updates", "updates"},
-        {"🌍  Date, Time & Location", "datetime"},
-        {"🔒  Accounts & Security", "security"},
-        {"ℹ️  About AxisOS", "about"}
+        {"Display & Graphics", "display"},
+        {"Gaming Boost & Performance", "game_boost"},
+        {"Brightness & Sound", "audio_display"},
+        {"Wi-Fi & Network", "network"},
+        {"Bluetooth & Wireless", "bluetooth"},
+        {"USB & Connected Devices", "usb"},
+        {"Appearance & Taskbar", "appearance"},
+        {"Software & Updates", "updates"},
+        {"Date, Time & Location", "datetime"},
+        {"Accounts & Security", "security"},
+        {"About AxisOS 2.1", "about"}
     };
 
     for (size_t i = 0; i < sizeof(pages) / sizeof(pages[0]); i++) {

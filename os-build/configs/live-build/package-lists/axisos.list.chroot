@@ -164,6 +164,15 @@ brightnessctl
 gir1.2-gtk-3.0
 libnotify-bin
 
+# Typography, Themes & Icon Stack
+papirus-icon-theme
+fonts-font-awesome
+fonts-ibm-plex
+fonts-cantarell
+fonts-dejavu-core
+fonts-liberation
+fonts-inter
+
 # ==============================================================================
 # AxisOS Biometric Authentication Stack (Fingerprint, Iris & IR Cameras)
 # ==============================================================================

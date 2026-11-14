@@ -47,6 +47,7 @@
 #include <wlr/types/wlr_xcursor_manager.h>
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
+#include <wlr/types/wlr_foreign_toplevel_management_v1.h>
 #include <wlr/util/log.h>
 #include <wlr/version.h>
 #include <xkbcommon/xkbcommon.h>
@@ -77,6 +78,8 @@ struct axis_server {
 	struct wlr_layer_shell_v1 *layer_shell;
 	struct wl_listener new_layer_surface;
 	struct wl_list layer_surfaces;
+
+	struct wlr_foreign_toplevel_manager_v1 *foreign_toplevel_mgr;
 
 	struct wlr_cursor *cursor;
 	struct wlr_xcursor_manager *cursor_mgr;
@@ -123,6 +126,16 @@ struct axis_view {
 	struct wl_listener request_resize;
 	struct wl_listener request_maximize;
 	struct wl_listener request_fullscreen;
+	struct wl_listener set_title;
+	struct wl_listener set_app_id;
+
+	struct wlr_foreign_toplevel_handle_v1 *toplevel_handle;
+	struct wl_listener toplevel_request_maximize;
+	struct wl_listener toplevel_request_minimize;
+	struct wl_listener toplevel_request_activate;
+	struct wl_listener toplevel_request_fullscreen;
+	struct wl_listener toplevel_request_close;
+
 	int x, y;
 	bool is_maximized;
 	bool is_fullscreen;
@@ -154,6 +167,8 @@ struct axis_keyboard {
 static void focus_view(struct axis_view *view, struct wlr_surface *surface);
 static void focus_next_view(struct axis_server *server);
 static void spawn_command(const char *cmd);
+static void xdg_toplevel_request_maximize(struct wl_listener *listener, void *data);
+static void xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *data);
 
 static void focus_view(struct axis_view *view, struct wlr_surface *surface) {
 	if (view == NULL) {
@@ -178,6 +193,17 @@ static void focus_view(struct axis_view *view, struct wlr_surface *surface) {
 
 	if (view->xdg_surface->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && view->xdg_surface->toplevel) {
 		wlr_xdg_toplevel_set_activated(view->xdg_surface, true);
+	}
+
+	/* Update foreign toplevel manager activation states */
+	if (view->toplevel_handle) {
+		wlr_foreign_toplevel_handle_v1_set_activated(view->toplevel_handle, true);
+	}
+	struct axis_view *v;
+	wl_list_for_each(v, &server->views, link) {
+		if (v != view && v->toplevel_handle) {
+			wlr_foreign_toplevel_handle_v1_set_activated(v->toplevel_handle, false);
+		}
 	}
 
 	struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(seat);
@@ -209,7 +235,6 @@ static void spawn_command(const char *cmd) {
 		setenv("OZONE_PLATFORM", "wayland", 1);
 		setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
 		setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
-		setenv("LIBGL_ALWAYS_SOFTWARE", "1", 1);
 		execl("/bin/sh", "/bin/sh", "-c", cmd, (void *)NULL);
 		_exit(1);
 	}
@@ -586,18 +611,102 @@ static void server_cursor_frame(struct wl_listener *listener, void *data) {
 }
 
 /* ========================================================================= */
+/* Foreign Toplevel Callbacks & Handlers                                     */
+/* ========================================================================= */
+static void toplevel_handle_request_activate(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct axis_view *view = wl_container_of(listener, view, toplevel_request_activate);
+	if (view && view->xdg_surface && view->xdg_surface->surface) {
+		focus_view(view, view->xdg_surface->surface);
+	}
+}
+
+static void toplevel_handle_request_close(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct axis_view *view = wl_container_of(listener, view, toplevel_request_close);
+	if (view && view->xdg_surface && view->xdg_surface->toplevel) {
+		wlr_xdg_toplevel_send_close(view->xdg_surface);
+	}
+}
+
+static void toplevel_handle_request_maximize(struct wl_listener *listener, void *data) {
+	struct axis_view *view = wl_container_of(listener, view, toplevel_request_maximize);
+	struct wlr_foreign_toplevel_handle_v1_maximized_event *event = data;
+	if (event && event->maximized != view->is_maximized) {
+		xdg_toplevel_request_maximize(&view->request_maximize, NULL);
+	}
+}
+
+static void toplevel_handle_request_fullscreen(struct wl_listener *listener, void *data) {
+	struct axis_view *view = wl_container_of(listener, view, toplevel_request_fullscreen);
+	struct wlr_foreign_toplevel_handle_v1_fullscreen_event *event = data;
+	if (event && event->fullscreen != view->is_fullscreen) {
+		xdg_toplevel_request_fullscreen(&view->request_fullscreen, NULL);
+	}
+}
+
+static void xdg_toplevel_set_title(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct axis_view *view = wl_container_of(listener, view, set_title);
+	if (view->toplevel_handle && view->xdg_surface->toplevel->title) {
+		wlr_foreign_toplevel_handle_v1_set_title(view->toplevel_handle, view->xdg_surface->toplevel->title);
+	}
+}
+
+static void xdg_toplevel_set_app_id(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct axis_view *view = wl_container_of(listener, view, set_app_id);
+	if (view->toplevel_handle && view->xdg_surface->toplevel->app_id) {
+		wlr_foreign_toplevel_handle_v1_set_app_id(view->toplevel_handle, view->xdg_surface->toplevel->app_id);
+	}
+}
+
+/* ========================================================================= */
 /* XDG Surfaces (Application Windows)                                        */
 /* ========================================================================= */
 static void xdg_toplevel_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, map);
 	wl_list_insert(&view->server->views, &view->link);
+
+	if (view->server->foreign_toplevel_mgr) {
+		view->toplevel_handle = wlr_foreign_toplevel_handle_v1_create(view->server->foreign_toplevel_mgr);
+		if (view->toplevel_handle) {
+			struct wlr_xdg_toplevel *toplevel = view->xdg_surface->toplevel;
+			if (toplevel->title) {
+				wlr_foreign_toplevel_handle_v1_set_title(view->toplevel_handle, toplevel->title);
+			}
+			if (toplevel->app_id) {
+				wlr_foreign_toplevel_handle_v1_set_app_id(view->toplevel_handle, toplevel->app_id);
+			}
+			wlr_foreign_toplevel_handle_v1_set_maximized(view->toplevel_handle, view->is_maximized);
+			wlr_foreign_toplevel_handle_v1_set_fullscreen(view->toplevel_handle, view->is_fullscreen);
+
+			view->toplevel_request_activate.notify = toplevel_handle_request_activate;
+			wl_signal_add(&view->toplevel_handle->events.request_activate, &view->toplevel_request_activate);
+			view->toplevel_request_close.notify = toplevel_handle_request_close;
+			wl_signal_add(&view->toplevel_handle->events.request_close, &view->toplevel_request_close);
+			view->toplevel_request_maximize.notify = toplevel_handle_request_maximize;
+			wl_signal_add(&view->toplevel_handle->events.request_maximize, &view->toplevel_request_maximize);
+			view->toplevel_request_fullscreen.notify = toplevel_handle_request_fullscreen;
+			wl_signal_add(&view->toplevel_handle->events.request_fullscreen, &view->toplevel_request_fullscreen);
+		}
+	}
+
 	focus_view(view, view->xdg_surface->surface);
 }
 
 static void xdg_toplevel_unmap(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, unmap);
+	if (view->toplevel_handle) {
+		wl_list_remove(&view->toplevel_request_activate.link);
+		wl_list_remove(&view->toplevel_request_close.link);
+		wl_list_remove(&view->toplevel_request_maximize.link);
+		wl_list_remove(&view->toplevel_request_fullscreen.link);
+		wlr_foreign_toplevel_handle_v1_destroy(view->toplevel_handle);
+		view->toplevel_handle = NULL;
+	}
 	if (view->is_maximized) {
 		view->is_maximized = false;
 		if (!axis_has_maximized_view(view->server, view)) {
@@ -610,6 +719,14 @@ static void xdg_toplevel_unmap(struct wl_listener *listener, void *data) {
 static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, destroy);
+	if (view->toplevel_handle) {
+		wl_list_remove(&view->toplevel_request_activate.link);
+		wl_list_remove(&view->toplevel_request_close.link);
+		wl_list_remove(&view->toplevel_request_maximize.link);
+		wl_list_remove(&view->toplevel_request_fullscreen.link);
+		wlr_foreign_toplevel_handle_v1_destroy(view->toplevel_handle);
+		view->toplevel_handle = NULL;
+	}
 	if (view->is_maximized) {
 		view->is_maximized = false;
 		if (!axis_has_maximized_view(view->server, view)) {
@@ -623,6 +740,8 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&view->request_resize.link);
 	wl_list_remove(&view->request_maximize.link);
 	wl_list_remove(&view->request_fullscreen.link);
+	wl_list_remove(&view->set_title.link);
+	wl_list_remove(&view->set_app_id.link);
 	free(view);
 }
 
@@ -660,6 +779,9 @@ static void xdg_toplevel_request_maximize(struct wl_listener *listener, void *da
 		wlr_scene_node_set_position(view->scene_node, view->saved_geometry.x, view->saved_geometry.y);
 		wlr_xdg_toplevel_set_maximized(view->xdg_surface, false);
 		view->is_maximized = false;
+		if (view->toplevel_handle) {
+			wlr_foreign_toplevel_handle_v1_set_maximized(view->toplevel_handle, false);
+		}
 		if (!axis_has_maximized_view(view->server, NULL)) {
 			axis_set_taskbars_visible(view->server, true);
 		}
@@ -679,6 +801,9 @@ static void xdg_toplevel_request_maximize(struct wl_listener *listener, void *da
 			wlr_xdg_toplevel_set_size(view->xdg_surface, output->width, output->height);
 			wlr_xdg_toplevel_set_maximized(view->xdg_surface, true);
 			view->is_maximized = true;
+			if (view->toplevel_handle) {
+				wlr_foreign_toplevel_handle_v1_set_maximized(view->toplevel_handle, true);
+			}
 		}
 	}
 }
@@ -700,11 +825,17 @@ static void xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *
 			wlr_xdg_toplevel_set_size(view->xdg_surface, output->width, output->height);
 			wlr_xdg_toplevel_set_fullscreen(view->xdg_surface, true);
 			view->is_fullscreen = true;
+			if (view->toplevel_handle) {
+				wlr_foreign_toplevel_handle_v1_set_fullscreen(view->toplevel_handle, true);
+			}
 		} else {
 			wlr_xdg_toplevel_set_size(view->xdg_surface, view->saved_geometry.width, view->saved_geometry.height);
 			wlr_scene_node_set_position(view->scene_node, view->saved_geometry.x, view->saved_geometry.y);
 			wlr_xdg_toplevel_set_fullscreen(view->xdg_surface, false);
 			view->is_fullscreen = false;
+			if (view->toplevel_handle) {
+				wlr_foreign_toplevel_handle_v1_set_fullscreen(view->toplevel_handle, false);
+			}
 		}
 	}
 }
@@ -747,6 +878,10 @@ static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	wl_signal_add(&toplevel->events.request_maximize, &view->request_maximize);
 	view->request_fullscreen.notify = xdg_toplevel_request_fullscreen;
 	wl_signal_add(&toplevel->events.request_fullscreen, &view->request_fullscreen);
+	view->set_title.notify = xdg_toplevel_set_title;
+	wl_signal_add(&toplevel->events.set_title, &view->set_title);
+	view->set_app_id.notify = xdg_toplevel_set_app_id;
+	wl_signal_add(&toplevel->events.set_app_id, &view->set_app_id);
 
 	/* Center new windows on screen */
 	struct wlr_output *primary_out = wlr_output_layout_get_center_output(server->output_layout);
@@ -916,6 +1051,9 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 	/* Determine optimal mode, falling back to 1280x800@60Hz for virtual VM displays without EDID */
 	if (!wl_list_empty(&wlr_output->modes)) {
 		struct wlr_output_mode *mode = wlr_output_preferred_mode(wlr_output);
+		if (!mode) {
+			mode = wl_container_of(wlr_output->modes.prev, mode, link);
+		}
 		if (mode) {
 			wlr_output_set_mode(wlr_output, mode);
 		}
@@ -940,19 +1078,17 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 
 	wlr_output_layout_add_auto(server->output_layout, wlr_output);
 
-	/* Attach output to scene graph so frames are actively rendered and committed to display */
-	struct wlr_scene_output *scene_output = wlr_scene_output_create(server->scene, wlr_output);
+	/* Get or create scene output without creating duplicate entries */
+	struct wlr_scene_output *scene_output = wlr_scene_get_scene_output(server->scene, wlr_output);
+	if (!scene_output) {
+		scene_output = wlr_scene_output_create(server->scene, wlr_output);
+	}
 
 	/* Create solid AxisOS One UI Dark (#141826) base rectangle so screen is never blank before clients map */
 	float bg_color[4] = { 0x14 / 255.0f, 0x18 / 255.0f, 0x26 / 255.0f, 1.0f };
 	struct wlr_scene_rect *bg_rect = wlr_scene_rect_create(&server->scene->node, wlr_output->width, wlr_output->height, bg_color);
 	if (bg_rect) {
 		wlr_scene_node_lower_to_bottom(&bg_rect->node);
-	}
-
-	/* Trigger initial frame render so monitor does not remain in power-saving / black state */
-	if (scene_output) {
-		wlr_scene_output_commit(scene_output);
 	}
 }
 
@@ -1146,6 +1282,8 @@ int main(int argc, char *argv[]) {
 	server.layer_shell = wlr_layer_shell_v1_create(server.wl_display);
 	server.new_layer_surface.notify = server_new_layer_surface;
 	wl_signal_add(&server.layer_shell->events.new_surface, &server.new_layer_surface);
+
+	server.foreign_toplevel_mgr = wlr_foreign_toplevel_manager_v1_create(server.wl_display);
 
 	/* 5. Wire Up Hardware Listeners */
 	wl_list_init(&server.outputs);

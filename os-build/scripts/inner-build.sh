@@ -68,6 +68,11 @@ if [ -x "$WORKSPACE_DIR/os-build/apps/axis-settings/axisos-settings-panel" ]; th
     ln -sf axisos-settings-panel "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-settings" || true
 fi
 
+if [ -x "$WORKSPACE_DIR/os-build/apps/nobara-welcome/nobara-welcome" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/apps/nobara-welcome/nobara-welcome" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
+    ln -sf nobara-welcome "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-hardware-manager" || true
+fi
+
 # 4. Copy Desktop Shell (shell-c) & Wayland Compositor (compositor)
 if [ -x "$WORKSPACE_DIR/shell-c/axisos-shell" ]; then
     cp -f "$WORKSPACE_DIR/shell-c/axisos-shell" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-shell"

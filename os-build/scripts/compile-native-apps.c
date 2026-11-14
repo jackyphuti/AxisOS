@@ -51,6 +51,9 @@ int main(void) {
         run_cmd(desc, cmd);
     }
 
+    // Compile compositor
+    run_cmd("Compiling Pure C Wayland Compositor (compositor)...", "make -C compositor clean && make -C compositor -j$(nproc) 2>/dev/null || true");
+
     // Compile shell-c
     run_cmd("Compiling Pure C Wayland Desktop Shell (shell-c)...", "make -C shell-c clean && make -C shell-c -j$(nproc) 2>/dev/null || true");
 

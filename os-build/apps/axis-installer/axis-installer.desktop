@@ -1,5 +1,5 @@
 [Desktop Entry]
-Name=Install AxisOS 2.0
+Name=Install AxisOS 2.1
 GenericName=Live System Installer
 Comment=Install AxisOS permanently to your drive
 Exec=/usr/local/bin/axis-installer
