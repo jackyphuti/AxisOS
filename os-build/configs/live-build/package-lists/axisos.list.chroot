@@ -134,15 +134,8 @@ linux-cpupower
 nvtop
 
 # ==============================================================================
-# AxisOS Developer Stack & Container Isolation (Distrobox, Podman, Docker)
+# AxisOS Container Isolation & Desktop Portal Stack
 # ==============================================================================
-build-essential
-gcc
-clang
-make
-gdb
-git
-pkg-config
 jq
 distrobox
 podman
@@ -153,10 +146,6 @@ xdg-desktop-portal-wlr
 # ==============================================================================
 # AxisOS Native Desktop & Multimedia Codec Stack
 # ==============================================================================
-libwlroots-dev
-libwayland-dev
-wayland-protocols
-libxkbcommon-dev
 waybar
 wofi
 fuzzel
@@ -190,26 +179,3 @@ ir-keytable
 gir1.2-vte-2.91
 libvte-2.91-0
 libvterm0
-
-# ==============================================================================
-# AxisOS Native Pure C11 Desktop Development & Runtime Stack
-# ==============================================================================
-libgtk-3-dev
-libgtk-layer-shell-dev
-libvte-2.91-dev
-libcairo2-dev
-libpango1.0-dev
-libglib2.0-dev
-libpam0g-dev
-libudev-dev
-libinput-dev
-libdrm-dev
-libpixman-1-dev
-libwayland-bin
-libwayland-dev
-wayland-protocols
-libwlroots-dev
-libcurl4-openssl-dev
-libjson-c-dev
-libarchive-dev
-libssl-dev

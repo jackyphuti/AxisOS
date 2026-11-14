@@ -900,22 +900,25 @@ fi
 cat << EOF > /mnt/etc/systemd/system/axisos-session.service
 [Unit]
 Description=AxisOS Desktop Environment
-After=systemd-user-sessions.service seatd.service
-Wants=seatd.service
+After=systemd-user-sessions.service user-runtime-dir@1000.service user@1000.service systemd-logind.service seatd.service
+Wants=user-runtime-dir@1000.service systemd-logind.service
 Conflicts=getty@tty1.service
 After=getty@tty1.service
 
 [Service]
 Type=simple
 User=${USERNAME}
+Group=${USERNAME}
+SupplementaryGroups=video render input audio seat tty plugdev sudo
 PAMName=login
 WorkingDirectory=/home/${USERNAME}
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
+Environment=GDK_BACKEND=wayland
 Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=WLR_NO_HARDWARE_CURSORS=1
-Environment=LIBSEAT_BACKEND=seatd
 Environment=XDG_RUNTIME_DIR=/run/user/1000
+ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown ${USERNAME}:${USERNAME} /run/user/1000 && chmod 0700 /run/user/1000'
 ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=on-failure
 RestartSec=2

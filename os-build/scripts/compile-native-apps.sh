@@ -132,6 +132,25 @@ echo "--> [16/16] Compiling axis-disk-info..."
     $CC $CFLAGS axis-disk-info.c -o axis-disk-info
 )
 
+# 17. Compile AxisOS System Helper Daemons & Tools
+echo "--> Compiling AxisOS System Daemons & Services..."
+(
+    cd "$ROOT_DIR/os-build/scripts"
+    $CC $CFLAGS axis-game-boost.c -o axis-game-boost
+    ln -sf axis-game-boost axis-game-boost.sh
+    $CC $CFLAGS axis-update-notifier.c -o axis-update-notifier
+    ln -sf axis-update-notifier axis-update-notifier.sh
+    $CC $CFLAGS axis-autotimezone.c -o axis-autotimezone
+    ln -sf axis-autotimezone axis-autotimezone.sh
+    $CC $CFLAGS gpu-autodetect.c -o gpu-autodetect
+    ln -sf gpu-autodetect gpu-autodetect.sh
+    $CC $CFLAGS axis-biometrics.c -o axis-biometrics
+    $CC $CFLAGS axis-fastboot-patch.c -o axis-fastboot-patch
+    ln -sf axis-fastboot-patch axis-fastboot-patch.sh
+    $CC $CFLAGS axis-captive-portal.c -o axis-captive-portal
+    $CC $CFLAGS axis-rewind.c -o axis-rewind
+)
+
 # 13. Compile Pure C Wayland Desktop Shell (shell-c -> axis-shell & LiquidNodesOS)
 if [ -d "$ROOT_DIR/shell-c" ]; then
     echo "--> Compiling Pure C Wayland Desktop Shell (shell-c)..."

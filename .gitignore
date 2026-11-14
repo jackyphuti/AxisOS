@@ -64,6 +64,16 @@ __pycache__/
 # Temporary patch helper scripts
 push-*.sh
 
+# Compiled system helper daemons
+os-build/scripts/axis-game-boost*
+os-build/scripts/axis-update-notifier*
+os-build/scripts/axis-autotimezone*
+os-build/scripts/gpu-autodetect*
+os-build/scripts/axis-biometrics
+os-build/scripts/axis-fastboot-patch*
+os-build/scripts/axis-captive-portal
+os-build/scripts/axis-rewind
+
 # Generated Wayland protocols
 compositor/*-protocol.c
 compositor/*-protocol.h

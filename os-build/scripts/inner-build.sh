@@ -25,9 +25,9 @@ if [ ! -d "$BUILD_DIR/auto" ]; then
     mkdir -p "$BUILD_DIR/auto"
 fi
 
-# Clean previous build artifacts
+# Clean previous build artifacts (preserve package cache for speed)
 if command -v lb >/dev/null 2>&1; then
-    lb clean --purge || true
+    lb clean || true
 fi
 
 # 1b. Compile 100% Pure C binaries natively within Debian Bookworm environment
@@ -78,7 +78,7 @@ if [ -x "$WORKSPACE_DIR/compositor/axis-compositor" ]; then
     cp -f "$WORKSPACE_DIR/compositor/axis-compositor" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-compositor"
 fi
 
-# 5. Copy System Installation Engine & Real Disk Partitione
+# 5. Copy System Installation Engine & Real Disk Partitioner
 if [ -x "$WORKSPACE_DIR/os-build/scripts/axis-disk-info" ]; then
     cp -f "$WORKSPACE_DIR/os-build/scripts/axis-disk-info" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
 fi
@@ -87,6 +87,14 @@ if [ -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" ]; then
     chmod +x "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-installer.sh"
     ln -sf axisos-installer.sh "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-install.sh" || true
 fi
+
+# 5b. Copy AxisOS System Helper Daemons & Tools
+for helper in axis-game-boost axis-update-notifier axis-autotimezone gpu-autodetect axis-biometrics axis-fastboot-patch axis-captive-portal axis-rewind; do
+    if [ -x "$WORKSPACE_DIR/os-build/scripts/$helper" ]; then
+        cp -f "$WORKSPACE_DIR/os-build/scripts/$helper" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
+        ln -sf "$helper" "$BUILD_DIR/config/includes.chroot/usr/local/bin/$helper.sh" || true
+    fi
+done
 
 # 6. Copy Updater and Package Manage
 if [ -x "$WORKSPACE_DIR/os-build/updater/axis-update" ]; then
@@ -132,6 +140,14 @@ mkdir -p "$BUILD_DIR/config/includes.chroot/etc/systemd/system"
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/systemd/system/graphical.target.wants"
 if [ -d "$WORKSPACE_DIR/os-build/configs/systemd" ]; then
     cp -rf "$WORKSPACE_DIR"/os-build/configs/systemd/*.service "$BUILD_DIR/config/includes.chroot/etc/systemd/system/" 2>/dev/null || true
+fi
+if [ -d "$WORKSPACE_DIR/os-build/configs/systemd/user" ]; then
+    mkdir -p "$BUILD_DIR/config/includes.chroot/etc/systemd/user"
+    cp -rf "$WORKSPACE_DIR"/os-build/configs/systemd/user/* "$BUILD_DIR/config/includes.chroot/etc/systemd/user/" 2>/dev/null || true
+fi
+if [ -f "$WORKSPACE_DIR/os-build/configs/systemd/zram-generator.conf" ]; then
+    mkdir -p "$BUILD_DIR/config/includes.chroot/etc/systemd"
+    cp -f "$WORKSPACE_DIR/os-build/configs/systemd/zram-generator.conf" "$BUILD_DIR/config/includes.chroot/etc/systemd/" 2>/dev/null || true
 fi
 if [ -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
@@ -196,6 +212,12 @@ systemctl set-default graphical.target 2>/dev/null || true
 
 # Ensure all binaries in /usr/local/bin are executable
 chmod 755 /usr/local/bin/* 2>/dev/null || true
+
+# Clean up any runtime/temporary directories before squashing
+rm -rf /run/* /run/user /tmp/* /var/tmp/* /var/log/* 2>/dev/null || true
+mkdir -p /run/lock
+chmod 1777 /tmp /var/tmp 2>/dev/null || true
+chmod 755 /run 2>/dev/null || true
 EOF
 chmod +x "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot"
 
@@ -212,6 +234,8 @@ if command -v lb >/dev/null 2>&1; then
         --iso-application "AxisOS Pure C Linux" \
         --iso-publisher "AxisOS Team" \
         --iso-volume "AxisOS_Live" \
+        --chroot-squashfs-compression-type zstd \
+        --chroot-squashfs-compression-level 6 \
         --memtest none \
         --verbose
 

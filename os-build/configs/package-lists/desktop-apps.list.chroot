@@ -41,8 +41,7 @@ dconf-cli
 flatpak
 packagekit
 
-# Office, Media & Typography Stack
-libreoffice
+# Typography, Themes & Icon Stack
 papirus-icon-theme
 fonts-font-awesome
 fonts-cantarell

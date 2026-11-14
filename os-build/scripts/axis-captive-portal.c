@@ -30,7 +30,7 @@ int main(void) {
             char loc[256] = {0};
             if (fgets(loc, sizeof(loc), fp)) {
                 if (strncmp(loc, "http://", 7) == 0 || strncmp(loc, "https://", 8) == 0) {
-                    strncpy(target_url, loc, sizeof(target_url) - 1);
+                    snprintf(target_url, sizeof(target_url), "%s", loc);
                     pclose(fp);
                     break;
                 }
@@ -40,7 +40,7 @@ int main(void) {
     }
 
     if (strlen(target_url) == 0) {
-        strncpy(target_url, "http://neverssl.com", sizeof(target_url) - 1);
+        snprintf(target_url, sizeof(target_url), "%s", "http://neverssl.com");
     }
 
     const char *disp = getenv("DISPLAY");

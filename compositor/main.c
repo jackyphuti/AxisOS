@@ -48,7 +48,14 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/util/log.h>
+#include <wlr/version.h>
 #include <xkbcommon/xkbcommon.h>
+
+#if defined(WLR_VERSION_NUM) && WLR_VERSION_NUM >= ((0 << 16) | (16 << 8) | 0)
+#define AXIS_WLR_016_PLUS 1
+#else
+#define AXIS_WLR_016_PLUS 0
+#endif
 
 enum axis_cursor_mode {
 	AXIS_CURSOR_PASSTHROUGH,
@@ -409,7 +416,11 @@ static void keyboard_handle_modifiers(struct wl_listener *listener, void *data) 
 static void keyboard_handle_key(struct wl_listener *listener, void *data) {
 	struct axis_keyboard *keyboard = wl_container_of(listener, keyboard, key);
 	struct axis_server *server = keyboard->server;
+#if AXIS_WLR_016_PLUS
+	struct wlr_keyboard_key_event *event = data;
+#else
 	struct wlr_event_keyboard_key *event = data;
+#endif
 	struct wlr_seat *seat = server->seat;
 
 	uint32_t keycode = event->keycode + 8;
@@ -515,21 +526,35 @@ static void process_cursor_motion(struct axis_server *server, uint32_t time) {
 
 static void server_cursor_motion(struct wl_listener *listener, void *data) {
 	struct axis_server *server = wl_container_of(listener, server, cursor_motion);
+#if AXIS_WLR_016_PLUS
+	struct wlr_pointer_motion_event *event = data;
+	wlr_cursor_move(server->cursor, &event->pointer->base, event->delta_x, event->delta_y);
+#else
 	struct wlr_event_pointer_motion *event = data;
 	wlr_cursor_move(server->cursor, event->device, event->delta_x, event->delta_y);
+#endif
 	process_cursor_motion(server, event->time_msec);
 }
 
 static void server_cursor_motion_absolute(struct wl_listener *listener, void *data) {
 	struct axis_server *server = wl_container_of(listener, server, cursor_motion_absolute);
+#if AXIS_WLR_016_PLUS
+	struct wlr_pointer_motion_absolute_event *event = data;
+	wlr_cursor_warp_absolute(server->cursor, &event->pointer->base, event->x, event->y);
+#else
 	struct wlr_event_pointer_motion_absolute *event = data;
 	wlr_cursor_warp_absolute(server->cursor, event->device, event->x, event->y);
+#endif
 	process_cursor_motion(server, event->time_msec);
 }
 
 static void server_cursor_button(struct wl_listener *listener, void *data) {
 	struct axis_server *server = wl_container_of(listener, server, cursor_button);
+#if AXIS_WLR_016_PLUS
+	struct wlr_pointer_button_event *event = data;
+#else
 	struct wlr_event_pointer_button *event = data;
+#endif
 	wlr_seat_pointer_notify_button(server->seat, event->time_msec, event->button, event->state);
 	double sx, sy;
 	struct wlr_surface *surface = NULL;
@@ -544,7 +569,11 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
 
 static void server_cursor_axis(struct wl_listener *listener, void *data) {
 	struct axis_server *server = wl_container_of(listener, server, cursor_axis);
+#if AXIS_WLR_016_PLUS
+	struct wlr_pointer_axis_event *event = data;
+#else
 	struct wlr_event_pointer_axis *event = data;
+#endif
 	wlr_seat_pointer_notify_axis(server->seat, event->time_msec, event->orientation,
 		event->delta, event->delta_discrete, event->source);
 }

@@ -6,18 +6,22 @@
 
 set -eu
 
-# 1. Setup XDG runtime directory with required 0700 permissions
+# 1. Setup XDG runtime directory safely without touching /run/user/1000/systemd/inaccessible
 UID_NUM=$(id -u)
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/${UID_NUM}}"
-if ! mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null; then
+if [ ! -d "$XDG_RUNTIME_DIR" ] || [ ! -w "$XDG_RUNTIME_DIR" ]; then
     export XDG_RUNTIME_DIR="/tmp/runtime-axis-${UID_NUM}"
-    mkdir -p "$XDG_RUNTIME_DIR"
+    mkdir -p "$XDG_RUNTIME_DIR" 2>/dev/null || true
+    chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 fi
-chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 
-# 2. Configure seatd / libseat and display environment
-if [ -S "/run/seatd.sock" ]; then
+# 2. Configure libseat / logind session backend
+# When launched via systemd PAMName=login, XDG_SESSION_ID is set and logind owns the VT/DRM master.
+# Only force LIBSEAT_BACKEND=seatd if no logind session is active and /run/seatd.sock is writable.
+if [ -z "${XDG_SESSION_ID:-}" ] && [ -w "/run/seatd.sock" ]; then
     export LIBSEAT_BACKEND=seatd
+else
+    unset LIBSEAT_BACKEND
 fi
 
 export XDG_SESSION_TYPE=wayland

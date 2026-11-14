@@ -184,8 +184,7 @@ static void on_install_codecs_cb(GtkWidget *widget, gpointer user_data) {
 static void on_launch_steam_cb(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     (void)user_data;
-    int ret = system("/usr/local/bin/steam &");
-    (void)ret;
+    g_spawn_command_line_async("steam", NULL);
 }
 
 static gpointer thread_install_lutris(gpointer user_data) {

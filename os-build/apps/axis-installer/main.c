@@ -576,9 +576,8 @@ static void on_keymap_changed(GtkComboBox *combo, gpointer user_data) {
         g_free(app->selected_keymap_name);
         app->selected_keymap = g_strdup(KEYMAPS[idx].code);
         app->selected_keymap_name = g_strdup(KEYMAPS[idx].label);
-        char *cmd = g_strdup_printf("setxkbmap '%s' 2>/dev/null || true", app->selected_keymap);
-        int ret = system(cmd);
-        (void)ret;
+        char *cmd = g_strdup_printf("setxkbmap '%s'", app->selected_keymap);
+        g_spawn_command_line_async(cmd, NULL);
         g_free(cmd);
     }
 }
@@ -809,9 +808,8 @@ static void on_format_drive_clicked(GtkWidget *widget, gpointer user_data) {
         "Are you sure you want to completely erase and format %s?\n\nAll existing data will be permanently destroyed.",
         app->selected_disk);
     if (gtk_dialog_run(GTK_DIALOG(dlg)) == GTK_RESPONSE_YES) {
-        char *cmd = g_strdup_printf("wipefs -a %s 2>/dev/null || true", app->selected_disk);
-        int ret = system(cmd);
-        (void)ret;
+        char *cmd = g_strdup_printf("wipefs -a %s", app->selected_disk);
+        g_spawn_command_line_async(cmd, NULL);
         g_free(cmd);
         populate_drives(app);
     }
@@ -834,8 +832,7 @@ static void update_summary_card(AxisInstallerApp *app) {
 static void on_try_os_clicked(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     AxisInstallerApp *app = (AxisInstallerApp *)user_data;
-    int ret = system("notify-send -i dialog-information 'AxisOS Live Testing' 'You are now exploring AxisOS in Live Mode. Your hard drives remain untouched. When you are ready to install, click \"Install AxisOS\" on the taskbar or desktop!' &");
-    (void)ret;
+    g_spawn_command_line_async("notify-send -i dialog-information 'AxisOS Live Testing' 'You are now exploring AxisOS in Live Mode. Your hard drives remain untouched. When you are ready to install, click \"Install AxisOS\" on the taskbar or desktop!'", NULL);
     gtk_widget_destroy(app->window);
 }
 
@@ -898,8 +895,7 @@ static void on_next_clicked(GtkWidget *widget, gpointer user_data) {
         return;
     }
     if (app->current_step == 6) {
-        int ret = system("systemctl reboot 2>/dev/null || reboot 2>/dev/null");
-        (void)ret;
+        g_spawn_command_line_async("systemctl reboot", NULL);
         return;
     }
 
@@ -922,8 +918,7 @@ static void on_install_now_clicked(GtkWidget *widget, gpointer user_data) {
 static void on_restart_clicked(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     (void)user_data;
-    int ret = system("systemctl reboot 2>/dev/null || reboot 2>/dev/null");
-    (void)ret;
+    g_spawn_command_line_async("systemctl reboot", NULL);
 }
 
 static void update_navigation_state(AxisInstallerApp *app) {

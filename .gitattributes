@@ -10,4 +10,5 @@
 # Pure C headers and source code are the ONLY detectable language in AxisOS
 *.c text eol=lf linguist-vendored=false linguist-detectable=true
 *.h text eol=lf linguist-vendored=false linguist-detectable=true
+os-build/updater/axis-update binary
 
