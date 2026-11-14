@@ -1,11 +1,11 @@
 # ==============================================================================
 # AxisOS Pure C Native Desktop Applications Manifest
 # Zero GNOME Shell / Zero Mutter / Zero C++ Overhead
-# Powered by Pure C11 GTK 3, gtk-layer-shell, and wlroots Wayland Compositor
+# Powered by Pure C11 GTK 3, gtk-layer-shell, and wlroots Wayland Composito
 # ==============================================================================
 
 # Pure C Wayland Compositor & Shell Runtime
-libwlroots11
+libwlroots10
 libwayland-server0
 libwayland-client0
 libwayland-cursor0

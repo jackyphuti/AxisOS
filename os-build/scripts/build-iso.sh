@@ -17,9 +17,23 @@ echo "=================================================="
 echo "[1/4] Compiling Pure C Desktop Applications & Shell..."
 bash "$SCRIPT_DIR/compile-native-apps.sh"
 
+SUDO_CMD=""
+if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+    SUDO_CMD="sudo"
+fi
+
 # Step 2: Prepare workspace
+# If running on /mnt/* (Windows DrvFs in WSL), use native Linux ext4 for build chroot
+if [[ "$BUILD_DIR" == /mnt/* ]]; then
+    BUILD_DIR="/var/tmp/axisos-build"
+fi
 echo "[2/4] Setting up build workspace in $BUILD_DIR..."
-mkdir -p "$BUILD_DIR"
+if [ -n "$SUDO_CMD" ]; then
+    $SUDO_CMD mkdir -p "$BUILD_DIR"
+    $SUDO_CMD chown -R "$(id -u):$(id -g)" "$BUILD_DIR"
+else
+    mkdir -p "$BUILD_DIR"
+fi
 
 # Step 3: Determine builder environment (Container vs Native live-build)
 CONTAINER_TOOL=""
@@ -58,11 +72,16 @@ WORKDIR /build
 CMD ["bash"]
 EOF
 
+    SUDO_CMD=""
+    if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+        SUDO_CMD="sudo"
+    fi
+
     echo "Building container image 'axisos-builder'..."
-    $CONTAINER_TOOL build -t axisos-builder -f "$BUILD_DIR/Containerfile" "$BUILD_DIR"
+    $SUDO_CMD $CONTAINER_TOOL build -t axisos-builder -f "$BUILD_DIR/Containerfile" "$BUILD_DIR"
 
     echo "[4/4] Generating AxisOS Hybrid Bootable ISO inside container..."
-    $CONTAINER_TOOL run --privileged --rm \
+    $SUDO_CMD $CONTAINER_TOOL run --privileged --rm \
         -v "$ROOT_DIR:/workspace:rw" \
         -v "$BUILD_DIR:/build:rw" \
         -e WORKSPACE_DIR=/workspace \

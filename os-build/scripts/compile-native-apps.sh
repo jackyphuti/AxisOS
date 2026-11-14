@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# AxisOS Native Pure C Compilation Orchestrator
+# AxisOS Native Pure C Compilation Orchestrato
 # Enforces 100% Pure C (-std=gnu11 / -std=c17) compilation across all subsystems
 # Zero C++, Zero Qt 6 / QML, Zero Python
 # ==============================================================================

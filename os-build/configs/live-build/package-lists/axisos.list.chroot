@@ -80,10 +80,8 @@ mesa-vulkan-drivers
 libgl1-mesa-dri
 libglx-mesa0
 
-# Desktop Shell Runtimes
+# Web Browser & Utilities
 chromium
-nodejs
-npm
 
 # Storage, Filesystems & Real Partitioning Tools
 btrfs-progs
@@ -134,7 +132,6 @@ vkbasalt
 cpufrequtils
 linux-cpupower
 nvtop
-steam-installer
 
 # ==============================================================================
 # AxisOS Developer Stack & Container Isolation (Distrobox, Podman, Docker)

@@ -72,7 +72,7 @@ if [ -x "$WORKSPACE_DIR/compositor/axis-compositor" ]; then
     cp -f "$WORKSPACE_DIR/compositor/axis-compositor" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-compositor"
 fi
 
-# 5. Copy System Installation Engine & Real Disk Partitioner
+# 5. Copy System Installation Engine & Real Disk Partitione
 if [ -x "$WORKSPACE_DIR/os-build/scripts/axis-disk-info" ]; then
     cp -f "$WORKSPACE_DIR/os-build/scripts/axis-disk-info" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
 fi
@@ -82,7 +82,7 @@ if [ -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" ]; then
     ln -sf axisos-installer.sh "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-install.sh" || true
 fi
 
-# 6. Copy Updater and Package Manager
+# 6. Copy Updater and Package Manage
 if [ -x "$WORKSPACE_DIR/os-build/updater/axis-update" ]; then
     cp -f "$WORKSPACE_DIR/os-build/updater/axis-update" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
 fi
@@ -166,6 +166,13 @@ if command -v lb >/dev/null 2>&1; then
 
     lb build 2>&1 | tee "$BUILD_DIR/build.log"
     cp -f "$BUILD_DIR"/live-image-amd64.hybrid.iso "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true
+    cp -f "$BUILD_DIR"/*.iso "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true
+fi
+
+if [ -f "$WORKSPACE_DIR/axisos-live-amd64.iso" ]; then
+    echo "SUCCESS: AxisOS Live ISO generated successfully!"
+    echo "Location: $WORKSPACE_DIR/axisos-live-amd64.iso"
+    ls -lh "$WORKSPACE_DIR/axisos-live-amd64.iso"
 fi
 
 echo "=================================================="
