@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Calculator
+Comment=Perform arithmetic calculations
+Exec=axis-calc
+Icon=accessories-calculator
+Terminal=false
+Type=Application
+Categories=Utility;Calculator;GTK;
+StartupNotify=true
+Keywords=calculation;arithmetic;math;

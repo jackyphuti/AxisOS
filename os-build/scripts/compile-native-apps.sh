@@ -98,10 +98,38 @@ echo "--> [11/12] Compiling axis-update-manager..."
 )
 
 # 12. Compile axis-usb-daemon (libudev USB Hotplug Monitor)
-echo "--> [12/12] Compiling axis-usb-daemon..."
+echo "--> [12/16] Compiling axis-usb-daemon..."
 (
     cd "$ROOT_DIR/os-build/apps/axis-usb-daemon"
     $CC $CFLAGS main.c $(pkg-config --cflags --libs libudev 2>/dev/null || echo "-ludev") -o axis-usb-daemon
+)
+
+# 13. Compile axis-fetch (Pure C11 Telemetry & Fetch Tool)
+echo "--> [13/16] Compiling axis-fetch..."
+(
+    cd "$ROOT_DIR/os-build/apps/axis-fetch"
+    $CC $CFLAGS main.c -o axis-fetch
+)
+
+# 14. Compile axis-calc (Pure C11 GTK 3 Desktop Calculator)
+echo "--> [14/16] Compiling axis-calc..."
+(
+    cd "$ROOT_DIR/os-build/apps/axis-calc"
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0) -lm -o axis-calc
+)
+
+# 15. Compile axis-color-picker (Pure C11 GTK 3 Color Picker)
+echo "--> [15/16] Compiling axis-color-picker..."
+(
+    cd "$ROOT_DIR/os-build/apps/axis-color-picker"
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0) -lm -o axis-color-picker
+)
+
+# 16. Compile axis-disk-info (Pure C Storage & Disk Partitioner Telemetry)
+echo "--> [16/16] Compiling axis-disk-info..."
+(
+    cd "$ROOT_DIR/os-build/scripts"
+    $CC $CFLAGS axis-disk-info.c -o axis-disk-info
 )
 
 # 13. Compile Pure C Wayland Desktop Shell (shell-c -> axis-shell & LiquidNodesOS)

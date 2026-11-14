@@ -1651,7 +1651,7 @@ static void build_about_page(AxisSettingsApp *app) {
     }
 
     // 5. GPU via lspci
-    char *gpu = exec_cmd("lspci 2>/dev/null | grep -E 'VGA|3D' | cut -d: -f3 | sed -e 's/^[ \t]*//' | head -n1");
+    char *gpu = exec_cmd("lspci 2>/dev/null | grep -E 'VGA|3D' | sed 's/.*: //g' | head -n1");
     g_strstrip(gpu);
     if (gpu[0] == '\0') {
         g_free(gpu);

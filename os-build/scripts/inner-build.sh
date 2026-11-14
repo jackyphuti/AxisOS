@@ -73,6 +73,9 @@ if [ -x "$WORKSPACE_DIR/compositor/axis-compositor" ]; then
 fi
 
 # 5. Copy System Installation Engine & Real Disk Partitioner
+if [ -x "$WORKSPACE_DIR/os-build/scripts/axis-disk-info" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/scripts/axis-disk-info" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
+fi
 if [ -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" ]; then
     cp -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
     chmod +x "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-installer.sh"

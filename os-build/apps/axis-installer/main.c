@@ -689,7 +689,7 @@ static void populate_drives(AxisInstallerApp *app) {
     gtk_list_store_clear(app->store_drives);
     detect_live_media(app);
 
-    FILE *fp = popen("/usr/local/bin/axis-disk-info.sh 2>/dev/null || bash /os-build/scripts/axis-disk-info.sh 2>/dev/null", "r");
+    FILE *fp = popen("/usr/local/bin/axis-disk-info 2>/dev/null || ./os-build/scripts/axis-disk-info 2>/dev/null", "r");
     gboolean found = FALSE;
     GtkTreePath *target_path = NULL;
     GtkTreePath *clean_path = NULL;

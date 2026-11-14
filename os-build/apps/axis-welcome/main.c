@@ -78,7 +78,7 @@ static void read_system_info(SystemInfo *info) {
                      access("/etc/axisos-installed", F_OK) != 0);
 
     // Detect GPU
-    FILE *fp_gpu = popen("lspci 2>/dev/null | grep -E 'VGA|3D' | cut -d: -f3 | sed -e 's/^[ \t]*//' | head -n1", "r");
+    FILE *fp_gpu = popen("lspci 2>/dev/null | grep -E 'VGA|3D' | sed 's/.*: //g' | head -n1", "r");
     if (fp_gpu) {
         if (fgets(info->gpu_model, sizeof(info->gpu_model), fp_gpu)) {
             g_strstrip(info->gpu_model);

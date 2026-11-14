@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Color Picker
+Comment=Pick colors and inspect Hex, RGB, and HSV values
+Exec=axis-color-picker
+Icon=gpick
+Terminal=false
+Type=Application
+Categories=Graphics;Utility;GTK;
+StartupNotify=true
+Keywords=color;palette;picker;hex;rgb;hsv;

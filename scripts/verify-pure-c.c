@@ -18,6 +18,10 @@ static const char *BINARIES[] = {
     "os-build/apps/axis-usb-daemon/axis-usb-daemon",
     "os-build/apps/axis-welcome/axis-welcome",
     "os-build/apps/nobara-welcome/nobara-welcome",
+    "os-build/apps/axis-fetch/axis-fetch",
+    "os-build/apps/axis-calc/axis-calc",
+    "os-build/apps/axis-color-picker/axis-color-picker",
+    "os-build/scripts/axis-disk-info",
     "shell-c/axisos-shell",
     "pkg-mgr/bin/axis",
     "pkg-mgr/bin/axis_repo_builder",
@@ -72,7 +76,7 @@ int main(void) {
 
     printf("----------------------------------------------------------------------\n");
     if (failed == 0) {
-        printf("VERIFICATION PASSED: All 18 binaries are strictly 100%% Pure C.\n");
+        printf("VERIFICATION PASSED: All 22 binaries are strictly 100%% Pure C.\n");
         return 0;
     } else {
         printf("VERIFICATION FAILED: %d binaries had issues.\n", failed);
