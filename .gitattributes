@@ -1,10 +1,13 @@
-# Ensure shell scripts always have Unix line endings (LF)
-*.sh text eol=lf
-*.bash text eol=lf
-*.cjs text eol=lf
-*.py text eol=lf
-*.qml text eol=lf
-*.cpp text eol=lf
-*.h text eol=lf
-*.c text eol=lf
-*.in text eol=lf
+# ==============================================================================
+# Pure C Repository Language Classification (GitHub Linguist)
+# ==============================================================================
+
+# By default, treat non-C files as vendored & non-detectable for language statistics
+* -text
+* linguist-vendored
+* linguist-detectable=false
+
+# Pure C headers and source code are the ONLY detectable language in AxisOS
+*.c text eol=lf linguist-vendored=false linguist-detectable=true
+*.h text eol=lf linguist-vendored=false linguist-detectable=true
+

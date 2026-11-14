@@ -35,6 +35,9 @@ os-build/updater/axis-update
 os-build/updater/axis
 tests/test_hardware_probe
 tests/verify_harmony_ui
+scripts/verify-pure-c
+scripts/scan-codebase
+os-build/scripts/compile-native-apps
 
 # Logs
 npm-debug.log*

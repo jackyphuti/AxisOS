@@ -1,4 +1,4 @@
-name: AxisOS CI
+name: AxisOS Pure C CI
 
 on:
   push:
@@ -7,21 +7,56 @@ on:
     branches: [ main ]
 
 jobs:
-  native-check:
-    name: Native Subsystems & Build Scripts
-    runs-on: ubuntu-latest
+  pure-c-check:
+    name: Pure C11 Compilation & Linkage Verification
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
-      - name: Validate Python Build Scripts
+      - name: Install Pure C Toolchain & Development Libraries
         run: |
-          python3 -m py_compile os-build/scripts/*.py
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            gcc \
+            pkg-config \
+            libgtk-3-dev \
+            libgtk-layer-shell-dev \
+            libvterm-dev \
+            libarchive-dev \
+            libjson-c-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libpam0g-dev \
+            libudev-dev \
+            libwayland-dev \
+            libxkbcommon-dev
 
-      - name: Compile and Test axis-update
-        working-directory: os-build/updater
+      - name: Verify Strict Zero C++, Qt, and Python Policy
         run: |
-          make
-          ./axis-update --help
-          ./axis --help
-          make clean
+          echo "Checking for prohibited C++, Qt, and Python files..."
+          FORBIDDEN=$(find . -type f \( -name "*.cpp" -o -name "*.hpp" -o -name "*.qml" -o -name "*.py" \) -not -path "*/.git/*")
+          if [ -n "$FORBIDDEN" ]; then
+            echo "ERROR: Prohibited files detected:"
+            echo "$FORBIDDEN"
+            exit 1
+          fi
+          echo "PASS: Zero C++, Qt, or Python files found."
+
+      - name: Compile All Native Pure C Desktop Apps & Shell
+        run: |
+          chmod +x os-build/scripts/compile-native-apps.sh || true
+          bash os-build/scripts/compile-native-apps.sh
+
+      - name: Compile and Run Architecture Verification Suites
+        run: |
+          gcc -std=gnu11 -O2 tests/test_hardware_probe.c -o tests/test_hardware_probe
+          ./tests/test_hardware_probe
+          gcc -std=gnu11 -O2 tests/verify_harmony_ui.c -o tests/verify_harmony_ui
+          ./tests/verify_harmony_ui
+
+      - name: Verify Zero Prohibited Linkage Across All Binaries
+        run: |
+          chmod +x scripts/verify-pure-c.sh || true
+          bash scripts/verify-pure-c.sh

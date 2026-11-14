@@ -129,23 +129,19 @@ if vterm_dep.found()
   )
 endif
 
-# 3. Executable Entrypoint Wrappers
-configure_file(
-  input: 'data/bin/axis-shell.in',
-  output: 'axis-shell',
-  configuration: {'BIN_DIR': bindir},
+# 3. Executable Entrypoint Binaries (Pure C)
+executable(
+  'axis-shell',
+  'data/bin/axis-shell.c',
   install: true,
-  install_dir: bindir,
-  install_mode: 'rwxr-xr-x'
+  install_dir: bindir
 )
 
-configure_file(
-  input: 'data/bin/axis-settings.in',
-  output: 'axis-settings',
-  configuration: {'BIN_DIR': bindir},
+executable(
+  'axis-settings',
+  'data/bin/axis-settings.c',
   install: true,
-  install_dir: bindir,
-  install_mode: 'rwxr-xr-x'
+  install_dir: bindir
 )
 
 summary({

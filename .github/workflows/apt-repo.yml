@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'compositor-qt/**'
+      - 'shell-c/**'
       - 'os-build/apps/**'
       - 'os-build/scripts/**'
       - 'os-build/configs/**'
@@ -20,13 +20,13 @@ permissions:
 
 jobs:
   build-and-publish:
-    name: Build Debian Packages & APT Repository
+    name: Build Debian Packages & APT Repository (Pure C)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Compile and Package inside Debian Bookworm Container
+      - name: Compile and Package inside Debian Container (Pure C11)
         run: |
           docker run --rm \
             -v "${{ github.workspace }}:/workspace" \
@@ -37,14 +37,16 @@ jobs:
               apt-get update
               apt-get install -y --no-install-recommends \
                 build-essential \
-                g++ \
-                cmake \
+                gcc \
                 pkg-config \
                 libgtk-3-dev \
+                libgtk-layer-shell-dev \
+                libvterm-dev \
+                libarchive-dev \
+                libjson-c-dev \
+                libcurl4-openssl-dev \
+                libssl-dev \
                 libudev-dev \
-                qt6-base-dev \
-                qt6-declarative-dev \
-                qt6-wayland-dev \
                 libwayland-dev \
                 libpam0g-dev \
                 libxkbcommon-dev \
