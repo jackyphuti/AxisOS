@@ -64,21 +64,21 @@ wireplumber
 alsa-utils
 pulseaudio-utils
 
-# Display Manager & Graphics Environment
-lightdm
-openbox
-x11-xserver-utils
-xdotool
-xserver-xorg-video-all
-xserver-xorg-input-all
-xserver-xorg-input-libinput
-xserver-xorg-input-synaptics
-xserver-xorg-input-evdev
-libinput-bin
+# Graphics, DRM/KMS, Mesa & Wayland Runtime Stack
+cage
 mesa-va-drivers
 mesa-vulkan-drivers
 libgl1-mesa-dri
 libglx-mesa0
+libegl1-mesa
+libgbm1
+wayland-protocols
+libwayland-server0
+libwayland-client0
+libwayland-cursor0
+libwayland-egl1
+libinput10
+libxkbcommon0
 
 # Web Browser & Utilities
 chromium

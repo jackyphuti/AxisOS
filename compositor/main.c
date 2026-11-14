@@ -197,7 +197,6 @@ static void spawn_command(const char *cmd) {
 	if (pid == 0) {
 		/* Child process */
 		setsid();
-		setenv("QT_QPA_PLATFORM", "wayland", 1);
 		setenv("GDK_BACKEND", "wayland", 1);
 		setenv("MOZ_ENABLE_WAYLAND", "1", 1);
 		setenv("OZONE_PLATFORM", "wayland", 1);
@@ -1157,7 +1156,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	setenv("WAYLAND_DISPLAY", socket, true);
-	setenv("QT_QPA_PLATFORM", "wayland", true);
 	setenv("GDK_BACKEND", "wayland", true);
 	setenv("MOZ_ENABLE_WAYLAND", "1", true);
 	setenv("OZONE_PLATFORM", "wayland", true);

@@ -26,6 +26,7 @@ libcurl4
 libjson-c5
 libarchive13
 libssl3
+libvterm0
 
 # Desktop Portal, Polkit & Authentication Stack
 xdg-desktop-portal

@@ -66,6 +66,29 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     rsync \
+    build-essential \
+    pkg-config \
+    gcc \
+    make \
+    libgtk-3-dev \
+    libgtk-layer-shell-dev \
+    libwlroots-dev \
+    wayland-protocols \
+    libwayland-dev \
+    libwayland-bin \
+    libxkbcommon-dev \
+    libinput-dev \
+    libpam0g-dev \
+    libudev-dev \
+    libvterm-dev \
+    libvte-2.91-dev \
+    libcairo2-dev \
+    libglib2.0-dev \
+    libcurl4-openssl-dev \
+    libarchive-dev \
+    libjson-c-dev \
+    libssl-dev \
+    libasound2-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build

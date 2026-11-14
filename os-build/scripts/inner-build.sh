@@ -30,6 +30,12 @@ if command -v lb >/dev/null 2>&1; then
     lb clean --purge || true
 fi
 
+# 1b. Compile 100% Pure C binaries natively within Debian Bookworm environment
+if command -v gcc >/dev/null 2>&1 && [ -f "$WORKSPACE_DIR/os-build/scripts/compile-native-apps.sh" ]; then
+    echo "--> [Container Pre-Build] Compiling 100% Pure C binaries natively for Debian 12 Bookworm..."
+    bash "$WORKSPACE_DIR/os-build/scripts/compile-native-apps.sh"
+fi
+
 mkdir -p "$BUILD_DIR/config/package-lists"
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/local/bin"
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/applications"
@@ -123,12 +129,24 @@ if [ -d "$WORKSPACE_DIR/os-build/configs/udev" ]; then
 fi
 
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/systemd/system"
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/systemd/system/graphical.target.wants"
 if [ -d "$WORKSPACE_DIR/os-build/configs/systemd" ]; then
     cp -rf "$WORKSPACE_DIR"/os-build/configs/systemd/*.service "$BUILD_DIR/config/includes.chroot/etc/systemd/system/" 2>/dev/null || true
 fi
 if [ -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
+    ln -sf /etc/systemd/system/axisos.service "$BUILD_DIR/config/includes.chroot/etc/systemd/system/graphical.target.wants/axisos.service" || true
 fi
+
+# Polkit rules for hardware & desktop administrative privileges
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/polkit-1/rules.d"
+cat << 'EOF' > "$BUILD_DIR/config/includes.chroot/etc/polkit-1/rules.d/10-axisos-admin.rules"
+polkit.addRule(function(action, subject) {
+    if (subject.isInGroup("sudo") || subject.user == "axis") {
+        return polkit.Result.YES;
+    }
+});
+EOF
 
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/xdg"
 if [ -d "$WORKSPACE_DIR/os-build/configs/wayland" ]; then
@@ -149,7 +167,39 @@ if [ -f "$CHROOT_CONFIG_DIR/cage-session/axisos-kiosk.sh" ]; then
     chmod +x "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-kiosk.sh"
 fi
 
-# 7. Run live-build config & build
+# 10. Install Chroot Setup Hooks
+mkdir -p "$BUILD_DIR/config/hooks/live"
+cat << 'EOF' > "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot"
+#!/bin/sh
+set -e
+
+# Create AxisOS user if not exists
+if ! id -u axis >/dev/null 2>&1; then
+    useradd -m -s /bin/bash -u 1000 -U -G sudo,video,render,input,audio,plugdev,users,disk axis || true
+    echo "axis:axis" | chpasswd
+fi
+
+# Passwordless sudo for axis user
+mkdir -p /etc/sudoers.d
+echo "axis ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/axis
+chmod 0440 /etc/sudoers.d/axis
+
+# Ensure /home/axis skeleton and permissions
+mkdir -p /home/axis/.config /home/axis/Desktop /home/axis/Downloads
+chown -R 1000:1000 /home/axis 2>/dev/null || true
+
+# Systemd target and service configuration
+systemctl enable axisos.service 2>/dev/null || true
+systemctl disable lightdm.service 2>/dev/null || true
+systemctl mask lightdm.service 2>/dev/null || true
+systemctl set-default graphical.target 2>/dev/null || true
+
+# Ensure all binaries in /usr/local/bin are executable
+chmod 755 /usr/local/bin/* 2>/dev/null || true
+EOF
+chmod +x "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot"
+
+# 11. Run live-build config & build
 if command -v lb >/dev/null 2>&1; then
     lb config \
         --distribution bookworm \
@@ -157,7 +207,8 @@ if command -v lb >/dev/null 2>&1; then
         --archive-areas "main contrib non-free non-free-firmware" \
         --linux-flavours amd64 \
         --binary-images iso-hybrid \
-        --bootloader syslinux \
+        --bootloaders "syslinux,grub-efi" \
+        --bootappend-live "boot=live components username=axis user-fullname=AxisOS hostname=axisos quiet splash" \
         --iso-application "AxisOS Pure C Linux" \
         --iso-publisher "AxisOS Team" \
         --iso-volume "AxisOS_Live" \
