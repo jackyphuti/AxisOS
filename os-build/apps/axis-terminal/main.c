@@ -1,0 +1,436 @@
+#define _GNU_SOURCE
+#include <gtk/gtk.h>
+#include <vterm.h>
+#include <pty.h>
+#include <utmp.h>
+#include <termios.h>
+#include <sys/ioctl.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdio.h>
+
+#define DEFAULT_ROWS 24
+#define DEFAULT_COLS 80
+#define TERM_CHAR_WIDTH 9.0
+#define TERM_CHAR_HEIGHT 18.0
+
+typedef struct {
+    GtkWidget *drawing_area;
+    GtkWidget *tab_box;
+    GtkWidget *tab_label;
+
+    VTerm *vt;
+    VTermScreen *vts;
+    int pty_fd;
+    pid_t child_pid;
+    guint io_watch_id;
+
+    int rows;
+    int cols;
+    int cursor_row;
+    int cursor_col;
+    gboolean cursor_visible;
+
+    gpointer app;
+} TerminalTab;
+
+typedef struct {
+    GtkWidget *window;
+    GtkWidget *header_bar;
+    GtkWidget *notebook;
+    GList *tabs;
+} TerminalApp;
+
+static int term_damage(VTermRect rect, void *user) {
+    TerminalTab *tab = (TerminalTab *)user;
+    if (tab && tab->drawing_area && gtk_widget_get_window(tab->drawing_area)) {
+        GdkRectangle r = {
+            .x = (int)(rect.start_col * TERM_CHAR_WIDTH),
+            .y = (int)(rect.start_row * TERM_CHAR_HEIGHT),
+            .width = (int)((rect.end_col - rect.start_col) * TERM_CHAR_WIDTH + 2),
+            .height = (int)((rect.end_row - rect.start_row) * TERM_CHAR_HEIGHT + 2)
+        };
+        gdk_window_invalidate_rect(gtk_widget_get_window(tab->drawing_area), &r, FALSE);
+    }
+    return 1;
+}
+
+static int term_movecursor(VTermPos pos, VTermPos oldpos, int visible, void *user) {
+    (void)oldpos;
+    TerminalTab *tab = (TerminalTab *)user;
+    if (!tab) return 1;
+
+    tab->cursor_row = pos.row;
+    tab->cursor_col = pos.col;
+    tab->cursor_visible = visible;
+
+    if (tab->drawing_area && gtk_widget_get_window(tab->drawing_area)) {
+        gtk_widget_queue_draw(tab->drawing_area);
+    }
+    return 1;
+}
+
+static VTermScreenCallbacks screen_cbs = {
+    .damage = term_damage,
+    .moverect = NULL,
+    .movecursor = term_movecursor,
+    .settermprop = NULL,
+    .bell = NULL,
+    .resize = NULL,
+    .sb_pushline = NULL,
+    .sb_popline = NULL
+};
+
+static gboolean on_pty_read(GIOChannel *source, GIOCondition condition, gpointer data) {
+    TerminalTab *tab = (TerminalTab *)data;
+    (void)source;
+
+    if (condition & (G_IO_IN | G_IO_PRI)) {
+        char buf[4096];
+        ssize_t bytes = read(tab->pty_fd, buf, sizeof(buf));
+        if (bytes > 0) {
+            vterm_input_write(tab->vt, buf, (size_t)bytes);
+        } else if (bytes <= 0) {
+            return G_SOURCE_REMOVE;
+        }
+    }
+
+    if (condition & (G_IO_HUP | G_IO_ERR)) {
+        return G_SOURCE_REMOVE;
+    }
+    return G_SOURCE_CONTINUE;
+}
+
+static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
+    TerminalTab *tab = (TerminalTab *)user_data;
+    GtkAllocation alloc;
+    gtk_widget_get_allocation(widget, &alloc);
+
+    // Dark background #0f172a
+    cairo_set_source_rgb(cr, 15.0 / 255.0, 23.0 / 255.0, 42.0 / 255.0);
+    cairo_paint(cr);
+
+    if (!tab || !tab->vts) return FALSE;
+
+    cairo_select_font_face(cr, "Monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, 13.0);
+
+    VTermPos pos;
+    for (pos.row = 0; pos.row < tab->rows; ++pos.row) {
+        for (pos.col = 0; pos.col < tab->cols; ++pos.col) {
+            VTermScreenCell cell;
+            if (vterm_screen_get_cell(tab->vts, pos, &cell) && cell.chars[0]) {
+                double x = pos.col * TERM_CHAR_WIDTH;
+                double y = pos.row * TERM_CHAR_HEIGHT;
+
+                vterm_screen_convert_color_to_rgb(tab->vts, &cell.bg);
+                vterm_screen_convert_color_to_rgb(tab->vts, &cell.fg);
+
+                // Cell background if specified
+                if (VTERM_COLOR_IS_RGB(&cell.bg)) {
+                    cairo_set_source_rgb(cr, cell.bg.rgb.red / 255.0,
+                                         cell.bg.rgb.green / 255.0,
+                                         cell.bg.rgb.blue / 255.0);
+                    cairo_rectangle(cr, x, y, TERM_CHAR_WIDTH, TERM_CHAR_HEIGHT);
+                    cairo_fill(cr);
+                }
+
+                // Cell text color
+                if (VTERM_COLOR_IS_RGB(&cell.fg)) {
+                    cairo_set_source_rgb(cr, cell.fg.rgb.red / 255.0,
+                                         cell.fg.rgb.green / 255.0,
+                                         cell.fg.rgb.blue / 255.0);
+                } else {
+                    cairo_set_source_rgb(cr, 248.0 / 255.0, 250.0 / 255.0, 252.0 / 255.0);
+                }
+
+                char utf8[16] = {0};
+                int len = g_unichar_to_utf8(cell.chars[0], utf8);
+                utf8[len] = '\0';
+
+                cairo_move_to(cr, x + 1.0, y + TERM_CHAR_HEIGHT - 4.0);
+                cairo_show_text(cr, utf8);
+            }
+        }
+    }
+
+    // Draw cursor
+    if (tab->cursor_visible) {
+        double cx = tab->cursor_col * TERM_CHAR_WIDTH;
+        double cy = tab->cursor_row * TERM_CHAR_HEIGHT;
+        // Cyan cursor #38bdf8
+        cairo_set_source_rgba(cr, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.75);
+        cairo_rectangle(cr, cx, cy, TERM_CHAR_WIDTH, TERM_CHAR_HEIGHT);
+        cairo_fill(cr);
+    }
+
+    return FALSE;
+}
+
+static void send_to_pty(TerminalTab *tab, const char *data, size_t len) {
+    if (tab && tab->pty_fd >= 0) {
+        write(tab->pty_fd, data, len);
+    }
+}
+
+static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+    (void)widget;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    if (!tab) return FALSE;
+
+    guint mod = event->state & gtk_accelerator_get_default_mod_mask();
+
+    if ((mod & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) == (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) {
+        if (event->keyval == GDK_KEY_T || event->keyval == GDK_KEY_t) {
+            // New tab handled at window level
+            return FALSE;
+        }
+    }
+
+    switch (event->keyval) {
+        case GDK_KEY_Return:
+        case GDK_KEY_KP_Enter:
+            send_to_pty(tab, "\r", 1);
+            return TRUE;
+        case GDK_KEY_BackSpace:
+            send_to_pty(tab, "\x7f", 1);
+            return TRUE;
+        case GDK_KEY_Tab:
+            send_to_pty(tab, "\t", 1);
+            return TRUE;
+        case GDK_KEY_Escape:
+            send_to_pty(tab, "\x1b", 1);
+            return TRUE;
+        case GDK_KEY_Up:
+            send_to_pty(tab, "\x1b[A", 3);
+            return TRUE;
+        case GDK_KEY_Down:
+            send_to_pty(tab, "\x1b[B", 3);
+            return TRUE;
+        case GDK_KEY_Right:
+            send_to_pty(tab, "\x1b[C", 3);
+            return TRUE;
+        case GDK_KEY_Left:
+            send_to_pty(tab, "\x1b[D", 3);
+            return TRUE;
+        default:
+            if (mod & GDK_CONTROL_MASK) {
+                if (event->keyval >= 'a' && event->keyval <= 'z') {
+                    char c = (char)(event->keyval - 'a' + 1);
+                    send_to_pty(tab, &c, 1);
+                    return TRUE;
+                } else if (event->keyval >= 'A' && event->keyval <= 'Z') {
+                    char c = (char)(event->keyval - 'A' + 1);
+                    send_to_pty(tab, &c, 1);
+                    return TRUE;
+                }
+            } else if (event->string && event->string[0]) {
+                send_to_pty(tab, event->string, strlen(event->string));
+                return TRUE;
+            }
+            break;
+    }
+
+    return FALSE;
+}
+
+static void on_tab_size_allocate(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data) {
+    (void)widget;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    if (!tab) return;
+
+    int new_cols = (int)(allocation->width / TERM_CHAR_WIDTH);
+    int new_rows = (int)(allocation->height / TERM_CHAR_HEIGHT);
+
+    if (new_cols < 10) new_cols = 10;
+    if (new_rows < 5) new_rows = 5;
+
+    if (new_cols != tab->cols || new_rows != tab->rows) {
+        tab->cols = new_cols;
+        tab->rows = new_rows;
+        vterm_set_size(tab->vt, tab->rows, tab->cols);
+
+        struct winsize ws = {
+            .ws_row = (unsigned short)tab->rows,
+            .ws_col = (unsigned short)tab->cols,
+            .ws_xpixel = (unsigned short)allocation->width,
+            .ws_ypixel = (unsigned short)allocation->height
+        };
+        ioctl(tab->pty_fd, TIOCSWINSZ, &ws);
+    }
+}
+
+static void tab_destroy(TerminalTab *tab) {
+    if (!tab) return;
+    if (tab->io_watch_id) g_source_remove(tab->io_watch_id);
+    if (tab->pty_fd >= 0) close(tab->pty_fd);
+    if (tab->child_pid > 0) {
+        kill(tab->child_pid, SIGTERM);
+        waitpid(tab->child_pid, NULL, WNOHANG);
+    }
+    if (tab->vt) vterm_free(tab->vt);
+    g_free(tab);
+}
+
+static void on_tab_close_btn_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    TerminalApp *app = (TerminalApp *)tab->app;
+
+    gint page = gtk_notebook_page_num(GTK_NOTEBOOK(app->notebook), tab->drawing_area);
+    if (page >= 0) {
+        gtk_notebook_remove_page(GTK_NOTEBOOK(app->notebook), page);
+        app->tabs = g_list_remove(app->tabs, tab);
+        tab_destroy(tab);
+    }
+    if (gtk_notebook_get_n_pages(GTK_NOTEBOOK(app->notebook)) == 0) {
+        gtk_window_close(GTK_WINDOW(app->window));
+    }
+}
+
+static TerminalTab *create_new_tab(TerminalApp *app) {
+    TerminalTab *tab = g_new0(TerminalTab, 1);
+    tab->app = app;
+    tab->rows = DEFAULT_ROWS;
+    tab->cols = DEFAULT_COLS;
+    tab->cursor_visible = TRUE;
+
+    tab->vt = vterm_new(tab->rows, tab->cols);
+    vterm_set_utf8(tab->vt, 1);
+    tab->vts = vterm_obtain_screen(tab->vt);
+    vterm_screen_set_callbacks(tab->vts, &screen_cbs, tab);
+    vterm_screen_reset(tab->vts, 1);
+
+    struct winsize ws = {
+        .ws_row = (unsigned short)tab->rows,
+        .ws_col = (unsigned short)tab->cols,
+        .ws_xpixel = (unsigned short)(tab->cols * TERM_CHAR_WIDTH),
+        .ws_ypixel = (unsigned short)(tab->rows * TERM_CHAR_HEIGHT)
+    };
+
+    tab->child_pid = forkpty(&tab->pty_fd, NULL, NULL, &ws);
+    if (tab->child_pid == 0) {
+        // Child process: launch user's preferred shell
+        const char *sh = getenv("SHELL");
+        if (!sh || !*sh) sh = "/bin/bash";
+
+        setenv("TERM", "xterm-256color", 1);
+        setenv("COLORTERM", "truecolor", 1);
+        execlp(sh, sh, "-l", NULL);
+        _exit(1);
+    }
+
+    // Set non-blocking on master PTY
+    int flags = fcntl(tab->pty_fd, F_GETFL, 0);
+    fcntl(tab->pty_fd, F_SETFL, flags | O_NONBLOCK);
+
+    GIOChannel *chan = g_io_channel_unix_new(tab->pty_fd);
+    g_io_channel_set_encoding(chan, NULL, NULL);
+    g_io_channel_set_buffered(chan, FALSE);
+    tab->io_watch_id = g_io_add_watch(chan, G_IO_IN | G_IO_PRI | G_IO_HUP | G_IO_ERR, on_pty_read, tab);
+    g_io_channel_unref(chan);
+
+    tab->drawing_area = gtk_drawing_area_new();
+    gtk_widget_set_can_focus(tab->drawing_area, TRUE);
+    gtk_widget_set_events(tab->drawing_area, GDK_EXPOSURE_MASK | GDK_KEY_PRESS_MASK | GDK_BUTTON_PRESS_MASK);
+
+    g_signal_connect(tab->drawing_area, "draw", G_CALLBACK(on_draw_terminal), tab);
+    g_signal_connect(tab->drawing_area, "key-press-event", G_CALLBACK(on_key_press), tab);
+    g_signal_connect(tab->drawing_area, "size-allocate", G_CALLBACK(on_tab_size_allocate), tab);
+
+    // Tab title
+    tab->tab_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    tab->tab_label = gtk_label_new("Terminal");
+    GtkWidget *close_btn = gtk_button_new_from_icon_name("window-close-symbolic", GTK_ICON_SIZE_MENU);
+    gtk_button_set_relief(GTK_BUTTON(close_btn), GTK_RELIEF_NONE);
+    g_signal_connect(close_btn, "clicked", G_CALLBACK(on_tab_close_btn_clicked), tab);
+
+    gtk_box_pack_start(GTK_BOX(tab->tab_box), tab->tab_label, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(tab->tab_box), close_btn, FALSE, FALSE, 0);
+    gtk_widget_show_all(tab->tab_box);
+
+    gint page = gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), tab->drawing_area, tab->tab_box);
+    gtk_notebook_set_tab_reorderable(GTK_NOTEBOOK(app->notebook), tab->drawing_area, TRUE);
+    gtk_widget_show_all(tab->drawing_area);
+    gtk_notebook_set_current_page(GTK_NOTEBOOK(app->notebook), page);
+
+    app->tabs = g_list_append(app->tabs, tab);
+    gtk_widget_grab_focus(tab->drawing_area);
+    return tab;
+}
+
+static void on_new_tab_btn_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    TerminalApp *app = (TerminalApp *)user_data;
+    create_new_tab(app);
+}
+
+static gboolean on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+    (void)widget;
+    TerminalApp *app = (TerminalApp *)user_data;
+    guint mod = event->state & gtk_accelerator_get_default_mod_mask();
+
+    if ((mod & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) == (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) {
+        if (event->keyval == GDK_KEY_T || event->keyval == GDK_KEY_t) {
+            create_new_tab(app);
+            return TRUE;
+        } else if (event->keyval == GDK_KEY_W || event->keyval == GDK_KEY_w) {
+            gint cur = gtk_notebook_get_current_page(GTK_NOTEBOOK(app->notebook));
+            if (cur >= 0) {
+                GtkWidget *page = gtk_notebook_get_nth_page(GTK_NOTEBOOK(app->notebook), cur);
+                for (GList *l = app->tabs; l != NULL; l = l->next) {
+                    TerminalTab *t = (TerminalTab *)l->data;
+                    if (t->drawing_area == page) {
+                        gtk_notebook_remove_page(GTK_NOTEBOOK(app->notebook), cur);
+                        app->tabs = g_list_remove(app->tabs, t);
+                        tab_destroy(t);
+                        break;
+                    }
+                }
+                if (gtk_notebook_get_n_pages(GTK_NOTEBOOK(app->notebook)) == 0) {
+                    gtk_window_close(GTK_WINDOW(app->window));
+                }
+            }
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
+int main(int argc, char *argv[]) {
+    gtk_init(&argc, &argv);
+
+    TerminalApp app = {0};
+
+    app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_default_size(GTK_WINDOW(app.window), 860, 520);
+    gtk_window_set_title(GTK_WINDOW(app.window), "AxisOS Terminal");
+
+    app.header_bar = gtk_header_bar_new();
+    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(app.header_bar), TRUE);
+    gtk_header_bar_set_title(GTK_HEADER_BAR(app.header_bar), "AxisOS Terminal");
+    gtk_header_bar_set_subtitle(GTK_HEADER_BAR(app.header_bar), "Pure C11 / libvterm");
+    gtk_window_set_titlebar(GTK_WINDOW(app.window), app.header_bar);
+
+    GtkWidget *new_tab_btn = gtk_button_new_from_icon_name("tab-new-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(new_tab_btn, "New Tab (Ctrl+Shift+T)");
+    g_signal_connect(new_tab_btn, "clicked", G_CALLBACK(on_new_tab_btn_clicked), &app);
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(app.header_bar), new_tab_btn);
+
+    app.notebook = gtk_notebook_new();
+    gtk_notebook_set_scrollable(GTK_NOTEBOOK(app.notebook), TRUE);
+    gtk_container_add(GTK_CONTAINER(app.window), app.notebook);
+
+    g_signal_connect(app.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    g_signal_connect(app.window, "key-press-event", G_CALLBACK(on_window_key_press), &app);
+
+    create_new_tab(&app);
+
+    gtk_widget_show_all(app.window);
+    gtk_main();
+
+    return 0;
+}

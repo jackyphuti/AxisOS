@@ -1,9 +1,10 @@
 #!/bin/sh
-# AxisOS Settings wrapper — delegates execution to axisos-settings-panel / settings.py
+# AxisOS Settings wrapper — Pure C Edition
 if [ -x /usr/local/bin/axisos-settings-panel ]; then
     exec /usr/local/bin/axisos-settings-panel "$@"
 elif [ -x /usr/bin/axisos-settings-panel ]; then
     exec /usr/bin/axisos-settings-panel "$@"
 else
-    exec python3 @AXIS_DIR@/settings.py "$@"
+    echo "Error: axisos-settings-panel binary not found." >&2
+    exit 1
 fi

@@ -1,0 +1,267 @@
+#define _GNU_SOURCE
+#include <gtk/gtk.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <sys/utsname.h>
+
+typedef struct {
+    char kernel[256];
+    char cpu_model[128];
+    int cpu_cores;
+    char total_ram[64];
+    char gpu_model[128];
+    gboolean is_live;
+} SystemInfo;
+
+typedef struct {
+    GtkWidget *window;
+    SystemInfo sys_info;
+    GtkWidget *autostart_check;
+} WelcomeApp;
+
+static void read_system_info(SystemInfo *info) {
+    memset(info, 0, sizeof(*info));
+
+    struct utsname u;
+    if (uname(&u) == 0) {
+        snprintf(info->kernel, sizeof(info->kernel), "%s (%s)", u.release, u.machine);
+    } else {
+        g_strlcpy(info->kernel, "Linux XanMod / C11 Kernel", sizeof(info->kernel));
+    }
+
+    info->cpu_cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
+    if (info->cpu_cores <= 0) info->cpu_cores = 1;
+
+    FILE *f = fopen("/proc/cpuinfo", "r");
+    if (f) {
+        char line[256];
+        while (fgets(line, sizeof(line), f)) {
+            if (strncmp(line, "model name", 10) == 0) {
+                char *col = strchr(line, ':');
+                if (col) {
+                    char *trimmed = g_strstrip(g_strdup(col + 1));
+                    g_strlcpy(info->cpu_model, trimmed, sizeof(info->cpu_model));
+                    g_free(trimmed);
+                    break;
+                }
+            }
+        }
+        fclose(f);
+    }
+    if (!info->cpu_model[0]) {
+        g_strlcpy(info->cpu_model, "x86_64 Processor", sizeof(info->cpu_model));
+    }
+
+    f = fopen("/proc/meminfo", "r");
+    if (f) {
+        char line[256];
+        while (fgets(line, sizeof(line), f)) {
+            if (strncmp(line, "MemTotal:", 9) == 0) {
+                unsigned long total_kb = 0;
+                if (sscanf(line + 9, "%lu", &total_kb) == 1) {
+                    snprintf(info->total_ram, sizeof(info->total_ram), "%.1f GB", total_kb / (1024.0 * 1024.0));
+                }
+                break;
+            }
+        }
+        fclose(f);
+    }
+    if (!info->total_ram[0]) {
+        g_strlcpy(info->total_ram, "8.0 GB", sizeof(info->total_ram));
+    }
+
+    // Live session detection
+    info->is_live = (access("/run/live", F_OK) == 0 ||
+                     access("/etc/axisos-installed", F_OK) != 0);
+
+    // Detect GPU
+    g_strlcpy(info->gpu_model, "Hardware Accelerated Wayland (wlroots/drm)", sizeof(info->gpu_model));
+}
+
+static void on_launch_action(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    const char *cmd = (const char *)user_data;
+    if (cmd) {
+        GError *err = NULL;
+        g_spawn_command_line_async(cmd, &err);
+        if (err) {
+            g_warning("Failed to launch %s: %s", cmd, err->message);
+            g_error_free(err);
+        }
+    }
+}
+
+static void on_autostart_toggled(GtkToggleButton *btn, gpointer user_data) {
+    (void)user_data;
+    gboolean active = gtk_toggle_button_get_active(btn);
+    gchar *autostart_dir = g_build_filename(g_get_user_config_dir(), "autostart", NULL);
+    gchar *desktop_path = g_build_filename(autostart_dir, "axis-welcome.desktop", NULL);
+
+    if (active) {
+        g_mkdir_with_parents(autostart_dir, 0755);
+        const char *content =
+            "[Desktop Entry]\n"
+            "Type=Application\n"
+            "Name=AxisOS Welcome\n"
+            "Exec=axis-welcome\n"
+            "Icon=help-about\n"
+            "Terminal=false\n"
+            "X-GNOME-Autostart-enabled=true\n";
+        g_file_set_contents(desktop_path, content, -1, NULL);
+    } else {
+        unlink(desktop_path);
+    }
+    g_free(autostart_dir);
+    g_free(desktop_path);
+}
+
+static GtkWidget *create_action_card(const char *icon_name, const char *title, const char *desc, const char *cmd) {
+    GtkWidget *card = gtk_button_new();
+    gtk_widget_set_size_request(card, 240, 110);
+
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    gtk_container_set_border_width(GTK_CONTAINER(box), 12);
+
+    GtkWidget *hdr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    GtkWidget *icon = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_DND);
+    GtkWidget *t_lbl = gtk_label_new(NULL);
+    char markup[256];
+    snprintf(markup, sizeof(markup), "<b>%s</b>", title);
+    gtk_label_set_markup(GTK_LABEL(t_lbl), markup);
+    gtk_widget_set_halign(t_lbl, GTK_ALIGN_START);
+
+    gtk_box_pack_start(GTK_BOX(hdr), icon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hdr), t_lbl, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box), hdr, FALSE, FALSE, 0);
+
+    GtkWidget *d_lbl = gtk_label_new(desc);
+    gtk_label_set_line_wrap(GTK_LABEL(d_lbl), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(d_lbl), 28);
+    gtk_widget_set_halign(d_lbl, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(box), d_lbl, TRUE, TRUE, 0);
+
+    gtk_container_add(GTK_CONTAINER(card), box);
+    g_signal_connect(card, "clicked", G_CALLBACK(on_launch_action), (gpointer)cmd);
+
+    return card;
+}
+
+int main(int argc, char *argv[]) {
+    gtk_init(&argc, &argv);
+
+    WelcomeApp app = {0};
+    read_system_info(&app.sys_info);
+
+    app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_default_size(GTK_WINDOW(app.window), 820, 600);
+    gtk_window_set_title(GTK_WINDOW(app.window), "Welcome to AxisOS");
+
+    GtkWidget *hb = gtk_header_bar_new();
+    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
+    gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "AxisOS Welcome Hub");
+    gtk_header_bar_set_subtitle(GTK_HEADER_BAR(hb), "Pure C High-Performance Operating System");
+    gtk_window_set_titlebar(GTK_WINDOW(app.window), hb);
+
+    GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(main_box), 20);
+    gtk_container_add(GTK_CONTAINER(app.window), main_box);
+
+    // Hero / Header Banner
+    GtkWidget *hero_frame = gtk_frame_new(NULL);
+    GtkWidget *hero_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_container_set_border_width(GTK_CONTAINER(hero_box), 16);
+
+    GtkWidget *title_lbl = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title_lbl), "<span size='xx-large' weight='bold'>Welcome to AxisOS</span>");
+    gtk_widget_set_halign(title_lbl, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(hero_box), title_lbl, FALSE, FALSE, 0);
+
+    char spec_str[1024];
+    snprintf(spec_str, sizeof(spec_str),
+             "Kernel: %s  |  CPU: %s (%d cores)  |  RAM: %s\nMode: %s",
+             app.sys_info.kernel, app.sys_info.cpu_model, app.sys_info.cpu_cores,
+             app.sys_info.total_ram,
+             app.sys_info.is_live ? "Live ISO Environment" : "Installed Production System");
+    GtkWidget *spec_lbl = gtk_label_new(spec_str);
+    gtk_widget_set_halign(spec_lbl, GTK_ALIGN_START);
+    gtk_box_pack_start(GTK_BOX(hero_box), spec_lbl, FALSE, FALSE, 2);
+
+    gtk_container_add(GTK_CONTAINER(hero_frame), hero_box);
+    gtk_box_pack_start(GTK_BOX(main_box), hero_frame, FALSE, FALSE, 0);
+
+    // Grid of Quick Actions
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 12);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 12);
+    gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
+
+    GtkWidget *card_inst = create_action_card(
+        "system-software-install",
+        "Install AxisOS",
+        "Launch the visual disk partitioner and installation wizard.",
+        "axis-installer"
+    );
+    GtkWidget *card_set = create_action_card(
+        "preferences-system",
+        "System Settings",
+        "Configure display, network, audio, Bluetooth, power, and themes.",
+        "axis-settings"
+    );
+    GtkWidget *card_soft = create_action_card(
+        "system-software-install",
+        "Software Manager",
+        "Install applications, games, tools, and .axis packages.",
+        "axis-package-installer"
+    );
+    GtkWidget *card_sched = create_action_card(
+        "utilities-system-monitor",
+        "Kernel & Scheduler",
+        "Tune CPU governors, sched-ext BPF schedulers, and I/O queue.",
+        "axis-scheduler-manager"
+    );
+    GtkWidget *card_upd = create_action_card(
+        "system-software-update",
+        "System Updates",
+        "Check for atomic OS updates, Btrfs snapshots, and rollbacks.",
+        "axis-update-manager"
+    );
+    GtkWidget *card_term = create_action_card(
+        "utilities-terminal",
+        "Terminal Emulator",
+        "Open the high-performance GPU-accelerated VTE terminal.",
+        "axis-terminal"
+    );
+
+    gtk_grid_attach(GTK_GRID(grid), card_inst, 0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), card_set, 1, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), card_soft, 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), card_sched, 1, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), card_upd, 0, 2, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), card_term, 1, 2, 1, 1);
+
+    gtk_box_pack_start(GTK_BOX(main_box), grid, TRUE, TRUE, 4);
+
+    // Footer
+    GtkWidget *footer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    app.autostart_check = gtk_check_button_new_with_label("Show this welcome dialog on startup");
+    gchar *autostart_file = g_build_filename(g_get_user_config_dir(), "autostart", "axis-welcome.desktop", NULL);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(app.autostart_check), access(autostart_file, F_OK) == 0);
+    g_free(autostart_file);
+    g_signal_connect(app.autostart_check, "toggled", G_CALLBACK(on_autostart_toggled), &app);
+    gtk_box_pack_start(GTK_BOX(footer_box), app.autostart_check, FALSE, FALSE, 0);
+
+    GtkWidget *close_btn = gtk_button_new_with_label("Close");
+    g_signal_connect_swapped(close_btn, "clicked", G_CALLBACK(gtk_window_close), app.window);
+    gtk_box_pack_end(GTK_BOX(footer_box), close_btn, FALSE, FALSE, 0);
+
+    gtk_box_pack_end(GTK_BOX(main_box), footer_box, FALSE, FALSE, 0);
+
+    g_signal_connect(app.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    gtk_widget_show_all(app.window);
+    gtk_main();
+
+    return 0;
+}

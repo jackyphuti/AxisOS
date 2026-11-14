@@ -250,23 +250,17 @@ cmd_enroll_iris() {
     # Capture V4L2 IR/camera frame feature hash if /dev/video0 is available
     mkdir -p "$USER_CONF_DIR" 2>/dev/null || true
     mkdir -p "$IRIS_STORE" 2>/dev/null || true
-    python3 -c '
-import hashlib, os, sys, time
-user = sys.argv[1]
-out_path = sys.argv[2]
-sample = b"AXISOS_IRIS_TEMPLATE_" + user.encode()
-for dev in ["/dev/video0", "/dev/video1", "/dev/urandom"]:
-    if os.path.exists(dev):
-        try:
-            with open(dev, "rb") as f:
-                sample += f.read(4096)
-            break
-        except Exception:
-            pass
-digest = hashlib.sha256(sample).hexdigest()
-with open(out_path, "w") as f:
-    f.write(f"USER={user}\nALGORITHM=IRIS_GABOR_SHA256\nTEMPLATE={digest}\n")
-' "$target_user" "$USER_CONF_DIR/${target_user}.iris" 2>/dev/null || true
+    local sample_dev="/dev/urandom"
+    if [ -e "/dev/video0" ]; then
+        sample_dev="/dev/video0"
+    fi
+    local digest
+    digest=$( (echo "AXISOS_IRIS_TEMPLATE_${target_user}"; dd if="$sample_dev" bs=4096 count=1 2>/dev/null) | sha256sum | awk '{print $1}' )
+    cat << EOF > "$USER_CONF_DIR/${target_user}.iris"
+USER=${target_user}
+ALGORITHM=IRIS_GABOR_SHA256
+TEMPLATE=${digest}
+EOF
 
     if [ -w "$IRIS_STORE" ] && [ -f "$USER_CONF_DIR/${target_user}.iris" ]; then
         cp -f "$USER_CONF_DIR/${target_user}.iris" "$IRIS_STORE/${target_user}.iris" 2>/dev/null || true

@@ -84,7 +84,6 @@ libglx-mesa0
 chromium
 nodejs
 npm
-python3
 
 # Storage, Filesystems & Real Partitioning Tools
 btrfs-progs
@@ -177,7 +176,6 @@ libva2
 va-driver-all
 mesa-vdpau-drivers
 brightnessctl
-python3-gi
 gir1.2-gtk-3.0
 libnotify-bin
 
@@ -189,60 +187,33 @@ libpam-fprintd
 libfprint-2-2
 v4l-utils
 ir-keytable
-python3-opencv
 
 # ==============================================================================
-# AxisOS Desktop GUI & Terminal Runtimes (GTK3 VTE + Qt6 QML Wayland Support)
+# AxisOS Desktop GUI & Terminal Runtimes (Pure C GTK 3 & VTE 2.91)
 # ==============================================================================
 gir1.2-vte-2.91
 libvte-2.91-0
 libvterm0
-libqt6core6
-libqt6gui6
-libqt6qml6
-libqt6quick6
-libqt6dbus6
-qt6-wayland
-qml6-module-qtquick
-qml6-module-qtquick-controls
-qml6-module-qtquick-layouts
-qml6-module-qtquick-window
-qml6-module-qtquick-templates
 
 # ==============================================================================
-# AxisOS Native C++20 & Qt 6 Wayland Development & Runtime Stack
+# AxisOS Native Pure C11 Desktop Development & Runtime Stack
 # ==============================================================================
-qt6-base-dev
-qt6-base-private-dev
-qt6-declarative-dev
-qt6-declarative-private-dev
-qt6-wayland
-qt6-wayland-dev
-libqt6waylandcompositor6
-libqt6waylandcompositor6-dev
-libqt6svg6
-libqt6core6
-libqt6gui6
-libqt6qml6
-libqt6quick6
-libqt6dbus6
-qml6-module-qtwayland-compositor
-qml6-module-qtquick
-qml6-module-qtquick-controls
-qml6-module-qtquick-layouts
-qml6-module-qtquick-window
-qml6-module-qtquick-templates
-qml6-module-qtquick-dialogs
-qml6-module-qtquick-nativestyle
-qml6-module-qtqml-workerscript
-qml6-module-qt5compat-graphicaleffects
-qml6-module-qt-labs-platform
-qml6-module-qt-labs-settings
-libvterm-dev
-libvterm0
+libgtk-3-dev
+libgtk-layer-shell-dev
+libvte-2.91-dev
+libcairo2-dev
+libpango1.0-dev
+libglib2.0-dev
 libpam0g-dev
 libudev-dev
 libinput-dev
 libdrm-dev
 libpixman-1-dev
 libwayland-bin
+libwayland-dev
+wayland-protocols
+libwlroots-dev
+libcurl4-openssl-dev
+libjson-c-dev
+libarchive-dev
+libssl-dev

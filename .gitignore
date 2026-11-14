@@ -27,11 +27,14 @@ chroot/
 *.order
 *.symvers
 compositor/axis-compositor
-compositor-qt/LiquidNodesOS
+shell-c/axisos-shell
+shell-c/LiquidNodesOS
 LiquidNodesOS
 axis-compositor
 os-build/updater/axis-update
 os-build/updater/axis
+tests/test_hardware_probe
+tests/verify_harmony_ui
 
 # Logs
 npm-debug.log*

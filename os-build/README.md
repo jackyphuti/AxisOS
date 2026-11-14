@@ -67,7 +67,7 @@ flowchart TD
 
 ### 3. Build Full Bootable Live ISO
 ```bash
-sudo python3 ./os-build/scripts/build-hybrid-uefi-iso.py
+sudo bash ./os-build/scripts/build-hybrid-uefi-iso.sh
 ```
 The resulting ISO can be written to a USB drive with `dd`, BalenaEtcher, Ventoy, or Rufus, or booted in VirtualBox/VMware/QEMU.
 

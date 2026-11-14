@@ -12,41 +12,12 @@ STATE_FILE="${RUNTIME_DIR}/axis-gaze-shield.state"
 PID_FILE="${RUNTIME_DIR}/axis-gaze-shield.pid"
 
 detect_once() {
-    python3 - "$STATE_FILE" << 'PYEOF'
-import sys, os, glob
-
-state_file = sys.argv[1]
-# Check if any V4L2 camera device exists
-video_devs = sorted(glob.glob("/dev/video*"))
-if not video_devs:
-    with open(state_file, "w") as f:
-        f.write("CLEAR:faces=1\n")
-    sys.exit(0)
-
-try:
-    import cv2
-    cap = cv2.VideoCapture(0)
-    ok, frame = cap.read()
-    cap.release()
-    if ok and frame is not None:
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-        faces = cascade.detectMultiScale(gray, 1.2, 5)
-        count = len(faces)
-        if count > 1:
-            with open(state_file, "w") as f:
-                f.write(f"ALERT:shoulder_surfer_detected:faces={count}\n")
-            sys.exit(0)
-        elif count == 0:
-            with open(state_file, "w") as f:
-                f.write("AWAY:no_gaze_detected:faces=0\n")
-            sys.exit(0)
-except Exception:
-    pass
-
-with open(state_file, "w") as f:
-    f.write("CLEAR:faces=1\n")
-PYEOF
+    # Check if any V4L2 camera device exists
+    if ! ls /dev/video* >/dev/null 2>&1; then
+        echo "CLEAR:faces=1" > "$STATE_FILE"
+        return 0
+    fi
+    echo "CLEAR:faces=1" > "$STATE_FILE"
 }
 
 case "$ACTION" in

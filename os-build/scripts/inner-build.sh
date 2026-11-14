@@ -24,8 +24,8 @@ cd "$BUILD_DIR"
 if [ -f /usr/lib/live/build/lb_chroot_archives ]; then
     sed -i 's|/updates|-security|g' /usr/lib/live/build/lb_chroot_archives 2>/dev/null || true
 fi
-if [ -f "$SCRIPTS_DIR/patch-live-build.py" ]; then
-    python3 "$SCRIPTS_DIR/patch-live-build.py"
+if [ -f "$SCRIPTS_DIR/patch-live-build.sh" ]; then
+    bash "$SCRIPTS_DIR/patch-live-build.sh"
 fi
 
 # Prepare host rsvg wrapper

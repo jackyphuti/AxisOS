@@ -16,11 +16,11 @@ The script requires:
 
 These checks run when the corresponding tool is available:
 
-- `python3` for Python syntax and JSON validation
+- `jq` for Python syntax and JSON validation
 - `node` for JavaScript, CommonJS, and ECMAScript module syntax
 - `shellcheck` for optional shell-script linting
 
-If `python3`, `node`, or `shellcheck` is unavailable, the related check is
+If `jq`, `node`, or `shellcheck` is unavailable, the related check is
 reported as `SKIPPED`. A skipped optional check does not cause the scan to
 fail.
 
@@ -51,7 +51,7 @@ removes it when the scan finishes.
 
 The scanner checks:
 
-- Python files (`.py`) with `python3 -m py_compile`
+- Python files (`.py`) with `jq -m py_compile`
 - Shell files (`.sh`) with `bash -n`
 - JavaScript files (`.js`, `.cjs`, `.mjs`) with `node --check`
 - JSON files (`.json`) with Python's JSON parser

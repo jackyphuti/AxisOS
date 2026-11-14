@@ -1,43 +1,46 @@
 # ==============================================================================
-# AxisOS LiquidNodes Native Desktop Applications Manifest
-# Zero GNOME Shell / Mutter / GDM3 Overhead - Powered by Qt 6 Wayland Compositor
+# AxisOS Pure C Native Desktop Applications Manifest
+# Zero GNOME Shell / Zero Mutter / Zero Qt 6 / Zero Python Overhead
+# Powered by Pure C11 GTK 3, gtk-layer-shell, and wlroots Wayland Compositor
 # ==============================================================================
 
-# Qt 6 Wayland Compositor Framework & QML Runtime
-libqt6waylandcompositor6
-qml6-module-qtwayland-compositor
-qt6-wayland
-qml6-module-qtquick
-qml6-module-qtquick-controls
-qml6-module-qtquick-layouts
-qml6-module-qtquick-window
-qml6-module-qtquick-templates
-qml6-module-qtquick-dialogs
-qml6-module-qtquick-nativestyle
-qml6-module-qtqml-workerscript
-qml6-module-qt5compat-graphicaleffects
-qml6-module-qt-labs-platform
-qml6-module-qt-labs-settings
-libqt6svg6
-libqt6core6
-libqt6gui6
-libqt6qml6
-libqt6quick6
-libqt6dbus6
+# Pure C Wayland Compositor & Shell Runtime
+libwlroots11
+libwayland-server0
+libwayland-client0
+libwayland-cursor0
+libinput10
+libxkbcommon0
+seatd
 
-# Desktop Portal & Authentication Stack
+# Pure C GTK 3 & Desktop Layer-Shell Runtime
+libgtk-3-0
+libgtk-layer-shell0
+libvte-2.91-0
+libcairo2
+libpango-1.0-0
+libpangocairo-1.0-0
+libglib2.0-0
+libudev1
+libcurl4
+libjson-c5
+libarchive13
+libssl3
+
+# Desktop Portal, Polkit & Authentication Stack
 xdg-desktop-portal
 xdg-desktop-portal-wlr
 libpam0g
 libpam-fprintd
 fprintd
+polkitd
 dconf-cli
 
 # Package & Software Integration
 flatpak
 packagekit
 
-# Office & Typography Stack
+# Office, Media & Typography Stack
 libreoffice
 papirus-icon-theme
 fonts-font-awesome
@@ -51,6 +54,4 @@ celluloid
 eog
 evince
 nautilus
-gedit
 file-roller
-xterm

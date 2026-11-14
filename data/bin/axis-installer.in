@@ -1,2 +1,10 @@
 #!/bin/sh
-exec python3 @AXIS_DIR@/installer.py "$@"
+# AxisOS Installer Entrypoint — Pure C Edition
+if [ -x /usr/local/bin/axis-installer ]; then
+    exec /usr/local/bin/axis-installer "$@"
+elif [ -x /usr/bin/axis-installer ]; then
+    exec /usr/bin/axis-installer "$@"
+else
+    echo "Error: axis-installer binary not found." >&2
+    exit 1
+fi

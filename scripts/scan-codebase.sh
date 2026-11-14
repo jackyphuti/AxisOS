@@ -53,29 +53,6 @@ tracked_files() {
     git -C "$ROOT_DIR" ls-files --cached --others --exclude-standard -z
 }
 
-check_python() {
-    local file
-    local -a files=()
-
-    while IFS= read -r -d '' file; do
-        [[ "$file" == *.py ]] && files+=("$ROOT_DIR/$file")
-    done < <(tracked_files)
-
-    if ((${#files[@]} == 0)); then
-        skip_check "Python syntax"
-        return
-    fi
-
-    if ! command -v python3 >/dev/null 2>&1; then
-        skip_check "Python syntax (python3 unavailable)"
-        return
-    fi
-
-    PYTHONPYCACHEPREFIX="$tmp_dir/pycache" \
-        run_check "Python syntax (${#files[@]} files)" \
-        python3 -m py_compile "${files[@]}"
-}
-
 check_shell() {
     local file
     local -a files=()
@@ -120,6 +97,24 @@ check_node() {
     return "$result"
 }
 
+check_pure_c() {
+    local file
+    local -a forbidden=()
+    while IFS= read -r -d '' file; do
+        if [[ "$file" == *.cpp || "$file" == *.hpp || "$file" == *.qml || "$file" == *.py ]]; then
+            forbidden+=("$file")
+        fi
+    done < <(tracked_files)
+
+    if ((${#forbidden[@]} > 0)); then
+        echo "[-] Violation: Found forbidden non-C files in repository:"
+        printf '  %s\n' "${forbidden[@]}"
+        return 1
+    fi
+    echo "[PASS] 100% Pure C codebase verified (0 .cpp, 0 .hpp, 0 .qml, 0 .py files)"
+    return 0
+}
+
 check_json() {
     local file
     local -a files=()
@@ -133,16 +128,18 @@ check_json() {
         return
     fi
 
-    if ! command -v python3 >/dev/null 2>&1; then
-        skip_check "JSON syntax (python3 unavailable)"
-        return
-    fi
-
     local result=0
     for file in "${files[@]}"; do
-        run_check "JSON syntax ($(realpath --relative-to="$ROOT_DIR" "$file"))" \
-            python3 -c 'import json, sys; json.load(open(sys.argv[1], encoding="utf-8"))' \
-            "$file" || result=1
+        if command -v jq >/dev/null 2>&1; then
+            run_check "JSON syntax ($(realpath --relative-to="$ROOT_DIR" "$file"))" \
+                jq . "$file" >/dev/null || result=1
+        elif command -v node >/dev/null 2>&1; then
+            run_check "JSON syntax ($(realpath --relative-to="$ROOT_DIR" "$file"))" \
+                node -e 'JSON.parse(require("fs").readFileSync(process.argv[1]))' "$file" || result=1
+        else
+            skip_check "JSON syntax (jq/node unavailable)"
+            return 0
+        fi
     done
     return "$result"
 }
@@ -182,7 +179,7 @@ main() {
     fi
 
     printf 'Scanning AxisOS for syntax and configuration errors...\n\n'
-    check_python
+    check_pure_c
     check_shell
     check_node
     check_json
