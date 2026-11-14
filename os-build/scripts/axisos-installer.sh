@@ -909,8 +909,7 @@ After=getty@tty1.service
 Type=simple
 User=${USERNAME}
 Group=${USERNAME}
-SupplementaryGroups=video render input audio seat tty plugdev sudo
-PAMName=login
+PAMName=axisos-autologin
 WorkingDirectory=/home/${USERNAME}
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
@@ -918,7 +917,7 @@ Environment=GDK_BACKEND=wayland
 Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=WLR_NO_HARDWARE_CURSORS=1
 Environment=XDG_RUNTIME_DIR=/run/user/1000
-ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown ${USERNAME}:${USERNAME} /run/user/1000 && chmod 0700 /run/user/1000'
+ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000 2>/dev/null && chmod 0700 /run/user/1000 2>/dev/null || true'
 ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=on-failure
 RestartSec=2
@@ -931,6 +930,18 @@ TTYVHangup=no
 
 [Install]
 WantedBy=graphical.target
+EOF
+
+cat << 'EOF' > /mnt/etc/pam.d/axisos-autologin
+#%PAM-1.0
+auth        sufficient  pam_permit.so
+account     sufficient  pam_permit.so
+password    sufficient  pam_permit.so
+session     required    pam_loginuid.so
+session     required    pam_limits.so
+session     required    pam_systemd.so
+session     optional    pam_env.so readenv=1
+session     optional    pam_env.so readenv=1 envfile=/etc/default/locale
 EOF
 
 # Clean network interfaces: lo only, let NetworkManager handle ethernet & Wi-Fi asynchronously

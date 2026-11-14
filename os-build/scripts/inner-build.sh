@@ -195,6 +195,25 @@ if ! id -u axis >/dev/null 2>&1; then
     echo "axis:axis" | chpasswd
 fi
 
+# Ensure required hardware groups exist and axis user is member
+for grp in video render input audio plugdev users disk seat; do
+    groupadd -f "$grp" 2>/dev/null || true
+    usermod -aG "$grp" axis 2>/dev/null || true
+done
+
+# Passwordless PAM autologin configuration for direct Wayland session
+cat << 'PAM_EOF' > /etc/pam.d/axisos-autologin
+#%PAM-1.0
+auth        sufficient  pam_permit.so
+account     sufficient  pam_permit.so
+password    sufficient  pam_permit.so
+session     required    pam_loginuid.so
+session     required    pam_limits.so
+session     required    pam_systemd.so
+session     optional    pam_env.so readenv=1
+session     optional    pam_env.so readenv=1 envfile=/etc/default/locale
+PAM_EOF
+
 # Passwordless sudo for axis user
 mkdir -p /etc/sudoers.d
 echo "axis ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/axis

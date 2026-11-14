@@ -9,8 +9,7 @@ After=getty@tty1.service
 Type=simple
 User=axis
 Group=axis
-SupplementaryGroups=video render input audio seat tty plugdev sudo
-PAMName=login
+PAMName=axisos-autologin
 WorkingDirectory=/home/axis
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
@@ -18,13 +17,13 @@ Environment=GDK_BACKEND=wayland
 Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=WLR_NO_HARDWARE_CURSORS=1
 Environment=XDG_RUNTIME_DIR=/run/user/1000
-ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown axis:axis /run/user/1000 && chmod 0700 /run/user/1000'
+ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000 2>/dev/null && chmod 0700 /run/user/1000 2>/dev/null || true'
 ExecStart=/usr/local/bin/axisos-kiosk.sh
 Restart=on-failure
 RestartSec=2
 StandardInput=tty
-StandardOutput=journal
-StandardError=journal
+StandardOutput=journal+console
+StandardError=journal+console
 TTYPath=/dev/tty1
 TTYReset=yes
 TTYVHangup=yes
