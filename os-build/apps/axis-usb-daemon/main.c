@@ -210,7 +210,49 @@ static void handle_block_device(struct udev_device *dev, const char *action) {
     }
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Real-Time USB Subsystem & Device Recognition Daemon (Pure C)\n");
+        printf("Usage: axis-usb-daemon [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h    Show this help message and exit\n");
+        printf("  --scan, -s    Scan and list current connected USB devices\n");
+        return 0;
+    }
+
+    if (argc > 1 && (strcmp(argv[1], "--scan") == 0 || strcmp(argv[1], "-s") == 0)) {
+        struct udev *u = udev_new();
+        if (u) {
+            struct udev_enumerate *enumerate = udev_enumerate_new(u);
+            udev_enumerate_add_match_subsystem(enumerate, "usb");
+            udev_enumerate_scan_devices(enumerate);
+            struct udev_list_entry *devices = udev_enumerate_get_list_entry(enumerate);
+            struct udev_list_entry *entry;
+            printf("=== Connected USB Devices ===\n");
+            int count = 0;
+            udev_list_entry_foreach(entry, devices) {
+                const char *path = udev_list_entry_get_name(entry);
+                struct udev_device *dev = udev_device_new_from_syspath(u, path);
+                if (dev) {
+                    const char *vendor = udev_device_get_property_value(dev, "ID_VENDOR");
+                    const char *model = udev_device_get_property_value(dev, "ID_MODEL");
+                    const char *devtype = udev_device_get_devtype(dev);
+                    if (devtype && strcmp(devtype, "usb_device") == 0 && (vendor || model)) {
+                        count++;
+                        printf("  [%d] %s %s\n", count, vendor ? vendor : "Generic", model ? model : "Device");
+                    }
+                    udev_device_unref(dev);
+                }
+            }
+            if (count == 0) {
+                printf("  No external USB devices currently enumerated.\n");
+            }
+            udev_enumerate_unref(enumerate);
+            udev_unref(u);
+        }
+        return 0;
+    }
+
     printf("[USB DAEMON] Starting AxisOS Real-Time USB Monitor Daemon...\n");
     fflush(stdout);
 

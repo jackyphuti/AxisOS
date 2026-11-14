@@ -401,6 +401,18 @@ static gboolean on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpoin
 }
 
 int main(int argc, char *argv[]) {
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Terminal Emulator (Pure C11 / libvterm)\n");
+        printf("Usage: axis-terminal [OPTION] [-e COMMAND]\n");
+        printf("Options:\n");
+        printf("  --help, -h       Show this help message and exit\n");
+        printf("  --version, -v    Print version information\n");
+        return 0;
+    }
+    if (argc > 1 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)) {
+        printf("axis-terminal 2.0.0 (Pure C11, GTK 3, libvterm)\n");
+        return 0;
+    }
     gtk_init(&argc, &argv);
 
     TerminalApp app = {0};

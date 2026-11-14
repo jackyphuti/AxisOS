@@ -188,6 +188,24 @@ static void on_refresh_clicked(GtkButton *btn, gpointer user_data) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS System Update Manager (Pure C11)\n");
+        printf("Usage: axis-update-manager [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h     Show this help message and exit\n");
+        printf("  --check, -c    Check and list pending OTA/APT updates\n");
+        return 0;
+    }
+    if (argc > 1 && (strcmp(argv[1], "--check") == 0 || strcmp(argv[1], "-c") == 0)) {
+        printf("=== AxisOS Pending Updates ===\n");
+        for (int i = 0; PENDING_UPDATES[i].pkg_name != NULL; ++i) {
+            printf("  [%-20s] %s -> %s (%s, %s)\n",
+                   PENDING_UPDATES[i].pkg_name, PENDING_UPDATES[i].current_ver,
+                   PENDING_UPDATES[i].new_ver, PENDING_UPDATES[i].tier,
+                   PENDING_UPDATES[i].size);
+        }
+        return 0;
+    }
     gtk_init(&argc, &argv);
 
     UpdateMgrApp app = {0};

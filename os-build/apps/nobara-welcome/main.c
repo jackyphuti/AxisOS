@@ -360,6 +360,26 @@ static AxisHardwareApp *axis_hardware_app_create(void) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Hardware Driver & Codec Suite (Pure C11)\n");
+        printf("Usage: nobara-welcome [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h      Show this help message and exit\n");
+        printf("  --drivers, -d   Check current GPU driver status\n");
+        return 0;
+    }
+    if (argc > 1 && (strcmp(argv[1], "--drivers") == 0 || strcmp(argv[1], "-d") == 0)) {
+        printf("=== AxisOS GPU Hardware & Driver Status ===\n");
+        FILE *fp = popen("lspci -nnk 2>/dev/null | grep -E -A 3 -i 'vga|3d|display'", "r");
+        if (fp) {
+            char line[256];
+            while (fgets(line, sizeof(line), fp)) {
+                printf("  %s", line);
+            }
+            pclose(fp);
+        }
+        return 0;
+    }
     gtk_init(&argc, &argv);
     AxisHardwareApp *app = axis_hardware_app_create();
     gtk_widget_show_all(app->window);

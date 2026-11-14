@@ -59,23 +59,84 @@ done
 
 if [ -x "$WORKSPACE_DIR/os-build/apps/axis-settings/axisos-settings-panel" ]; then
     cp -f "$WORKSPACE_DIR/os-build/apps/axis-settings/axisos-settings-panel" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
+    ln -sf axisos-settings-panel "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-settings" || true
 fi
 
-# 4. Copy Desktop Shell (shell-c)
+# 4. Copy Desktop Shell (shell-c) & Wayland Compositor (compositor)
 if [ -x "$WORKSPACE_DIR/shell-c/axisos-shell" ]; then
     cp -f "$WORKSPACE_DIR/shell-c/axisos-shell" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-shell"
     ln -sf axis-shell "$BUILD_DIR/config/includes.chroot/usr/local/bin/LiquidNodesOS" || true
 fi
 
-# 5. Copy Updater and Package Manager
+if [ -x "$WORKSPACE_DIR/compositor/axis-compositor" ]; then
+    cp -f "$WORKSPACE_DIR/compositor/axis-compositor" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-compositor"
+fi
+
+# 5. Copy System Installation Engine & Real Disk Partitioner
+if [ -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
+    chmod +x "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-installer.sh"
+    ln -sf axisos-installer.sh "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-install.sh" || true
+fi
+
+# 6. Copy Updater and Package Manager
 if [ -x "$WORKSPACE_DIR/os-build/updater/axis-update" ]; then
     cp -f "$WORKSPACE_DIR/os-build/updater/axis-update" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
 fi
 if [ -x "$WORKSPACE_DIR/pkg-mgr/bin/axis" ]; then
     cp -f "$WORKSPACE_DIR/pkg-mgr/bin/axis" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
 fi
+if [ -x "$WORKSPACE_DIR/pkg-mgr/bin/axis_repo_builder" ]; then
+    cp -f "$WORKSPACE_DIR/pkg-mgr/bin/axis_repo_builder" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
+fi
 
-# 6. Copy Wayland Kiosk Session configuration
+# 7. Copy Design Theme, Wallpapers, and Icons
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/axisos/theme"
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/axis/theme"
+if [ -d "$WORKSPACE_DIR/data/theme" ]; then
+    cp -rf "$WORKSPACE_DIR"/data/theme/* "$BUILD_DIR/config/includes.chroot/usr/share/axisos/theme/" 2>/dev/null || true
+    cp -rf "$WORKSPACE_DIR"/data/theme/* "$BUILD_DIR/config/includes.chroot/usr/share/axis/theme/" 2>/dev/null || true
+fi
+
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/backgrounds/axisos"
+if [ -d "$WORKSPACE_DIR/data/wallpapers" ]; then
+    cp -rf "$WORKSPACE_DIR"/data/wallpapers/* "$BUILD_DIR/config/includes.chroot/usr/share/backgrounds/axisos/" 2>/dev/null || true
+fi
+
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/icons"
+if [ -d "$WORKSPACE_DIR/data/icons" ]; then
+    cp -rf "$WORKSPACE_DIR"/data/icons/* "$BUILD_DIR/config/includes.chroot/usr/share/icons/" 2>/dev/null || true
+fi
+
+# 8. Copy PAM, Polkit, Udev Rules, and Systemd Services
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/pam.d"
+if [ -d "$WORKSPACE_DIR/data/pam" ]; then
+    cp -rf "$WORKSPACE_DIR"/data/pam/* "$BUILD_DIR/config/includes.chroot/etc/pam.d/" 2>/dev/null || true
+fi
+
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/udev/rules.d"
+if [ -d "$WORKSPACE_DIR/os-build/configs/udev" ]; then
+    cp -rf "$WORKSPACE_DIR"/os-build/configs/udev/* "$BUILD_DIR/config/includes.chroot/etc/udev/rules.d/" 2>/dev/null || true
+fi
+
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/systemd/system"
+if [ -d "$WORKSPACE_DIR/os-build/configs/systemd" ]; then
+    cp -rf "$WORKSPACE_DIR"/os-build/configs/systemd/*.service "$BUILD_DIR/config/includes.chroot/etc/systemd/system/" 2>/dev/null || true
+fi
+if [ -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
+fi
+
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/xdg"
+if [ -d "$WORKSPACE_DIR/os-build/configs/wayland" ]; then
+    for cfg in foot mako waybar wofi; do
+        if [ -d "$WORKSPACE_DIR/os-build/configs/wayland/$cfg" ]; then
+            cp -rf "$WORKSPACE_DIR/os-build/configs/wayland/$cfg" "$BUILD_DIR/config/includes.chroot/etc/xdg/"
+        fi
+    done
+fi
+
+# 9. Copy Wayland Kiosk Session configuration
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/wayland-sessions"
 if [ -f "$CHROOT_CONFIG_DIR/wayland/liquidnodes.desktop" ]; then
     cp -f "$CHROOT_CONFIG_DIR/wayland/liquidnodes.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/wayland-sessions/"

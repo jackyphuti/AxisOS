@@ -23,6 +23,8 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/utsname.h>
+#include <sys/statvfs.h>
 #include <pwd.h>
 
 // Structure for AxisSettingsApp
@@ -1568,34 +1570,87 @@ static void build_about_page(AxisSettingsApp *app) {
 
     GtkWidget *card = create_card("System Specifications & Hardware", "AxisOS 2.0 (Liquid Nodes Edition)");
 
-    char *model = exec_cmd("cat /sys/class/dmi/id/product_name 2>/dev/null || cat /sys/devices/virtual/dmi/id/product_name 2>/dev/null || hostname");
-    g_strstrip(model);
-    if (model[0] == '\0' || strcmp(model, "None") == 0) {
-        g_free(model);
-        model = g_strdup("Personal Computer");
+    struct utsname u;
+    memset(&u, 0, sizeof(u));
+    uname(&u);
+
+    // 1. Device model & vendor via sysfs DMI
+    char model[128] = {0};
+    char vendor[128] = {0};
+    FILE *f_dmi = fopen("/sys/class/dmi/id/product_name", "r");
+    if (!f_dmi) f_dmi = fopen("/sys/devices/virtual/dmi/id/product_name", "r");
+    if (f_dmi) {
+        if (fgets(model, sizeof(model), f_dmi)) g_strstrip(model);
+        fclose(f_dmi);
     }
-
-    char *vendor = exec_cmd("cat /sys/class/dmi/id/sys_vendor 2>/dev/null || echo ''");
-    g_strstrip(vendor);
-
+    f_dmi = fopen("/sys/class/dmi/id/sys_vendor", "r");
+    if (f_dmi) {
+        if (fgets(vendor, sizeof(vendor), f_dmi)) g_strstrip(vendor);
+        fclose(f_dmi);
+    }
+    if (model[0] == '\0' || strcmp(model, "None") == 0 || strcmp(model, "System Product Name") == 0) {
+        if (u.nodename[0] != '\0') {
+            g_strlcpy(model, u.nodename, sizeof(model));
+        } else {
+            g_strlcpy(model, "Personal Computer", sizeof(model));
+        }
+    }
     char *device_str;
     if (vendor[0] != '\0' && strstr(model, vendor) == NULL) {
         device_str = g_strdup_printf("%s %s", vendor, model);
     } else {
         device_str = g_strdup(model);
     }
-    g_free(model);
-    g_free(vendor);
 
-    char *cpu = exec_cmd("grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | sed -e 's/^[ \t]*//' || uname -m");
-    g_strstrip(cpu);
+    // 2. CPU model via /proc/cpuinfo
+    char cpu_buf[128] = {0};
+    FILE *f_cpu = fopen("/proc/cpuinfo", "r");
+    if (f_cpu) {
+        char line[256];
+        while (fgets(line, sizeof(line), f_cpu)) {
+            if (strncmp(line, "model name", 10) == 0) {
+                char *colon = strchr(line, ':');
+                if (colon) {
+                    char *trimmed = g_strstrip(g_strdup(colon + 1));
+                    g_strlcpy(cpu_buf, trimmed, sizeof(cpu_buf));
+                    g_free(trimmed);
+                    break;
+                }
+            }
+        }
+        fclose(f_cpu);
+    }
+    if (cpu_buf[0] == '\0') {
+        g_strlcpy(cpu_buf, (u.machine[0] ? u.machine : "x86_64 Processor"), sizeof(cpu_buf));
+    }
 
-    char *cores = exec_cmd("nproc 2>/dev/null || echo '1'");
-    g_strstrip(cores);
+    // 3. Thread count via sysconf
+    long n_threads = sysconf(_SC_NPROCESSORS_ONLN);
+    if (n_threads <= 0) n_threads = 1;
 
-    char *mem = exec_cmd("free -h 2>/dev/null | awk '/^Mem:/ {print $2 \" Total (\" $7 \" Available)\"}' || echo '8.0 GB'");
-    g_strstrip(mem);
+    // 4. Memory via /proc/meminfo
+    unsigned long mem_tot_kb = 0, mem_av_kb = 0;
+    FILE *f_mem = fopen("/proc/meminfo", "r");
+    if (f_mem) {
+        char line[256];
+        while (fgets(line, sizeof(line), f_mem)) {
+            if (strncmp(line, "MemTotal:", 9) == 0) {
+                sscanf(line + 9, "%lu", &mem_tot_kb);
+            } else if (strncmp(line, "MemAvailable:", 13) == 0) {
+                sscanf(line + 13, "%lu", &mem_av_kb);
+            }
+        }
+        fclose(f_mem);
+    }
+    char mem_buf[128];
+    if (mem_tot_kb > 0) {
+        snprintf(mem_buf, sizeof(mem_buf), "%.1f GB Total (%.1f GB Available)",
+                 mem_tot_kb / 1048576.0, mem_av_kb / 1048576.0);
+    } else {
+        g_strlcpy(mem_buf, "8.0 GB RAM", sizeof(mem_buf));
+    }
 
+    // 5. GPU via lspci
     char *gpu = exec_cmd("lspci 2>/dev/null | grep -E 'VGA|3D' | cut -d: -f3 | sed -e 's/^[ \t]*//' | head -n1");
     g_strstrip(gpu);
     if (gpu[0] == '\0') {
@@ -1603,36 +1658,34 @@ static void build_about_page(AxisSettingsApp *app) {
         gpu = g_strdup("Intel / AMD / NVIDIA Hardware Accelerated Graphics");
     }
 
-    char *disk = exec_cmd("df -h / 2>/dev/null | awk 'NR==2 {print $2 \" Total (\" $4 \" Free)\"}' || echo '512 GB SSD'");
-    g_strstrip(disk);
-
-    char *kernel = exec_cmd("uname -r");
-    g_strstrip(kernel);
-
-    char *arch = exec_cmd("uname -m");
-    g_strstrip(arch);
+    // 6. Disk via statvfs
+    char disk_buf[128];
+    struct statvfs sv;
+    if (statvfs("/", &sv) == 0) {
+        double total_gb = ((double)sv.f_blocks * sv.f_frsize) / (1024.0 * 1024.0 * 1024.0);
+        double free_gb = ((double)sv.f_bavail * sv.f_frsize) / (1024.0 * 1024.0 * 1024.0);
+        snprintf(disk_buf, sizeof(disk_buf), "%.1f GB Total (%.1f GB Free)", total_gb, free_gb);
+    } else {
+        g_strlcpy(disk_buf, "512 GB SSD", sizeof(disk_buf));
+    }
 
     char *spec_text = g_strdup_printf(
         "🖥️  Device Model: %s\n"
-        "⚡ Processor: %s (%s Threads)\n"
+        "⚡ Processor: %s (%ld Threads)\n"
         "🧠 Memory (RAM): %s\n"
         "🎮 Graphics (GPU): %s\n"
         "💾 Disk Storage: %s\n"
         "🐧 Linux Kernel: %s (%s)\n"
         "✨ Operating System: AxisOS 2.0 (Liquid Nodes Edition)\n"
-        "🪟 Desktop Session: Wayland (GNOME Shell Native)",
-        device_str, cpu, cores, mem, gpu, disk, kernel, arch);
+        "🪟 Desktop Session: Wayland (axis-compositor / LiquidNodes Pure C)",
+        device_str, cpu_buf, n_threads, mem_buf, gpu, disk_buf,
+        u.release[0] ? u.release : "6.12.8-xanmod1",
+        u.machine[0] ? u.machine : "x86_64");
 
     GtkWidget *lbl_specs = gtk_label_new(spec_text);
     g_free(spec_text);
     g_free(device_str);
-    g_free(cpu);
-    g_free(cores);
-    g_free(mem);
     g_free(gpu);
-    g_free(disk);
-    g_free(kernel);
-    g_free(arch);
 
     gtk_label_set_xalign(GTK_LABEL(lbl_specs), 0.0);
     gtk_box_pack_start(GTK_BOX(card), lbl_specs, FALSE, FALSE, 8);
@@ -1847,6 +1900,24 @@ static AxisSettingsApp *axis_settings_app_create(void) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS System Settings & Hardware Control Center (Pure C11)\n");
+        printf("Usage: axisos-settings-panel [COMMAND]\n\n");
+        printf("Commands:\n");
+        printf("  about        View system specifications and hardware info\n");
+        printf("  updates      Manage software and OS updates\n");
+        printf("  network      Wi-Fi and Ethernet network connections\n");
+        printf("  display      Display outputs, modes, and refresh rates\n");
+        printf("  audio        Sound volume and hardware backlight\n");
+        printf("  bluetooth    Bluetooth radio and device pairing\n");
+        printf("  power        Performance tuning and GameBoost\n");
+        printf("  usb          Connected USB peripherals and storage\n");
+        printf("  appearance   Dark/Light mode and icon themes\n");
+        printf("  datetime     Timezone, NTP synchronization, and clock\n");
+        printf("  security     User accounts and PAM/fprintd biometrics\n");
+        return 0;
+    }
+
     gtk_init(&argc, &argv);
     AxisSettingsApp *app = axis_settings_app_create();
 

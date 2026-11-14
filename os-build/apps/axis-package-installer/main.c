@@ -310,8 +310,25 @@ static void populate_catalog(PkgInstallerApp *app) {
 }
 
 int main(int argc, char *argv[]) {
-    gtk_init(&argc, &argv);
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Package Installer (Pure C11)\n");
+        printf("Usage: axis-package-installer [PACKAGE_FILE | OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h       Show this help message and exit\n");
+        printf("  --catalog, -c    List installable package catalog\n");
+        return 0;
+    }
     check_installed_status();
+    if (argc > 1 && (strcmp(argv[1], "--catalog") == 0 || strcmp(argv[1], "-c") == 0)) {
+        printf("=== AxisOS Application Package Catalog ===\n");
+        for (int i = 0; CATALOG[i].id != NULL; ++i) {
+            printf("  [%-18s] %-20s (%s) [%s]\n",
+                   CATALOG[i].id, CATALOG[i].name, CATALOG[i].category,
+                   CATALOG[i].installed ? "Installed" : "Available");
+        }
+        return 0;
+    }
+    gtk_init(&argc, &argv);
 
     PkgInstallerApp app = {0};
     app.active_category = g_strdup("All");

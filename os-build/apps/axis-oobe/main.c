@@ -276,6 +276,19 @@ static AxisOobeApp *axis_oobe_app_create(void) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS First-Boot Out-of-Box Experience (OOBE) Wizard (Pure C11)\n");
+        printf("Usage: axis-oobe [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h       Show this help message and exit\n");
+        printf("  --status, -s     Check if first boot setup is pending\n");
+        return 0;
+    }
+    if (argc > 1 && (strcmp(argv[1], "--status") == 0 || strcmp(argv[1], "-s") == 0)) {
+        gboolean pending = (access("/var/lib/axisos/first-boot-pending", F_OK) == 0);
+        printf("AxisOS OOBE Status: %s\n", pending ? "Setup Pending (first boot)" : "Setup Completed");
+        return 0;
+    }
     gtk_init(&argc, &argv);
     AxisOobeApp *app = axis_oobe_app_create();
     gtk_widget_show_all(app->window);

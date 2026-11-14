@@ -78,7 +78,16 @@ static void read_system_info(SystemInfo *info) {
                      access("/etc/axisos-installed", F_OK) != 0);
 
     // Detect GPU
-    g_strlcpy(info->gpu_model, "Hardware Accelerated Wayland (wlroots/drm)", sizeof(info->gpu_model));
+    FILE *fp_gpu = popen("lspci 2>/dev/null | grep -E 'VGA|3D' | cut -d: -f3 | sed -e 's/^[ \t]*//' | head -n1", "r");
+    if (fp_gpu) {
+        if (fgets(info->gpu_model, sizeof(info->gpu_model), fp_gpu)) {
+            g_strstrip(info->gpu_model);
+        }
+        pclose(fp_gpu);
+    }
+    if (!info->gpu_model[0]) {
+        g_strlcpy(info->gpu_model, "Hardware Accelerated Wayland (wlroots/drm)", sizeof(info->gpu_model));
+    }
 }
 
 static void on_launch_action(GtkButton *btn, gpointer user_data) {
@@ -150,10 +159,30 @@ static GtkWidget *create_action_card(const char *icon_name, const char *title, c
 }
 
 int main(int argc, char *argv[]) {
-    gtk_init(&argc, &argv);
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Welcome Hub (Pure C11)\n");
+        printf("Usage: axis-welcome [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h    Show this help message and exit\n");
+        printf("  --info, -i    Print hardware and system information and exit\n");
+        return 0;
+    }
 
     WelcomeApp app = {0};
     read_system_info(&app.sys_info);
+
+    if (argc > 1 && (strcmp(argv[1], "--info") == 0 || strcmp(argv[1], "-i") == 0)) {
+        printf("=== AxisOS Hardware & System Information ===\n");
+        printf("Kernel:    %s\n", app.sys_info.kernel);
+        printf("Processor: %s (%d cores)\n", app.sys_info.cpu_model, app.sys_info.cpu_cores);
+        printf("Memory:    %s\n", app.sys_info.total_ram);
+        printf("Graphics:  %s\n", app.sys_info.gpu_model);
+        printf("Session:   Pure C Wayland (axis-compositor / LiquidNodes)\n");
+        printf("Mode:      %s\n", app.sys_info.is_live ? "Live Environment" : "Installed Production System");
+        return 0;
+    }
+
+    gtk_init(&argc, &argv);
 
     app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_default_size(GTK_WINDOW(app.window), 820, 600);
@@ -181,9 +210,9 @@ int main(int argc, char *argv[]) {
 
     char spec_str[1024];
     snprintf(spec_str, sizeof(spec_str),
-             "Kernel: %s  |  CPU: %s (%d cores)  |  RAM: %s\nMode: %s",
+             "Kernel: %s  |  CPU: %s (%d cores)  |  RAM: %s  |  GPU: %s\nSession: Pure C Wayland (axis-compositor)  |  Mode: %s",
              app.sys_info.kernel, app.sys_info.cpu_model, app.sys_info.cpu_cores,
-             app.sys_info.total_ram,
+             app.sys_info.total_ram, app.sys_info.gpu_model,
              app.sys_info.is_live ? "Live ISO Environment" : "Installed Production System");
     GtkWidget *spec_lbl = gtk_label_new(spec_str);
     gtk_widget_set_halign(spec_lbl, GTK_ALIGN_START);

@@ -255,8 +255,26 @@ static void on_refresh_clicked(GtkButton *btn, gpointer user_data) {
 }
 
 int main(int argc, char *argv[]) {
-    gtk_init(&argc, &argv);
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Software Manager (Pure C11)\n");
+        printf("Usage: axis-software-manager [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h    Show this help message and exit\n");
+        printf("  --list, -l    List featured applications and their status\n");
+        return 0;
+    }
     check_installed_packages();
+    if (argc > 1 && (strcmp(argv[1], "--list") == 0 || strcmp(argv[1], "-l") == 0)) {
+        printf("=== AxisOS Curated Software Catalog ===\n");
+        for (int i = 0; SOFTWARE_LIST[i].id != NULL; ++i) {
+            printf("  [%-18s] %-26s (%s - %s) [%s]\n",
+                   SOFTWARE_LIST[i].id, SOFTWARE_LIST[i].name,
+                   SOFTWARE_LIST[i].category, SOFTWARE_LIST[i].source,
+                   SOFTWARE_LIST[i].installed ? "Installed" : "Available");
+        }
+        return 0;
+    }
+    gtk_init(&argc, &argv);
 
     SoftMgrApp app = {0};
 

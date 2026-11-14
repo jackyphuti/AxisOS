@@ -219,6 +219,26 @@ static void on_stop_scx_clicked(GtkButton *btn, gpointer user_data) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Kernel Scheduler & Governor Manager (Pure C11)\n");
+        printf("Usage: axis-scheduler-manager [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h      Show this help message and exit\n");
+        printf("  --status, -s    Print current kernel governor and scheduler status and exit\n");
+        return 0;
+    }
+    if (argc > 1 && (strcmp(argv[1], "--status") == 0 || strcmp(argv[1], "-s") == 0)) {
+        SchedulerApp app = {0};
+        check_scx_support(&app);
+        read_active_governor(&app);
+        read_io_scheduler(&app);
+        printf("=== AxisOS Kernel Scheduler Status ===\n");
+        printf("CPU Governor:    %s\n", app.active_governor);
+        printf("I/O Scheduler:   %s\n", app.active_io_sched);
+        printf("sched_ext (SCX): %s\n", app.scx_supported ? "Supported" : "Not available in current kernel");
+        return 0;
+    }
+
     gtk_init(&argc, &argv);
 
     SchedulerApp app = {0};

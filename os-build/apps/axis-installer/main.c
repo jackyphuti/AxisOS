@@ -1786,8 +1786,35 @@ static AxisInstallerApp *axis_installer_app_create(void) {
 }
 
 int main(int argc, char *argv[]) {
-    if (access("/etc/axisos-installed", F_OK) == 0) {
-        g_print("AxisOS is already installed on this machine.\n");
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Graphical System Installer (Pure C11)\n");
+        printf("Usage: axis-installer [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h      Show this help message and exit\n");
+        printf("  --drives, -d    Scan and list available target storage drives\n");
+        printf("  --force, -f     Launch installer even if /etc/axisos-installed is present\n");
+        return 0;
+    }
+    if (argc > 1 && (strcmp(argv[1], "--drives") == 0 || strcmp(argv[1], "-d") == 0)) {
+        printf("=== Available Target Storage Drives for Installation ===\n");
+        FILE *fp = popen("lsblk -d -n -o NAME,SIZE,MODEL,TYPE 2>/dev/null | grep disk", "r");
+        if (fp) {
+            char line[256];
+            int count = 0;
+            while (fgets(line, sizeof(line), fp)) {
+                g_strstrip(line);
+                count++;
+                printf("  [%d] /dev/%s\n", count, line);
+            }
+            pclose(fp);
+            if (count == 0) printf("  No raw physical disk blocks detected.\n");
+        }
+        return 0;
+    }
+
+    gboolean force = (argc > 1 && (strcmp(argv[1], "--force") == 0 || strcmp(argv[1], "-f") == 0));
+    if (!force && access("/etc/axisos-installed", F_OK) == 0) {
+        g_print("AxisOS is already installed on this machine. Pass --force to run anyway.\n");
         return 0;
     }
     gtk_init(&argc, &argv);

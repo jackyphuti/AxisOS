@@ -549,7 +549,7 @@ static void refresh_all_telemetry(AxisTaskManagerApp *app) {
             }
         }
         // Per-core
-        for (int i = 0; i < app->n_cores; ++i) {
+        for (int i = 0; app->core_loads && app->prev_core_total && app->prev_core_work && i < app->n_cores; ++i) {
             if (!fgets(line, sizeof(line), fp)) break;
             char prefix[16];
             snprintf(prefix, sizeof(prefix), "cpu%d ", i);
@@ -1413,6 +1413,44 @@ static AxisTaskManagerApp *axis_task_manager_app_create(void) {
 }
 
 int main(int argc, char *argv[]) {
+    if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
+        printf("AxisOS Native Pure C Task Manager & Performance Monitor\n");
+        printf("Usage: axis-task-manager [OPTION]\n");
+        printf("Options:\n");
+        printf("  --help, -h       Display this help message and exit\n");
+        printf("  --summary, -s    Print instant system telemetry summary and exit\n");
+        return 0;
+    }
+    if (argc > 1 && (strcmp(argv[1], "--summary") == 0 || strcmp(argv[1], "-s") == 0)) {
+        AxisTaskManagerApp app = {0};
+        app.n_cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
+        if (app.n_cores <= 0) app.n_cores = 1;
+        app.core_loads = g_new0(double, app.n_cores);
+        app.prev_core_total = g_new0(unsigned long long, app.n_cores);
+        app.prev_core_work = g_new0(unsigned long long, app.n_cores);
+        refresh_all_telemetry(&app);
+        int proc_count = 0;
+        DIR *dir = opendir("/proc");
+        if (dir) {
+            struct dirent *ent;
+            while ((ent = readdir(dir)) != NULL) {
+                if (atoi(ent->d_name) > 0) proc_count++;
+            }
+            closedir(dir);
+        }
+        printf("=== AxisOS Real-Time System Telemetry ===\n");
+        printf("CPU Cores:     %d online cores\n", app.n_cores);
+        printf("CPU Load:      %.1f%%\n", app.current_cpu_pct);
+        printf("Memory (RAM):  %.1f GB in use / %.1f GB total (%.1f GB available)\n",
+               app.current_mem_gb, app.total_mem_gb, app.free_mem_gb);
+        printf("Disk I/O:      Read: %.1f MB/s | Write: %.1f MB/s\n",
+               app.disk_read_mbs, app.disk_write_mbs);
+        printf("Active Tasks:  %d running processes\n", proc_count);
+        g_free(app.core_loads);
+        g_free(app.prev_core_total);
+        g_free(app.prev_core_work);
+        return 0;
+    }
     gtk_init(&argc, &argv);
     AxisTaskManagerApp *app = axis_task_manager_app_create();
     gtk_widget_show_all(app->window);
