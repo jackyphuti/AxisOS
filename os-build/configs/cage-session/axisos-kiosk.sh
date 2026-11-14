@@ -29,6 +29,7 @@ export XDG_CURRENT_DESKTOP="AxisOS:LiquidNodes"
 export GDK_BACKEND=wayland
 export WLR_RENDERER_ALLOW_SOFTWARE=1
 export WLR_NO_HARDWARE_CURSORS=1
+export LIBGL_ALWAYS_SOFTWARE=1
 export MOZ_ENABLE_WAYLAND=1
 export OZONE_PLATFORM=wayland
 export SDL_VIDEODRIVER=wayland
@@ -92,20 +93,25 @@ elif [ -x "/usr/bin/axis-compositor" ]; then
 fi
 
 if [ -n "$COMPOSITOR_BIN" ]; then
-    echo "[AxisOS] Launching Native Pure C wlroots axis-compositor..." | tee -a "$HOME/.axis-session.log"
-    if ! "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a "$HOME/.axis-session.log"; then
-        echo "[AxisOS] Compositor exited. Retrying with pixman software rendering fallback..." | tee -a "$HOME/.axis-session.log"
+    echo "[AxisOS] Launching Native Pure C wlroots axis-compositor..."
+    "$COMPOSITOR_BIN" -s "$STARTUP_CMD"
+    RET=$?
+    if [ $RET -ne 0 ]; then
+        echo "[AxisOS] Compositor exited ($RET). Retrying with pixman software rendering fallback..."
         export WLR_RENDERER=pixman
         export WLR_RENDERER_ALLOW_SOFTWARE=1
         export WLR_NO_HARDWARE_CURSORS=1
-        if ! "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a "$HOME/.axis-session.log"; then
-            echo "[AxisOS] Compositor failed. Launching fallback kiosk..." | tee -a "$HOME/.axis-session.log"
+        export LIBGL_ALWAYS_SOFTWARE=1
+        "$COMPOSITOR_BIN" -s "$STARTUP_CMD"
+        RET=$?
+        if [ $RET -ne 0 ]; then
+            echo "[AxisOS] Compositor failed. Launching fallback kiosk..."
             if command -v cage >/dev/null 2>&1; then
                 exec cage -s -- /usr/local/bin/$STARTUP_APP
             fi
         fi
     fi
 elif command -v cage >/dev/null 2>&1; then
-    echo "[AxisOS] Fallback: Launching cage with $STARTUP_APP..." | tee -a "$HOME/.axis-session.log"
+    echo "[AxisOS] Fallback: Launching cage with $STARTUP_APP..."
     exec cage -s -- /usr/local/bin/$STARTUP_APP
 fi

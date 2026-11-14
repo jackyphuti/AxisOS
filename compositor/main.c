@@ -209,6 +209,7 @@ static void spawn_command(const char *cmd) {
 		setenv("OZONE_PLATFORM", "wayland", 1);
 		setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
 		setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
+		setenv("LIBGL_ALWAYS_SOFTWARE", "1", 1);
 		execl("/bin/sh", "/bin/sh", "-c", cmd, (void *)NULL);
 		_exit(1);
 	}
@@ -1108,6 +1109,11 @@ int main(int argc, char *argv[]) {
 	/* 3. Set Up Renderer and Allocator */
 	server.renderer = wlr_renderer_autocreate(server.backend);
 	if (!server.renderer) {
+		wlr_log(WLR_INFO, "[AxisOS] Default hardware renderer unavailable, retrying with pixman software rendering...");
+		setenv("WLR_RENDERER", "pixman", 1);
+		server.renderer = wlr_renderer_autocreate(server.backend);
+	}
+	if (!server.renderer) {
 		wlr_log(WLR_ERROR, "Failed to create wlr_renderer");
 		wlr_backend_destroy(server.backend);
 		wl_display_destroy(server.wl_display);
@@ -1194,6 +1200,8 @@ int main(int argc, char *argv[]) {
 	setenv("WLR_NO_HARDWARE_CURSORS", "1", true);
 	setenv("XDG_CURRENT_DESKTOP", "AxisOS-LiquidNodes", true);
 	setenv("XDG_SESSION_TYPE", "wayland", true);
+	printf("[AxisOS] Running wlroots Wayland compositor on WAYLAND_DISPLAY=%s\n", socket);
+	fflush(stdout);
 	wlr_log(WLR_INFO, "[AxisOS] Running wlroots Wayland compositor on WAYLAND_DISPLAY=%s", socket);
 
 	/* Launch background session components */
