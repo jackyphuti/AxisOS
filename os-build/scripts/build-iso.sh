@@ -19,13 +19,15 @@ if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
 fi
 
 # Step 1: Determine builder environment (Container vs Native live-build)
-CONTAINER_TOOL=""
-BUILD_FLAGS=""
-if command -v docker >/dev/null 2>&1; then
-    CONTAINER_TOOL="docker"
-elif command -v podman >/dev/null 2>&1; then
-    CONTAINER_TOOL="podman"
-    BUILD_FLAGS="--cgroup-manager=cgroupfs"
+CONTAINER_TOOL="${CONTAINER_TOOL:-}"
+BUILD_FLAGS="${BUILD_FLAGS:-}"
+if [ -z "$CONTAINER_TOOL" ]; then
+    if docker info >/dev/null 2>&1; then
+        CONTAINER_TOOL="docker"
+    elif command -v podman >/dev/null 2>&1; then
+        CONTAINER_TOOL="podman"
+        BUILD_FLAGS="--cgroup-manager=cgroupfs"
+    fi
 fi
 
 # Step 2: Compile Pure C Native Applications & Shell
