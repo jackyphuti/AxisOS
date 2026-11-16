@@ -1,25 +1,24 @@
-<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
+# AxisOS Verification & Codebase Utilities
 
-# AxisOS Pure C Codebase Scanner
+This directory contains standalone tools for inspecting code compliance and binary linkages in AxisOS.
 
-`scripts/scan-codebase.c` is a read-only helper for finding common syntax and
-architecture errors in the AxisOS repository. It scans Git-tracked files and
-verifies 100% Pure C language compliance.
+---
 
-## Running the scanner
+## 1. Codebase Compliance Scanner
 
-From the repository root:
+`scan-codebase.c` scans git-tracked files to ensure strict 100% Pure C language compliance:
 
 ```bash
 gcc -std=gnu11 -O2 scripts/scan-codebase.c -o scripts/scan-codebase
 ./scripts/scan-codebase
 ```
 
-## Running Linkage Verification
+---
+
+## 2. Strict Pure C Linkage Verification
+
+`verify-pure-c.sh` (backed by `verify-pure-c.c`) inspects dynamic ELF symbols across all 22 native binaries to ensure zero linkage to `libstdc++`, `Qt6`, or `Python`:
 
 ```bash
-gcc -std=gnu11 -O2 scripts/verify-pure-c.c -o scripts/verify-pure-c
-./scripts/verify-pure-c
+bash scripts/verify-pure-c.sh
 ```
-
-</div>

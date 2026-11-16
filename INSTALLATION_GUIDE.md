@@ -1,156 +1,83 @@
-<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
-
 # AxisOS Installation & Hardware Deployment Guide
 
-Welcome to the official deployment and installation guide for **AxisOS 2.1**.
+Welcome to the installation guide for **AxisOS**.
 
-AxisOS is a modern, high-performance Linux operating system powered by Debian 12 (Bookworm), XanMod low-latency kernel, native Wayland desktop environment, and a responsive C++ / Qt 6 application suite. It features the **GameBoost Extreme Performance Engine**, automated Btrfs/EXT4 partition orchestration, and a seamless graphical setup experience.
+AxisOS is a lightweight, pure C Linux desktop operating system powered by Debian 12 (Bookworm), a native `wlroots` Wayland compositor, and the LiquidNodes desktop shell.
 
 ---
 
 ## 1. System Requirements
 
-| Component | Minimum Requirements | Recommended Specifications |
+| Component | Minimum | Recommended |
 | :--- | :--- | :--- |
-| **Processor** | 64-bit x86_64 Dual-Core CPU | 64-bit Quad-Core CPU or higher (Intel Core i3/i5/i7/i9 or AMD Ryzen) |
-| **RAM (Memory)** | 2 GB RAM (4 GB for Live Desktop) | 8 GB to 16 GB+ RAM |
-| **Storage** | 25 GB free disk space | 64 GB+ NVMe SSD or high-speed SATA SSD |
-| **Graphics** | UEFI Framebuffer or Intel HD 4000+ | Intel UHD/Iris Xe/Arc, AMD Radeon RX, or NVIDIA GeForce |
-| **Firmware** | Modern UEFI (Secure Boot Compatible) or Legacy BIOS | UEFI with Microsoft UEFI CA / Secure Boot enabled |
-| **USB Media** | 4 GB Flash Drive | 8 GB+ USB 3.0 / 3.1 Flash Drive |
+| **Processor** | 64-bit x86_64 Dual-Core CPU | 64-bit Quad-Core CPU or higher |
+| **Memory (RAM)** | 2 GB (4 GB for Live Desktop) | 8 GB+ RAM |
+| **Storage** | 20 GB free disk space | 40 GB+ SSD |
+| **Graphics** | UEFI Framebuffer or Intel HD Graphics | Intel UHD/Iris, AMD Radeon, NVIDIA |
+| **Boot Mode** | UEFI or Legacy BIOS | UEFI with Secure Boot |
+| **USB Media** | 4 GB Flash Drive | 8 GB+ USB 3.0 Flash Drive |
 
 ---
 
 ## 2. Creating a Bootable USB Drive
 
-Download `axisos-v2.1-live-amd64.iso` and `SHA256SUMS.txt` from the [GitHub Releases](https://github.com/jackyphuti/AxisOS/releases) page.
+Download `axisos-live-amd64.iso` from the [GitHub Releases](https://github.com/jackyphuti/AxisOS/releases) page.
 
-### Integrity Verification (Recommended):
-- **Windows (PowerShell)**:
-  ```powershell
-  (Get-FileHash axisos-v2.1-live-amd64.iso -Algorithm SHA256).Hash
-  ```
-- **Linux / macOS**:
-  ```bash
-  sha256sum -c SHA256SUMS.txt
-  ```
-
-### Method A: Using Rufus (Windows — Recommended)
-1. Download and run [Rufus](https://rufus.ie/).
-2. Insert your USB flash drive (at least 4 GB).
-3. Under **Device**, select your USB flash drive.
-4. Under **Boot selection**, click **SELECT** and choose `axisos-v2.1-live-amd64.iso`.
-5. Under **Partition scheme**:
-   - Choose **GPT** (Target system: **UEFI (non CSM)**) for modern computers.
-   - Choose **MBR** (Target system: **BIOS or UEFI**) for older legacy hardware.
-6. Click **START**. If prompted between *ISO Image mode* or *DD Image mode*, select **ISO Image mode** (or **DD Image mode** for exact byte duplication).
-
-### Method B: Using BalenaEtcher (Windows, macOS, Linux)
-1. Download and launch [BalenaEtcher](https://etcher.balena.io/).
-2. Click **Flash from file** and select `axisos-v2.1-live-amd64.iso`.
-3. Click **Select target** and pick your USB drive.
+### Method A: Using BalenaEtcher (Windows, macOS, Linux)
+1. Download and run [BalenaEtcher](https://etcher.balena.io/).
+2. Click **Flash from file** and select the AxisOS ISO.
+3. Select your target USB drive.
 4. Click **Flash!**.
 
-### Method C: Using Ventoy (Multi-ISO USB)
-1. Install [Ventoy](https://www.ventoy.net/) onto your USB drive.
-2. Copy `axisos-v2.1-live-amd64.iso` directly onto the Ventoy USB drive partition.
+### Method B: Using Rufus (Windows)
+1. Download and run [Rufus](https://rufus.ie/).
+2. Select your USB drive under **Device**.
+3. Click **SELECT** and choose `axisos-live-amd64.iso`.
+4. Partition scheme: **GPT** (Target system: **UEFI**).
+5. Click **START** (select **DD Image mode** if prompted).
 
-### Method D: Linux Terminal (`dd`)
+### Method C: Linux Terminal (`dd`)
 ```bash
-sudo dd if=axisos-v2.1-live-amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
+sudo dd if=axisos-live-amd64.iso of=/dev/sdX bs=4M status=progress oflag=sync
 ```
-*(Replace `/dev/sdX` with your target USB drive, e.g. `/dev/sdb`)*
+*(Replace `/dev/sdX` with your target USB drive, e.g., `/dev/sdb`)*
 
 ---
 
-## 3. Motherboard & BIOS Setup
+## 3. Booting the Live USB
 
-AxisOS includes **Microsoft UEFI CA signed binaries (`shimx64.efi.signed`)**, enabling out-of-the-box compatibility with modern UEFI systems.
-
-### Boot Keys by Manufacturer
-Power on the computer and tap your boot menu key repeatedly:
-- **Lenovo**: Tap <kbd>F12</kbd> (or <kbd>Fn</kbd> + <kbd>F12</kbd>, or press the **Novo button**).
-- **Dell**: Tap <kbd>F12</kbd>.
-- **HP**: Tap <kbd>ESC</kbd> then <kbd>F9</kbd>.
-- **ASUS**: Tap <kbd>F8</kbd> or <kbd>Esc</kbd>.
-- **Acer / MSI**: Tap <kbd>F12</kbd> or <kbd>F11</kbd>.
-
-Select your **USB Drive** from the UEFI boot options.
-
-> [!TIP]
-> If your motherboard firmware has strict 3rd-party certificate restrictions (common in enterprise Lenovo ThinkPads), go to BIOS Setup (<kbd>F1</kbd> or <kbd>F2</kbd>) -> **Security** -> **Secure Boot** -> enable **"Allow Microsoft 3rd Party UEFI CA"** or temporarily set Secure Boot to **[Disabled]**.
+1. Insert the USB drive and power on the computer.
+2. Tap your motherboard's boot menu key repeatedly:
+   - **Lenovo**: <kbd>F12</kbd> or <kbd>Fn</kbd> + <kbd>F12</kbd>
+   - **Dell**: <kbd>F12</kbd>
+   - **HP**: <kbd>ESC</kbd> then <kbd>F9</kbd>
+   - **ASUS**: <kbd>F8</kbd> or <kbd>Esc</kbd>
+   - **Acer / MSI**: <kbd>F12</kbd> or <kbd>F11</kbd>
+3. Select your USB flash drive from the boot options.
+4. From the GRUB menu, select **AxisOS Live Desktop** (or **Safe Graphics** if your screen remains black).
 
 ---
 
-## 4. Booting into the Live Environment
+## 4. Live Session Credentials
 
-When the USB boots, you will arrive at the **AxisOS Live Desktop** without touching any internal disks:
-
-1. **Welcome Center**: A responsive interface presents options:
-   - **Install AxisOS**: Launches the interactive graphical installer wizard.
-   - **Try Live Demo**: Lets you explore the desktop, apps, browser, terminal, settings, and Wi-Fi while running entirely in RAM.
-2. **Safe Graphics Mode**: If your display requires fallback framebuffer rendering, select **Safe Graphics / Failsafe** from the initial GRUB menu.
-3. **Wi-Fi Captive Portal**: If connecting to a public or school Wi-Fi network that requires a web browser login, AxisOS automatically prompts and launches the captive portal authentication page.
+* **User**: `axis`
+* **Password**: `axis`
+* **Sudo**: Passwordless (`sudo command` or enter `axis` if prompted by GUI dialogs).
 
 ---
 
-## 5. Installing AxisOS Permanently
+## 5. Installing to Disk
 
-AxisOS features an automated graphical installer with verified drive safety checks:
-
-### Step-by-Step Graphical Installation:
-1. Boot into the Live Desktop. Click **Install AxisOS** on the welcome dialog or click the **Install AxisOS** desktop icon.
-2. **Choose Regional Preferences**:
-   - Select your preferred installation language, location/timezone, and keyboard layout with instant keystroke validation.
-3. **Choose Target Disk & Safety Checks**:
-   - The installer displays all connected storage devices (NVMe SSDs, SATA SSDs, HDDs) with capacity, drive type, and Windows/BitLocker detection flags.
-   - The active USB installer drive is automatically excluded and protected against accidental overwrites.
-   - You can choose to format and partition the target drive cleanly or inspect existing drive layouts.
-4. **Configure User Account**:
-   - Enter your **Full Name**, **Username**, and choose a secure **Password**.
-   - Optionally toggle **Automatic Login**.
-5. **Automated Partitioning & Verification**:
-   - The installer automatically creates:
-     - 512 MB FAT32 UEFI System Partition (`/boot/efi`, type `EF00`)
-     - 4 GB Linux Swap Space
-     - Root system partition formatted with **Btrfs** (`zstd` compression) or **EXT4**.
-   - The kernel partition table is dynamically settled with `partprobe`, `udevadm`, `partx`, and verified device polling to ensure error-free drive formatting.
-6. **Finalizing & Direct Boot**:
-   - Once installation completes, **unplug your USB installation flash drive**.
-   - Click **Restart Computer Now**.
-   - The system boots straight into your new AxisOS installation. The installer desktop shortcut, dock launcher, and background scripts are automatically deactivated post-installation.
+1. In the live desktop, launch **Install AxisOS** from the welcome screen or desktop icon.
+2. Select your language, timezone, and keyboard layout.
+3. Select your target drive (the installer automatically protects and excludes your live USB drive).
+4. Enter your username, full name, and password.
+5. Review the partitioning plan and click **Install**.
+6. When the installation finishes, unplug the USB drive and reboot into your new system.
 
 ---
 
-## 6. Post-Installation: GameBoost & System Settings
+## 6. Quick Troubleshooting
 
-Once installed into your drive, take advantage of built-in hardware acceleration:
-
-### Enabling GameBoost Extreme Performance:
-1. Open **Settings** from the dock or application menu.
-2. Navigate to **Gaming Boost & Performance**.
-3. Toggle the switch to **ON (Extreme Boost)**.
-   - Unlocks maximum CPU turbo frequencies and pins governor to `performance`.
-   - Engages peak GPU wattage, NVIDIA PowerMizer Level 1, and AMD Radeon high-performance DPM.
-   - Applies low-latency kernel tuning (`vm.split_lock_mitigate=0`, `vm.swappiness=10`, `vm.max_map_count=2147483642`).
-   - Automatically starts the `gamemoded` scheduler.
-4. Toggle back to **OFF (Balanced Standard)** anytime to return to power-saving governors.
-
----
-
-## 7. Troubleshooting FAQ
-
-> [!NOTE]
-> For in-depth partition wiping commands, live session passwords (`axis` / `axis`), and installer error log analysis, see the dedicated **[Installer & Partitioning Troubleshooting Guide](INSTALLER_TROUBLESHOOTING.md)**.
-
-- **Q: "Selected boot device failed" / "Security Boot Violation"**:
-  - *Fix*: Enable "Allow Microsoft 3rd Party UEFI CA" in BIOS Secure Boot options, or temporarily disable Secure Boot.
-- **Q: Screen is blank / black on boot**:
-  - *Fix*: Select option **3. AxisOS 2.1 (Safe Graphics Mode)** from the GRUB boot menu.
-- **Q: Can I test AxisOS without wiping my Windows drive?**:
-  - *Answer*: Yes. Boot in Live Mode from the USB. Everything runs entirely in RAM, leaving internal hard drives and partitions untouched.
-- **Q: Installer fails during partition or drive formatting**:
-  - *Fix*: Consult **[INSTALLER_TROUBLESHOOTING.md](INSTALLER_TROUBLESHOOTING.md)** for instructions on using `wipefs` and `sgdisk` to clean target drives before running `axis-installer`.
-
-</div>
-
+* **Black screen on boot**: Select **Safe Graphics Mode** from the initial GRUB menu.
+* **Installer fails on drive partitioning**: See the [Installer Troubleshooting Guide](INSTALLER_TROUBLESHOOTING.md) to unmount or wipe old partition signatures (`wipefs`).
