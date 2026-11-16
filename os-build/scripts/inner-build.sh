@@ -75,8 +75,10 @@ fi
 
 # 4. Copy Desktop Shell (shell-c) & Wayland Compositor (compositor)
 if [ -x "$WORKSPACE_DIR/shell-c/axisos-shell" ]; then
-    cp -f "$WORKSPACE_DIR/shell-c/axisos-shell" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-shell"
-    ln -sf axis-shell "$BUILD_DIR/config/includes.chroot/usr/local/bin/LiquidNodesOS" || true
+    cp -f "$WORKSPACE_DIR/shell-c/axisos-shell" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-shell"
+    chmod 755 "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-shell"
+    ln -sf axisos-shell "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-shell" || true
+    ln -sf axisos-shell "$BUILD_DIR/config/includes.chroot/usr/local/bin/LiquidNodesOS" || true
 fi
 
 if [ -x "$WORKSPACE_DIR/compositor/axis-compositor" ]; then
