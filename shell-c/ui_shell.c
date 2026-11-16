@@ -2,10 +2,23 @@
 #include "ui_shell.h"
 #include <cairo.h>
 #include <math.h>
+#include <string.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+
+static inline void add_class(GtkWidget *w, const char *cls) {
+    if (w && cls) {
+        gtk_style_context_add_class(gtk_widget_get_style_context(w), cls);
+    }
+}
+
+static inline void remove_class(GtkWidget *w, const char *cls) {
+    if (w && cls) {
+        gtk_style_context_remove_class(gtk_widget_get_style_context(w), cls);
+    }
+}
 
 static void cairo_rounded_rect(cairo_t *cr, double x, double y, double w, double h, double r) {
     if (r > w / 2) r = w / 2;
@@ -19,44 +32,92 @@ static void cairo_rounded_rect(cairo_t *cr, double x, double y, double w, double
 }
 
 static gboolean on_draw_glassmorphic(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
-    (void)user_data;
+    UiShell *shell = (UiShell *)user_data;
     GtkAllocation alloc;
     gtk_widget_get_allocation(widget, &alloc);
 
+    gboolean dark = TRUE;
+    if (shell && shell->sys_ctrl) {
+        dark = shell->sys_ctrl->metrics.is_dark_mode;
+    }
+
+    double r = 22.0;
     cairo_save(cr);
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-    cairo_rounded_rect(cr, 0, 0, alloc.width, alloc.height, 16.0);
-    // Dark glassmorphic background rgba(15, 23, 42, 0.88)
-    cairo_set_source_rgba(cr, 15.0 / 255.0, 23.0 / 255.0, 42.0 / 255.0, 0.88);
-    cairo_fill_preserve(cr);
+    cairo_rounded_rect(cr, 0.5, 0.5, alloc.width - 1.0, alloc.height - 1.0, r);
 
-    // Subtle border rgba(255, 255, 255, 0.12)
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.12);
-    cairo_set_line_width(cr, 1.0);
-    cairo_stroke(cr);
+    if (dark) {
+        // Base fill rgba(20, 24, 38, 0.86)
+        cairo_set_source_rgba(cr, 20.0 / 255.0, 24.0 / 255.0, 38.0 / 255.0, 0.86);
+        cairo_fill_preserve(cr);
+
+        // Outer border rgba(255, 255, 255, 0.08)
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.08);
+        cairo_set_line_width(cr, 1.0);
+        cairo_stroke(cr);
+
+        // 1px top specular arc/line rgba(255, 255, 255, 0.18)
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.18);
+        cairo_set_line_width(cr, 1.0);
+        cairo_move_to(cr, r, 0.5);
+        cairo_line_to(cr, alloc.width - r, 0.5);
+        cairo_stroke(cr);
+    } else {
+        // Base fill rgba(244, 246, 251, 0.88)
+        cairo_set_source_rgba(cr, 244.0 / 255.0, 246.0 / 255.0, 251.0 / 255.0, 0.88);
+        cairo_fill_preserve(cr);
+
+        // Outer border rgba(20, 40, 160, 0.12)
+        cairo_set_source_rgba(cr, 20.0 / 255.0, 40.0 / 255.0, 160.0 / 255.0, 0.12);
+        cairo_set_line_width(cr, 1.0);
+        cairo_stroke(cr);
+
+        // 1px top specular highlight rgba(255, 255, 255, 0.75)
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.75);
+        cairo_set_line_width(cr, 1.0);
+        cairo_move_to(cr, r, 0.5);
+        cairo_line_to(cr, alloc.width - r, 0.5);
+        cairo_stroke(cr);
+    }
     cairo_restore(cr);
 
     return FALSE; // Let child widgets render
 }
 
 static gboolean on_draw_topbar(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
+    (void)widget;
+    (void)user_data;
+    cairo_save(cr);
+    cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+    cairo_paint(cr);
+    cairo_restore(cr);
+    return FALSE;
+}
+
+static gboolean on_draw_greeter_backdrop(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
     (void)user_data;
     GtkAllocation alloc;
     gtk_widget_get_allocation(widget, &alloc);
 
     cairo_save(cr);
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-    cairo_set_source_rgba(cr, 10.0 / 255.0, 15.0 / 255.0, 30.0 / 255.0, 0.85);
+
+    double cx = alloc.width / 2.0;
+    double cy = alloc.height / 2.0;
+    double r = sqrt(cx * cx + cy * cy);
+    if (r < 1.0) r = 1.0;
+
+    cairo_pattern_t *pat = cairo_pattern_create_radial(cx, cy, 0, cx, cy, r);
+    // Center: #1a2138 -> rgba(26, 33, 56)
+    cairo_pattern_add_color_stop_rgba(pat, 0.0, 26.0 / 255.0, 33.0 / 255.0, 56.0 / 255.0, 1.0);
+    // Edges: #0f1422 -> rgba(15, 20, 34)
+    cairo_pattern_add_color_stop_rgba(pat, 1.0, 15.0 / 255.0, 20.0 / 255.0, 34.0 / 255.0, 1.0);
+
+    cairo_set_source(cr, pat);
     cairo_paint(cr);
+    cairo_pattern_destroy(pat);
 
-    // Bottom border line
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.08);
-    cairo_set_line_width(cr, 1.0);
-    cairo_move_to(cr, 0, alloc.height - 0.5);
-    cairo_line_to(cr, alloc.width, alloc.height - 0.5);
-    cairo_stroke(cr);
     cairo_restore(cr);
-
     return FALSE;
 }
 
@@ -115,14 +176,79 @@ static void on_system_notification_incoming(uint32_t id, const char *app_name, c
     ui_shell_show_notification(shell, app_name, summary, body, icon);
 }
 
+static void update_qs_tiles(UiShell *shell) {
+    if (!shell || !shell->sys_ctrl) return;
+    SystemMetrics *m = &shell->sys_ctrl->metrics;
+
+    if (shell->qs_tile_wifi && shell->qs_sub_wifi) {
+        if (m->wifi_connected) {
+            add_class(shell->qs_tile_wifi, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_wifi), "Connected");
+        } else {
+            remove_class(shell->qs_tile_wifi, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_wifi), "Off");
+        }
+    }
+
+    if (shell->qs_tile_bt && shell->qs_sub_bt) {
+        if (m->bluetooth_enabled) {
+            add_class(shell->qs_tile_bt, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_bt), "On");
+        } else {
+            remove_class(shell->qs_tile_bt, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_bt), "Off");
+        }
+    }
+
+    if (shell->qs_tile_dark && shell->qs_sub_dark) {
+        if (m->is_dark_mode) {
+            add_class(shell->qs_tile_dark, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_dark), "Active");
+        } else {
+            remove_class(shell->qs_tile_dark, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_dark), "Light");
+        }
+    }
+
+    if (shell->qs_tile_game && shell->qs_sub_game) {
+        if (shell->gameboost_active) {
+            add_class(shell->qs_tile_game, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_game), "Performance");
+        } else {
+            remove_class(shell->qs_tile_game, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_game), "Balanced");
+        }
+    }
+}
+
+static gboolean on_hide_launcher_timeout(gpointer data) {
+    GtkWidget *w = GTK_WIDGET(data);
+    if (w) gtk_widget_hide(w);
+    return G_SOURCE_REMOVE;
+}
+
+static gboolean on_hide_qs_timeout(gpointer data) {
+    GtkWidget *w = GTK_WIDGET(data);
+    if (w) gtk_widget_hide(w);
+    return G_SOURCE_REMOVE;
+}
+
 void ui_shell_toggle_launcher(UiShell *shell) {
     if (!shell || !shell->launcher_window) return;
     if (gtk_widget_get_visible(shell->launcher_window)) {
-        gtk_widget_hide(shell->launcher_window);
+        if (shell->launcher_revealer) {
+            gtk_revealer_set_reveal_child(GTK_REVEALER(shell->launcher_revealer), FALSE);
+            g_timeout_add(190, on_hide_launcher_timeout, shell->launcher_window);
+        } else {
+            gtk_widget_hide(shell->launcher_window);
+        }
     } else {
         if (shell->quicksettings_window) gtk_widget_hide(shell->quicksettings_window);
         gtk_entry_set_text(GTK_ENTRY(shell->launcher_search_entry), "");
         gtk_widget_show_all(shell->launcher_window);
+        if (shell->launcher_revealer) {
+            gtk_revealer_set_reveal_child(GTK_REVEALER(shell->launcher_revealer), TRUE);
+        }
         gtk_widget_grab_focus(shell->launcher_search_entry);
     }
 }
@@ -130,15 +256,25 @@ void ui_shell_toggle_launcher(UiShell *shell) {
 void ui_shell_toggle_quicksettings(UiShell *shell) {
     if (!shell || !shell->quicksettings_window) return;
     if (gtk_widget_get_visible(shell->quicksettings_window)) {
-        gtk_widget_hide(shell->quicksettings_window);
+        if (shell->qs_revealer) {
+            gtk_revealer_set_reveal_child(GTK_REVEALER(shell->qs_revealer), FALSE);
+            g_timeout_add(190, on_hide_qs_timeout, shell->quicksettings_window);
+        } else {
+            gtk_widget_hide(shell->quicksettings_window);
+        }
     } else {
         if (shell->launcher_window) gtk_widget_hide(shell->launcher_window);
-        gtk_scale_button_set_value(GTK_SCALE_BUTTON(shell->qs_vol_scale), shell->sys_ctrl->metrics.volume);
-        gtk_range_set_value(GTK_RANGE(shell->qs_bright_scale), shell->sys_ctrl->metrics.brightness);
-        gtk_switch_set_active(GTK_SWITCH(shell->qs_wifi_switch), shell->sys_ctrl->metrics.wifi_connected);
-        gtk_switch_set_active(GTK_SWITCH(shell->qs_bt_switch), shell->sys_ctrl->metrics.bluetooth_enabled);
-        gtk_switch_set_active(GTK_SWITCH(shell->qs_dark_switch), shell->sys_ctrl->metrics.is_dark_mode);
+        if (shell->qs_vol_scale) {
+            gtk_range_set_value(GTK_RANGE(shell->qs_vol_scale), shell->sys_ctrl->metrics.volume);
+        }
+        if (shell->qs_bright_scale) {
+            gtk_range_set_value(GTK_RANGE(shell->qs_bright_scale), shell->sys_ctrl->metrics.brightness);
+        }
+        update_qs_tiles(shell);
         gtk_widget_show_all(shell->quicksettings_window);
+        if (shell->qs_revealer) {
+            gtk_revealer_set_reveal_child(GTK_REVEALER(shell->qs_revealer), TRUE);
+        }
     }
 }
 
@@ -190,7 +326,27 @@ static void on_filter_btn_clicked(GtkButton *btn, gpointer user_data) {
     const char *filter = gtk_button_get_label(btn);
     g_free(shell->launcher_active_filter);
     shell->launcher_active_filter = g_strdup(filter);
+
+    if (shell->launcher_filter_box) {
+        GList *children = gtk_container_get_children(GTK_CONTAINER(shell->launcher_filter_box));
+        for (GList *l = children; l != NULL; l = l->next) {
+            remove_class(GTK_WIDGET(l->data), "active");
+        }
+        g_list_free(children);
+    }
+    add_class(GTK_WIDGET(btn), "active");
+
     filter_launcher_apps(shell);
+}
+
+static void on_workspace_clicked(GtkButton *btn, gpointer user_data) {
+    UiShell *shell = (UiShell *)user_data;
+    for (int i = 0; i < 4; i++) {
+        if (shell->workspace_btns[i]) {
+            remove_class(shell->workspace_btns[i], "active");
+        }
+    }
+    add_class(GTK_WIDGET(btn), "active");
 }
 
 static gboolean update_clock_and_status(gpointer user_data) {
@@ -199,11 +355,23 @@ static gboolean update_clock_and_status(gpointer user_data) {
 
     GDateTime *now = g_date_time_new_now_local();
     if (now) {
-        gchar *time_str = g_date_time_format(now, "%a %b %d  %H:%M:%S");
+        gchar *time_str = g_date_time_format(now, "%a %b %d   %H:%M");
         if (shell->topbar_clock_label) {
             gtk_label_set_text(GTK_LABEL(shell->topbar_clock_label), time_str);
         }
         g_free(time_str);
+
+        if (shell->greeter_clock_label) {
+            gchar *gtime = g_date_time_format(now, "%H:%M");
+            gtk_label_set_text(GTK_LABEL(shell->greeter_clock_label), gtime);
+            g_free(gtime);
+        }
+        if (shell->greeter_date_label) {
+            gchar *gdate = g_date_time_format(now, "%A, %B %d");
+            gtk_label_set_text(GTK_LABEL(shell->greeter_date_label), gdate);
+            g_free(gdate);
+        }
+
         g_date_time_unref(now);
     }
 
@@ -212,11 +380,11 @@ static gboolean update_clock_and_status(gpointer user_data) {
         char buf[64];
 
         if (shell->topbar_cpu_label) {
-            snprintf(buf, sizeof(buf), "CPU %d%%", m->cpu_load_percent);
+            snprintf(buf, sizeof(buf), "%d%%", m->cpu_load_percent);
             gtk_label_set_text(GTK_LABEL(shell->topbar_cpu_label), buf);
         }
         if (shell->topbar_ram_label) {
-            snprintf(buf, sizeof(buf), "RAM %d%%", m->ram_usage_percent);
+            snprintf(buf, sizeof(buf), "%d%%", m->ram_usage_percent);
             gtk_label_set_text(GTK_LABEL(shell->topbar_ram_label), buf);
         }
         if (shell->topbar_bat_label) {
@@ -224,7 +392,7 @@ static gboolean update_clock_and_status(gpointer user_data) {
             gtk_label_set_text(GTK_LABEL(shell->topbar_bat_label), buf);
         }
         if (shell->topbar_vol_label) {
-            snprintf(buf, sizeof(buf), "VOL %d%%", m->volume);
+            snprintf(buf, sizeof(buf), "%d%%", m->volume);
             gtk_label_set_text(GTK_LABEL(shell->topbar_vol_label), buf);
         }
         if (shell->topbar_net_label) {
@@ -275,7 +443,6 @@ void ui_shell_unlock(UiShell *shell) {
     if (!shell->is_greeter_mode) {
         gtk_widget_hide(shell->greeter_window);
     } else {
-        // Greeter mode: launch desktop session or exit
         g_print("[AxisOS Shell] Greeter authenticated successfully. Launching user session...\n");
         g_spawn_command_line_async("axisos-session", NULL);
         gtk_main_quit();
@@ -299,6 +466,96 @@ static void setup_layer_window(GtkWidget *win, GtkLayerShellLayer layer, const c
     }
 }
 
+static GtkWidget *create_qs_tile(const char *icon_name, const char *title, const char *sub_init,
+                                 GtkWidget **out_icon, GtkWidget **out_sub) {
+    GtkWidget *btn = gtk_button_new();
+    add_class(btn, "qs-tile");
+
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    GtkWidget *icon = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_BUTTON);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    GtkWidget *title_lbl = gtk_label_new(title);
+    add_class(title_lbl, "title-4");
+    gtk_widget_set_halign(title_lbl, GTK_ALIGN_START);
+    GtkWidget *sub_lbl = gtk_label_new(sub_init);
+    add_class(sub_lbl, "caption");
+    gtk_widget_set_halign(sub_lbl, GTK_ALIGN_START);
+
+    gtk_box_pack_start(GTK_BOX(vbox), title_lbl, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), sub_lbl, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
+    gtk_container_add(GTK_CONTAINER(btn), hbox);
+
+    if (out_icon) *out_icon = icon;
+    if (out_sub) *out_sub = sub_lbl;
+    return btn;
+}
+
+static void on_qs_tile_wifi_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell || !shell->sys_ctrl) return;
+    bool new_state = !shell->sys_ctrl->metrics.wifi_connected;
+    system_controller_toggle_wifi(shell->sys_ctrl, new_state);
+    shell->sys_ctrl->metrics.wifi_connected = new_state;
+    update_qs_tiles(shell);
+}
+
+static void on_qs_tile_bt_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell || !shell->sys_ctrl) return;
+    bool new_state = !shell->sys_ctrl->metrics.bluetooth_enabled;
+    system_controller_toggle_bluetooth(shell->sys_ctrl, new_state);
+    shell->sys_ctrl->metrics.bluetooth_enabled = new_state;
+    update_qs_tiles(shell);
+}
+
+static void on_qs_tile_dark_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell || !shell->sys_ctrl) return;
+    bool new_dark = !shell->sys_ctrl->metrics.is_dark_mode;
+    shell->sys_ctrl->metrics.is_dark_mode = new_dark;
+    system_controller_set_dark_mode(shell->sys_ctrl, new_dark);
+    ui_shell_apply_theme(new_dark);
+    update_qs_tiles(shell);
+
+    if (shell->topbar_window) gtk_widget_queue_draw(shell->topbar_window);
+    if (shell->dock_window) gtk_widget_queue_draw(shell->dock_window);
+    if (shell->launcher_window) gtk_widget_queue_draw(shell->launcher_window);
+    if (shell->quicksettings_window) gtk_widget_queue_draw(shell->quicksettings_window);
+    if (shell->osd_window) gtk_widget_queue_draw(shell->osd_window);
+    if (shell->notification_window) gtk_widget_queue_draw(shell->notification_window);
+    if (shell->greeter_window) gtk_widget_queue_draw(shell->greeter_window);
+}
+
+static void on_qs_tile_game_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell) return;
+    shell->gameboost_active = !shell->gameboost_active;
+    update_qs_tiles(shell);
+}
+
+static void on_qs_vol_changed(GtkRange *range, gpointer user_data) {
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell || !shell->sys_ctrl) return;
+    int val = (int)gtk_range_get_value(range);
+    system_controller_set_volume(shell->sys_ctrl, val);
+    ui_shell_show_osd(shell, val == 0 ? "audio-volume-muted-symbolic" : "audio-volume-high-symbolic", val);
+}
+
+static void on_qs_bright_changed(GtkRange *range, gpointer user_data) {
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell || !shell->sys_ctrl) return;
+    int val = (int)gtk_range_get_value(range);
+    system_controller_set_brightness(shell->sys_ctrl, val);
+    ui_shell_show_osd(shell, "display-brightness-symbolic", val);
+}
+
 UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboolean greeter_mode) {
     UiShell *shell = g_new0(UiShell, 1);
     shell->sys_ctrl = sys_ctrl;
@@ -314,7 +571,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     }
 
     // ==========================================
-    // 1. TOP BAR (LiquidTopBar)
+    // 1. TOP BAR (LiquidTopBar - 3 Islands)
     // ==========================================
     shell->topbar_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     setup_layer_window(shell->topbar_window, GTK_LAYER_SHELL_LAYER_TOP, "LiquidTopBar");
@@ -323,55 +580,89 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         gtk_layer_set_anchor(GTK_WINDOW(shell->topbar_window), GTK_LAYER_SHELL_EDGE_LEFT, TRUE);
         gtk_layer_set_anchor(GTK_WINDOW(shell->topbar_window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
         gtk_layer_set_anchor(GTK_WINDOW(shell->topbar_window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-        gtk_layer_set_exclusive_zone(GTK_WINDOW(shell->topbar_window), 36);
+        gtk_layer_set_margin(GTK_WINDOW(shell->topbar_window), GTK_LAYER_SHELL_EDGE_TOP, 6);
+        gtk_layer_set_margin(GTK_WINDOW(shell->topbar_window), GTK_LAYER_SHELL_EDGE_LEFT, 12);
+        gtk_layer_set_margin(GTK_WINDOW(shell->topbar_window), GTK_LAYER_SHELL_EDGE_RIGHT, 12);
+        gtk_layer_set_exclusive_zone(GTK_WINDOW(shell->topbar_window), 44);
     }
-    gtk_widget_set_size_request(shell->topbar_window, -1, 36);
+    gtk_widget_set_size_request(shell->topbar_window, -1, 38);
     g_signal_connect(shell->topbar_window, "draw", G_CALLBACK(on_draw_topbar), shell);
 
-    GtkWidget *topbar_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-    gtk_container_set_border_width(GTK_CONTAINER(topbar_box), 4);
+    GtkWidget *topbar_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_container_add(GTK_CONTAINER(shell->topbar_window), topbar_box);
 
-    // Left: Launcher button & Workspaces
+    // Left Island: App Launcher button + 4 workspace buttons
+    GtkWidget *left_island = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    add_class(left_island, "topbar-pill");
+
     GtkWidget *launcher_btn = gtk_button_new_from_icon_name("view-app-grid-symbolic", GTK_ICON_SIZE_BUTTON);
     gtk_widget_set_tooltip_text(launcher_btn, "Applications");
+    add_class(launcher_btn, "workspace-pill");
     g_signal_connect_swapped(launcher_btn, "clicked", G_CALLBACK(ui_shell_toggle_launcher), shell);
-    gtk_box_pack_start(GTK_BOX(topbar_box), launcher_btn, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(left_island), launcher_btn, FALSE, FALSE, 2);
 
-    for (int i = 1; i <= 4; ++i) {
+    for (int i = 0; i < 4; ++i) {
         char ws_name[4];
-        snprintf(ws_name, sizeof(ws_name), "%d", i);
+        snprintf(ws_name, sizeof(ws_name), "%d", i + 1);
         GtkWidget *ws_btn = gtk_button_new_with_label(ws_name);
-        gtk_widget_set_size_request(ws_btn, 28, 28);
-        gtk_box_pack_start(GTK_BOX(topbar_box), ws_btn, FALSE, FALSE, 2);
+        add_class(ws_btn, "workspace-pill");
+        if (i == 0) {
+            add_class(ws_btn, "active");
+        }
+        shell->workspace_btns[i] = ws_btn;
+        g_signal_connect(ws_btn, "clicked", G_CALLBACK(on_workspace_clicked), shell);
+        gtk_box_pack_start(GTK_BOX(left_island), ws_btn, FALSE, FALSE, 2);
     }
+    gtk_box_pack_start(GTK_BOX(topbar_box), left_island, FALSE, FALSE, 0);
 
-    // Center: Clock
-    shell->topbar_clock_label = gtk_label_new("Loading time...");
-    gtk_widget_set_hexpand(shell->topbar_clock_label, TRUE);
-    gtk_label_set_justify(GTK_LABEL(shell->topbar_clock_label), GTK_JUSTIFY_CENTER);
-    gtk_box_pack_start(GTK_BOX(topbar_box), shell->topbar_clock_label, TRUE, TRUE, 0);
+    // Center Island: Centered clock label
+    GtkWidget *center_island = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    add_class(center_island, "topbar-pill");
+    shell->topbar_clock_label = gtk_label_new("Loading...");
+    add_class(shell->topbar_clock_label, "title-4");
+    gtk_box_pack_start(GTK_BOX(center_island), shell->topbar_clock_label, TRUE, TRUE, 6);
+    gtk_box_set_center_widget(GTK_BOX(topbar_box), center_island);
 
-    // Right: Telemetry & Controls
-    shell->topbar_cpu_label = gtk_label_new("CPU 0%");
-    gtk_box_pack_start(GTK_BOX(topbar_box), shell->topbar_cpu_label, FALSE, FALSE, 6);
+    // Right Island: Icon + compact value pairs + Quick Settings trigger
+    GtkWidget *right_island = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    add_class(right_island, "topbar-pill");
 
-    shell->topbar_ram_label = gtk_label_new("RAM 0%");
-    gtk_box_pack_start(GTK_BOX(topbar_box), shell->topbar_ram_label, FALSE, FALSE, 6);
+    // CPU
+    shell->topbar_cpu_icon = gtk_image_new_from_icon_name("utilities-system-monitor-symbolic", GTK_ICON_SIZE_MENU);
+    shell->topbar_cpu_label = gtk_label_new("0%");
+    add_class(shell->topbar_cpu_label, "caption");
+    gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_cpu_icon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_cpu_label, FALSE, FALSE, 2);
 
+    // Network
+    shell->topbar_net_icon = gtk_image_new_from_icon_name("network-wireless-signal-excellent-symbolic", GTK_ICON_SIZE_MENU);
     shell->topbar_net_label = gtk_label_new("Online");
-    gtk_box_pack_start(GTK_BOX(topbar_box), shell->topbar_net_label, FALSE, FALSE, 6);
+    add_class(shell->topbar_net_label, "caption");
+    gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_net_icon, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_net_label, FALSE, FALSE, 2);
 
-    shell->topbar_vol_label = gtk_label_new("VOL 70%");
-    gtk_box_pack_start(GTK_BOX(topbar_box), shell->topbar_vol_label, FALSE, FALSE, 6);
+    // Audio
+    shell->topbar_vol_icon = gtk_image_new_from_icon_name("audio-volume-high-symbolic", GTK_ICON_SIZE_MENU);
+    shell->topbar_vol_label = gtk_label_new("70%");
+    add_class(shell->topbar_vol_label, "caption");
+    gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_vol_icon, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_vol_label, FALSE, FALSE, 2);
 
+    // Battery
+    shell->topbar_bat_icon = gtk_image_new_from_icon_name("battery-good-symbolic", GTK_ICON_SIZE_MENU);
     shell->topbar_bat_label = gtk_label_new("100%");
-    gtk_box_pack_start(GTK_BOX(topbar_box), shell->topbar_bat_label, FALSE, FALSE, 6);
+    add_class(shell->topbar_bat_label, "caption");
+    gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_bat_icon, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_bat_label, FALSE, FALSE, 2);
 
+    // Quick Settings trigger button
     GtkWidget *qs_btn = gtk_button_new_from_icon_name("open-menu-symbolic", GTK_ICON_SIZE_BUTTON);
     gtk_widget_set_tooltip_text(qs_btn, "Quick Settings");
+    add_class(qs_btn, "workspace-pill");
     g_signal_connect_swapped(qs_btn, "clicked", G_CALLBACK(ui_shell_toggle_quicksettings), shell);
-    gtk_box_pack_start(GTK_BOX(topbar_box), qs_btn, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(right_island), qs_btn, FALSE, FALSE, 4);
+
+    gtk_box_pack_end(GTK_BOX(topbar_box), right_island, FALSE, FALSE, 0);
 
     // ==========================================
     // 2. DOCK (LiquidDock)
@@ -381,13 +672,14 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
 
     if (gtk_layer_is_supported()) {
         gtk_layer_set_anchor(GTK_WINDOW(shell->dock_window), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
-        gtk_layer_set_margin(GTK_WINDOW(shell->dock_window), GTK_LAYER_SHELL_EDGE_BOTTOM, 8);
-        gtk_layer_set_exclusive_zone(GTK_WINDOW(shell->dock_window), 64);
+        gtk_layer_set_margin(GTK_WINDOW(shell->dock_window), GTK_LAYER_SHELL_EDGE_BOTTOM, 10);
+        gtk_layer_set_exclusive_zone(GTK_WINDOW(shell->dock_window), 72);
     }
     g_signal_connect(shell->dock_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
 
-    GtkWidget *dock_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-    gtk_container_set_border_width(GTK_CONTAINER(dock_box), 8);
+    GtkWidget *dock_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    add_class(dock_box, "dock-container");
+    gtk_container_set_border_width(GTK_CONTAINER(dock_box), 4);
     gtk_container_add(GTK_CONTAINER(shell->dock_window), dock_box);
 
     const struct {
@@ -407,6 +699,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
 
     for (int i = 0; pinned_apps[i].name != NULL; ++i) {
         GtkWidget *btn = gtk_button_new();
+        add_class(btn, "dock-tile");
         GtkWidget *img = gtk_image_new_from_icon_name(pinned_apps[i].icon, GTK_ICON_SIZE_DND);
         gtk_button_set_image(GTK_BUTTON(btn), img);
         gtk_widget_set_tooltip_text(btn, pinned_apps[i].name);
@@ -423,30 +716,40 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
 
     if (gtk_layer_is_supported()) {
         gtk_layer_set_anchor(GTK_WINDOW(shell->launcher_window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-        gtk_layer_set_margin(GTK_WINDOW(shell->launcher_window), GTK_LAYER_SHELL_EDGE_TOP, 44);
+        gtk_layer_set_margin(GTK_WINDOW(shell->launcher_window), GTK_LAYER_SHELL_EDGE_TOP, 50);
         gtk_layer_set_keyboard_mode(GTK_WINDOW(shell->launcher_window), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
     }
-    gtk_window_set_default_size(GTK_WINDOW(shell->launcher_window), 640, 500);
+    gtk_window_set_default_size(GTK_WINDOW(shell->launcher_window), 680, 520);
     g_signal_connect(shell->launcher_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
 
+    shell->launcher_revealer = gtk_revealer_new();
+    gtk_revealer_set_transition_type(GTK_REVEALER(shell->launcher_revealer), GTK_REVEALER_TRANSITION_TYPE_CROSSFADE);
+    gtk_revealer_set_transition_duration(GTK_REVEALER(shell->launcher_revealer), 180);
+    gtk_container_add(GTK_CONTAINER(shell->launcher_window), shell->launcher_revealer);
+
     GtkWidget *launcher_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_container_set_border_width(GTK_CONTAINER(launcher_card), 16);
-    gtk_container_add(GTK_CONTAINER(shell->launcher_window), launcher_card);
+    gtk_container_set_border_width(GTK_CONTAINER(launcher_card), 18);
+    gtk_container_add(GTK_CONTAINER(shell->launcher_revealer), launcher_card);
 
     shell->launcher_search_entry = gtk_search_entry_new();
+    add_class(shell->launcher_search_entry, "launcher-search");
     gtk_entry_set_placeholder_text(GTK_ENTRY(shell->launcher_search_entry), "Search applications, utilities, commands...");
     g_signal_connect(shell->launcher_search_entry, "search-changed", G_CALLBACK(on_launcher_search_changed), shell);
     gtk_box_pack_start(GTK_BOX(launcher_card), shell->launcher_search_entry, FALSE, FALSE, 4);
 
     // Filter pills
-    GtkWidget *filter_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    shell->launcher_filter_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     const char *cats[] = {"All", "System", "Utility", "Development", "Network", "AudioVideo", NULL};
     for (int i = 0; cats[i] != NULL; ++i) {
         GtkWidget *cat_btn = gtk_button_new_with_label(cats[i]);
+        add_class(cat_btn, "filter-pill");
+        if (strcmp(cats[i], "All") == 0) {
+            add_class(cat_btn, "active");
+        }
         g_signal_connect(cat_btn, "clicked", G_CALLBACK(on_filter_btn_clicked), shell);
-        gtk_box_pack_start(GTK_BOX(filter_box), cat_btn, FALSE, FALSE, 2);
+        gtk_box_pack_start(GTK_BOX(shell->launcher_filter_box), cat_btn, FALSE, FALSE, 2);
     }
-    gtk_box_pack_start(GTK_BOX(launcher_card), filter_box, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(launcher_card), shell->launcher_filter_box, FALSE, FALSE, 4);
 
     // Scrolled apps flowbox
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
@@ -463,11 +766,13 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         for (guint i = 0; i < sys_ctrl->installed_apps->len; ++i) {
             AppEntry *app = g_ptr_array_index(sys_ctrl->installed_apps, i);
             GtkWidget *app_btn = gtk_button_new();
-            gtk_widget_set_size_request(app_btn, 100, 90);
+            add_class(app_btn, "app-tile");
+            gtk_widget_set_size_request(app_btn, 112, 98);
 
             GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
             GtkWidget *img = gtk_image_new_from_icon_name(app->icon, GTK_ICON_SIZE_DND);
             GtkWidget *lbl = gtk_label_new(app->name);
+            add_class(lbl, "caption");
             gtk_label_set_ellipsize(GTK_LABEL(lbl), PANGO_ELLIPSIZE_END);
             gtk_label_set_max_width_chars(GTK_LABEL(lbl), 12);
 
@@ -493,72 +798,92 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     if (gtk_layer_is_supported()) {
         gtk_layer_set_anchor(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
         gtk_layer_set_anchor(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
-        gtk_layer_set_margin(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_EDGE_TOP, 44);
+        gtk_layer_set_margin(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_EDGE_TOP, 50);
         gtk_layer_set_margin(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_EDGE_RIGHT, 12);
     }
-    gtk_widget_set_size_request(shell->quicksettings_window, 340, -1);
+    gtk_widget_set_size_request(shell->quicksettings_window, 360, -1);
     g_signal_connect(shell->quicksettings_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
 
+    shell->qs_revealer = gtk_revealer_new();
+    gtk_revealer_set_transition_type(GTK_REVEALER(shell->qs_revealer), GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
+    gtk_revealer_set_transition_duration(GTK_REVEALER(shell->qs_revealer), 180);
+    gtk_container_add(GTK_CONTAINER(shell->quicksettings_window), shell->qs_revealer);
+
     GtkWidget *qs_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-    gtk_container_set_border_width(GTK_CONTAINER(qs_card), 16);
-    gtk_container_add(GTK_CONTAINER(shell->quicksettings_window), qs_card);
+    gtk_container_set_border_width(GTK_CONTAINER(qs_card), 18);
+    gtk_container_add(GTK_CONTAINER(shell->qs_revealer), qs_card);
 
     // Title / user header
     GtkWidget *user_hdr = gtk_label_new(auth_mgr ? auth_mgr->display_name : "AxisOS User");
+    add_class(user_hdr, "title-3");
     gtk_widget_set_halign(user_hdr, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(qs_card), user_hdr, FALSE, FALSE, 0);
 
-    // Sliders: Volume & Brightness
+    // Modern 2x2 Tile Grid
+    GtkWidget *qs_grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(qs_grid), 10);
+    gtk_grid_set_column_spacing(GTK_GRID(qs_grid), 10);
+    gtk_grid_set_row_homogeneous(GTK_GRID(qs_grid), TRUE);
+    gtk_grid_set_column_homogeneous(GTK_GRID(qs_grid), TRUE);
+
+    shell->qs_tile_wifi = create_qs_tile("network-wireless-signal-excellent-symbolic", "Wi-Fi", "Off", NULL, &shell->qs_sub_wifi);
+    g_signal_connect(shell->qs_tile_wifi, "clicked", G_CALLBACK(on_qs_tile_wifi_clicked), shell);
+    gtk_grid_attach(GTK_GRID(qs_grid), shell->qs_tile_wifi, 0, 0, 1, 1);
+
+    shell->qs_tile_bt = create_qs_tile("bluetooth-active-symbolic", "Bluetooth", "Off", NULL, &shell->qs_sub_bt);
+    g_signal_connect(shell->qs_tile_bt, "clicked", G_CALLBACK(on_qs_tile_bt_clicked), shell);
+    gtk_grid_attach(GTK_GRID(qs_grid), shell->qs_tile_bt, 1, 0, 1, 1);
+
+    shell->qs_tile_dark = create_qs_tile("weather-clear-night-symbolic", "Dark Theme", "Active", NULL, &shell->qs_sub_dark);
+    g_signal_connect(shell->qs_tile_dark, "clicked", G_CALLBACK(on_qs_tile_dark_clicked), shell);
+    gtk_grid_attach(GTK_GRID(qs_grid), shell->qs_tile_dark, 0, 1, 1, 1);
+
+    shell->qs_tile_game = create_qs_tile("applications-games-symbolic", "GameBoost", "Balanced", NULL, &shell->qs_sub_game);
+    g_signal_connect(shell->qs_tile_game, "clicked", G_CALLBACK(on_qs_tile_game_clicked), shell);
+    gtk_grid_attach(GTK_GRID(qs_grid), shell->qs_tile_game, 1, 1, 1, 1);
+
+    gtk_box_pack_start(GTK_BOX(qs_card), qs_grid, FALSE, FALSE, 4);
+
+    // Sliders: Volume & Brightness with icons beside them
     GtkWidget *vol_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-    GtkWidget *vol_lbl = gtk_label_new("Volume");
+    GtkWidget *vol_icon = gtk_image_new_from_icon_name("audio-volume-high-symbolic", GTK_ICON_SIZE_BUTTON);
     shell->qs_vol_scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
+    gtk_scale_set_draw_value(GTK_SCALE(shell->qs_vol_scale), FALSE);
     gtk_widget_set_hexpand(shell->qs_vol_scale, TRUE);
-    gtk_box_pack_start(GTK_BOX(vol_row), vol_lbl, FALSE, FALSE, 0);
+    g_signal_connect(shell->qs_vol_scale, "value-changed", G_CALLBACK(on_qs_vol_changed), shell);
+    gtk_box_pack_start(GTK_BOX(vol_row), vol_icon, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(vol_row), shell->qs_vol_scale, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(qs_card), vol_row, FALSE, FALSE, 2);
 
     GtkWidget *bright_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-    GtkWidget *bright_lbl = gtk_label_new("Brightness");
+    GtkWidget *bright_icon = gtk_image_new_from_icon_name("display-brightness-symbolic", GTK_ICON_SIZE_BUTTON);
     shell->qs_bright_scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 5, 100, 1);
+    gtk_scale_set_draw_value(GTK_SCALE(shell->qs_bright_scale), FALSE);
     gtk_widget_set_hexpand(shell->qs_bright_scale, TRUE);
-    gtk_box_pack_start(GTK_BOX(bright_row), bright_lbl, FALSE, FALSE, 0);
+    g_signal_connect(shell->qs_bright_scale, "value-changed", G_CALLBACK(on_qs_bright_changed), shell);
+    gtk_box_pack_start(GTK_BOX(bright_row), bright_icon, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(bright_row), shell->qs_bright_scale, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(qs_card), bright_row, FALSE, FALSE, 2);
 
-    // Switches: Wi-Fi, BT, Dark Mode
-    GtkWidget *switches_grid = gtk_grid_new();
-    gtk_grid_set_row_spacing(GTK_GRID(switches_grid), 8);
-    gtk_grid_set_column_spacing(GTK_GRID(switches_grid), 12);
-
-    GtkWidget *wifi_lbl = gtk_label_new("Wi-Fi");
-    gtk_widget_set_halign(wifi_lbl, GTK_ALIGN_START);
-    shell->qs_wifi_switch = gtk_switch_new();
-    gtk_grid_attach(GTK_GRID(switches_grid), wifi_lbl, 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(switches_grid), shell->qs_wifi_switch, 1, 0, 1, 1);
-
-    GtkWidget *bt_lbl = gtk_label_new("Bluetooth");
-    gtk_widget_set_halign(bt_lbl, GTK_ALIGN_START);
-    shell->qs_bt_switch = gtk_switch_new();
-    gtk_grid_attach(GTK_GRID(switches_grid), bt_lbl, 0, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(switches_grid), shell->qs_bt_switch, 1, 1, 1, 1);
-
-    GtkWidget *dark_lbl = gtk_label_new("Dark Mode");
-    gtk_widget_set_halign(dark_lbl, GTK_ALIGN_START);
-    shell->qs_dark_switch = gtk_switch_new();
-    gtk_grid_attach(GTK_GRID(switches_grid), dark_lbl, 0, 2, 1, 1);
-    gtk_grid_attach(GTK_GRID(switches_grid), shell->qs_dark_switch, 1, 2, 1, 1);
-
-    gtk_box_pack_start(GTK_BOX(qs_card), switches_grid, FALSE, FALSE, 4);
-
-    // Power buttons
+    // Power buttons with icons and secondary-button class
     GtkWidget *pwr_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-    GtkWidget *lock_btn = gtk_button_new_with_label("Lock");
+
+    GtkWidget *lock_btn = gtk_button_new_from_icon_name("system-lock-screen-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_button_set_label(GTK_BUTTON(lock_btn), " Lock");
+    gtk_button_set_always_show_image(GTK_BUTTON(lock_btn), TRUE);
+    add_class(lock_btn, "secondary-button");
     g_signal_connect_swapped(lock_btn, "clicked", G_CALLBACK(ui_shell_lock), shell);
 
-    GtkWidget *reboot_btn = gtk_button_new_with_label("Reboot");
+    GtkWidget *reboot_btn = gtk_button_new_from_icon_name("system-reboot-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_button_set_label(GTK_BUTTON(reboot_btn), " Reboot");
+    gtk_button_set_always_show_image(GTK_BUTTON(reboot_btn), TRUE);
+    add_class(reboot_btn, "secondary-button");
     g_signal_connect_swapped(reboot_btn, "clicked", G_CALLBACK(system_controller_reboot), sys_ctrl);
 
-    GtkWidget *power_btn = gtk_button_new_with_label("Power Off");
+    GtkWidget *power_btn = gtk_button_new_from_icon_name("system-shutdown-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_button_set_label(GTK_BUTTON(power_btn), " Power Off");
+    gtk_button_set_always_show_image(GTK_BUTTON(power_btn), TRUE);
+    add_class(power_btn, "secondary-button");
     g_signal_connect_swapped(power_btn, "clicked", G_CALLBACK(system_controller_power_off), sys_ctrl);
 
     gtk_box_pack_start(GTK_BOX(pwr_box), lock_btn, TRUE, TRUE, 0);
@@ -592,7 +917,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     if (gtk_layer_is_supported()) {
         gtk_layer_set_anchor(GTK_WINDOW(shell->notification_window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
         gtk_layer_set_anchor(GTK_WINDOW(shell->notification_window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
-        gtk_layer_set_margin(GTK_WINDOW(shell->notification_window), GTK_LAYER_SHELL_EDGE_TOP, 44);
+        gtk_layer_set_margin(GTK_WINDOW(shell->notification_window), GTK_LAYER_SHELL_EDGE_TOP, 50);
         gtk_layer_set_margin(GTK_WINDOW(shell->notification_window), GTK_LAYER_SHELL_EDGE_RIGHT, 16);
     }
     gtk_widget_set_size_request(shell->notification_window, 360, -1);
@@ -607,8 +932,10 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
 
     GtkWidget *text_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
     shell->notif_title = gtk_label_new("Notification");
+    add_class(shell->notif_title, "title-4");
     gtk_widget_set_halign(shell->notif_title, GTK_ALIGN_START);
     shell->notif_body = gtk_label_new("");
+    add_class(shell->notif_body, "caption");
     gtk_label_set_line_wrap(GTK_LABEL(shell->notif_body), TRUE);
     gtk_widget_set_halign(shell->notif_body, GTK_ALIGN_START);
 
@@ -630,34 +957,58 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         gtk_layer_set_keyboard_mode(GTK_WINDOW(shell->greeter_window), GTK_LAYER_SHELL_KEYBOARD_MODE_EXCLUSIVE);
     }
     gtk_window_set_default_size(GTK_WINDOW(shell->greeter_window), 1024, 768);
+    g_signal_connect(shell->greeter_window, "draw", G_CALLBACK(on_draw_greeter_backdrop), shell);
 
-    GtkWidget *greeter_center = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    GtkWidget *greeter_center = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
     gtk_widget_set_halign(greeter_center, GTK_ALIGN_CENTER);
     gtk_widget_set_valign(greeter_center, GTK_ALIGN_CENTER);
     gtk_container_add(GTK_CONTAINER(shell->greeter_window), greeter_center);
 
-    GtkWidget *avatar = gtk_image_new_from_icon_name("avatar-default", GTK_ICON_SIZE_DIALOG);
-    gtk_box_pack_start(GTK_BOX(greeter_center), avatar, FALSE, FALSE, 4);
+    // Large Live Clock & Date above authentication card
+    GtkWidget *clock_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    gtk_widget_set_halign(clock_box, GTK_ALIGN_CENTER);
 
-    GtkWidget *user_name_lbl = gtk_label_new(auth_mgr ? auth_mgr->display_name : "AxisOS");
-    gtk_box_pack_start(GTK_BOX(greeter_center), user_name_lbl, FALSE, FALSE, 4);
+    shell->greeter_clock_label = gtk_label_new("12:00");
+    add_class(shell->greeter_clock_label, "greeter-clock");
+    gtk_box_pack_start(GTK_BOX(clock_box), shell->greeter_clock_label, FALSE, FALSE, 0);
+
+    shell->greeter_date_label = gtk_label_new("Monday, January 01");
+    add_class(shell->greeter_date_label, "greeter-date");
+    gtk_box_pack_start(GTK_BOX(clock_box), shell->greeter_date_label, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(greeter_center), clock_box, FALSE, FALSE, 8);
+
+    // Centered Frosted Authentication Card
+    GtkWidget *greeter_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
+    add_class(greeter_card, "greeter-card");
+    gtk_widget_set_size_request(greeter_card, 340, -1);
+    gtk_box_pack_start(GTK_BOX(greeter_center), greeter_card, FALSE, FALSE, 0);
+
+    GtkWidget *avatar = gtk_image_new_from_icon_name("avatar-default", GTK_ICON_SIZE_DIALOG);
+    gtk_box_pack_start(GTK_BOX(greeter_card), avatar, FALSE, FALSE, 4);
+
+    GtkWidget *user_name_lbl = gtk_label_new(auth_mgr ? auth_mgr->display_name : "AxisOS User");
+    add_class(user_name_lbl, "title-3");
+    gtk_box_pack_start(GTK_BOX(greeter_card), user_name_lbl, FALSE, FALSE, 4);
 
     shell->greeter_pass_entry = gtk_entry_new();
     gtk_entry_set_visibility(GTK_ENTRY(shell->greeter_pass_entry), FALSE);
     gtk_entry_set_placeholder_text(GTK_ENTRY(shell->greeter_pass_entry), "Password");
     g_signal_connect(shell->greeter_pass_entry, "activate", G_CALLBACK(on_greeter_submit), shell);
-    gtk_box_pack_start(GTK_BOX(greeter_center), shell->greeter_pass_entry, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(greeter_card), shell->greeter_pass_entry, FALSE, FALSE, 4);
 
     GtkWidget *submit_btn = gtk_button_new_with_label("Unlock");
+    add_class(submit_btn, "suggested-action");
     g_signal_connect(submit_btn, "clicked", G_CALLBACK(on_greeter_submit), shell);
-    gtk_box_pack_start(GTK_BOX(greeter_center), submit_btn, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(greeter_card), submit_btn, FALSE, FALSE, 4);
 
     shell->greeter_spinner = gtk_spinner_new();
-    gtk_box_pack_start(GTK_BOX(greeter_center), shell->greeter_spinner, FALSE, FALSE, 2);
+    gtk_box_pack_start(GTK_BOX(greeter_card), shell->greeter_spinner, FALSE, FALSE, 2);
 
     shell->greeter_status_label = gtk_label_new(auth_mgr && auth_mgr->has_fingerprint ?
                                                 "Scan fingerprint or enter password" : "");
-    gtk_box_pack_start(GTK_BOX(greeter_center), shell->greeter_status_label, FALSE, FALSE, 4);
+    add_class(shell->greeter_status_label, "caption");
+    gtk_box_pack_start(GTK_BOX(greeter_card), shell->greeter_status_label, FALSE, FALSE, 4);
 
     // Initial display states
     if (shell->is_greeter_mode) {
@@ -670,6 +1021,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
 
     shell->clock_timer_id = g_timeout_add_seconds(1, update_clock_and_status, shell);
     update_clock_and_status(shell);
+    update_qs_tiles(shell);
 
     return shell;
 }

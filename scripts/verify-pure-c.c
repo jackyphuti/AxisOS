@@ -46,7 +46,7 @@ int main(void) {
         }
 
         char cmd[512];
-        snprintf(cmd, sizeof(cmd), "ldd \"%s\" 2>&1", b);
+        snprintf(cmd, sizeof(cmd), "readelf -d \"%s\" 2>&1", b);
         FILE *fp = popen(cmd, "r");
         if (!fp) {
             printf("[-] Failed to inspect: %s\n", b);

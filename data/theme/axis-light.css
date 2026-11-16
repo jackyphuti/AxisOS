@@ -19,6 +19,9 @@
 @define-color axis_launcher_overlay @axis_light_launcher_overlay;
 @define-color axis_shadow @axis_light_shadow;
 @define-color axis_accent_btn_text @axis_light_btn_text;
+@define-color axis_glass_bg @axis_light_glass_bg;
+@define-color axis_specular @axis_light_specular;
+@define-color axis_success @axis_light_success;
+@define-color axis_danger @axis_light_danger;
 
 @import url("axis-components.css");
-

@@ -15,257 +15,193 @@
 #include <sys/wait.h>
 
 static const char *AXIS_CSS =
-    "* {"
-    "    font-family: \"IBM Plex Sans\", \"Inter\", \"Ubuntu\", \"Cantarell\", sans-serif;"
-    "}"
-    "window, .background, scrolledwindow, viewport, stack {"
-    "    background-color: #141826;"
-    "    color: #F8FAFC;"
-    "}"
-    "headerbar {"
-    "    background-color: #1A1D2B;"
-    "    background-image: none;"
-    "    border-bottom: 1px solid #2E3349;"
-    "    color: #FFFFFF;"
-    "    min-height: 42px;"
-    "    padding: 0 12px;"
-    "    box-shadow: none;"
-    "}"
-    "headerbar .title {"
-    "    font-weight: 700;"
-    "    font-size: 14px;"
-    "    color: #FFFFFF;"
-    "}"
-    "headerbar .subtitle {"
-    "    font-size: 11px;"
-    "    color: #7D95FF;"
-    "}"
-    "headerbar button {"
-    "    background-color: #262A3D;"
-    "    background-image: none;"
-    "    color: #F8FAFC;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 6px;"
-    "    box-shadow: none;"
-    "    text-shadow: none;"
-    "}"
-    "headerbar button:hover {"
-    "    background-color: #2E3349;"
-    "    color: #FFFFFF;"
-    "    border-color: #7D95FF;"
-    "}"
     ".setup-canvas {"
-    "    background-color: #141826;"
+    "    background-color: @axis_base;"
     "    padding: 24px 36px;"
     "}"
     ".setup-footer {"
-    "    background-color: #1A1D2B;"
-    "    border-top: 1px solid #2E3349;"
+    "    background-color: @axis_surface;"
+    "    border-top: 1px solid @axis_outline;"
     "    padding: 12px 32px;"
     "}"
     ".win-title {"
     "    font-size: 22px;"
     "    font-weight: 700;"
-    "    color: #FFFFFF;"
+    "    color: @axis_text;"
     "    margin-bottom: 6px;"
     "}"
     ".win-subtitle {"
     "    font-size: 13px;"
-    "    color: #94A3B8;"
+    "    color: @axis_text_muted;"
     "    margin-bottom: 18px;"
     "}"
     ".field-label {"
     "    font-size: 13px;"
     "    font-weight: 600;"
-    "    color: #E2E8F0;"
+    "    color: @axis_text;"
     "    margin-bottom: 4px;"
     "}"
     "button.btn-primary, .btn-primary {"
-    "    background-color: #7D95FF;"
-    "    color: #141826;"
+    "    background: @axis_accent;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-size: 14px;"
     "    font-weight: 700;"
-    "    border: 1px solid #7D95FF;"
-    "    border-radius: 8px;"
+    "    border: 1px solid @axis_accent;"
+    "    border-radius: 9999px;"
     "    padding: 10px 28px;"
-    "    box-shadow: none;"
-    "    text-shadow: none;"
-    "}"
-    "button.btn-primary label, .btn-primary label {"
-    "    color: #141826;"
-    "    font-weight: 700;"
     "}"
     "button.btn-primary:hover, .btn-primary:hover {"
-    "    background-color: #6B82F0;"
-    "    border-color: #6B82F0;"
-    "    color: #141826;"
-    "}"
-    "button.btn-primary:disabled, .btn-primary:disabled {"
-    "    background-color: #1F2231;"
-    "    background-image: none;"
-    "    color: #64748B;"
-    "    border-color: #2E3349;"
-    "}"
-    "button.btn-primary:disabled label, .btn-primary:disabled label {"
-    "    color: #64748B;"
+    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
     "}"
     "button.btn-install-large, .btn-install-large {"
-    "    background-color: #10B981;"
-    "    color: #0F172A;"
+    "    background: @axis_accent;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-size: 16px;"
     "    font-weight: 700;"
-    "    border: 1px solid #34D399;"
-    "    border-radius: 8px;"
+    "    border: 2px solid @axis_accent;"
+    "    border-radius: 9999px;"
     "    padding: 14px 44px;"
-    "    box-shadow: none;"
-    "    text-shadow: none;"
-    "}"
-    "button.btn-install-large label, .btn-install-large label {"
-    "    color: #0F172A;"
-    "    font-weight: 700;"
     "}"
     "button.btn-install-large:hover, .btn-install-large:hover {"
-    "    background-color: #34D399;"
-    "    border-color: #6EE7B7;"
+    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
     "}"
     "button.btn-secondary, .btn-secondary {"
-    "    background-color: #262A3D;"
-    "    background-image: none;"
-    "    color: #F8FAFC;"
+    "    background: @axis_surface;"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
     "    font-size: 13px;"
     "    font-weight: 600;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 8px;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 9999px;"
     "    padding: 9px 22px;"
-    "    box-shadow: none;"
-    "    text-shadow: none;"
-    "}"
-    "button.btn-secondary label, .btn-secondary label {"
-    "    color: #F8FAFC;"
-    "    font-weight: 600;"
     "}"
     "button.btn-secondary:hover, .btn-secondary:hover {"
-    "    background-color: #2E3349;"
-    "    border-color: #7D95FF;"
-    "    color: #FFFFFF;"
-    "}"
-    "button.btn-secondary:disabled, .btn-secondary:disabled {"
-    "    background-color: #1A1D2B;"
-    "    color: #475569;"
-    "    border-color: #2E3349;"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_accent;"
     "}"
     "button.btn-danger, .btn-danger {"
-    "    background-color: #DC2626;"
-    "    color: #FFFFFF;"
+    "    background-color: @axis_danger;"
+    "    color: @axis_accent_btn_text;"
     "    font-size: 13px;"
     "    font-weight: 600;"
-    "    border: 1px solid #EF4444;"
-    "    border-radius: 8px;"
+    "    border: 1px solid @axis_danger;"
+    "    border-radius: 9999px;"
     "    padding: 9px 18px;"
     "}"
-    ".info-card {"
-    "    background-color: #1F2231;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 12px;"
+    ".info-card, .card {"
+    "    background-color: @axis_surface_raised;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 16px;"
     "    padding: 16px 20px;"
     "}"
-    ".summary-key {"
+    ".card-title, .summary-val {"
+    "    font-size: 13px;"
+    "    font-weight: 700;"
+    "    color: @axis_text;"
+    "}"
+    ".card-subtitle, .summary-key {"
     "    font-size: 13px;"
     "    font-weight: 600;"
-    "    color: #94A3B8;"
-    "}"
-    ".summary-val {"
-    "    font-size: 13px;"
-    "    font-weight: 700;"
-    "    color: #FFFFFF;"
-    "}"
-    "entry {"
-    "    background-color: #1F2231;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 8px;"
-    "    padding: 8px 12px;"
-    "    font-size: 13px;"
-    "}"
-    "entry:focus {"
-    "    border-color: #7D95FF;"
-    "    background-color: #262A3D;"
-    "}"
-    "combobox button {"
-    "    background-color: #1F2231;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 8px;"
-    "    padding: 7px 12px;"
-    "}"
-    "treeview {"
-    "    background-color: #1F2231;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 8px;"
-    "}"
-    "treeview:selected, treeview row:selected {"
-    "    background-color: #262A3D;"
-    "    color: #7D95FF;"
-    "}"
-    ".progress-stage {"
-    "    font-size: 14px;"
-    "    color: #94A3B8;"
-    "    margin-bottom: 8px;"
-    "}"
-    ".progress-stage.active {"
-    "    color: #7D95FF;"
-    "    font-weight: 700;"
-    "}"
-    ".progress-stage.done {"
-    "    color: #34D399;"
-    "    font-weight: 700;"
-    "}"
-    "progressbar progress {"
-    "    background-color: #7D95FF;"
-    "    border-radius: 4px;"
-    "}"
-    "progressbar trough {"
-    "    background-color: #262A3D;"
-    "    border-radius: 4px;"
-    "    min-height: 8px;"
+    "    color: @axis_text_muted;"
     "}"
     ".edition-card {"
-    "    background-color: #1F2231;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 12px;"
+    "    background-color: @axis_surface_raised;"
+    "    border: 2px solid @axis_outline;"
+    "    border-radius: 16px;"
     "    padding: 16px 20px;"
     "}"
     ".edition-card:hover {"
-    "    background-color: #262A3D;"
-    "    border-color: #7D95FF;"
+    "    background-color: alpha(@axis_accent, 0.08);"
+    "    border-color: @axis_accent;"
     "}"
     ".edition-card.selected {"
-    "    background-color: #262A3D;"
-    "    border: 2px solid #7D95FF;"
+    "    background-color: alpha(@axis_accent, 0.16);"
+    "    border-color: @axis_accent;"
     "}"
     ".edition-title {"
     "    font-size: 15px;"
     "    font-weight: 700;"
-    "    color: #FFFFFF;"
+    "    color: @axis_text;"
     "}"
     ".edition-badge {"
     "    font-size: 11px;"
     "    font-weight: 700;"
     "    padding: 2px 8px;"
     "    border-radius: 4px;"
-    "    background-color: #7D95FF;"
-    "    color: #141826;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "}"
     ".edition-desc {"
     "    font-size: 13px;"
-    "    color: #94A3B8;"
+    "    color: @axis_text_muted;"
     "}"
     ".edition-features {"
     "    font-size: 12px;"
-    "    color: #7D95FF;"
+    "    color: @axis_accent;"
     "    font-weight: 600;"
     "}";
+
+static void load_axis_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+
+    gboolean dark_mode = TRUE;
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_path[512];
+        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
+        FILE *f = fopen(conf_path, "r");
+        if (f) {
+            char buf[128];
+            if (fgets(buf, sizeof(buf), f)) {
+                if (strstr(buf, "light") || strstr(buf, "Light")) {
+                    dark_mode = FALSE;
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
+    const char *light_paths[] = {
+        "data/theme/axis-light.css",
+        "/usr/share/axisos/theme/axis-light.css",
+        "/usr/local/share/axisos/theme/axis-light.css",
+        NULL
+    };
+
+    const char **paths = dark_mode ? dark_paths : light_paths;
+    GtkCssProvider *provider = gtk_css_provider_new();
+    for (int i = 0; paths[i] != NULL; ++i) {
+        if (access(paths[i], R_OK) == 0) {
+            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
+                gtk_style_context_add_provider_for_screen(
+                    screen,
+                    GTK_STYLE_PROVIDER(provider),
+                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+                break;
+            }
+        }
+    }
+    g_object_unref(provider);
+
+    GtkCssProvider *extra_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra_prov, AXIS_CSS, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+    );
+    g_object_unref(extra_prov);
+}
 
 typedef struct {
     const char *label;
@@ -946,7 +882,7 @@ static void update_navigation_state(AxisInstallerApp *app) {
     } else if (app->current_step == 4) {
         gtk_widget_set_visible(app->btn_next, TRUE);
         gtk_widget_set_sensitive(app->btn_next, TRUE);
-        gtk_button_set_label(GTK_BUTTON(app->btn_next), "⚡ Install AxisOS Now");
+        gtk_button_set_label(GTK_BUTTON(app->btn_next), "Install AxisOS Now");
     } else if (app->current_step == 5) {
         gtk_widget_set_visible(app->btn_next, FALSE);
     } else if (app->current_step == 6) {
@@ -1187,11 +1123,11 @@ static void build_step_disk(AxisInstallerApp *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_disk_selection_status), "field-label");
 
     GtkWidget *btn_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
-    GtkWidget *b_format = gtk_button_new_with_label("🧹 Wipe & Format Selected Drive");
+    GtkWidget *b_format = gtk_button_new_with_label("Wipe & Format Selected Drive");
     gtk_style_context_add_class(gtk_widget_get_style_context(b_format), "btn-danger");
     g_signal_connect(b_format, "clicked", G_CALLBACK(on_format_drive_clicked), app);
 
-    GtkWidget *b_refresh = gtk_button_new_with_label("↻ Refresh Drives");
+    GtkWidget *b_refresh = gtk_button_new_with_label("Refresh Drives");
     gtk_style_context_add_class(gtk_widget_get_style_context(b_refresh), "btn-secondary");
     g_signal_connect(b_refresh, "clicked", G_CALLBACK(on_refresh_drives_clicked), app);
 
@@ -1381,7 +1317,7 @@ static void build_step_summary(AxisInstallerApp *app) {
 
     gtk_box_pack_start(GTK_BOX(card), grid, FALSE, FALSE, 0);
 
-    app->btn_summary_install_large = gtk_button_new_with_label("⚡ Install AxisOS Now");
+    app->btn_summary_install_large = gtk_button_new_with_label("Install AxisOS Now");
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_summary_install_large), "btn-install-large");
     g_signal_connect(app->btn_summary_install_large, "clicked", G_CALLBACK(on_install_now_clicked), app);
     gtk_widget_set_halign(app->btn_summary_install_large, GTK_ALIGN_CENTER);
@@ -1718,14 +1654,8 @@ static AxisInstallerApp *axis_installer_app_create(void) {
     gtk_window_set_default_icon_name("axisos");
     gtk_window_set_icon_name(GTK_WINDOW(app->window), "axisos");
 
-    GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(provider, AXIS_CSS, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-    );
-    g_object_unref(provider);
+    // Apply system theme
+    load_axis_theme();
 
     GtkWidget *hb = gtk_header_bar_new();
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
@@ -1737,8 +1667,8 @@ static AxisInstallerApp *axis_installer_app_create(void) {
     gtk_container_add(GTK_CONTAINER(app->window), root_box);
 
     app->stack = gtk_stack_new();
-    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
-    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 160);
+    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
+    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
     gtk_box_pack_start(GTK_BOX(root_box), app->stack, TRUE, TRUE, 0);
 
     GtkWidget *footer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
@@ -1748,7 +1678,7 @@ static AxisInstallerApp *axis_installer_app_create(void) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_back), "btn-secondary");
     g_signal_connect(app->btn_back, "clicked", G_CALLBACK(on_back_clicked), app);
 
-    app->btn_try_os = gtk_button_new_with_label("🧪 Try AxisOS (Test without installing)");
+    app->btn_try_os = gtk_button_new_with_label("Try AxisOS (Test without installing)");
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_try_os), "btn-secondary");
     g_signal_connect(app->btn_try_os, "clicked", G_CALLBACK(on_try_os_clicked), app);
 

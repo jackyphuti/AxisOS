@@ -1,47 +1,65 @@
 #define _GNU_SOURCE
 #include <gtk/gtk.h>
+#include <glib-unix.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 #include "system_controller.h"
 #include "auth_manager.h"
 #include "ui_shell.h"
 
-static void load_axis_css(void) {
-    const char *css_paths[] = {
-        "data/theme/axis-tokens.css",
-        "data/theme/axis-dark.css",
-        "data/theme/axis-components.css",
-        "/usr/share/axisos/theme/axis-tokens.css",
-        "/usr/share/axisos/theme/axis-dark.css",
-        "/usr/share/axisos/theme/axis-components.css",
-        "/usr/local/share/axisos/theme/axis-tokens.css",
-        "/usr/local/share/axisos/theme/axis-dark.css",
-        "/usr/local/share/axisos/theme/axis-components.css",
-        NULL
-    };
+static GtkCssProvider *g_theme_provider = NULL;
 
+void ui_shell_apply_theme(gboolean dark_mode) {
     GdkScreen *screen = gdk_screen_get_default();
     if (!screen) return;
 
-    for (int i = 0; css_paths[i] != NULL; ++i) {
-        if (access(css_paths[i], R_OK) == 0) {
-            GtkCssProvider *provider = gtk_css_provider_new();
+    if (!g_theme_provider) {
+        g_theme_provider = gtk_css_provider_new();
+        gtk_style_context_add_provider_for_screen(
+            screen,
+            GTK_STYLE_PROVIDER(g_theme_provider),
+            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+        );
+    }
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
+
+    const char *light_paths[] = {
+        "data/theme/axis-light.css",
+        "/usr/share/axisos/theme/axis-light.css",
+        "/usr/local/share/axisos/theme/axis-light.css",
+        NULL
+    };
+
+    const char **paths = dark_mode ? dark_paths : light_paths;
+    for (int i = 0; paths[i] != NULL; ++i) {
+        if (access(paths[i], R_OK) == 0) {
             GError *error = NULL;
-            if (gtk_css_provider_load_from_path(provider, css_paths[i], &error)) {
-                gtk_style_context_add_provider_for_screen(
-                    screen,
-                    GTK_STYLE_PROVIDER(provider),
-                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
+            if (gtk_css_provider_load_from_path(g_theme_provider, paths[i], &error)) {
+                break;
             } else if (error) {
-                g_warning("Failed to load CSS %s: %s", css_paths[i], error->message);
+                g_warning("Failed to load CSS %s: %s", paths[i], error->message);
                 g_error_free(error);
             }
-            g_object_unref(provider);
         }
     }
+}
+
+static gboolean on_sigusr1_signal(gpointer user_data) {
+    UiShell *shell = (UiShell *)user_data;
+    if (shell) {
+        ui_shell_toggle_launcher(shell);
+    }
+    return G_SOURCE_CONTINUE;
 }
 
 int main(int argc, char *argv[]) {
@@ -76,12 +94,16 @@ int main(int argc, char *argv[]) {
     }
 
     gtk_init(&argc, &argv);
-    load_axis_css();
 
     SystemController *sys_ctrl = system_controller_create();
     AuthManager *auth_mgr = auth_manager_create();
 
+    ui_shell_apply_theme(sys_ctrl ? sys_ctrl->metrics.is_dark_mode : TRUE);
+
     UiShell *shell = ui_shell_create(sys_ctrl, auth_mgr, is_greeter);
+
+    // Register SIGUSR1 handler to toggle native app launcher
+    g_unix_signal_add(SIGUSR1, on_sigusr1_signal, shell);
 
     if (is_lock && !is_greeter) {
         ui_shell_lock(shell);

@@ -98,157 +98,150 @@ static char *exec_cmd(const char *cmd) {
 }
 
 static const char *CSS_THEME =
-    "* {"
-    "    font-family: \"IBM Plex Sans\", \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Cantarell, sans-serif;"
-    "}"
-    "window {"
-    "    background-color: #141826;"
-    "    color: #FFFFFF;"
-    "}"
-    "headerbar {"
-    "    background: #1A1D2B;"
-    "    border-bottom: 1px solid #2E3349;"
-    "    color: #FFFFFF;"
-    "}"
-    "headerbar .title {"
-    "    font-weight: 700;"
-    "    font-size: 15px;"
-    "    color: #FFFFFF;"
-    "}"
-    "headerbar .subtitle {"
-    "    font-size: 12px;"
-    "    color: #94A3B8;"
-    "}"
-    ".sidebar {"
-    "    background-color: #1A1D2B;"
-    "    border-right: 1px solid #2E3349;"
-    "}"
-    ".sidebar list {"
-    "    background-color: transparent;"
-    "}"
-    ".sidebar list row {"
-    "    padding: 12px 18px;"
-    "    color: #94A3B8;"
-    "    font-weight: 600;"
-    "    font-size: 13px;"
-    "    border-left: 3px solid transparent;"
-    "}"
-    ".sidebar list row:hover {"
-    "    background-color: #262A3D;"
-    "    color: #FFFFFF;"
-    "}"
-    ".sidebar list row:selected {"
-    "    background-color: #262A3D;"
-    "    color: #FFFFFF;"
-    "    border-left: 3px solid #7D95FF;"
-    "}"
-    ".content-pane {"
-    "    padding: 24px 32px;"
-    "    background-color: #141826;"
-    "}"
     ".card {"
-    "    background-color: #1F2231;"
-    "    border: 1px solid #2E3349;"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
     "    border-radius: 16px;"
     "    padding: 18px 22px;"
     "    margin-bottom: 16px;"
-    "    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);"
+    "    box-shadow: 0 2px 12px @axis_shadow;"
     "}"
     ".card-title {"
     "    font-size: 15px;"
     "    font-weight: 700;"
-    "    color: #FFFFFF;"
+    "    color: @axis_text;"
     "    margin-bottom: 4px;"
     "}"
     ".card-subtitle {"
     "    font-size: 12px;"
-    "    color: #94A3B8;"
+    "    color: @axis_text_muted;"
     "    margin-bottom: 12px;"
     "}"
+    ".sidebar {"
+    "    background-color: @axis_surface;"
+    "    border-right: 1px solid @axis_outline;"
+    "}"
+    ".sidebar list row {"
+    "    padding: 12px 18px;"
+    "    color: @axis_text_muted;"
+    "    font-weight: 600;"
+    "    font-size: 13px;"
+    "    border-left: 3px solid transparent;"
+    "}"
+    ".sidebar list row:selected {"
+    "    background-color: alpha(@axis_accent, 0.16);"
+    "    color: @axis_accent;"
+    "    border-left: 3px solid @axis_accent;"
+    "}"
+    ".content-pane {"
+    "    padding: 24px 32px;"
+    "}"
     ".btn-primary {"
-    "    background: #7D95FF;"
-    "    color: #141826;"
+    "    background: @axis_accent;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-weight: 700;"
     "    border-radius: 999px;"
     "    border: none;"
     "    padding: 8px 20px;"
     "}"
     ".btn-primary:hover {"
-    "    background: #6B82F0;"
-    "}"
-    ".btn-primary:active {"
-    "    background: #5A71E0;"
+    "    background: mix(@axis_accent, @axis_base, 0.12);"
+    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
     "}"
     ".btn-secondary {"
-    "    background: #262A3D;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid #2E3349;"
+    "    background: @axis_surface;"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
     "    border-radius: 999px;"
     "    padding: 8px 18px;"
     "    font-weight: 600;"
     "}"
     ".btn-secondary:hover {"
-    "    background: #2E3349;"
-    "    border-color: #7D95FF;"
-    "    color: #FFFFFF;"
+    "    background: @axis_surface_raised;"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_accent;"
     "}"
     ".badge-blue {"
-    "    background: #262A3D;"
-    "    color: #7D95FF;"
-    "    border: 1px solid #7D95FF;"
+    "    background: alpha(@axis_accent, 0.15);"
+    "    color: @axis_accent;"
+    "    border: 1px solid alpha(@axis_accent, 0.30);"
     "    border-radius: 999px;"
     "    padding: 4px 12px;"
     "    font-size: 11px;"
     "    font-weight: 700;"
     "}"
     ".badge-green {"
-    "    background: #16382B;"
-    "    color: #34D399;"
-    "    border: 1px solid #059669;"
+    "    background: alpha(@axis_success, 0.15);"
+    "    color: @axis_success;"
+    "    border: 1px solid alpha(@axis_success, 0.30);"
     "    border-radius: 999px;"
     "    padding: 4px 12px;"
     "    font-size: 11px;"
     "    font-weight: 700;"
-    "}"
-    "progressbar progress {"
-    "    background: #7D95FF;"
-    "    border-radius: 999px;"
-    "}"
-    "progressbar trough {"
-    "    background: #262A3D;"
-    "    border-radius: 999px;"
-    "    min-height: 8px;"
-    "}"
-    "entry {"
-    "    background-color: #1F2231;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 10px;"
-    "    padding: 8px 14px;"
-    "}"
-    "entry:focus {"
-    "    border-color: #7D95FF;"
-    "}"
-    "scale trough {"
-    "    background-color: #262A3D;"
-    "    border-radius: 999px;"
-    "    min-height: 6px;"
-    "}"
-    "scale highlight {"
-    "    background-color: #7D95FF;"
-    "    border-radius: 999px;"
-    "}"
-    "switch {"
-    "    background: #2E3349;"
-    "    border-radius: 999px;"
-    "}"
-    "switch:checked {"
-    "    background: #7D95FF;"
-    "}"
-    "switch slider {"
-    "    background: #FFFFFF;"
-    "    border-radius: 999px;"
     "}";
+
+static void load_axis_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+
+    gboolean dark_mode = TRUE;
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_path[512];
+        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
+        FILE *f = fopen(conf_path, "r");
+        if (f) {
+            char buf[128];
+            if (fgets(buf, sizeof(buf), f)) {
+                if (strstr(buf, "light") || strstr(buf, "Light")) {
+                    dark_mode = FALSE;
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
+    const char *light_paths[] = {
+        "data/theme/axis-light.css",
+        "/usr/share/axisos/theme/axis-light.css",
+        "/usr/local/share/axisos/theme/axis-light.css",
+        NULL
+    };
+
+    const char **paths = dark_mode ? dark_paths : light_paths;
+    GtkCssProvider *provider = gtk_css_provider_new();
+    for (int i = 0; paths[i] != NULL; ++i) {
+        if (access(paths[i], R_OK) == 0) {
+            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
+                gtk_style_context_add_provider_for_screen(
+                    screen,
+                    GTK_STYLE_PROVIDER(provider),
+                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+                break;
+            }
+        }
+    }
+    g_object_unref(provider);
+
+    GtkCssProvider *extra_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra_prov, CSS_THEME, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+    );
+    g_object_unref(extra_prov);
+}
 
 static GtkWidget *create_card(const char *title, const char *subtitle) {
     GtkWidget *card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
@@ -285,9 +278,9 @@ static char *detect_gpus(void) {
 
     char *summary;
     if (strlen(vulkan_check) > 0) {
-        summary = g_strdup_printf("🎮 Detected Graphics Adapters:\n%s\n\n⚡ Vulkan Acceleration:\n%s", info, vulkan_check);
+        summary = g_strdup_printf("Detected Graphics Adapters:\n%s\n\nVulkan Acceleration:\n%s", info, vulkan_check);
     } else {
-        summary = g_strdup_printf("🎮 Detected Graphics Adapters:\n%s", info);
+        summary = g_strdup_printf("Detected Graphics Adapters:\n%s", info);
     }
     g_free(info);
     g_free(vulkan_check);
@@ -443,10 +436,10 @@ static void update_game_boost_status(AxisSettingsApp *app) {
     if (app->lbl_game_boost_status) {
         if (is_on) {
             gtk_label_set_markup(GTK_LABEL(app->lbl_game_boost_status),
-                "<span foreground='#10B981' weight='bold'>⚡ GAME BOOST ENGAGED • MAXIMUM HARDWARE OVERCLOCK ACTIVE</span>");
+                "<span foreground='#10B981' weight='bold'>GAME BOOST ENGAGED • MAXIMUM HARDWARE OVERCLOCK ACTIVE</span>");
         } else {
             gtk_label_set_markup(GTK_LABEL(app->lbl_game_boost_status),
-                "<span foreground='#94A3B8' weight='normal'>🍃 Balanced Energy Mode • Dynamic Clocks Active</span>");
+                "<span foreground='#94A3B8' weight='normal'>Balanced Energy Mode • Dynamic Clocks Active</span>");
         }
     }
 
@@ -456,9 +449,9 @@ static void update_game_boost_status(AxisSettingsApp *app) {
     if (app->lbl_boost_cpu) {
         char *cpu_txt;
         if (is_on) {
-            cpu_txt = g_strdup_printf("⚡ CPU Core Scaling: Pinned Peak Clocks (Governor: %s, EPP: performance, Turbo: 100%%)", gov);
+            cpu_txt = g_strdup_printf("CPU Core Scaling: Pinned Peak Clocks (Governor: %s, EPP: performance, Turbo: 100%%)", gov);
         } else {
-            cpu_txt = g_strdup_printf("🍃 CPU Core Scaling: Dynamic Balanced (Governor: %s, EPP: balance_performance)", gov);
+            cpu_txt = g_strdup_printf("CPU Core Scaling: Dynamic Balanced (Governor: %s, EPP: balance_performance)", gov);
         }
         gtk_label_set_text(GTK_LABEL(app->lbl_boost_cpu), cpu_txt);
         g_free(cpu_txt);
@@ -467,14 +460,14 @@ static void update_game_boost_status(AxisSettingsApp *app) {
 
     if (app->lbl_boost_gpu) {
         gtk_label_set_text(GTK_LABEL(app->lbl_boost_gpu), is_on ?
-            "🎮 GPU Overclocking: Maximum Power Limit Unlocked • 3D Fullscreen High-Clocks Active" :
-            "🎮 GPU Dynamic Tuning: Adaptive Clocks • Energy-Efficient Profile");
+            "GPU Overclocking: Maximum Power Limit Unlocked • 3D Fullscreen High-Clocks Active" :
+            "GPU Dynamic Tuning: Adaptive Clocks • Energy-Efficient Profile");
     }
 
     if (app->lbl_boost_latency) {
         gtk_label_set_text(GTK_LABEL(app->lbl_boost_latency), is_on ?
-            "🚀 Latency Tuning: Zero Split-Lock Jitter (Off) • Swappiness: 10 • Max Mappings: 2.14B" :
-            "⚖️ Latency Tuning: Standard Kernel Defaults (Swappiness: 60)");
+            "Latency Tuning: Zero Split-Lock Jitter (Off) • Swappiness: 10 • Max Mappings: 2.14B" :
+            "Latency Tuning: Standard Kernel Defaults (Swappiness: 60)");
     }
 }
 
@@ -503,15 +496,15 @@ static void build_game_boost_page(AxisSettingsApp *app) {
     GtkWidget *card_details = create_card("Active Tuning & Hardware Subsystems",
         "Real-time status of CPU governors, graphics pipelines, and kernel memory allocators.");
 
-    app->lbl_boost_cpu = gtk_label_new("⚡ CPU Clocks: Initializing...");
+    app->lbl_boost_cpu = gtk_label_new("CPU Clocks: Initializing...");
     gtk_label_set_xalign(GTK_LABEL(app->lbl_boost_cpu), 0.0);
     gtk_box_pack_start(GTK_BOX(card_details), app->lbl_boost_cpu, FALSE, FALSE, 4);
 
-    app->lbl_boost_gpu = gtk_label_new("🎮 GPU State: Initializing...");
+    app->lbl_boost_gpu = gtk_label_new("GPU State: Initializing...");
     gtk_label_set_xalign(GTK_LABEL(app->lbl_boost_gpu), 0.0);
     gtk_box_pack_start(GTK_BOX(card_details), app->lbl_boost_gpu, FALSE, FALSE, 4);
 
-    app->lbl_boost_latency = gtk_label_new("🚀 Latency: Initializing...");
+    app->lbl_boost_latency = gtk_label_new("Latency: Initializing...");
     gtk_label_set_xalign(GTK_LABEL(app->lbl_boost_latency), 0.0);
     gtk_box_pack_start(GTK_BOX(card_details), app->lbl_boost_latency, FALSE, FALSE, 4);
 
@@ -592,12 +585,12 @@ static void build_brightness_audio_page(AxisSettingsApp *app) {
     gtk_box_pack_start(GTK_BOX(card_sound), app->scale_volume, FALSE, FALSE, 4);
 
     GtkWidget *hbox_btns = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-    app->btn_mute = gtk_button_new_with_label("󰝟 Mute / Unmute");
+    app->btn_mute = gtk_button_new_with_label("Mute / Unmute");
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_mute), "btn-secondary");
     g_signal_connect(app->btn_mute, "clicked", G_CALLBACK(on_toggle_mute_cb), app);
     gtk_box_pack_start(GTK_BOX(hbox_btns), app->btn_mute, FALSE, FALSE, 0);
 
-    GtkWidget *btn_test_sound = gtk_button_new_with_label("🔔 Test Audio Tone");
+    GtkWidget *btn_test_sound = gtk_button_new_with_label("Test Audio Tone");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_test_sound), "btn-secondary");
     g_signal_connect(btn_test_sound, "clicked", G_CALLBACK(on_test_sound_cb), app);
     gtk_box_pack_start(GTK_BOX(hbox_btns), btn_test_sound, FALSE, FALSE, 0);
@@ -702,7 +695,7 @@ static void refresh_wifi_list(AxisSettingsApp *app) {
             GtkWidget *lbl_ssid = gtk_label_new(ssid);
             gtk_label_set_xalign(GTK_LABEL(lbl_ssid), 0.0);
 
-            char *sig_str = g_strdup_printf("📶 %s%% (%s)", signal, sec[0] ? sec : "Open");
+            char *sig_str = g_strdup_printf("%s%% (%s)", signal, sec[0] ? sec : "Open");
             GtkWidget *lbl_sig = gtk_label_new(sig_str);
             g_free(sig_str);
 
@@ -739,11 +732,11 @@ static void build_network_page(AxisSettingsApp *app) {
     gtk_switch_set_active(GTK_SWITCH(app->switch_wifi), TRUE);
     g_signal_connect(app->switch_wifi, "notify::active", G_CALLBACK(on_wifi_toggle_cb), app);
 
-    GtkWidget *btn_scan_wifi = gtk_button_new_with_label("🔄 Scan Wi-Fi");
+    GtkWidget *btn_scan_wifi = gtk_button_new_with_label("Scan Wi-Fi");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_scan_wifi), "btn-primary");
     g_signal_connect(btn_scan_wifi, "clicked", G_CALLBACK(on_scan_wifi_cb), app);
 
-    GtkWidget *btn_portal = gtk_button_new_with_label("🌐 Captive Portal Web Login");
+    GtkWidget *btn_portal = gtk_button_new_with_label("Captive Portal Web Login");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_portal), "btn-secondary");
     g_signal_connect(btn_portal, "clicked", G_CALLBACK(on_captive_portal_cb), app);
 
@@ -880,7 +873,7 @@ static void build_bluetooth_page(AxisSettingsApp *app) {
     gtk_switch_set_active(GTK_SWITCH(app->switch_bt), TRUE);
     g_signal_connect(app->switch_bt, "notify::active", G_CALLBACK(on_bt_toggle_cb), app);
 
-    GtkWidget *btn_scan_bt = gtk_button_new_with_label("󰂯 Scan Devices");
+    GtkWidget *btn_scan_bt = gtk_button_new_with_label("Scan Devices");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_scan_bt), "btn-primary");
     g_signal_connect(btn_scan_bt, "clicked", G_CALLBACK(on_scan_bt_cb), app);
 
@@ -923,7 +916,7 @@ static void refresh_usb_list(AxisSettingsApp *app) {
         if (lines[i][0] == '\0') continue;
         GtkWidget *row = gtk_list_box_row_new();
         GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-        char *dev_txt = g_strdup_printf("🔌 %s", lines[i]);
+        char *dev_txt = g_strdup_printf("%s", lines[i]);
         GtkWidget *lbl_dev = gtk_label_new(dev_txt);
         g_free(dev_txt);
         gtk_label_set_xalign(GTK_LABEL(lbl_dev), 0.0);
@@ -941,7 +934,7 @@ static void refresh_usb_list(AxisSettingsApp *app) {
         if (blk_lines[i][0] == '\0') continue;
         GtkWidget *row = gtk_list_box_row_new();
         GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-        char *blk_txt = g_strdup_printf("💾 Removable Drive: %s", blk_lines[i]);
+        char *blk_txt = g_strdup_printf("Removable Drive: %s", blk_lines[i]);
         GtkWidget *lbl_blk = gtk_label_new(blk_txt);
         g_free(blk_txt);
         gtk_label_set_xalign(GTK_LABEL(lbl_blk), 0.0);
@@ -975,7 +968,7 @@ static void build_usb_page(AxisSettingsApp *app) {
         "Real-time recognition for USB mice, keyboards, controllers, webcams, and flash drives.");
 
     GtkWidget *hbox_actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-    GtkWidget *btn_refresh_usb = gtk_button_new_with_label("🔄 Re-detect USB Ports");
+    GtkWidget *btn_refresh_usb = gtk_button_new_with_label("Re-detect USB Ports");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_refresh_usb), "btn-primary");
     g_signal_connect(btn_refresh_usb, "clicked", G_CALLBACK(on_refresh_usb_cb), app);
     gtk_box_pack_start(GTK_BOX(hbox_actions), btn_refresh_usb, FALSE, FALSE, 0);
@@ -1181,11 +1174,11 @@ static void build_updates_page(AxisSettingsApp *app) {
     gtk_box_pack_start(GTK_BOX(card), app->pbar_update, FALSE, FALSE, 6);
 
     GtkWidget *hbox_btns = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-    GtkWidget *btn_check = gtk_button_new_with_label("🔍 Check for Updates");
+    GtkWidget *btn_check = gtk_button_new_with_label("Check for Updates");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_check), "btn-secondary");
     g_signal_connect(btn_check, "clicked", G_CALLBACK(on_check_updates_cb), app);
 
-    app->btn_run_updates = gtk_button_new_with_label("⬇️  Install All Updates Now");
+    app->btn_run_updates = gtk_button_new_with_label("Install All Updates Now");
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_run_updates), "btn-primary");
     g_signal_connect(app->btn_run_updates, "clicked", G_CALLBACK(on_install_updates_cb), app);
 
@@ -1249,12 +1242,12 @@ static void build_datetime_page(AxisSettingsApp *app) {
     gtk_box_pack_start(GTK_BOX(card), lbl_time, FALSE, FALSE, 6);
 
     GtkWidget *hbox_btns = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-    GtkWidget *btn_sync_tz = gtk_button_new_with_label("🌍 Auto-Detect Location & Timezone");
+    GtkWidget *btn_sync_tz = gtk_button_new_with_label("Auto-Detect Location & Timezone");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_sync_tz), "btn-primary");
     g_signal_connect(btn_sync_tz, "clicked", G_CALLBACK(on_sync_tz_cb), app);
     gtk_box_pack_start(GTK_BOX(hbox_btns), btn_sync_tz, FALSE, FALSE, 0);
 
-    GtkWidget *btn_sync_ntp = gtk_button_new_with_label("⏱️ Sync Clock with NTP");
+    GtkWidget *btn_sync_ntp = gtk_button_new_with_label("Sync Clock with NTP");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_sync_ntp), "btn-secondary");
     g_signal_connect(btn_sync_ntp, "clicked", G_CALLBACK(on_sync_ntp_cb), app);
     gtk_box_pack_start(GTK_BOX(hbox_btns), btn_sync_ntp, FALSE, FALSE, 0);
@@ -1434,7 +1427,7 @@ static void build_security_page(AxisSettingsApp *app) {
     gtk_switch_set_active(GTK_SWITCH(app->switch_bio_fp), TRUE);
     gtk_widget_set_halign(app->switch_bio_fp, GTK_ALIGN_START);
 
-    GtkWidget *btn_enroll_fp = gtk_button_new_with_label("🫆 Enroll Fingerprint");
+    GtkWidget *btn_enroll_fp = gtk_button_new_with_label("Enroll Fingerprint");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_enroll_fp), "btn-secondary");
     g_signal_connect(btn_enroll_fp, "clicked", G_CALLBACK(on_enroll_fp_cb), app);
 
@@ -1444,7 +1437,7 @@ static void build_security_page(AxisSettingsApp *app) {
     gtk_switch_set_active(GTK_SWITCH(app->switch_bio_iris), TRUE);
     gtk_widget_set_halign(app->switch_bio_iris, GTK_ALIGN_START);
 
-    GtkWidget *btn_enroll_iris = gtk_button_new_with_label("👁️ Enroll Iris Scan");
+    GtkWidget *btn_enroll_iris = gtk_button_new_with_label("Enroll Iris Scan");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_enroll_iris), "btn-secondary");
     g_signal_connect(btn_enroll_iris, "clicked", G_CALLBACK(on_enroll_iris_cb), app);
 
@@ -1579,7 +1572,7 @@ static void build_about_page(AxisSettingsApp *app) {
     GtkWidget *title_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     gtk_widget_set_valign(title_box, GTK_ALIGN_CENTER);
     GtkWidget *title_lbl = gtk_label_new(NULL);
-    gtk_label_set_markup(GTK_LABEL(title_lbl), "<span size='x-large' weight='bold'>AxisOS 2.1</span>");
+    gtk_label_set_markup(GTK_LABEL(title_lbl), "<span size='x-large' weight='bold'>AxisOS 2.0</span>");
     gtk_label_set_xalign(GTK_LABEL(title_lbl), 0.0);
     gtk_box_pack_start(GTK_BOX(title_box), title_lbl, FALSE, FALSE, 0);
 
@@ -1591,7 +1584,7 @@ static void build_about_page(AxisSettingsApp *app) {
     gtk_box_pack_start(GTK_BOX(header_box), title_box, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(page), header_box, FALSE, FALSE, 0);
 
-    GtkWidget *card = create_card("System Specifications & Hardware", "AxisOS 2.1 Pure C Edition");
+    GtkWidget *card = create_card("System Specifications & Hardware", "AxisOS 2.0 (Liquid Nodes Edition)");
 
     struct utsname u;
     memset(&u, 0, sizeof(u));
@@ -1693,14 +1686,14 @@ static void build_about_page(AxisSettingsApp *app) {
     }
 
     char *spec_text = g_strdup_printf(
-        "🖥️  Device Model: %s\n"
-        "⚡ Processor: %s (%ld Threads)\n"
-        "🧠 Memory (RAM): %s\n"
-        "🎮 Graphics (GPU): %s\n"
-        "💾 Disk Storage: %s\n"
-        "🐧 Linux Kernel: %s (%s)\n"
-        "✨ Operating System: AxisOS 2.0 (Liquid Nodes Edition)\n"
-        "🪟 Desktop Session: Wayland (axis-compositor / LiquidNodes Pure C)",
+        "Device Model: %s\n"
+        "Processor: %s (%ld Threads)\n"
+        "Memory (RAM): %s\n"
+        "Graphics (GPU): %s\n"
+        "Disk Storage: %s\n"
+        "Linux Kernel: %s (%s)\n"
+        "Operating System: AxisOS 2.1 (Liquid Nodes Edition)\n"
+        "Desktop Session: Wayland (axis-compositor / LiquidNodes Pure C)",
         device_str, cpu_buf, n_threads, mem_buf, gpu, disk_buf,
         u.release[0] ? u.release : "6.12.8-xanmod1",
         u.machine[0] ? u.machine : "x86_64");
@@ -1722,7 +1715,7 @@ static void build_about_page(AxisSettingsApp *app) {
     gtk_label_set_xalign(GTK_LABEL(lbl_up_desc), 0.0);
     gtk_style_context_add_class(gtk_widget_get_style_context(lbl_up_desc), "card-subtitle");
 
-    GtkWidget *btn_check_up = gtk_button_new_with_label("🔍 Check for Updates");
+    GtkWidget *btn_check_up = gtk_button_new_with_label("Check for Updates");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_check_up), "btn-secondary");
     g_signal_connect(btn_check_up, "clicked", G_CALLBACK(on_goto_updates_cb), app);
 
@@ -1772,7 +1765,7 @@ static void build_about_page(AxisSettingsApp *app) {
     gtk_label_set_xalign(GTK_LABEL(lbl_ed_desc), 0.0);
     gtk_style_context_add_class(gtk_widget_get_style_context(lbl_ed_desc), "card-subtitle");
 
-    GtkWidget *btn_switch_ed = gtk_button_new_with_label("🔄 Switch OS Edition...");
+    GtkWidget *btn_switch_ed = gtk_button_new_with_label("Switch OS Edition...");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_switch_ed), "btn-primary");
     g_signal_connect(btn_switch_ed, "clicked", G_CALLBACK(on_switch_edition_cb), app);
 
@@ -1822,15 +1815,8 @@ static AxisSettingsApp *axis_settings_app_create(void) {
     gtk_window_set_default_size(GTK_WINDOW(app->window), 960, 640);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
-    // Apply dark CSS
-    GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(provider, CSS_THEME, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-    );
-    g_object_unref(provider);
+    // Apply system theme
+    load_axis_theme();
 
     // Headerbar
     GtkWidget *hb = gtk_header_bar_new();
@@ -1862,13 +1848,13 @@ static AxisSettingsApp *axis_settings_app_create(void) {
         {"Gaming Boost & Performance", "game_boost"},
         {"Brightness & Sound", "audio_display"},
         {"Wi-Fi & Network", "network"},
-        {"Bluetooth & Wireless", "bluetooth"},
+        {"Bluetooth", "bluetooth"},
         {"USB & Connected Devices", "usb"},
         {"Appearance & Taskbar", "appearance"},
         {"Software & Updates", "updates"},
         {"Date, Time & Location", "datetime"},
         {"Accounts & Security", "security"},
-        {"About AxisOS 2.1", "about"}
+        {"About AxisOS", "about"}
     };
 
     for (size_t i = 0; i < sizeof(pages) / sizeof(pages[0]); i++) {
@@ -1890,7 +1876,7 @@ static AxisSettingsApp *axis_settings_app_create(void) {
     // Content Stack
     app->stack = gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
-    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 150);
+    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
 
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);

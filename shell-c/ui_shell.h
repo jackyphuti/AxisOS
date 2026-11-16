@@ -31,18 +31,35 @@ typedef struct {
     GtkWidget *topbar_bat_label;
     GtkWidget *topbar_net_label;
     GtkWidget *topbar_vol_label;
+    GtkWidget *topbar_net_icon;
+    GtkWidget *topbar_vol_icon;
+    GtkWidget *topbar_bat_icon;
+    GtkWidget *topbar_cpu_icon;
+    GtkWidget *workspace_btns[4];
 
     // Launcher Widgets
+    GtkWidget *launcher_revealer;
     GtkWidget *launcher_search_entry;
+    GtkWidget *launcher_filter_box;
     GtkWidget *launcher_flowbox;
     char *launcher_active_filter;
 
     // Quick Settings Widgets
+    GtkWidget *qs_revealer;
     GtkWidget *qs_vol_scale;
     GtkWidget *qs_bright_scale;
     GtkWidget *qs_wifi_switch;
     GtkWidget *qs_bt_switch;
     GtkWidget *qs_dark_switch;
+    GtkWidget *qs_tile_wifi;
+    GtkWidget *qs_sub_wifi;
+    GtkWidget *qs_tile_bt;
+    GtkWidget *qs_sub_bt;
+    GtkWidget *qs_tile_dark;
+    GtkWidget *qs_sub_dark;
+    GtkWidget *qs_tile_game;
+    GtkWidget *qs_sub_game;
+    gboolean gameboost_active;
 
     // OSD Widgets
     GtkWidget *osd_icon;
@@ -56,6 +73,8 @@ typedef struct {
     guint notif_timeout_id;
 
     // Greeter Widgets
+    GtkWidget *greeter_clock_label;
+    GtkWidget *greeter_date_label;
     GtkWidget *greeter_pass_entry;
     GtkWidget *greeter_status_label;
     GtkWidget *greeter_spinner;
@@ -66,6 +85,8 @@ typedef struct {
 
 UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboolean greeter_mode);
 void ui_shell_destroy(UiShell *shell);
+
+void ui_shell_apply_theme(gboolean dark_mode);
 
 void ui_shell_toggle_launcher(UiShell *shell);
 void ui_shell_toggle_quicksettings(UiShell *shell);

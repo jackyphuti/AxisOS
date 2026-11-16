@@ -35,46 +35,99 @@ static char *exec_cmd(const char *cmd) {
 }
 
 static const char *CSS_OOBE =
-    "window {"
-    "    background-color: #141826;"
-    "    color: #F8FAFC;"
-    "}"
-    "headerbar {"
-    "    background: #1A1D2B;"
-    "    border-bottom: 1px solid #2E3349;"
-    "    color: #FFFFFF;"
-    "}"
     ".card {"
-    "    background: #1F2231;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 12px;"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 16px;"
     "    padding: 20px;"
     "    margin: 8px 16px;"
     "}"
     ".btn-primary {"
-    "    background: #7D95FF;"
-    "    color: #141826;"
+    "    background: @axis_accent;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-weight: 700;"
-    "    border-radius: 8px;"
-    "    border: 1px solid #7D95FF;"
+    "    border-radius: 9999px;"
+    "    border: 1px solid @axis_accent;"
     "    padding: 10px 24px;"
     "}"
     ".btn-primary:hover {"
-    "    background: #6B82F0;"
+    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
     "}"
     ".btn-secondary {"
-    "    background: #262A3D;"
-    "    color: #F8FAFC;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 8px;"
+    "    background: @axis_surface;"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 9999px;"
     "    padding: 8px 18px;"
     "    font-weight: 600;"
     "}"
     ".btn-secondary:hover {"
-    "    background: #2E3349;"
-    "    border-color: #7D95FF;"
-    "    color: #FFFFFF;"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_accent;"
     "}";
+
+static void load_axis_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+
+    gboolean dark_mode = TRUE;
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_path[512];
+        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
+        FILE *f = fopen(conf_path, "r");
+        if (f) {
+            char buf[128];
+            if (fgets(buf, sizeof(buf), f)) {
+                if (strstr(buf, "light") || strstr(buf, "Light")) {
+                    dark_mode = FALSE;
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
+    const char *light_paths[] = {
+        "data/theme/axis-light.css",
+        "/usr/share/axisos/theme/axis-light.css",
+        "/usr/local/share/axisos/theme/axis-light.css",
+        NULL
+    };
+
+    const char **paths = dark_mode ? dark_paths : light_paths;
+    GtkCssProvider *provider = gtk_css_provider_new();
+    for (int i = 0; paths[i] != NULL; ++i) {
+        if (access(paths[i], R_OK) == 0) {
+            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
+                gtk_style_context_add_provider_for_screen(
+                    screen,
+                    GTK_STYLE_PROVIDER(provider),
+                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+                break;
+            }
+        }
+    }
+    g_object_unref(provider);
+
+    GtkCssProvider *extra_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra_prov, CSS_OOBE, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+    );
+    g_object_unref(extra_prov);
+}
 
 static char *check_network(void) {
     char *ping = exec_cmd("ping -c 1 -W 2 1.1.1.1 2>/dev/null && echo 'CONNECTED' || echo 'OFFLINE'");
@@ -248,15 +301,8 @@ static AxisOobeApp *axis_oobe_app_create(void) {
     gtk_window_set_default_size(GTK_WINDOW(app->window), 780, 520);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
-    // Apply CSS
-    GtkCssProvider *prov = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(prov, CSS_OOBE, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(prov),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-    );
-    g_object_unref(prov);
+    // Apply system theme
+    load_axis_theme();
 
     // Headerbar
     GtkWidget *hb = gtk_header_bar_new();
@@ -265,7 +311,8 @@ static AxisOobeApp *axis_oobe_app_create(void) {
     gtk_window_set_titlebar(GTK_WINDOW(app->window), hb);
 
     app->stack = gtk_stack_new();
-    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
+    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
+    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
     gtk_container_add(GTK_CONTAINER(app->window), app->stack);
 
     build_welcome_step(app);
