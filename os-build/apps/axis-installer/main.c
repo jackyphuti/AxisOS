@@ -211,32 +211,91 @@ typedef struct {
 static const LangEntry LANGUAGES[] = {
     {"English (United States)", "en_US.UTF-8"},
     {"English (United Kingdom)", "en_GB.UTF-8"},
+    {"English (South Africa)", "en_ZA.UTF-8"},
     {"English (Canada)", "en_CA.UTF-8"},
     {"English (Australia)", "en_AU.UTF-8"},
-    {"English (South Africa)", "en_ZA.UTF-8"},
+    {"English (Ireland)", "en_IE.UTF-8"},
+    {"English (New Zealand)", "en_NZ.UTF-8"},
+    {"English (India)", "en_IN.UTF-8"},
+    {"English (Singapore)", "en_SG.UTF-8"},
     {"Spanish - Español (España)", "es_ES.UTF-8"},
     {"Spanish - Español (México)", "es_MX.UTF-8"},
     {"Spanish - Español (Argentina)", "es_AR.UTF-8"},
+    {"Spanish - Español (Colombia)", "es_CO.UTF-8"},
+    {"Spanish - Español (Chile)", "es_CL.UTF-8"},
+    {"Spanish - Español (Perú)", "es_PE.UTF-8"},
+    {"Spanish - Español (Venezuela)", "es_VE.UTF-8"},
+    {"Spanish - Español (Estados Unidos)", "es_US.UTF-8"},
     {"French - Français (France)", "fr_FR.UTF-8"},
     {"French - Français (Canada)", "fr_CA.UTF-8"},
+    {"French - Français (Belgique)", "fr_BE.UTF-8"},
+    {"French - Français (Suisse)", "fr_CH.UTF-8"},
+    {"French - Français (Sénégal)", "fr_SN.UTF-8"},
     {"German - Deutsch (Deutschland)", "de_DE.UTF-8"},
-    {"Italian - Italiano (Italia)", "it_IT.UTF-8"},
+    {"German - Deutsch (Österreich)", "de_AT.UTF-8"},
+    {"German - Deutsch (Schweiz)", "de_CH.UTF-8"},
     {"Portuguese - Português (Brasil)", "pt_BR.UTF-8"},
     {"Portuguese - Português (Portugal)", "pt_PT.UTF-8"},
+    {"Portuguese - Português (Angola)", "pt_AO.UTF-8"},
+    {"Portuguese - Português (Moçambique)", "pt_MZ.UTF-8"},
+    {"Italian - Italiano (Italia)", "it_IT.UTF-8"},
+    {"Italian - Italiano (Svizzera)", "it_CH.UTF-8"},
     {"Russian - Русский (Россия)", "ru_RU.UTF-8"},
-    {"Japanese - 日本語 (日本)", "ja_JP.UTF-8"},
+    {"Russian - Русский (Беларусь)", "ru_BY.UTF-8"},
+    {"Russian - Русский (Казахстан)", "ru_KZ.UTF-8"},
+    {"Ukrainian - Українська (Україна)", "uk_UA.UTF-8"},
+    {"Polish - Polski (Polska)", "pl_PL.UTF-8"},
+    {"Czech - Čeština (Česko)", "cs_CZ.UTF-8"},
+    {"Slovak - Slovenčina (Slovensko)", "sk_SK.UTF-8"},
+    {"Hungarian - Magyar (Magyarország)", "hu_HU.UTF-8"},
+    {"Romanian - Română (România)", "ro_RO.UTF-8"},
+    {"Bulgarian - Български (България)", "bg_BG.UTF-8"},
+    {"Croatian - Hrvatski (Hrvatska)", "hr_HR.UTF-8"},
+    {"Serbian - Српски (Србија)", "sr_RS.UTF-8"},
+    {"Slovenian - Slovenščina (Slovenija)", "sl_SI.UTF-8"},
     {"Chinese Simplified - 简体中文 (中国)", "zh_CN.UTF-8"},
     {"Chinese Traditional - 繁體中文 (台灣)", "zh_TW.UTF-8"},
+    {"Chinese Traditional - 繁體中文 (香港)", "zh_HK.UTF-8"},
+    {"Japanese - 日本語 (日本)", "ja_JP.UTF-8"},
     {"Korean - 한국어 (대한민국)", "ko_KR.UTF-8"},
-    {"Arabic - العربية (العالم العربي)", "ar_AE.UTF-8"},
     {"Hindi - हिन्दी (भारत)", "hi_IN.UTF-8"},
-    {"Dutch - Nederlands (Nederland)", "nl_NL.UTF-8"},
-    {"Polish - Polski (Polska)", "pl_PL.UTF-8"},
-    {"Swedish - Svenska (Sverige)", "sv_SE.UTF-8"},
-    {"Turkish - Türkçe (Türkiye)", "tr_TR.UTF-8"},
-    {"Ukrainian - Українська (Україна)", "uk_UA.UTF-8"},
+    {"Bengali - বাংলা (বাংলাদেশ / ভারত)", "bn_BD.UTF-8"},
     {"Indonesian - Bahasa Indonesia", "id_ID.UTF-8"},
-    {"Vietnamese - Tiếng Việt", "vi_VN.UTF-8"}
+    {"Vietnamese - Tiếng Việt", "vi_VN.UTF-8"},
+    {"Thai - ไทย (ประเทศไทย)", "th_TH.UTF-8"},
+    {"Filipino - Tagalog (Pilipinas)", "tl_PH.UTF-8"},
+    {"Malay - Bahasa Melayu (Malaysia)", "ms_MY.UTF-8"},
+    {"Tamil - தமிழ் (இந்தியா)", "ta_IN.UTF-8"},
+    {"Telugu - తెలుగు (భారతదేశం)", "te_IN.UTF-8"},
+    {"Urdu - اردو (پاکستان)", "ur_PK.UTF-8"},
+    {"Arabic - العربية (مصر)", "ar_EG.UTF-8"},
+    {"Arabic - العربية (السعودية)", "ar_SA.UTF-8"},
+    {"Arabic - العربية (الإمارات)", "ar_AE.UTF-8"},
+    {"Arabic - العربية (المغرب)", "ar_MA.UTF-8"},
+    {"Arabic - العربية (الجزائر)", "ar_DZ.UTF-8"},
+    {"Arabic - العربية (العراق)", "ar_IQ.UTF-8"},
+    {"Hebrew - עברית (ישראל)", "he_IL.UTF-8"},
+    {"Persian - فارسی (ایران)", "fa_IR.UTF-8"},
+    {"Turkish - Türkçe (Türkiye)", "tr_TR.UTF-8"},
+    {"Dutch - Nederlands (Nederland)", "nl_NL.UTF-8"},
+    {"Dutch - Nederlands (België)", "nl_BE.UTF-8"},
+    {"Swedish - Svenska (Sverige)", "sv_SE.UTF-8"},
+    {"Danish - Dansk (Danmark)", "da_DK.UTF-8"},
+    {"Finnish - Suomi (Suomi)", "fi_FI.UTF-8"},
+    {"Norwegian - Norsk Bokmål (Norge)", "nb_NO.UTF-8"},
+    {"Greek - Ελληνικά (Ελλάδα)", "el_GR.UTF-8"},
+    {"Afrikaans (Suid-Afrika)", "af_ZA.UTF-8"},
+    {"isiZulu (iNingizimu Afrika)", "zu_ZA.UTF-8"},
+    {"isiXhosa (uMzantsi Afrika)", "xh_ZA.UTF-8"},
+    {"Sesotho (Afrika Borwa)", "st_ZA.UTF-8"},
+    {"Setswana (Aforika Borwa)", "tn_ZA.UTF-8"},
+    {"Sepedi / Northern Sotho (Afrika Borwa)", "nso_ZA.UTF-8"},
+    {"Xitsonga (Afrika Dzonga)", "ts_ZA.UTF-8"},
+    {"siSwati (iNingizimu Afrika)", "ss_ZA.UTF-8"},
+    {"Tshivenḓa (Afurika Tshipembe)", "ve_ZA.UTF-8"},
+    {"isiNdebele (iNingizimu Afrika)", "nr_ZA.UTF-8"},
+    {"Swahili - Kiswahili (Kenya / Tanzania)", "sw_KE.UTF-8"},
+    {"Amharic - አማርኛ (ኢትዮጵያ)", "am_ET.UTF-8"},
 };
 
 typedef struct {
@@ -245,42 +304,217 @@ typedef struct {
 } TzEntry;
 
 static const TzEntry TIMEZONES[] = {
-    {"New York / Eastern Time (UTC-5)", "America/New_York"},
-    {"Chicago / Central Time (UTC-6)", "America/Chicago"},
-    {"Denver / Mountain Time (UTC-7)", "America/Denver"},
-    {"Los Angeles / Pacific Time (UTC-8)", "America/Los_Angeles"},
-    {"Anchorage / Alaska Time (UTC-9)", "America/Anchorage"},
-    {"Honolulu / Hawaii Time (UTC-10)", "Pacific/Honolulu"},
-    {"Toronto / Eastern Time (Canada)", "America/Toronto"},
-    {"Vancouver / Pacific Time (Canada)", "America/Vancouver"},
-    {"Mexico City (Mexico)", "America/Mexico_City"},
-    {"São Paulo (Brazil)", "America/Sao_Paulo"},
-    {"Buenos Aires (Argentina)", "America/Buenos_Aires"},
-    {"London (United Kingdom / GMT)", "Europe/London"},
-    {"Paris (France / CET)", "Europe/Paris"},
-    {"Berlin (Germany / CET)", "Europe/Berlin"},
-    {"Rome (Italy / CET)", "Europe/Rome"},
-    {"Madrid (Spain / CET)", "Europe/Madrid"},
-    {"Amsterdam (Netherlands / CET)", "Europe/Amsterdam"},
-    {"Warsaw (Poland / CET)", "Europe/Warsaw"},
-    {"Stockholm (Sweden / CET)", "Europe/Stockholm"},
-    {"Kyiv (Ukraine / EET)", "Europe/Kyiv"},
-    {"Moscow (Russia / MSK)", "Europe/Moscow"},
-    {"Dubai (UAE / GST)", "Asia/Dubai"},
-    {"Mumbai / Kolkata (India / IST)", "Asia/Kolkata"},
-    {"Singapore (Singapore / SGT)", "Asia/Singapore"},
-    {"Hong Kong (Hong Kong / HKT)", "Asia/Hong_Kong"},
-    {"Beijing / Shanghai (China / CST)", "Asia/Shanghai"},
-    {"Tokyo (Japan / JST)", "Asia/Tokyo"},
-    {"Seoul (South Korea / KST)", "Asia/Seoul"},
-    {"Jakarta / Bangkok (SE Asia / ICT)", "Asia/Jakarta"},
-    {"Sydney (Australia / AEST)", "Australia/Sydney"},
-    {"Melbourne (Australia / AEST)", "Australia/Melbourne"},
-    {"Perth (Western Australia / AWST)", "Australia/Perth"},
-    {"Auckland (New Zealand / NZST)", "Pacific/Auckland"},
-    {"Johannesburg (South Africa / SAST)", "Africa/Johannesburg"},
-    {"Cairo (Egypt / EET)", "Africa/Cairo"},
-    {"UTC (Coordinated Universal Time)", "UTC"}
+    {"UTC / GMT (Coordinated Universal Time)", "UTC"},
+    {"Abidjan (Ivory Coast / UTC+0)", "Africa/Abidjan"},
+    {"Accra (Ghana / UTC+0)", "Africa/Accra"},
+    {"Addis Ababa (Ethiopia / EAT UTC+3)", "Africa/Addis_Ababa"},
+    {"Algiers (Algeria / CET UTC+1)", "Africa/Algiers"},
+    {"Asmara (Eritrea / EAT UTC+3)", "Africa/Asmara"},
+    {"Bamako (Mali / UTC+0)", "Africa/Bamako"},
+    {"Bangui (Central African Rep. / WAT UTC+1)", "Africa/Bangui"},
+    {"Banjul (Gambia / UTC+0)", "Africa/Banjul"},
+    {"Bissau (Guinea-Bissau / UTC+0)", "Africa/Bissau"},
+    {"Blantyre (Malawi / CAT UTC+2)", "Africa/Blantyre"},
+    {"Brazzaville (Congo / WAT UTC+1)", "Africa/Brazzaville"},
+    {"Bujumbura (Burundi / CAT UTC+2)", "Africa/Bujumbura"},
+    {"Cairo (Egypt / EET UTC+2)", "Africa/Cairo"},
+    {"Casablanca (Morocco / WET UTC+1)", "Africa/Casablanca"},
+    {"Ceuta (Ceuta / CET UTC+1)", "Africa/Ceuta"},
+    {"Conakry (Guinea / UTC+0)", "Africa/Conakry"},
+    {"Dakar (Senegal / UTC+0)", "Africa/Dakar"},
+    {"Dar es Salaam (Tanzania / EAT UTC+3)", "Africa/Dar_es_Salaam"},
+    {"Djibouti (Djibouti / EAT UTC+3)", "Africa/Djibouti"},
+    {"Douala (Cameroon / WAT UTC+1)", "Africa/Douala"},
+    {"El Aaiun (Western Sahara / UTC+1)", "Africa/El_Aaiun"},
+    {"Freetown (Sierra Leone / UTC+0)", "Africa/Freetown"},
+    {"Gaborone (Botswana / CAT UTC+2)", "Africa/Gaborone"},
+    {"Harare (Zimbabwe / CAT UTC+2)", "Africa/Harare"},
+    {"Johannesburg / Pretoria (South Africa / SAST UTC+2)", "Africa/Johannesburg"},
+    {"Juba (South Sudan / CAT UTC+2)", "Africa/Juba"},
+    {"Kampala (Uganda / EAT UTC+3)", "Africa/Kampala"},
+    {"Khartoum (Sudan / CAT UTC+2)", "Africa/Khartoum"},
+    {"Kigali (Rwanda / CAT UTC+2)", "Africa/Kigali"},
+    {"Kinshasa (DR Congo West / WAT UTC+1)", "Africa/Kinshasa"},
+    {"Lagos (Nigeria / WAT UTC+1)", "Africa/Lagos"},
+    {"Libreville (Gabon / WAT UTC+1)", "Africa/Libreville"},
+    {"Lome (Togo / UTC+0)", "Africa/Lome"},
+    {"Luanda (Angola / WAT UTC+1)", "Africa/Luanda"},
+    {"Lubumbashi (DR Congo East / CAT UTC+2)", "Africa/Lubumbashi"},
+    {"Lusaka (Zambia / CAT UTC+2)", "Africa/Lusaka"},
+    {"Malabo (Equatorial Guinea / WAT UTC+1)", "Africa/Malabo"},
+    {"Maputo (Mozambique / CAT UTC+2)", "Africa/Maputo"},
+    {"Maseru (Lesotho / SAST UTC+2)", "Africa/Maseru"},
+    {"Mbabane (Eswatini / SAST UTC+2)", "Africa/Mbabane"},
+    {"Mogadishu (Somalia / EAT UTC+3)", "Africa/Mogadishu"},
+    {"Monrovia (Liberia / UTC+0)", "Africa/Monrovia"},
+    {"Nairobi (Kenya / EAT UTC+3)", "Africa/Nairobi"},
+    {"Ndjamena (Chad / WAT UTC+1)", "Africa/Ndjamena"},
+    {"Niamey (Niger / WAT UTC+1)", "Africa/Niamey"},
+    {"Nouakchott (Mauritania / UTC+0)", "Africa/Nouakchott"},
+    {"Ouagadougou (Burkina Faso / UTC+0)", "Africa/Ouagadougou"},
+    {"Porto-Novo (Benin / WAT UTC+1)", "Africa/Porto-Novo"},
+    {"Sao Tome (Sao Tome & Principe / UTC+0)", "Africa/Sao_Tome"},
+    {"Tripoli (Libya / EET UTC+2)", "Africa/Tripoli"},
+    {"Tunis (Tunisia / CET UTC+1)", "Africa/Tunis"},
+    {"Windhoek (Namibia / CAT UTC+2)", "Africa/Windhoek"},
+    {"New York / Eastern Time (USA / UTC-5)", "America/New_York"},
+    {"Chicago / Central Time (USA / UTC-6)", "America/Chicago"},
+    {"Denver / Mountain Time (USA / UTC-7)", "America/Denver"},
+    {"Los Angeles / Pacific Time (USA / UTC-8)", "America/Los_Angeles"},
+    {"Anchorage / Alaska Time (USA / UTC-9)", "America/Anchorage"},
+    {"Honolulu / Hawaii Time (USA / UTC-10)", "Pacific/Honolulu"},
+    {"Phoenix / Mountain Standard (USA / UTC-7)", "America/Phoenix"},
+    {"Detroit / Eastern Time (USA / UTC-5)", "America/Detroit"},
+    {"Indianapolis / Eastern (USA / UTC-5)", "America/Indiana/Indianapolis"},
+    {"Toronto / Eastern Time (Canada / UTC-5)", "America/Toronto"},
+    {"Montreal / Eastern Time (Canada / UTC-5)", "America/Montreal"},
+    {"Vancouver / Pacific Time (Canada / UTC-8)", "America/Vancouver"},
+    {"Edmonton / Mountain Time (Canada / UTC-7)", "America/Edmonton"},
+    {"Winnipeg / Central Time (Canada / UTC-6)", "America/Winnipeg"},
+    {"Halifax / Atlantic Time (Canada / UTC-4)", "America/Halifax"},
+    {"St. John's / Newfoundland (Canada / UTC-3:30)", "America/St_Johns"},
+    {"Mexico City / Central Time (Mexico / UTC-6)", "America/Mexico_City"},
+    {"Cancun / Eastern Time (Mexico / UTC-5)", "America/Cancun"},
+    {"Monterrey / Central Time (Mexico / UTC-6)", "America/Monterrey"},
+    {"Tijuana / Pacific Time (Mexico / UTC-8)", "America/Tijuana"},
+    {"Belize (Belize / UTC-6)", "America/Belize"},
+    {"Costa Rica / San Jose (UTC-6)", "America/Costa_Rica"},
+    {"El Salvador / San Salvador (UTC-6)", "America/El_Salvador"},
+    {"Guatemala / Guatemala City (UTC-6)", "America/Guatemala"},
+    {"Havana (Cuba / UTC-5)", "America/Havana"},
+    {"Jamaica / Kingston (UTC-5)", "America/Jamaica"},
+    {"Nicaragua / Managua (UTC-6)", "America/Managua"},
+    {"Panama / Panama City (UTC-5)", "America/Panama"},
+    {"Puerto Rico / San Juan (UTC-4)", "America/Puerto_Rico"},
+    {"Santo Domingo (Dominican Rep. / UTC-4)", "America/Santo_Domingo"},
+    {"Tegucigalpa (Honduras / UTC-6)", "America/Tegucigalpa"},
+    {"Asuncion (Paraguay / UTC-4)", "America/Asuncion"},
+    {"Bogota (Colombia / UTC-5)", "America/Bogota"},
+    {"Buenos Aires (Argentina / UTC-3)", "America/Argentina/Buenos_Aires"},
+    {"Caracas (Venezuela / UTC-4)", "America/Caracas"},
+    {"Cayenne (French Guiana / UTC-3)", "America/Cayenne"},
+    {"Georgetown (Guyana / UTC-4)", "America/Guyana"},
+    {"Guayaquil (Ecuador / UTC-5)", "America/Guayaquil"},
+    {"La Paz (Bolivia / UTC-4)", "America/La_Paz"},
+    {"Lima (Peru / UTC-5)", "America/Lima"},
+    {"Montevideo (Uruguay / UTC-3)", "America/Montevideo"},
+    {"Paramaribo (Suriname / UTC-3)", "America/Paramaribo"},
+    {"Santiago (Chile / UTC-4)", "America/Santiago"},
+    {"Sao Paulo (Brazil / UTC-3)", "America/Sao_Paulo"},
+    {"Rio de Janeiro (Brazil / UTC-3)", "America/Sao_Paulo"},
+    {"Recife (Brazil / UTC-3)", "America/Recife"},
+    {"Manaus (Brazil / UTC-4)", "America/Manaus"},
+    {"Almaty / Astana (Kazakhstan / UTC+5)", "Asia/Almaty"},
+    {"Amman (Jordan / UTC+3)", "Asia/Amman"},
+    {"Baghdad (Iraq / UTC+3)", "Asia/Baghdad"},
+    {"Baku (Azerbaijan / UTC+4)", "Asia/Baku"},
+    {"Bangkok (Thailand / ICT UTC+7)", "Asia/Bangkok"},
+    {"Beijing / Shanghai (China / CST UTC+8)", "Asia/Shanghai"},
+    {"Beirut (Lebanon / UTC+2)", "Asia/Beirut"},
+    {"Bishkek (Kyrgyzstan / UTC+6)", "Asia/Bishkek"},
+    {"Colombo (Sri Lanka / IST UTC+5:30)", "Asia/Colombo"},
+    {"Damascus (Syria / UTC+3)", "Asia/Damascus"},
+    {"Dhaka (Bangladesh / BST UTC+6)", "Asia/Dhaka"},
+    {"Dili (East Timor / UTC+9)", "Asia/Dili"},
+    {"Dubai / Abu Dhabi (UAE / GST UTC+4)", "Asia/Dubai"},
+    {"Dushanbe (Tajikistan / UTC+5)", "Asia/Dushanbe"},
+    {"Ho Chi Minh / Hanoi (Vietnam / ICT UTC+7)", "Asia/Ho_Chi_Minh"},
+    {"Hong Kong (Hong Kong / HKT UTC+8)", "Asia/Hong_Kong"},
+    {"Jakarta (Indonesia / WIB UTC+7)", "Asia/Jakarta"},
+    {"Jayapura (Indonesia / WIT UTC+9)", "Asia/Jayapura"},
+    {"Jerusalem (Israel / IST UTC+2)", "Asia/Jerusalem"},
+    {"Kabul (Afghanistan / UTC+4:30)", "Asia/Kabul"},
+    {"Karachi / Islamabad (Pakistan / PKT UTC+5)", "Asia/Karachi"},
+    {"Kathmandu (Nepal / NPT UTC+5:45)", "Asia/Kathmandu"},
+    {"Kolkata / Mumbai / Delhi (India / IST UTC+5:30)", "Asia/Kolkata"},
+    {"Kuala Lumpur (Malaysia / MYT UTC+8)", "Asia/Kuala_Lumpur"},
+    {"Kuwait (Kuwait / UTC+3)", "Asia/Kuwait"},
+    {"Macau (Macau / UTC+8)", "Asia/Macau"},
+    {"Makassar (Indonesia / WITA UTC+8)", "Asia/Makassar"},
+    {"Manila (Philippines / PHT UTC+8)", "Asia/Manila"},
+    {"Muscat (Oman / GST UTC+4)", "Asia/Muscat"},
+    {"Nicosia (Cyprus / EET UTC+2)", "Asia/Nicosia"},
+    {"Phnom Penh (Cambodia / ICT UTC+7)", "Asia/Phnom_Penh"},
+    {"Pyongyang (North Korea / KST UTC+9)", "Asia/Pyongyang"},
+    {"Qatar / Doha (Qatar / UTC+3)", "Asia/Qatar"},
+    {"Riyadh (Saudi Arabia / AST UTC+3)", "Asia/Riyadh"},
+    {"Seoul (South Korea / KST UTC+9)", "Asia/Seoul"},
+    {"Singapore (Singapore / SGT UTC+8)", "Asia/Singapore"},
+    {"Taipei (Taiwan / CST UTC+8)", "Asia/Taipei"},
+    {"Tashkent (Uzbekistan / UZT UTC+5)", "Asia/Tashkent"},
+    {"Tbilisi (Georgia / UTC+4)", "Asia/Tbilisi"},
+    {"Tehran (Iran / IRST UTC+3:30)", "Asia/Tehran"},
+    {"Thimphu (Bhutan / UTC+6)", "Asia/Thimphu"},
+    {"Tokyo (Japan / JST UTC+9)", "Asia/Tokyo"},
+    {"Ulaanbaatar (Mongolia / UTC+8)", "Asia/Ulaanbaatar"},
+    {"Vientiane (Laos / ICT UTC+7)", "Asia/Vientiane"},
+    {"Yangon (Myanmar / MMT UTC+6:30)", "Asia/Yangon"},
+    {"Yerevan (Armenia / UTC+4)", "Asia/Yerevan"},
+    {"Amsterdam (Netherlands / CET UTC+1)", "Europe/Amsterdam"},
+    {"Andorra (Andorra / CET UTC+1)", "Europe/Andorra"},
+    {"Athens (Greece / EET UTC+2)", "Europe/Athens"},
+    {"Belgrade (Serbia / CET UTC+1)", "Europe/Belgrade"},
+    {"Berlin (Germany / CET UTC+1)", "Europe/Berlin"},
+    {"Bratislava (Slovakia / CET UTC+1)", "Europe/Bratislava"},
+    {"Brussels (Belgium / CET UTC+1)", "Europe/Brussels"},
+    {"Bucharest (Romania / EET UTC+2)", "Europe/Bucharest"},
+    {"Budapest (Hungary / CET UTC+1)", "Europe/Budapest"},
+    {"Chisinau (Moldova / EET UTC+2)", "Europe/Chisinau"},
+    {"Copenhagen (Denmark / CET UTC+1)", "Europe/Copenhagen"},
+    {"Dublin (Ireland / GMT UTC+0)", "Europe/Dublin"},
+    {"Gibraltar (Gibraltar / CET UTC+1)", "Europe/Gibraltar"},
+    {"Helsinki (Finland / EET UTC+2)", "Europe/Helsinki"},
+    {"Istanbul (Turkey / TRT UTC+3)", "Europe/Istanbul"},
+    {"Kyiv (Ukraine / EET UTC+2)", "Europe/Kyiv"},
+    {"Lisbon (Portugal / WET UTC+0)", "Europe/Lisbon"},
+    {"Ljubljana (Slovenia / CET UTC+1)", "Europe/Ljubljana"},
+    {"London (United Kingdom / GMT UTC+0)", "Europe/London"},
+    {"Luxembourg (Luxembourg / CET UTC+1)", "Europe/Luxembourg"},
+    {"Madrid (Spain / CET UTC+1)", "Europe/Madrid"},
+    {"Malta (Malta / CET UTC+1)", "Europe/Malta"},
+    {"Minsk (Belarus / MSK UTC+3)", "Europe/Minsk"},
+    {"Monaco (Monaco / CET UTC+1)", "Europe/Monaco"},
+    {"Moscow (Russia / MSK UTC+3)", "Europe/Moscow"},
+    {"Oslo (Norway / CET UTC+1)", "Europe/Oslo"},
+    {"Paris (France / CET UTC+1)", "Europe/Paris"},
+    {"Prague (Czech Republic / CET UTC+1)", "Europe/Prague"},
+    {"Reykjavik (Iceland / GMT UTC+0)", "Atlantic/Reykjavik"},
+    {"Riga (Latvia / EET UTC+2)", "Europe/Riga"},
+    {"Rome (Italy / CET UTC+1)", "Europe/Rome"},
+    {"Samara (Russia / SAMT UTC+4)", "Europe/Samara"},
+    {"Sarajevo (Bosnia / CET UTC+1)", "Europe/Sarajevo"},
+    {"Skopje (North Macedonia / CET UTC+1)", "Europe/Skopje"},
+    {"Sofia (Bulgaria / EET UTC+2)", "Europe/Sofia"},
+    {"Stockholm (Sweden / CET UTC+1)", "Europe/Stockholm"},
+    {"Tallinn (Estonia / EET UTC+2)", "Europe/Tallinn"},
+    {"Tirane (Albania / CET UTC+1)", "Europe/Tirane"},
+    {"Vienna (Austria / CET UTC+1)", "Europe/Vienna"},
+    {"Vilnius (Lithuania / EET UTC+2)", "Europe/Vilnius"},
+    {"Warsaw (Poland / CET UTC+1)", "Europe/Warsaw"},
+    {"Zagreb (Croatia / CET UTC+1)", "Europe/Zagreb"},
+    {"Zurich (Switzerland / CET UTC+1)", "Europe/Zurich"},
+    {"Adelaide (South Australia / ACST UTC+9:30)", "Australia/Adelaide"},
+    {"Auckland / Wellington (New Zealand / NZST UTC+12)", "Pacific/Auckland"},
+    {"Brisbane (Queensland / AEST UTC+10)", "Australia/Brisbane"},
+    {"Darwin (Northern Territory / ACST UTC+9:30)", "Australia/Darwin"},
+    {"Fiji / Suva (Fiji / UTC+12)", "Pacific/Fiji"},
+    {"Guam (Guam / ChST UTC+10)", "Pacific/Guam"},
+    {"Hobart (Tasmania / AEST UTC+10)", "Australia/Hobart"},
+    {"Melbourne (Victoria / AEST UTC+10)", "Australia/Melbourne"},
+    {"Perth (Western Australia / AWST UTC+8)", "Australia/Perth"},
+    {"Port Moresby (Papua New Guinea / UTC+10)", "Pacific/Port_Moresby"},
+    {"Samoa / Apia (Samoa / UTC+13)", "Pacific/Apia"},
+    {"Sydney / Canberra (Australia / AEST UTC+10)", "Australia/Sydney"},
+    {"Tahiti / Papeete (French Polynesia / UTC-10)", "Pacific/Tahiti"},
+    {"Azores (Portugal / UTC-1)", "Atlantic/Azores"},
+    {"Bermuda (United Kingdom / UTC-4)", "Atlantic/Bermuda"},
+    {"Canary Islands (Spain / WET UTC+0)", "Atlantic/Canary"},
+    {"Cape Verde (Cape Verde / UTC-1)", "Atlantic/Cape_Verde"},
+    {"Madeira (Portugal / WET UTC+0)", "Atlantic/Madeira"},
+    {"Maldives (Maldives / UTC+5)", "Indian/Maldives"},
+    {"Mauritius (Mauritius / UTC+4)", "Indian/Mauritius"},
+    {"Reunion (France / UTC+4)", "Indian/Reunion"},
+    {"Seychelles (Seychelles / UTC+4)", "Indian/Mahe"},
 };
 
 typedef struct {
@@ -346,6 +580,17 @@ typedef struct {
     GtkWidget *combo_time;
     GtkWidget *combo_keyboard;
     GtkWidget *entry_keytest;
+    GtkWidget *search_lang;
+    GtkWidget *search_tz;
+    GtkWidget *tree_lang;
+    GtkWidget *tree_tz;
+    GtkListStore *store_lang;
+    GtkListStore *store_tz;
+    GtkTreeModelFilter *filter_lang;
+    GtkTreeModelFilter *filter_tz;
+    char *lang_search_query;
+    char *tz_search_query;
+    GtkWidget *lbl_locale_badge;
 
     // Step 1: Edition Selection
     GtkWidget *card_edition_base;
@@ -565,25 +810,120 @@ static void update_navigation_state(AxisInstallerApp *app);
 static void start_installer_worker(AxisInstallerApp *app);
 
 // Callbacks
-static void on_language_changed(GtkComboBox *combo, gpointer user_data) {
+static void update_locale_badge(AxisInstallerApp *app) {
+    if (!app->lbl_locale_badge) return;
+    char *badge_str = g_strdup_printf("Selected: %s  •  %s",
+        app->selected_locale_name ? app->selected_locale_name : "English (United States)",
+        app->selected_tz_name ? app->selected_tz_name : "America/New_York");
+    gtk_label_set_text(GTK_LABEL(app->lbl_locale_badge), badge_str);
+    g_free(badge_str);
+}
+
+static gboolean lang_filter_func(GtkTreeModel *model, GtkTreeIter *iter, gpointer user_data) {
     AxisInstallerApp *app = (AxisInstallerApp *)user_data;
-    gint idx = gtk_combo_box_get_active(combo);
-    if (idx >= 0 && (size_t)idx < sizeof(LANGUAGES)/sizeof(LANGUAGES[0])) {
-        g_free(app->selected_locale);
-        g_free(app->selected_locale_name);
-        app->selected_locale = g_strdup(LANGUAGES[idx].code);
-        app->selected_locale_name = g_strdup(LANGUAGES[idx].label);
+    if (!app->lang_search_query || !app->lang_search_query[0]) {
+        return TRUE;
+    }
+    char *label = NULL;
+    char *code = NULL;
+    gtk_tree_model_get(model, iter, 0, &label, 1, &code, -1);
+    gboolean match = FALSE;
+    if (label) {
+        char *lower = g_utf8_strdown(label, -1);
+        if (strstr(lower, app->lang_search_query)) match = TRUE;
+        g_free(lower);
+        g_free(label);
+    }
+    if (!match && code) {
+        char *lower = g_utf8_strdown(code, -1);
+        if (strstr(lower, app->lang_search_query)) match = TRUE;
+        g_free(lower);
+    }
+    if (code) g_free(code);
+    return match;
+}
+
+static gboolean tz_filter_func(GtkTreeModel *model, GtkTreeIter *iter, gpointer user_data) {
+    AxisInstallerApp *app = (AxisInstallerApp *)user_data;
+    if (!app->tz_search_query || !app->tz_search_query[0]) {
+        return TRUE;
+    }
+    char *label = NULL;
+    char *zone = NULL;
+    gtk_tree_model_get(model, iter, 0, &label, 1, &zone, -1);
+    gboolean match = FALSE;
+    if (label) {
+        char *lower = g_utf8_strdown(label, -1);
+        if (strstr(lower, app->tz_search_query)) match = TRUE;
+        g_free(lower);
+        g_free(label);
+    }
+    if (!match && zone) {
+        char *lower = g_utf8_strdown(zone, -1);
+        if (strstr(lower, app->tz_search_query)) match = TRUE;
+        g_free(lower);
+    }
+    if (zone) g_free(zone);
+    return match;
+}
+
+static void on_lang_search_changed(GtkSearchEntry *entry, gpointer user_data) {
+    AxisInstallerApp *app = (AxisInstallerApp *)user_data;
+    g_free(app->lang_search_query);
+    const char *text = gtk_entry_get_text(GTK_ENTRY(entry));
+    app->lang_search_query = (text && *text) ? g_utf8_strdown(text, -1) : NULL;
+    if (app->filter_lang) {
+        gtk_tree_model_filter_refilter(app->filter_lang);
     }
 }
 
-static void on_timezone_changed(GtkComboBox *combo, gpointer user_data) {
+static void on_tz_search_changed(GtkSearchEntry *entry, gpointer user_data) {
     AxisInstallerApp *app = (AxisInstallerApp *)user_data;
-    gint idx = gtk_combo_box_get_active(combo);
-    if (idx >= 0 && (size_t)idx < sizeof(TIMEZONES)/sizeof(TIMEZONES[0])) {
-        g_free(app->selected_timezone);
-        g_free(app->selected_tz_name);
-        app->selected_timezone = g_strdup(TIMEZONES[idx].zone);
-        app->selected_tz_name = g_strdup(TIMEZONES[idx].label);
+    g_free(app->tz_search_query);
+    const char *text = gtk_entry_get_text(GTK_ENTRY(entry));
+    app->tz_search_query = (text && *text) ? g_utf8_strdown(text, -1) : NULL;
+    if (app->filter_tz) {
+        gtk_tree_model_filter_refilter(app->filter_tz);
+    }
+}
+
+static void on_lang_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
+    AxisInstallerApp *app = (AxisInstallerApp *)user_data;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+        char *label = NULL;
+        char *code = NULL;
+        gtk_tree_model_get(model, &iter, 0, &label, 1, &code, -1);
+        if (label && code) {
+            g_free(app->selected_locale);
+            g_free(app->selected_locale_name);
+            app->selected_locale = g_strdup(code);
+            app->selected_locale_name = g_strdup(label);
+            update_locale_badge(app);
+        }
+        g_free(label);
+        g_free(code);
+    }
+}
+
+static void on_tz_selection_changed(GtkTreeSelection *selection, gpointer user_data) {
+    AxisInstallerApp *app = (AxisInstallerApp *)user_data;
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    if (gtk_tree_selection_get_selected(selection, &model, &iter)) {
+        char *label = NULL;
+        char *zone = NULL;
+        gtk_tree_model_get(model, &iter, 0, &label, 1, &zone, -1);
+        if (label && zone) {
+            g_free(app->selected_timezone);
+            g_free(app->selected_tz_name);
+            app->selected_timezone = g_strdup(zone);
+            app->selected_tz_name = g_strdup(label);
+            update_locale_badge(app);
+        }
+        g_free(label);
+        g_free(zone);
     }
 }
 
@@ -983,10 +1323,10 @@ static void update_navigation_state(AxisInstallerApp *app) {
 // Step Builders
 // -----------------------------------------------------------------------------
 static void build_step_locale(AxisInstallerApp *app) {
-    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
 
     GtkWidget *header_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 16);
-    GtkWidget *logo_img = create_scaled_logo(56, 56);
+    GtkWidget *logo_img = create_scaled_logo(48, 48);
     if (logo_img) gtk_box_pack_start(GTK_BOX(header_row), logo_img, FALSE, FALSE, 0);
 
     GtkWidget *title_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
@@ -1001,40 +1341,154 @@ static void build_step_locale(AxisInstallerApp *app) {
     gtk_box_pack_start(GTK_BOX(title_box), title, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(title_box), sub, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(header_row), title_box, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(box), header_row, FALSE, FALSE, 6);
+    gtk_box_pack_start(GTK_BOX(box), header_row, FALSE, FALSE, 2);
 
-    GtkWidget *card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
-    gtk_style_context_add_class(gtk_widget_get_style_context(card), "info-card");
+    // Two-column layout for Language & Timezone
+    GtkWidget *columns_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_box_set_homogeneous(GTK_BOX(columns_box), TRUE);
+    gtk_widget_set_vexpand(columns_box, TRUE);
 
-    GtkWidget *grid = gtk_grid_new();
-    gtk_grid_set_column_spacing(GTK_GRID(grid), 20);
-    gtk_grid_set_row_spacing(GTK_GRID(grid), 14);
+    // --- LEFT COLUMN: Language ---
+    GtkWidget *lang_pane = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_style_context_add_class(gtk_widget_get_style_context(lang_pane), "locale-pane");
 
-    GtkWidget *l1 = gtk_label_new("Language:");
-    gtk_label_set_xalign(GTK_LABEL(l1), 0.0);
-    gtk_style_context_add_class(gtk_widget_get_style_context(l1), "field-label");
+    GtkWidget *lbl_lang_head = gtk_label_new("Language");
+    gtk_label_set_xalign(GTK_LABEL(lbl_lang_head), 0.0);
+    gtk_style_context_add_class(gtk_widget_get_style_context(lbl_lang_head), "card-title");
+    gtk_box_pack_start(GTK_BOX(lang_pane), lbl_lang_head, FALSE, FALSE, 0);
 
-    app->combo_lang = gtk_combo_box_text_new();
+    app->search_lang = gtk_search_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(app->search_lang), "Search languages...");
+    g_signal_connect(app->search_lang, "search-changed", G_CALLBACK(on_lang_search_changed), app);
+    gtk_box_pack_start(GTK_BOX(lang_pane), app->search_lang, FALSE, FALSE, 0);
+
+    app->store_lang = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
+    GtkTreeIter default_lang_iter;
+    gboolean has_default_lang = FALSE;
     for (size_t i = 0; i < sizeof(LANGUAGES)/sizeof(LANGUAGES[0]); ++i) {
-        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(app->combo_lang), LANGUAGES[i].label);
+        GtkTreeIter iter;
+        gtk_list_store_append(app->store_lang, &iter);
+        gtk_list_store_set(app->store_lang, &iter, 0, LANGUAGES[i].label, 1, LANGUAGES[i].code, -1);
+        if (g_strcmp0(LANGUAGES[i].code, app->selected_locale) == 0) {
+            default_lang_iter = iter;
+            has_default_lang = TRUE;
+        }
     }
-    gtk_combo_box_set_active(GTK_COMBO_BOX(app->combo_lang), 0);
-    g_signal_connect(app->combo_lang, "changed", G_CALLBACK(on_language_changed), app);
 
-    GtkWidget *l2 = gtk_label_new("Location & Timezone:");
-    gtk_label_set_xalign(GTK_LABEL(l2), 0.0);
-    gtk_style_context_add_class(gtk_widget_get_style_context(l2), "field-label");
+    GtkTreeModel *filter_l = gtk_tree_model_filter_new(GTK_TREE_MODEL(app->store_lang), NULL);
+    app->filter_lang = GTK_TREE_MODEL_FILTER(filter_l);
+    gtk_tree_model_filter_set_visible_func(app->filter_lang, lang_filter_func, app, NULL);
 
-    app->combo_time = gtk_combo_box_text_new();
+    app->tree_lang = gtk_tree_view_new_with_model(filter_l);
+    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(app->tree_lang), FALSE);
+    GtkCellRenderer *rend_lang = gtk_cell_renderer_text_new();
+    g_object_set(rend_lang, "ypad", 6, "xpad", 8, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_lang), -1, "Language", rend_lang, "text", 0, NULL);
+
+    GtkTreeSelection *sel_lang = gtk_tree_view_get_selection(GTK_TREE_VIEW(app->tree_lang));
+    gtk_tree_selection_set_mode(sel_lang, GTK_SELECTION_BROWSE);
+    g_signal_connect(sel_lang, "changed", G_CALLBACK(on_lang_selection_changed), app);
+
+    if (has_default_lang) {
+        GtkTreeIter filter_iter;
+        if (gtk_tree_model_filter_convert_child_iter_to_iter(app->filter_lang, &filter_iter, &default_lang_iter)) {
+            gtk_tree_selection_select_iter(sel_lang, &filter_iter);
+            GtkTreePath *path = gtk_tree_model_get_path(filter_l, &filter_iter);
+            if (path) {
+                gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(app->tree_lang), path, NULL, TRUE, 0.5, 0.0);
+                gtk_tree_path_free(path);
+            }
+        }
+    }
+
+    GtkWidget *scroll_lang = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_lang), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll_lang), 220);
+    gtk_widget_set_vexpand(scroll_lang, TRUE);
+    gtk_widget_set_hexpand(scroll_lang, TRUE);
+    gtk_container_add(GTK_CONTAINER(scroll_lang), app->tree_lang);
+    gtk_box_pack_start(GTK_BOX(lang_pane), scroll_lang, TRUE, TRUE, 0);
+
+    gtk_box_pack_start(GTK_BOX(columns_box), lang_pane, TRUE, TRUE, 0);
+
+    // --- RIGHT COLUMN: Timezone & Region ---
+    GtkWidget *tz_pane = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_style_context_add_class(gtk_widget_get_style_context(tz_pane), "locale-pane");
+
+    GtkWidget *lbl_tz_head = gtk_label_new("Location & Timezone");
+    gtk_label_set_xalign(GTK_LABEL(lbl_tz_head), 0.0);
+    gtk_style_context_add_class(gtk_widget_get_style_context(lbl_tz_head), "card-title");
+    gtk_box_pack_start(GTK_BOX(tz_pane), lbl_tz_head, FALSE, FALSE, 0);
+
+    app->search_tz = gtk_search_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(app->search_tz), "Search cities & timezones...");
+    g_signal_connect(app->search_tz, "search-changed", G_CALLBACK(on_tz_search_changed), app);
+    gtk_box_pack_start(GTK_BOX(tz_pane), app->search_tz, FALSE, FALSE, 0);
+
+    app->store_tz = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
+    GtkTreeIter default_tz_iter;
+    gboolean has_default_tz = FALSE;
     for (size_t i = 0; i < sizeof(TIMEZONES)/sizeof(TIMEZONES[0]); ++i) {
-        gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(app->combo_time), TIMEZONES[i].label);
+        GtkTreeIter iter;
+        gtk_list_store_append(app->store_tz, &iter);
+        gtk_list_store_set(app->store_tz, &iter, 0, TIMEZONES[i].label, 1, TIMEZONES[i].zone, -1);
+        if (g_strcmp0(TIMEZONES[i].zone, app->selected_timezone) == 0) {
+            default_tz_iter = iter;
+            has_default_tz = TRUE;
+        }
     }
-    gtk_combo_box_set_active(GTK_COMBO_BOX(app->combo_time), 0);
-    g_signal_connect(app->combo_time, "changed", G_CALLBACK(on_timezone_changed), app);
 
-    GtkWidget *l3 = gtk_label_new("Keyboard Layout:");
-    gtk_label_set_xalign(GTK_LABEL(l3), 0.0);
-    gtk_style_context_add_class(gtk_widget_get_style_context(l3), "field-label");
+    GtkTreeModel *filter_t = gtk_tree_model_filter_new(GTK_TREE_MODEL(app->store_tz), NULL);
+    app->filter_tz = GTK_TREE_MODEL_FILTER(filter_t);
+    gtk_tree_model_filter_set_visible_func(app->filter_tz, tz_filter_func, app, NULL);
+
+    app->tree_tz = gtk_tree_view_new_with_model(filter_t);
+    gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(app->tree_tz), FALSE);
+    GtkCellRenderer *rend_tz = gtk_cell_renderer_text_new();
+    g_object_set(rend_tz, "ypad", 6, "xpad", 8, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_tz), -1, "Timezone", rend_tz, "text", 0, NULL);
+
+    GtkTreeSelection *sel_tz = gtk_tree_view_get_selection(GTK_TREE_VIEW(app->tree_tz));
+    gtk_tree_selection_set_mode(sel_tz, GTK_SELECTION_BROWSE);
+    g_signal_connect(sel_tz, "changed", G_CALLBACK(on_tz_selection_changed), app);
+
+    if (has_default_tz) {
+        GtkTreeIter filter_iter;
+        if (gtk_tree_model_filter_convert_child_iter_to_iter(app->filter_tz, &filter_iter, &default_tz_iter)) {
+            gtk_tree_selection_select_iter(sel_tz, &filter_iter);
+            GtkTreePath *path = gtk_tree_model_get_path(filter_t, &filter_iter);
+            if (path) {
+                gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(app->tree_tz), path, NULL, TRUE, 0.5, 0.0);
+                gtk_tree_path_free(path);
+            }
+        }
+    }
+
+    GtkWidget *scroll_tz = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_tz), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll_tz), 220);
+    gtk_widget_set_vexpand(scroll_tz, TRUE);
+    gtk_widget_set_hexpand(scroll_tz, TRUE);
+    gtk_container_add(GTK_CONTAINER(scroll_tz), app->tree_tz);
+    gtk_box_pack_start(GTK_BOX(tz_pane), scroll_tz, TRUE, TRUE, 0);
+
+    gtk_box_pack_start(GTK_BOX(columns_box), tz_pane, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(box), columns_box, TRUE, TRUE, 0);
+
+    // --- STATUS BADGE PILL ---
+    app->lbl_locale_badge = gtk_label_new("Selected: English (United States)  •  New York / Eastern Time (USA / UTC-5)");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_locale_badge), "selection-pill");
+    gtk_widget_set_halign(app->lbl_locale_badge, GTK_ALIGN_CENTER);
+    gtk_box_pack_start(GTK_BOX(box), app->lbl_locale_badge, FALSE, FALSE, 2);
+    update_locale_badge(app);
+
+    // --- KEYBOARD CONFIGURATION ROW ---
+    GtkWidget *kbd_card = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_style_context_add_class(gtk_widget_get_style_context(kbd_card), "card");
+
+    GtkWidget *lbl_kbd = gtk_label_new("Keyboard Layout:");
+    gtk_style_context_add_class(gtk_widget_get_style_context(lbl_kbd), "field-label");
+    gtk_box_pack_start(GTK_BOX(kbd_card), lbl_kbd, FALSE, FALSE, 0);
 
     app->combo_keyboard = gtk_combo_box_text_new();
     for (size_t i = 0; i < sizeof(KEYMAPS)/sizeof(KEYMAPS[0]); ++i) {
@@ -1042,25 +1496,17 @@ static void build_step_locale(AxisInstallerApp *app) {
     }
     gtk_combo_box_set_active(GTK_COMBO_BOX(app->combo_keyboard), 0);
     g_signal_connect(app->combo_keyboard, "changed", G_CALLBACK(on_keymap_changed), app);
+    gtk_box_pack_start(GTK_BOX(kbd_card), app->combo_keyboard, TRUE, TRUE, 0);
 
-    GtkWidget *l4 = gtk_label_new("Test Keyboard:");
-    gtk_label_set_xalign(GTK_LABEL(l4), 0.0);
-    gtk_style_context_add_class(gtk_widget_get_style_context(l4), "field-label");
+    GtkWidget *lbl_test = gtk_label_new("Test:");
+    gtk_style_context_add_class(gtk_widget_get_style_context(lbl_test), "field-label");
+    gtk_box_pack_start(GTK_BOX(kbd_card), lbl_test, FALSE, FALSE, 0);
 
     app->entry_keytest = gtk_entry_new();
-    gtk_entry_set_placeholder_text(GTK_ENTRY(app->entry_keytest), "Type here to test key bindings...");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(app->entry_keytest), "Type here to test keys...");
+    gtk_box_pack_start(GTK_BOX(kbd_card), app->entry_keytest, TRUE, TRUE, 0);
 
-    gtk_grid_attach(GTK_GRID(grid), l1, 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), app->combo_lang, 1, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), l2, 0, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), app->combo_time, 1, 1, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), l3, 0, 2, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), app->combo_keyboard, 1, 2, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), l4, 0, 3, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), app->entry_keytest, 1, 3, 1, 1);
-
-    gtk_box_pack_start(GTK_BOX(card), grid, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(box), card, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), kbd_card, FALSE, FALSE, 0);
 
     GtkWidget *scroller = wrap_in_scroller(box);
     gtk_stack_add_named(GTK_STACK(app->stack), scroller, "step_0");
