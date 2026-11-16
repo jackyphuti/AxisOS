@@ -17,7 +17,7 @@ echo "======================================================================"
 
 # Standard compiler flags
 CC="gcc"
-CFLAGS="-std=gnu11 -O2 -Wall -Wextra"
+CFLAGS="-std=gnu11 -O2 -Wall -Wextra -Wno-unused-result"
 
 # 1. Compile axis-terminal (GTK 3 + libvterm + forkpty)
 echo "--> [1/12] Compiling axis-terminal..."

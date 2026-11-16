@@ -2,9 +2,9 @@ CC ?= gcc
 CFLAGS ?= -std=gnu11 -Wall -Wextra -O2
 PKG_CONFIG ?= pkg-config
 
-DEPS = gtk+-3.0 gtk-layer-shell-0 gio-2.0 pam libudev
-CFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS))
-LIBS += $(shell $(PKG_CONFIG) --libs $(DEPS)) -lm
+DEPS = gtk+-3.0 gtk-layer-shell-0 gio-2.0 libudev
+CFLAGS += $(shell $(PKG_CONFIG) --cflags $(DEPS)) $(shell $(PKG_CONFIG) --cflags pam 2>/dev/null)
+LIBS += $(shell $(PKG_CONFIG) --libs $(DEPS)) -lpam -lm
 
 TARGET = axisos-shell
 SRCS = main.c system_controller.c auth_manager.c ui_shell.c

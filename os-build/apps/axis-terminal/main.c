@@ -171,8 +171,9 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
 }
 
 static void send_to_pty(TerminalTab *tab, const char *data, size_t len) {
-    if (tab && tab->pty_fd >= 0) {
-        write(tab->pty_fd, data, len);
+    if (tab && tab->pty_fd >= 0 && data && len > 0) {
+        ssize_t ret = write(tab->pty_fd, data, len);
+        (void)ret;
     }
 }
 
