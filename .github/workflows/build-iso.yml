@@ -23,7 +23,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Debian Live Build Toolchain & Pure C Build Dependencies
         run: |
