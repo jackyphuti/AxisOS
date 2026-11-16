@@ -3,8 +3,11 @@ KERNEL=="js[0-9]*", MODE="0666"
 KERNEL=="event*", ENV{ID_INPUT_JOYSTICK}=="1", MODE="0666"
 
 # Sony DualShock 3, 4 and DualSense (USB & Bluetooth)
-KERNEL=="hidraw*", ATTRS{idVendor}=="054c", MODE="0666"
-SUBSYSTEM=="usb", ATTRS{idVendor}=="054c", MODE="0666", GROUP="plugdev"
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="054c", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Universal uinput for virtual controllers and SDL2 mapping
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput", MODE="0660", GROUP="input"
 
 # Microsoft Xbox 360, One, Series X/S Controllers (USB & Wireless Dongle)
 KERNEL=="hidraw*", ATTRS{idVendor}=="045e", MODE="0666"

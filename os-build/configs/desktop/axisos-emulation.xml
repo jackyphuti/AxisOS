@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-ps2-rom">
+    <comment>PlayStation 2 Disc Image</comment>
+    <glob pattern="*.cso"/>
+    <glob pattern="*.chd"/>
+  </mime-type>
+  <mime-type type="application/x-ps3-rom">
+    <comment>PlayStation 3 Package</comment>
+    <glob pattern="*.pkg"/>
+    <glob pattern="*.sfb"/>
+  </mime-type>
+  <mime-type type="application/x-psp-rom">
+    <comment>PlayStation Portable Executable</comment>
+    <glob pattern="*.pbp"/>
+  </mime-type>
+</mime-info>

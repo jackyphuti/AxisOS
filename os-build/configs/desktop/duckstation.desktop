@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=PlayStation 1 (DuckStation)
+GenericName=PlayStation 1 Emulator
+Comment=PlayStation 1 emulator with native Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner ps1 %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+MimeType=application/x-ps1-rom;
+StartupNotify=true

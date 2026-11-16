@@ -1,0 +1,32 @@
+[Desktop Entry]
+Name=PlayStation Game Station
+GenericName=PlayStation Player & Launcher
+Comment=Play PS1, PS2, PS3, and PSP games with native Wayland and Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;GTK;
+MimeType=application/x-cd-image;application/x-iso9660-image;application/x-raw-disk-image;application/x-cue;application/x-chd-cd;application/x-chd-dvd;application/x-ps2-rom;application/x-ps3-rom;application/x-ps1-rom;application/x-psp-rom;
+StartupNotify=true
+Actions=PS2;PS3;PS1;PSP;OpenFolder;
+
+[Desktop Action PS2]
+Name=Launch PlayStation 2 (PCSX2)
+Exec=/usr/local/bin/axis-game-runner ps2
+
+[Desktop Action PS3]
+Name=Launch PlayStation 3 (RPCS3)
+Exec=/usr/local/bin/axis-game-runner ps3
+
+[Desktop Action PS1]
+Name=Launch PlayStation 1 (DuckStation)
+Exec=/usr/local/bin/axis-game-runner ps1
+
+[Desktop Action PSP]
+Name=Launch PSP (PPSSPP)
+Exec=/usr/local/bin/axis-game-runner psp
+
+[Desktop Action OpenFolder]
+Name=Open Games Library (~/Emulation/games)
+Exec=xdg-open Emulation/games

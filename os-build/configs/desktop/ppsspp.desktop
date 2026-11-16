@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=PlayStation Portable (PPSSPP)
+GenericName=PlayStation Portable Emulator
+Comment=PlayStation Portable emulator with native Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner psp %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+MimeType=application/x-psp-rom;
+StartupNotify=true

@@ -22,6 +22,7 @@ static const char *BINARIES[] = {
     "os-build/apps/axis-calc/axis-calc",
     "os-build/apps/axis-color-picker/axis-color-picker",
     "os-build/scripts/axis-disk-info",
+    "os-build/scripts/axis-game-runner",
     "shell-c/axisos-shell",
     "pkg-mgr/bin/axis",
     "pkg-mgr/bin/axis_repo_builder",

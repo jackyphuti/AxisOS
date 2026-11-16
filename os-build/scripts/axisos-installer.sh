@@ -877,17 +877,192 @@ fi
 EOF
 chmod 0755 /mnt/usr/local/bin/steam
 
+# Deploy AxisOS PlayStation Universal Plug-and-Play Game Runner & Desktop Integration
+mkdir -p /mnt/usr/share/applications /mnt/usr/local/bin /mnt/usr/share/mime/packages /mnt/etc/udev/rules.d
+if [ -f "$SCRIPT_DIR/axis-game-runner" ]; then
+    cp -f "$SCRIPT_DIR/axis-game-runner" /mnt/usr/local/bin/axis-game-runner
+    chmod 0755 /mnt/usr/local/bin/axis-game-runner
+fi
+
+cat << 'EOF' > /mnt/usr/share/applications/axis-game-runner.desktop
+[Desktop Entry]
+Name=PlayStation Game Station
+GenericName=PlayStation Player & Launcher
+Comment=Play PS1, PS2, PS3, and PSP games with native Wayland and Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;GTK;
+MimeType=application/x-cd-image;application/x-iso9660-image;application/x-raw-disk-image;application/x-cue;application/x-chd-cd;application/x-chd-dvd;application/x-ps2-rom;application/x-ps3-rom;application/x-ps1-rom;application/x-psp-rom;
+StartupNotify=true
+Actions=PS2;PS3;PS1;PSP;OpenFolder;
+
+[Desktop Action PS2]
+Name=Launch PlayStation 2 (PCSX2)
+Exec=/usr/local/bin/axis-game-runner ps2
+
+[Desktop Action PS3]
+Name=Launch PlayStation 3 (RPCS3)
+Exec=/usr/local/bin/axis-game-runner ps3
+
+[Desktop Action PS1]
+Name=Launch PlayStation 1 (DuckStation)
+Exec=/usr/local/bin/axis-game-runner ps1
+
+[Desktop Action PSP]
+Name=Launch PSP (PPSSPP)
+Exec=/usr/local/bin/axis-game-runner psp
+
+[Desktop Action OpenFolder]
+Name=Open Games Library (~/Emulation/games)
+Exec=xdg-open Emulation/games
+EOF
+
+cat << 'EOF' > /mnt/usr/share/applications/pcsx2.desktop
+[Desktop Entry]
+Name=PlayStation 2 (PCSX2)
+GenericName=PlayStation 2 Emulator
+Comment=PlayStation 2 emulator with native Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner ps2 %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+MimeType=application/x-cd-image;application/x-iso9660-image;application/x-ps2-rom;
+StartupNotify=true
+EOF
+
+cat << 'EOF' > /mnt/usr/share/applications/rpcs3.desktop
+[Desktop Entry]
+Name=PlayStation 3 (RPCS3)
+GenericName=PlayStation 3 Emulator
+Comment=PlayStation 3 emulator with native Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner ps3 %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+MimeType=application/x-ps3-rom;
+StartupNotify=true
+EOF
+
+cat << 'EOF' > /mnt/usr/share/applications/duckstation.desktop
+[Desktop Entry]
+Name=PlayStation 1 (DuckStation)
+GenericName=PlayStation 1 Emulator
+Comment=PlayStation 1 emulator with native Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner ps1 %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+MimeType=application/x-ps1-rom;
+StartupNotify=true
+EOF
+
+cat << 'EOF' > /mnt/usr/share/applications/ppsspp.desktop
+[Desktop Entry]
+Name=PlayStation Portable (PPSSPP)
+GenericName=PlayStation Portable Emulator
+Comment=PlayStation Portable emulator with native Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner psp %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+MimeType=application/x-psp-rom;
+StartupNotify=true
+EOF
+
+cat << 'EOF' > /mnt/usr/share/mime/packages/axisos-emulation.xml
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-ps2-rom">
+    <comment>PlayStation 2 Disc Image</comment>
+    <glob pattern="*.cso"/>
+    <glob pattern="*.chd"/>
+  </mime-type>
+  <mime-type type="application/x-ps3-rom">
+    <comment>PlayStation 3 Package</comment>
+    <glob pattern="*.pkg"/>
+    <glob pattern="*.sfb"/>
+  </mime-type>
+  <mime-type type="application/x-psp-rom">
+    <comment>PlayStation Portable Executable</comment>
+    <glob pattern="*.pbp"/>
+  </mime-type>
+</mime-info>
+EOF
+chroot /mnt update-mime-database /usr/share/mime 2>/dev/null || true
+
+# Deploy PlayStation Controller & Gamepad Udev rules
+cat << 'EOF' > /mnt/etc/udev/rules.d/99-gamepads.rules
+# Gamepads and joysticks access for gaming (Steam, Proton, emulators)
+KERNEL=="js[0-9]*", MODE="0666"
+KERNEL=="event*", ENV{ID_INPUT_JOYSTICK}=="1", MODE="0666"
+
+# Sony DualShock 3, 4 and DualSense (USB & Bluetooth)
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", MODE="0666", TAG+="uaccess"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="054c", MODE="0666", GROUP="plugdev", TAG+="uaccess"
+
+# Sony DualShock 4 (USB & Bluetooth)
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="05c4", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="09cc", MODE="0666", TAG+="uaccess"
+
+# Sony DualSense (PS5) USB & Bluetooth
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0ce6", MODE="0666", TAG+="uaccess"
+KERNEL=="hidraw*", ATTRS{idVendor}=="054c", ATTRS{idProduct}=="0df2", MODE="0666", TAG+="uaccess"
+
+# Microsoft Xbox Controllers
+KERNEL=="hidraw*", ATTRS{idVendor}=="045e", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="045e", MODE="0666", GROUP="plugdev"
+
+# Valve Steam Controller and Steam Deck
+KERNEL=="hidraw*", ATTRS{idVendor}=="28de", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="28de", MODE="0666", GROUP="plugdev"
+
+# Nintendo Switch Pro Controller and Joy-Cons
+KERNEL=="hidraw*", ATTRS{idVendor}=="057e", MODE="0666"
+SUBSYSTEM=="usb", ATTRS{idVendor}=="057e", MODE="0666", GROUP="plugdev"
+
+# Universal uinput for virtual controllers and SDL2 mapping
+KERNEL=="uinput", SUBSYSTEM=="misc", TAG+="uaccess", OPTIONS+="static_node=uinput", MODE="0660", GROUP="input"
+EOF
+
+# Pre-create Emulation directory tree in /etc/skel
+mkdir -p /mnt/etc/skel/Emulation/bios/ps1 \
+         /mnt/etc/skel/Emulation/bios/ps2 \
+         /mnt/etc/skel/Emulation/bios/ps3 \
+         /mnt/etc/skel/Emulation/bios/psp \
+         /mnt/etc/skel/Emulation/games/ps1 \
+         /mnt/etc/skel/Emulation/games/ps2 \
+         /mnt/etc/skel/Emulation/games/ps3 \
+         /mnt/etc/skel/Emulation/games/psp
+
 report 86 "Setting up user account ($USERNAME)..."
 # Create user if it doesn't already exist
 chroot /mnt groupadd -f gamemode 2>/dev/null || true
 chroot /mnt groupadd -f games 2>/dev/null || true
 chroot /mnt groupadd -f docker 2>/dev/null || true
+chroot /mnt groupadd -f plugdev 2>/dev/null || true
 
 if ! chroot /mnt id -u "$USERNAME" >/dev/null 2>&1; then
-    chroot /mnt useradd -m -s /bin/bash -c "$USER_FULLNAME" -G sudo,video,audio,render,input,seat,netdev,gamemode,games,docker "$USERNAME"
+    chroot /mnt useradd -m -s /bin/bash -c "$USER_FULLNAME" -G sudo,video,audio,render,input,seat,netdev,gamemode,games,docker,plugdev "$USERNAME"
 else
-    chroot /mnt usermod -aG sudo,video,audio,render,input,seat,netdev,gamemode,games,docker "$USERNAME" 2>/dev/null || true
+    chroot /mnt usermod -aG sudo,video,audio,render,input,seat,netdev,gamemode,games,docker,plugdev "$USERNAME" 2>/dev/null || true
 fi
+
+# Pre-create and set permissions on User Emulation library
+mkdir -p "/mnt/home/$USERNAME/Emulation/bios/ps1" \
+         "/mnt/home/$USERNAME/Emulation/bios/ps2" \
+         "/mnt/home/$USERNAME/Emulation/bios/ps3" \
+         "/mnt/home/$USERNAME/Emulation/bios/psp" \
+         "/mnt/home/$USERNAME/Emulation/games/ps1" \
+         "/mnt/home/$USERNAME/Emulation/games/ps2" \
+         "/mnt/home/$USERNAME/Emulation/games/ps3" \
+         "/mnt/home/$USERNAME/Emulation/games/psp"
+chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}/Emulation" 2>/dev/null || true
 
 # Set passwords
 echo "${USERNAME}:${PASSWORD}" | chroot /mnt chpasswd

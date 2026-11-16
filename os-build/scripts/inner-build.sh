@@ -96,7 +96,7 @@ if [ -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" ]; then
 fi
 
 # 5b. Copy AxisOS System Helper Daemons & Tools
-for helper in axis-game-boost axis-update-notifier axis-autotimezone gpu-autodetect axis-biometrics axis-fastboot-patch axis-captive-portal axis-rewind; do
+for helper in axis-game-boost axis-game-runner axis-update-notifier axis-autotimezone gpu-autodetect axis-biometrics axis-fastboot-patch axis-captive-portal axis-rewind; do
     if [ -x "$WORKSPACE_DIR/os-build/scripts/$helper" ]; then
         cp -f "$WORKSPACE_DIR/os-build/scripts/$helper" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
         ln -sf "$helper" "$BUILD_DIR/config/includes.chroot/usr/local/bin/$helper.sh" || true
@@ -131,6 +131,27 @@ mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/icons"
 if [ -d "$WORKSPACE_DIR/data/icons" ]; then
     cp -rf "$WORKSPACE_DIR"/data/icons/* "$BUILD_DIR/config/includes.chroot/usr/share/icons/" 2>/dev/null || true
 fi
+
+# 7b. Copy Desktop Configurations & Emulation MIME types
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/applications"
+if [ -d "$WORKSPACE_DIR/os-build/configs/desktop" ]; then
+    cp -rf "$WORKSPACE_DIR"/os-build/configs/desktop/*.desktop "$BUILD_DIR/config/includes.chroot/usr/share/applications/" 2>/dev/null || true
+fi
+
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/mime/packages"
+if [ -f "$WORKSPACE_DIR/os-build/configs/desktop/axisos-emulation.xml" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/axisos-emulation.xml" "$BUILD_DIR/config/includes.chroot/usr/share/mime/packages/"
+fi
+
+# 7c. Pre-configure User Emulation Tree in /etc/skel
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/ps1" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/ps2" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/ps3" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/psp" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/ps1" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/ps2" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/ps3" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/psp"
 
 # 8. Copy PAM, Polkit, Udev Rules, and Systemd Services
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/pam.d"

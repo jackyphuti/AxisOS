@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=PlayStation 3 (RPCS3)
+GenericName=PlayStation 3 Emulator
+Comment=PlayStation 3 emulator with native Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner ps3 %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+MimeType=application/x-ps3-rom;
+StartupNotify=true

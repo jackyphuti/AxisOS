@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=PlayStation 2 (PCSX2)
+GenericName=PlayStation 2 Emulator
+Comment=PlayStation 2 emulator with native Vulkan acceleration
+Exec=/usr/local/bin/axis-game-runner ps2 %f
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;Emulator;
+MimeType=application/x-cd-image;application/x-iso9660-image;application/x-ps2-rom;
+StartupNotify=true

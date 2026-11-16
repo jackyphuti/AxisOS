@@ -139,6 +139,8 @@ echo "--> Compiling AxisOS System Daemons & Services..."
     cd "$ROOT_DIR/os-build/scripts"
     $CC $CFLAGS axis-game-boost.c -o axis-game-boost
     ln -sf axis-game-boost axis-game-boost.sh
+    $CC $CFLAGS axis-game-runner.c -o axis-game-runner
+    ln -sf axis-game-runner axis-game-runner.sh
     $CC $CFLAGS axis-update-notifier.c -o axis-update-notifier
     ln -sf axis-update-notifier axis-update-notifier.sh
     $CC $CFLAGS axis-autotimezone.c -o axis-autotimezone
