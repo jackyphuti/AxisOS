@@ -98,134 +98,150 @@ static char *exec_cmd(const char *cmd) {
 }
 
 static const char *CSS_THEME =
-    "* {"
-    "    font-family: \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Cantarell, sans-serif;"
+    ".card {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 16px;"
+    "    padding: 18px 22px;"
+    "    margin-bottom: 16px;"
+    "    box-shadow: 0 2px 12px @axis_shadow;"
     "}"
-    "window {"
-    "    background-color: #F4F6FB;"
-    "    color: #1C1C1E;"
-    "}"
-    "headerbar {"
-    "    background: #FFFFFF;"
-    "    border-bottom: 1px solid #E5E7EE;"
-    "    color: #1C1C1E;"
-    "}"
-    "headerbar .title {"
-    "    font-weight: 700;"
+    ".card-title {"
     "    font-size: 15px;"
-    "    color: #1C1C1E;"
+    "    font-weight: 700;"
+    "    color: @axis_text;"
+    "    margin-bottom: 4px;"
     "}"
-    "headerbar .subtitle {"
+    ".card-subtitle {"
     "    font-size: 12px;"
-    "    color: #6B6F7B;"
+    "    color: @axis_text_muted;"
+    "    margin-bottom: 12px;"
     "}"
     ".sidebar {"
-    "    background-color: #FFFFFF;"
-    "    border-right: 1px solid #E5E7EE;"
+    "    background-color: @axis_surface;"
+    "    border-right: 1px solid @axis_outline;"
     "}"
     ".sidebar list row {"
     "    padding: 12px 18px;"
-    "    color: #6B6F7B;"
+    "    color: @axis_text_muted;"
     "    font-weight: 600;"
     "    font-size: 13px;"
     "    border-left: 3px solid transparent;"
     "}"
     ".sidebar list row:selected {"
-    "    background-color: #E6EBFF;"
-    "    color: #1428A0;"
-    "    border-left: 3px solid #1428A0;"
+    "    background-color: alpha(@axis_accent, 0.16);"
+    "    color: @axis_accent;"
+    "    border-left: 3px solid @axis_accent;"
     "}"
     ".content-pane {"
     "    padding: 24px 32px;"
     "}"
-    ".card {"
-    "    background-color: #FFFFFF;"
-    "    border: 1px solid #E5E7EE;"
-    "    border-radius: 16px;"
-    "    padding: 18px 22px;"
-    "    margin-bottom: 16px;"
-    "    box-shadow: 0 2px 12px rgba(20, 40, 160, 0.04);"
-    "}"
-    ".card-title {"
-    "    font-size: 15px;"
-    "    font-weight: 700;"
-    "    color: #1C1C1E;"
-    "    margin-bottom: 4px;"
-    "}"
-    ".card-subtitle {"
-    "    font-size: 12px;"
-    "    color: #6B6F7B;"
-    "    margin-bottom: 12px;"
-    "}"
     ".btn-primary {"
-    "    background: #1428A0;"
-    "    color: #FFFFFF;"
+    "    background: @axis_accent;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-weight: 700;"
     "    border-radius: 999px;"
     "    border: none;"
     "    padding: 8px 20px;"
     "}"
     ".btn-primary:hover {"
-    "    background: #0F1F7A;"
+    "    background: mix(@axis_accent, @axis_base, 0.12);"
+    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
     "}"
     ".btn-secondary {"
-    "    background: #FFFFFF;"
-    "    color: #1C1C1E;"
-    "    border: 1px solid #E5E7EE;"
+    "    background: @axis_surface;"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
     "    border-radius: 999px;"
     "    padding: 8px 18px;"
     "    font-weight: 600;"
     "}"
     ".btn-secondary:hover {"
-    "    background: #E6EBFF;"
-    "    color: #1428A0;"
+    "    background: @axis_surface_raised;"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_accent;"
     "}"
     ".badge-blue {"
-    "    background: #E6EBFF;"
-    "    color: #1428A0;"
-    "    border: 1px solid #C7D5FF;"
+    "    background: alpha(@axis_accent, 0.15);"
+    "    color: @axis_accent;"
+    "    border: 1px solid alpha(@axis_accent, 0.30);"
     "    border-radius: 999px;"
     "    padding: 4px 12px;"
     "    font-size: 11px;"
     "    font-weight: 700;"
     "}"
     ".badge-green {"
-    "    background: #E6F8EE;"
-    "    color: #2BB673;"
-    "    border: 1px solid #B7EBCE;"
+    "    background: alpha(@axis_success, 0.15);"
+    "    color: @axis_success;"
+    "    border: 1px solid alpha(@axis_success, 0.30);"
     "    border-radius: 999px;"
     "    padding: 4px 12px;"
     "    font-size: 11px;"
     "    font-weight: 700;"
-    "}"
-    "progressbar progress {"
-    "    background: #1428A0;"
-    "    border-radius: 999px;"
-    "}"
-    "progressbar trough {"
-    "    background: #E5E7EE;"
-    "    border-radius: 999px;"
-    "    min-height: 8px;"
-    "}"
-    "entry {"
-    "    background-color: #FFFFFF;"
-    "    color: #1C1C1E;"
-    "    border: 1px solid #E5E7EE;"
-    "    border-radius: 10px;"
-    "    padding: 8px 14px;"
-    "}"
-    "entry:focus {"
-    "    border-color: #1428A0;"
-    "}"
-    "scale trough {"
-    "    background-color: #E5E7EE;"
-    "    border-radius: 999px;"
-    "    min-height: 6px;"
-    "}"
-    "scale highlight {"
-    "    background-color: #1428A0;"
-    "    border-radius: 999px;"
     "}";
+
+static void load_axis_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+
+    gboolean dark_mode = TRUE;
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_path[512];
+        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
+        FILE *f = fopen(conf_path, "r");
+        if (f) {
+            char buf[128];
+            if (fgets(buf, sizeof(buf), f)) {
+                if (strstr(buf, "light") || strstr(buf, "Light")) {
+                    dark_mode = FALSE;
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
+    const char *light_paths[] = {
+        "data/theme/axis-light.css",
+        "/usr/share/axisos/theme/axis-light.css",
+        "/usr/local/share/axisos/theme/axis-light.css",
+        NULL
+    };
+
+    const char **paths = dark_mode ? dark_paths : light_paths;
+    GtkCssProvider *provider = gtk_css_provider_new();
+    for (int i = 0; paths[i] != NULL; ++i) {
+        if (access(paths[i], R_OK) == 0) {
+            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
+                gtk_style_context_add_provider_for_screen(
+                    screen,
+                    GTK_STYLE_PROVIDER(provider),
+                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+                break;
+            }
+        }
+    }
+    g_object_unref(provider);
+
+    GtkCssProvider *extra_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra_prov, CSS_THEME, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+    );
+    g_object_unref(extra_prov);
+}
 
 static GtkWidget *create_card(const char *title, const char *subtitle) {
     GtkWidget *card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
@@ -1799,15 +1815,8 @@ static AxisSettingsApp *axis_settings_app_create(void) {
     gtk_window_set_default_size(GTK_WINDOW(app->window), 960, 640);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
-    // Apply dark CSS
-    GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(provider, CSS_THEME, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-    );
-    g_object_unref(provider);
+    // Apply system theme
+    load_axis_theme();
 
     // Headerbar
     GtkWidget *hb = gtk_header_bar_new();
@@ -1867,7 +1876,7 @@ static AxisSettingsApp *axis_settings_app_create(void) {
     // Content Stack
     app->stack = gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
-    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 150);
+    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
 
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);

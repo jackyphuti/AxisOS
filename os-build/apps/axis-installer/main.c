@@ -15,261 +15,193 @@
 #include <sys/wait.h>
 
 static const char *AXIS_CSS =
-    "* {"
-    "    font-family: \"Segoe UI\", \"Inter\", \"Ubuntu\", \"Cantarell\", sans-serif;"
-    "}"
-    "window, .background, scrolledwindow, viewport, stack {"
-    "    background-color: #0B0D11;"
-    "    color: #F8FAFC;"
-    "}"
-    "headerbar {"
-    "    background-color: #14171E;"
-    "    background-image: none;"
-    "    border-bottom: 1px solid rgba(255, 255, 255, 0.15);"
-    "    color: #FFFFFF;"
-    "    min-height: 42px;"
-    "    padding: 0 12px;"
-    "    box-shadow: none;"
-    "}"
-    "headerbar .title {"
-    "    font-weight: 700;"
-    "    font-size: 14px;"
-    "    color: #FFFFFF;"
-    "}"
-    "headerbar .subtitle {"
-    "    font-size: 11px;"
-    "    color: #38BDF8;"
-    "}"
-    "headerbar button {"
-    "    background-color: #1E232B;"
-    "    background-image: none;"
-    "    color: #F8FAFC;"
-    "    border: 1px solid rgba(255, 255, 255, 0.18);"
-    "    border-radius: 6px;"
-    "    box-shadow: none;"
-    "    text-shadow: none;"
-    "}"
-    "headerbar button:hover {"
-    "    background-color: #2B323D;"
-    "    color: #FFFFFF;"
-    "    border-color: #3A9CC9;"
-    "}"
     ".setup-canvas {"
-    "    background-color: #0B0D11;"
+    "    background-color: @axis_base;"
     "    padding: 24px 36px;"
     "}"
     ".setup-footer {"
-    "    background-color: #14171E;"
-    "    border-top: 1px solid rgba(255, 255, 255, 0.15);"
+    "    background-color: @axis_surface;"
+    "    border-top: 1px solid @axis_outline;"
     "    padding: 12px 32px;"
     "}"
     ".win-title {"
     "    font-size: 22px;"
     "    font-weight: 700;"
-    "    color: #FFFFFF;"
+    "    color: @axis_text;"
     "    margin-bottom: 6px;"
     "}"
     ".win-subtitle {"
     "    font-size: 13px;"
-    "    color: #94A3B8;"
+    "    color: @axis_text_muted;"
     "    margin-bottom: 18px;"
     "}"
     ".field-label {"
     "    font-size: 13px;"
     "    font-weight: 600;"
-    "    color: #E2E8F0;"
+    "    color: @axis_text;"
     "    margin-bottom: 4px;"
     "}"
     "button.btn-primary, .btn-primary {"
-    "    background-color: #0284C7;"
-    "    background-image: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);"
-    "    color: #FFFFFF;"
+    "    background: @axis_accent;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-size: 14px;"
     "    font-weight: 700;"
-    "    border: 1px solid #38BDF8;"
-    "    border-radius: 6px;"
+    "    border: 1px solid @axis_accent;"
+    "    border-radius: 9999px;"
     "    padding: 10px 28px;"
-    "    box-shadow: none;"
-    "    text-shadow: none;"
-    "}"
-    "button.btn-primary label, .btn-primary label {"
-    "    color: #FFFFFF;"
-    "    font-weight: 700;"
     "}"
     "button.btn-primary:hover, .btn-primary:hover {"
-    "    background-color: #0EA5E9;"
-    "    background-image: linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%);"
-    "    border-color: #7DD3FC;"
-    "    color: #FFFFFF;"
-    "}"
-    "button.btn-primary:disabled, .btn-primary:disabled {"
-    "    background-color: #1E232B;"
-    "    background-image: none;"
-    "    color: #64748B;"
-    "    border-color: #2D3542;"
-    "}"
-    "button.btn-primary:disabled label, .btn-primary:disabled label {"
-    "    color: #64748B;"
+    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
     "}"
     "button.btn-install-large, .btn-install-large {"
-    "    background-color: #0284C7;"
-    "    background-image: linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%);"
-    "    color: #FFFFFF;"
+    "    background: @axis_accent;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-size: 16px;"
     "    font-weight: 700;"
-    "    border: 2px solid #7DD3FC;"
-    "    border-radius: 8px;"
+    "    border: 2px solid @axis_accent;"
+    "    border-radius: 9999px;"
     "    padding: 14px 44px;"
-    "    box-shadow: none;"
-    "    text-shadow: none;"
-    "}"
-    "button.btn-install-large label, .btn-install-large label {"
-    "    color: #FFFFFF;"
-    "    font-weight: 700;"
     "}"
     "button.btn-install-large:hover, .btn-install-large:hover {"
-    "    background-color: #0EA5E9;"
-    "    background-image: linear-gradient(135deg, #38BDF8 0%, #0EA5E9 100%);"
-    "    border-color: #FFFFFF;"
+    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
     "}"
     "button.btn-secondary, .btn-secondary {"
-    "    background-color: #1E232B;"
-    "    background-image: none;"
-    "    color: #F8FAFC;"
+    "    background: @axis_surface;"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
     "    font-size: 13px;"
     "    font-weight: 600;"
-    "    border: 1px solid rgba(255, 255, 255, 0.22);"
-    "    border-radius: 6px;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 9999px;"
     "    padding: 9px 22px;"
-    "    box-shadow: none;"
-    "    text-shadow: none;"
-    "}"
-    "button.btn-secondary label, .btn-secondary label {"
-    "    color: #F8FAFC;"
-    "    font-weight: 600;"
     "}"
     "button.btn-secondary:hover, .btn-secondary:hover {"
-    "    background-color: #2B323E;"
-    "    border-color: #38BDF8;"
-    "    color: #FFFFFF;"
-    "}"
-    "button.btn-secondary:disabled, .btn-secondary:disabled {"
-    "    background-color: #14171E;"
-    "    color: #475569;"
-    "    border-color: rgba(255, 255, 255, 0.08);"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_accent;"
     "}"
     "button.btn-danger, .btn-danger {"
-    "    background-color: #881337;"
-    "    color: #FFFFFF;"
+    "    background-color: @axis_danger;"
+    "    color: @axis_accent_btn_text;"
     "    font-size: 13px;"
     "    font-weight: 600;"
-    "    border: 1px solid #E11D48;"
-    "    border-radius: 6px;"
+    "    border: 1px solid @axis_danger;"
+    "    border-radius: 9999px;"
     "    padding: 9px 18px;"
     "}"
-    ".info-card {"
-    "    background-color: #14171E;"
-    "    border: 1px solid rgba(255, 255, 255, 0.14);"
-    "    border-radius: 8px;"
+    ".info-card, .card {"
+    "    background-color: @axis_surface_raised;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 16px;"
     "    padding: 16px 20px;"
     "}"
-    ".summary-key {"
+    ".card-title, .summary-val {"
+    "    font-size: 13px;"
+    "    font-weight: 700;"
+    "    color: @axis_text;"
+    "}"
+    ".card-subtitle, .summary-key {"
     "    font-size: 13px;"
     "    font-weight: 600;"
-    "    color: #94A3B8;"
-    "}"
-    ".summary-val {"
-    "    font-size: 13px;"
-    "    font-weight: 700;"
-    "    color: #FFFFFF;"
-    "}"
-    "entry {"
-    "    background-color: #181C24;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid rgba(255, 255, 255, 0.22);"
-    "    border-radius: 6px;"
-    "    padding: 8px 12px;"
-    "    font-size: 13px;"
-    "}"
-    "entry:focus {"
-    "    border-color: #38BDF8;"
-    "    background-color: #1E2430;"
-    "}"
-    "combobox button {"
-    "    background-color: #181C24;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid rgba(255, 255, 255, 0.22);"
-    "    border-radius: 6px;"
-    "    padding: 7px 12px;"
-    "}"
-    "treeview {"
-    "    background-color: #14171E;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid rgba(255, 255, 255, 0.15);"
-    "    border-radius: 6px;"
-    "}"
-    "treeview:selected, treeview row:selected {"
-    "    background-color: #0284C7;"
-    "    color: #FFFFFF;"
-    "}"
-    ".progress-stage {"
-    "    font-size: 14px;"
-    "    color: #94A3B8;"
-    "    margin-bottom: 8px;"
-    "}"
-    ".progress-stage.active {"
-    "    color: #38BDF8;"
-    "    font-weight: 700;"
-    "}"
-    ".progress-stage.done {"
-    "    color: #4ADE80;"
-    "    font-weight: 700;"
-    "}"
-    "progressbar progress {"
-    "    background-color: #0EA5E9;"
-    "    border-radius: 3px;"
-    "}"
-    "progressbar trough {"
-    "    background-color: #1E232B;"
-    "    border-radius: 3px;"
-    "    min-height: 8px;"
+    "    color: @axis_text_muted;"
     "}"
     ".edition-card {"
-    "    background-color: #14171E;"
-    "    border: 2px solid rgba(255, 255, 255, 0.12);"
-    "    border-radius: 8px;"
+    "    background-color: @axis_surface_raised;"
+    "    border: 2px solid @axis_outline;"
+    "    border-radius: 16px;"
     "    padding: 16px 20px;"
     "}"
     ".edition-card:hover {"
-    "    background-color: #1A1F29;"
-    "    border-color: rgba(56, 189, 248, 0.4);"
+    "    background-color: alpha(@axis_accent, 0.08);"
+    "    border-color: @axis_accent;"
     "}"
     ".edition-card.selected {"
-    "    background-color: #152238;"
-    "    border-color: #38BDF8;"
+    "    background-color: alpha(@axis_accent, 0.16);"
+    "    border-color: @axis_accent;"
     "}"
     ".edition-title {"
     "    font-size: 15px;"
     "    font-weight: 700;"
-    "    color: #FFFFFF;"
+    "    color: @axis_text;"
     "}"
     ".edition-badge {"
     "    font-size: 11px;"
     "    font-weight: 700;"
     "    padding: 2px 8px;"
     "    border-radius: 4px;"
-    "    background-color: #0284C7;"
-    "    color: #FFFFFF;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "}"
     ".edition-desc {"
     "    font-size: 13px;"
-    "    color: #94A3B8;"
+    "    color: @axis_text_muted;"
     "}"
     ".edition-features {"
     "    font-size: 12px;"
-    "    color: #38BDF8;"
+    "    color: @axis_accent;"
     "    font-weight: 600;"
     "}";
+
+static void load_axis_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+
+    gboolean dark_mode = TRUE;
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_path[512];
+        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
+        FILE *f = fopen(conf_path, "r");
+        if (f) {
+            char buf[128];
+            if (fgets(buf, sizeof(buf), f)) {
+                if (strstr(buf, "light") || strstr(buf, "Light")) {
+                    dark_mode = FALSE;
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
+    const char *light_paths[] = {
+        "data/theme/axis-light.css",
+        "/usr/share/axisos/theme/axis-light.css",
+        "/usr/local/share/axisos/theme/axis-light.css",
+        NULL
+    };
+
+    const char **paths = dark_mode ? dark_paths : light_paths;
+    GtkCssProvider *provider = gtk_css_provider_new();
+    for (int i = 0; paths[i] != NULL; ++i) {
+        if (access(paths[i], R_OK) == 0) {
+            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
+                gtk_style_context_add_provider_for_screen(
+                    screen,
+                    GTK_STYLE_PROVIDER(provider),
+                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+                break;
+            }
+        }
+    }
+    g_object_unref(provider);
+
+    GtkCssProvider *extra_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra_prov, AXIS_CSS, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+    );
+    g_object_unref(extra_prov);
+}
 
 typedef struct {
     const char *label;
@@ -1722,14 +1654,8 @@ static AxisInstallerApp *axis_installer_app_create(void) {
     gtk_window_set_default_icon_name("axisos");
     gtk_window_set_icon_name(GTK_WINDOW(app->window), "axisos");
 
-    GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(provider, AXIS_CSS, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-    );
-    g_object_unref(provider);
+    // Apply system theme
+    load_axis_theme();
 
     GtkWidget *hb = gtk_header_bar_new();
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
@@ -1741,8 +1667,8 @@ static AxisInstallerApp *axis_installer_app_create(void) {
     gtk_container_add(GTK_CONTAINER(app->window), root_box);
 
     app->stack = gtk_stack_new();
-    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
-    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 160);
+    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
+    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
     gtk_box_pack_start(GTK_BOX(root_box), app->stack, TRUE, TRUE, 0);
 
     GtkWidget *footer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);

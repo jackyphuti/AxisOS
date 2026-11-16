@@ -185,88 +185,145 @@ typedef struct {
 } AxisTaskManagerApp;
 
 static const char *CSS_TASK_MANAGER =
-    "* {"
-    "    font-family: \"Inter\", -apple-system, BlinkMacSystemFont, \"Segoe UI\", Cantarell, \"DejaVu Sans\", sans-serif;"
-    "    outline-style: none;"
-    "}"
-    "window, .background {"
-    "    background-color: #F4F6FB;"
-    "    color: #1C1C1E;"
-    "}"
-    "headerbar {"
-    "    background-color: #FFFFFF;"
-    "    border-bottom: 1px solid #E5E7EE;"
-    "    color: #1C1C1E;"
-    "}"
-    "headerbar .title {"
-    "    font-weight: 700;"
-    "    font-size: 15px;"
-    "    color: #1C1C1E;"
-    "}"
     ".sidebar {"
-    "    background-color: #FFFFFF;"
-    "    border-right: 1px solid #E5E7EE;"
+    "    background-color: @axis_surface;"
+    "    border-right: 1px solid @axis_outline;"
     "}"
     ".sidebar button {"
     "    border-radius: 999px;"
     "    padding: 10px 14px;"
     "    margin: 3px 8px;"
-    "    color: #6B6F7B;"
+    "    color: @axis_text_muted;"
     "    font-weight: 600;"
     "    font-size: 13px;"
     "    border: none;"
     "    background-color: transparent;"
     "}"
     ".sidebar button:hover {"
-    "    background-color: #E6EBFF;"
-    "    color: #1428A0;"
+    "    background-color: alpha(@axis_accent, 0.12);"
+    "    color: @axis_accent;"
     "}"
     ".sidebar button.active {"
-    "    background-color: #1428A0;"
-    "    color: #FFFFFF;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-weight: 700;"
     "}"
     ".content-pane {"
     "    padding: 16px 20px;"
     "}"
     ".card {"
-    "    background-color: #FFFFFF;"
-    "    border: 1px solid #E5E7EE;"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
     "    border-radius: 16px;"
     "    padding: 14px 18px;"
     "    margin-bottom: 12px;"
-    "    box-shadow: 0 2px 12px rgba(20, 40, 160, 0.04);"
+    "    box-shadow: 0 2px 12px @axis_shadow;"
     "}"
     ".card-title {"
     "    font-size: 13px;"
     "    font-weight: 700;"
-    "    color: #1C1C1E;"
+    "    color: @axis_text;"
     "    margin-bottom: 6px;"
     "}"
+    ".card-subtitle {"
+    "    font-size: 12px;"
+    "    color: @axis_text_muted;"
+    "    margin-bottom: 8px;"
+    "}"
     ".btn-primary {"
-    "    background: #1428A0;"
-    "    color: #FFFFFF;"
+    "    background: @axis_accent;"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "    font-weight: 700;"
     "    border-radius: 999px;"
     "    border: none;"
     "    padding: 6px 16px;"
     "}"
+    ".btn-primary:hover {"
+    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
+    "}"
     ".btn-secondary {"
-    "    background: #FFFFFF;"
-    "    color: #1C1C1E;"
-    "    border: 1px solid #E5E7EE;"
+    "    background: @axis_surface;"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
     "    border-radius: 999px;"
     "    padding: 6px 14px;"
     "    font-weight: 600;"
     "}"
+    ".btn-secondary:hover {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_accent;"
+    "}"
     "treeview {"
-    "    background-color: #FFFFFF;"
-    "    color: #1C1C1E;"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
     "}"
     "treeview:selected, treeview row:selected {"
-    "    background-color: #E6EBFF;"
-    "    color: #1428A0;"
+    "    background-color: alpha(@axis_accent, 0.16);"
+    "    color: @axis_accent;"
     "}";
+
+static void load_axis_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+
+    gboolean dark_mode = TRUE;
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_path[512];
+        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
+        FILE *f = fopen(conf_path, "r");
+        if (f) {
+            char buf[128];
+            if (fgets(buf, sizeof(buf), f)) {
+                if (strstr(buf, "light") || strstr(buf, "Light")) {
+                    dark_mode = FALSE;
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
+    const char *light_paths[] = {
+        "data/theme/axis-light.css",
+        "/usr/share/axisos/theme/axis-light.css",
+        "/usr/local/share/axisos/theme/axis-light.css",
+        NULL
+    };
+
+    const char **paths = dark_mode ? dark_paths : light_paths;
+    GtkCssProvider *provider = gtk_css_provider_new();
+    for (int i = 0; paths[i] != NULL; ++i) {
+        if (access(paths[i], R_OK) == 0) {
+            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
+                gtk_style_context_add_provider_for_screen(
+                    screen,
+                    GTK_STYLE_PROVIDER(provider),
+                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+                break;
+            }
+        }
+    }
+    g_object_unref(provider);
+
+    GtkCssProvider *extra_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra_prov, CSS_TASK_MANAGER, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+    );
+    g_object_unref(extra_prov);
+}
 
 static double get_time_seconds(void) {
     struct timeval tv;
@@ -1321,14 +1378,8 @@ static AxisTaskManagerApp *axis_task_manager_app_create(void) {
     gtk_window_set_default_size(GTK_WINDOW(app->window), 1080, 680);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
-    GtkCssProvider *prov = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(prov, CSS_TASK_MANAGER, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        gdk_screen_get_default(),
-        GTK_STYLE_PROVIDER(prov),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-    );
-    g_object_unref(prov);
+    // Apply system theme
+    load_axis_theme();
 
     GtkWidget *hb = gtk_header_bar_new();
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
@@ -1372,7 +1423,7 @@ static AxisTaskManagerApp *axis_task_manager_app_create(void) {
     // Content Stack
     app->stack = gtk_stack_new();
     gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
-    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 140);
+    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
     gtk_box_pack_start(GTK_BOX(main_hbox), app->stack, TRUE, TRUE, 0);
 
     // 1. Processes
