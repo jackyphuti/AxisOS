@@ -9,7 +9,7 @@ AxisOS is an independent, hobby and educational Linux desktop operating system b
 ## Core Guidelines & Language Policy
 
 > [!IMPORTANT]
-> **Strict Pure C Policy:** AxisOS has a zero-tolerance policy for C++, Qt/QML, and Python in runtime and system components. All compositor code, desktop shell components, native applications, and helper daemons must be written strictly in **pure C11** (`-std=gnu11`). Automated CI checks will reject PRs containing `.cpp`, `.hpp`, `.qml`, or `.py` files.
+> **Strict Pure C Policy (For Now):** AxisOS currently keeps all runtime and system components in **pure C11** (`-std=gnu11`) with zero C++, Qt/QML, or Python. While we may consider introducing **Rust** in the future for certain system modules or utilities, **for now we are keeping everything strictly in pure C**. Automated CI checks will reject PRs containing `.cpp`, `.hpp`, `.qml`, or `.py` files.
 
 ---
 
