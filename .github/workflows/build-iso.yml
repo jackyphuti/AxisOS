@@ -16,19 +16,48 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install Debian Live Build Toolchain
+      - name: Install Debian Live Build Toolchain & Pure C Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build debootstrap squashfs-tools xorriso dosfstools mtools isolinux
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            gcc \
+            pkg-config \
+            libgtk-3-dev \
+            libgtk-layer-shell-dev \
+            libvterm-dev \
+            libarchive-dev \
+            libjson-c-dev \
+            libcurl4-openssl-dev \
+            libssl-dev \
+            libpam0g-dev \
+            libudev-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            live-build \
+            debootstrap \
+            squashfs-tools \
+            xorriso \
+            dosfstools \
+            mtools \
+            isolinux
 
       - name: Build Hybrid ISO
         run: |
           sudo bash os-build/scripts/build-iso.sh
 
+      - name: Generate Checksum
+        run: |
+          if [ -f axisos-live-amd64.iso ]; then
+            sha256sum axisos-live-amd64.iso | tee axisos-live-amd64.iso.sha256
+          fi
+
       - name: Upload ISO Artifact
         uses: actions/upload-artifact@v4
         with:
           name: axisos-live-amd64-${{ github.event.inputs.release_tag }}
-          path: axisos-live-amd64.iso
+          path: |
+            axisos-live-amd64.iso
+            axisos-live-amd64.iso.sha256
           if-no-files-found: warn
           retention-days: 7
