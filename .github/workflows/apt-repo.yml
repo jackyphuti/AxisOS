@@ -48,6 +48,11 @@ jobs:
                 libssl-dev \
                 libudev-dev \
                 libwayland-dev \
+                libwayland-bin \
+                wayland-protocols \
+                libwlroots-dev \
+                libinput-dev \
+                libdrm-dev \
                 libpam0g-dev \
                 libxkbcommon-dev \
                 libgl1-mesa-dev \

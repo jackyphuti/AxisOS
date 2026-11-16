@@ -42,6 +42,11 @@ jobs:
             libpam0g-dev \
             libudev-dev \
             libwayland-dev \
+            libwayland-bin \
+            wayland-protocols \
+            libwlroots-dev \
+            libinput-dev \
+            libdrm-dev \
             libxkbcommon-dev \
             live-build \
             debootstrap \
