@@ -1,234 +1,122 @@
-<div style="font-family: 'IBM Plex Sans', 'IBM Plex Mono', 'Liberation Mono', Menlo, Consolas, monospace; line-height: 1.6;">
-
 # Contributing to AxisOS
 
 Thank you for your interest in contributing to **AxisOS**!
 
-AxisOS is a next-generation, glassmorphic Linux operating system built on the Linux kernel, native Wayland compositor, and a modern Qt 6 / C++ desktop suite. We welcome contributions from developers, designers, system engineers, kernel hackers, and technical writers worldwide.
+AxisOS is an independent, hobby and educational Linux desktop operating system built on Debian 12 (Bookworm), native Wayland (`wlroots`), and a custom desktop environment written strictly in **100% Pure C (C11)**.
 
 ---
 
-## Table of Contents
-1. [Code of Conduct](#code-of-conduct)
-2. [Contribution Workflow](#contribution-workflow)
-3. [Repository Structure](#repository-structure)
-4. [Development Guidelines](#development-guidelines)
-   - [Desktop Shell & QML](#desktop-shell--qml)
-   - [Native C++ Applications](#native-c-applications)
-   - [Systems & Kernel Drivers](#systems--kernel-drivers)
-5. [Commit Message Conventions](#commit-message-conventions)
-6. [Developer Certificate of Origin (DCO) & Signed-off-by](#developer-certificate-of-origin-dco--signed-off-by)
-7. [Submitting a Pull Request](#submitting-a-pull-request)
-8. [Reporting Issues & Bugs](#reporting-issues--bugs)
-9. [Join the Community](#join-the-community)
-
----
-
-## Code of Conduct
-
-We are committed to providing a welcoming, inclusive, and harassment-free environment for everyone. Please be respectful, constructive, and collaborative in all discussions, pull requests, and issue threads.
-
----
-
-## Contribution Workflow
-
-To keep our codebase clean, stable, and robust:
+## Core Guidelines & Language Policy
 
 > [!IMPORTANT]
-> **No direct pushes to `main`**: All code contributions must be submitted via a **Pull Request (PR)** from a fork or topic branch. Direct pushes to `main` are restricted to ensure every contribution undergoes code review and verification.
+> **Strict Pure C Policy:** AxisOS has a zero-tolerance policy for C++, Qt/QML, and Python in runtime and system components. All compositor code, desktop shell components, native applications, and helper daemons must be written strictly in **pure C11** (`-std=gnu11`). Automated CI checks will reject PRs containing `.cpp`, `.hpp`, `.qml`, or `.py` files.
 
-### Standard Git Workflow:
-1. **Fork the Repository**: Click the **Fork** button at the top right of [jackyphuti/AxisOS](https://github.com/jackyphuti/AxisOS).
-2. **Clone your Fork**:
-   ```bash
-   git clone https://github.com/<your-username>/AxisOS.git
-   cd AxisOS
-   ```
-3. **Create a Feature Branch**:
-   ```bash
-   git checkout -b feature/my-new-feature
-   # or for bug fixes:
-   git checkout -b fix/resolve-display-mode
-   ```
-4. **Make Your Changes**: Follow our [Development Guidelines](#development-guidelines).
-5. **Verify Locally**:
-   - Run syntax and codebase checks: `./scripts/scan-codebase.sh`.
-   - Verify native builds and protocol generation: `cd compositor && make`.
-6. **Commit Your Changes**: Follow [Conventional Commits](#commit-message-conventions).
-7. **Push to Your Fork**:
-   ```bash
-   git push origin feature/my-new-feature
-   ```
-8. **Open a Pull Request**: Go to the GitHub repository and open a PR targeting the `main` branch.
+---
+
+## Quick Start & Build Setup
+
+### 1. Install Build Dependencies (Debian / Ubuntu)
+
+```bash
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends \
+  build-essential \
+  gcc \
+  pkg-config \
+  libgtk-3-dev \
+  libgtk-layer-shell-dev \
+  libvterm-dev \
+  libarchive-dev \
+  libjson-c-dev \
+  libcurl4-openssl-dev \
+  libssl-dev \
+  libpam0g-dev \
+  libudev-dev \
+  libwayland-dev \
+  libxkbcommon-dev \
+  libwlroots-dev \
+  libdrm-dev
+```
+
+### 2. Compile All Applications & Shell
+
+```bash
+bash os-build/scripts/compile-native-apps.sh
+```
+
+### 3. Verify Strict Pure C Linkage
+
+```bash
+bash scripts/verify-pure-c.sh
+```
 
 ---
 
 ## Repository Structure
 
-Understanding where code lives will help you navigate and contribute effectively:
+Understanding where code lives:
 
-| Directory | Purpose | Key Technologies |
+| Directory | Description | Technologies |
 | :--- | :--- | :--- |
-| `compositor/` | Native C / wlroots Wayland display server (`axis-compositor`). | C11, wlroots, libdrm, wayland-server |
-| `compositor-qt/` | Glassmorphic Qt 6 LiquidNodes desktop shell. | Qt 6, QML, C++20 |
-| `os-build/` | Linux OS image build system, installer, and session scripts. | Python 3, Bash, Debian Bookworm, xorriso |
-| `os-build/apps/` | Native desktop applications (Terminal, Settings, Installer, Task Manager, OOBE). | C++17, GTK 3, Qt 6 |
-| `os-build/configs/` | Session scripts, Wayland configs, systemd services, and PAM policies. | systemd, Polkit, seatd |
-| `data/` | System themes, branding, wallpapers, and desktop integration files. | CSS, SVG, FreeDesktop specs |
-| `pkg-mgr/` | Native `axis` package manager runtime and format tools. | Shell, APT, Flatpak |
+| `compositor/` | Native Wayland compositor (`axis-compositor`) | C11, wlroots, libdrm, wayland-server |
+| `shell-c/` | Native desktop shell (`axisos-shell`, panel, dock, launcher) | C11, GTK 3, gtk-layer-shell, Cairo |
+| `os-build/apps/` | Built-in desktop apps (Terminal, Settings, Task Manager, Installer) | C11, GTK 3, libvterm |
+| `os-build/scripts/` | System helper daemons, time-sync, game-boost, build scripts | C11, POSIX, Bash |
+| `os-build/configs/` | Session scripts, systemd units, package lists | systemd, PAM, seatd |
+| `data/` | Theme CSS tokens, wallpapers, icons, desktop files | CSS, SVG, FreeDesktop specs |
+| `pkg-mgr/` | Pure C package manager runtime and repository tooling | C11, libcurl, libjson-c, libarchive |
+| `tests/` | Hardware probing and UI architecture verification suites | C11 |
 
 ---
 
-## Development Guidelines
+## Contribution Workflow
 
-### Desktop Shell & QML
-- **Visual Consistency**: Adhere to the One UI-inspired design tokens: 16–24px corner radii, `#1428A0` light / `#7D95FF` dark accents, and `#1F2231` dark background surfaces.
-- **Dynamic Sizing**: Bind window geometries and shell panels dynamically to active screen outputs (`Screen.width`, `Screen.height`).
-- **Resource Efficiency**: Use downsampled blur passes and hardware-accelerated shaders to keep frame rates consistent on all GPUs and virtual displays.
-
-### Native C++ Applications
-- Use modern C++ standards (`C++17` / `C++20`).
-- Ensure clean resource management and error handling across process pipes (`fork`/`execvp`/`pipe`).
-- Validate input arguments and avoid assumptions about interactive terminal availability (`use_pty`).
-
-### Systems & Kernel Drivers
-- Follow the Linux Kernel Coding Style (tabs for indentation, 80-column line limits where practical).
-- Properly manage memory allocations with clean cleanup paths on error conditions.
-- Respect the Linux Device Model (`MODULE_DEVICE_TABLE`, `probe()`, `remove()`).
-
----
-
-## Commit Message Conventions
-
-We use [Conventional Commits](https://www.conventionalcommits.org/) to keep the commit history informative and automate changelog generation.
-
-### Format:
-```
-<type>(<scope>): <short description>
-
-[optional body explaining rationale]
-```
-
-### Types:
-- `feat`: A new feature (e.g. `feat(compositor): add dynamic output mode fallback`)
-- `fix`: A bug fix (e.g. `fix(installer): use non-interactive sudo escalation`)
-- `docs`: Documentation updates (e.g. `docs: update installation and development instructions`)
-- `style`: Formatting, CSS tweaks, no logic changes (e.g. `style(dock): refine glass blur effect`)
-- `refactor`: Code change that neither fixes a bug nor adds a feature
-- `perf`: Performance improvements
-- `test`: Adding or improving tests
-- `chore`: Maintenance tasks, dependency bumps, build configurations
+1. **Fork the Repository** on GitHub.
+2. **Clone your fork**:
+   ```bash
+   git clone https://github.com/<your-username>/AxisOS.git
+   cd AxisOS
+   ```
+3. **Create a topic branch**:
+   ```bash
+   git checkout -b feat/my-new-feature
+   # or
+   git checkout -b fix/issue-description
+   ```
+4. **Make your changes** following our pure C coding guidelines.
+5. **Verify locally**:
+   ```bash
+   bash os-build/scripts/compile-native-apps.sh
+   bash scripts/verify-pure-c.sh
+   ```
+   Ensure all 22 binaries compile cleanly with zero warnings/errors.
+6. **Commit with Conventional Commits**:
+   ```bash
+   git commit -m "feat(shell): add workspace switch shortcuts"
+   # or
+   git commit -m "fix(compositor): prevent EGL hang on virtual GPUs"
+   ```
+   Supported types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+7. **Push to your fork** and open a **Pull Request** targeting `main`.
 
 ---
 
-## Developer Certificate of Origin (DCO) & Signed-off-by
+## Coding Standards
 
-To ensure software provenance, legal compliance with our GPL-3.0 license, and transparency across our codebase, **AxisOS requires all contributions to be signed off by their author**.
-
-### 1. The Developer Certificate of Origin (DCO 1.1)
-By adding a `Signed-off-by` trailer to your commit message, you certify that you have the legal right to submit the code under the **Developer Certificate of Origin (DCO)**:
-
-```text
-Developer Certificate of Origin
-Version 1.1
-
-Copyright (C) 2004, 2006 Open Source Development Labs, Inc.
-By making a contribution to this project, I certify that:
-
-(a) The contribution was created in whole or in part by me and I
-    have the right to submit it under the open source license
-    indicated in the file; or
-
-(b) The contribution is based upon previous work that, to the best
-    of my knowledge, is covered under an appropriate open source
-    license and I have the right under that license to submit that
-    work with modifications, whether created in whole or in part
-    by me, under the same open source license; or
-
-(c) The contribution was provided directly to me by some other
-    person who certified (a), (b) or (c) and I have not modified
-    it.
-
-(d) I understand and agree that this project and the contribution
-    are public and that a record of the contribution (including all
-    personal information I submit with it, including my sign-off) is
-    maintained indefinitely and may be redistributed consistent with
-    this project or the open source license(s) involved.
-```
-
-### 2. Sign-off Requirements
-Your `Signed-off-by` line should use your authentic name and a working email address.
-
-- **Valid**: `Signed-off-by: Jane Doe <jane.doe@example.com>`
-- **Invalid**: `Signed-off-by: @xX_anon_Xx <anon@users.noreply.github.com>`
-- **Invalid**: Missing `Signed-off-by` trailer.
-
-### 3. How to Sign Off Your Commits
-
-#### New Commits:
-Pass the `-s` (or `--signoff`) flag when committing:
-```bash
-git commit -s -m "feat(shell): add window snap gestures"
-```
-Git will automatically append your sign-off trailer:
-```text
-feat(shell): add window snap gestures
-
-Signed-off-by: Real Name <real.email@example.com>
-```
-
-#### Configuring your Git Identity:
-Ensure your local git configuration reflects your name and email:
-```bash
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
-```
-
-#### Amending an Unsigned Commit:
-If you forgot to sign off your latest commit before pushing:
-```bash
-git commit --amend --signoff --no-edit
-```
-
-#### Signing Off Past Commits in a Branch:
-If your feature branch has multiple commits that need sign-offs:
-```bash
-git rebase --signoff origin/main
-```
+* **Language Standard**: ISO C11 (`-std=gnu11`).
+* **Compiler Flags**: All code must compile cleanly with `-Wall -Wextra`.
+* **Resource Cleanup**: Always free allocated heap memory, close file descriptors and sockets, and unref GObject/GTK widgets when destroyed.
+* **Non-blocking Wayland**: Avoid long blocking loops in the compositor and shell threads. Use GLib/Wayland event loop callbacks and timers (`g_timeout_add`, `wl_event_loop`).
+* **Safe Process Spawning**: Spawn child processes asynchronously via `g_spawn_async` or `fork`/`exec` rather than synchronous blocking calls.
 
 ---
 
-## Submitting a Pull Request
+## Reporting Issues
 
-When opening a Pull Request:
-1. Provide a clear, descriptive title following conventional commit style.
-2. Ensure commits in the PR contain a valid `Signed-off-by: Name <email>` trailer.
-3. Fill out the PR description with:
-   - Summary of changes.
-   - Issue/feature reference (e.g. `Closes #12`).
-   - Screenshots or video clips for visual/UI changes.
-   - Verification steps you performed.
-4. Be responsive to review comments and code suggestions.
-
----
-
-## Reporting Issues & Bugs
-
-If you discover a bug or have a feature idea:
-- Check existing [GitHub Issues](https://github.com/jackyphuti/AxisOS/issues) to avoid duplicates.
-- Open a new issue with:
-  - Clear steps to reproduce the issue.
-  - Expected vs. actual behavior.
-  - Hardware specifications (CPU, GPU, RAM, UEFI vs BIOS).
-  - Screenshots or terminal log outputs if applicable.
-
----
-
-## Join the Community
-
-- **GitHub Discussions**: Share ideas, showcase setups, and ask questions.
-- **Issue Tracker**: Submit feature requests, bug reports, and hardware compatibility feedback.
-
-Thank you for helping make AxisOS the best desktop Linux experience possible!
-
-</div>
+If you find a bug or have a suggestion:
+1. Check existing [GitHub Issues](https://github.com/jackyphuti/AxisOS/issues) first.
+2. Open a new issue including:
+   * Clear description of expected vs. actual behavior.
+   * Steps to reproduce.
+   * Environment details (bare metal vs. VM hypervisor, GPU model, screen resolution).
+   * Terminal output or `/home/axis/.compositor.log` snippets if applicable.
