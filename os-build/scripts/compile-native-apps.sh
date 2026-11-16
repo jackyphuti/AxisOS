@@ -161,7 +161,11 @@ if [ -d "$ROOT_DIR/shell-c" ]; then
     echo "--> Compiling Pure C Wayland Desktop Shell (shell-c)..."
     make -C "$ROOT_DIR/shell-c" clean
     make -C "$ROOT_DIR/shell-c" -j"$(nproc 2>/dev/null || echo 2)"
-    cp -f "$ROOT_DIR/shell-c/axisos-shell" "$ROOT_DIR/shell-c/axis-shell" 2>/dev/null || true
+    cp -f "$ROOT_DIR/shell-c/axisos-shell" "$ROOT_DIR/shell-c/axis-shell"
+    if [ ! -f "$ROOT_DIR/shell-c/axis-shell" ]; then
+        echo "ERROR: axis-shell failed to compile!"
+        exit 1
+    fi
 fi
 
 # 14. Compile Native wlroots Wayland Compositor (compositor -> axis-compositor)
@@ -169,9 +173,24 @@ if [ -d "$ROOT_DIR/compositor" ]; then
     echo "--> Compiling Pure C Wayland Compositor (compositor)..."
     (
         cd "$ROOT_DIR/compositor"
-        if pkg-config --exists wlroots 2>/dev/null; then
-            make clean || true
-            make -j"$(nproc 2>/dev/null || echo 2)" || true
+        WLR_PKG=""
+        for pkg in wlroots-0.18 wlroots-0.17 wlroots; do
+            if pkg-config --exists "$pkg" 2>/dev/null; then
+                WLR_PKG="$pkg"
+                break
+            fi
+        done
+        if [ -n "$WLR_PKG" ]; then
+            echo "    Detected $WLR_PKG via pkg-config"
+            make clean
+            make -j"$(nproc 2>/dev/null || echo 2)"
+        else
+            echo "ERROR: wlroots (wlroots-0.18, wlroots-0.17, or wlroots) not found via pkg-config!"
+            exit 1
+        fi
+        if [ ! -f "$ROOT_DIR/compositor/axis-compositor" ]; then
+            echo "ERROR: axis-compositor failed to compile!"
+            exit 1
         fi
     )
 fi
@@ -188,6 +207,13 @@ if [ -d "$ROOT_DIR/pkg-mgr" ]; then
     echo "--> Compiling Pure C Package Manager Tooling (pkg-mgr)..."
     make -C "$ROOT_DIR/pkg-mgr" clean
     make -C "$ROOT_DIR/pkg-mgr"
+fi
+
+# 17. Compile Verification and Diagnostic Tools (tests/)
+if [ -d "$ROOT_DIR/tests" ]; then
+    echo "--> Compiling Verification Tools (tests/)..."
+    $CC $CFLAGS "$ROOT_DIR/tests/test_hardware_probe.c" -o "$ROOT_DIR/tests/test_hardware_probe"
+    $CC $CFLAGS "$ROOT_DIR/tests/verify_harmony_ui.c" -o "$ROOT_DIR/tests/verify_harmony_ui"
 fi
 
 echo "======================================================================"

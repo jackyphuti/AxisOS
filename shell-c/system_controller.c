@@ -296,6 +296,145 @@ static void read_network_stats(SystemController *ctrl) {
             closedir(d);
         }
     }
+
+    // Read active SSID if connected
+    char *ssid_out = NULL;
+    if (g_spawn_command_line_sync("nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | grep '^yes:' | cut -d: -f2", &ssid_out, NULL, NULL, NULL) && ssid_out) {
+        g_strstrip(ssid_out);
+        if (ssid_out[0] != '\0') {
+            g_free(ctrl->metrics.wifi_ssid);
+            ctrl->metrics.wifi_ssid = g_strdup(ssid_out);
+            ctrl->metrics.wifi_connected = true;
+        }
+        g_free(ssid_out);
+    }
+}
+
+static void read_cpu_temp(SystemController *ctrl) {
+    ctrl->metrics.cpu_temp_c = 42;
+    DIR *d = opendir("/sys/class/thermal");
+    if (d) {
+        struct dirent *ent;
+        while ((ent = readdir(d)) != NULL) {
+            if (strncmp(ent->d_name, "thermal_zone", 12) == 0) {
+                char temp_path[512];
+                snprintf(temp_path, sizeof(temp_path), "/sys/class/thermal/%s/temp", ent->d_name);
+                FILE *f = fopen(temp_path, "r");
+                if (f) {
+                    long milli = 0;
+                    if (fscanf(f, "%ld", &milli) == 1 && milli > 0) {
+                        int c = (int)(milli / 1000);
+                        if (c >= 10 && c <= 115) {
+                            ctrl->metrics.cpu_temp_c = c;
+                            fclose(f);
+                            closedir(d);
+                            return;
+                        }
+                    }
+                    fclose(f);
+                }
+            }
+        }
+        closedir(d);
+    }
+}
+
+static void read_audio_stats(SystemController *ctrl) {
+    char *out = NULL;
+    if (g_spawn_command_line_sync("wpctl get-volume @DEFAULT_AUDIO_SINK@", &out, NULL, NULL, NULL) && out && strstr(out, "Volume:")) {
+        char *p = strstr(out, "Volume:");
+        if (p) {
+            float vol = 0.0f;
+            if (sscanf(p + 7, "%f", &vol) == 1) {
+                ctrl->metrics.volume = (int)(vol * 100.0f + 0.5f);
+                if (ctrl->metrics.volume > 100) ctrl->metrics.volume = 100;
+                if (ctrl->metrics.volume < 0) ctrl->metrics.volume = 0;
+            }
+            ctrl->metrics.is_muted = (strstr(out, "[MUTED]") != NULL);
+        }
+        g_free(out);
+        return;
+    }
+    g_free(out);
+    out = NULL;
+
+    if (g_spawn_command_line_sync("pactl get-sink-volume @DEFAULT_SINK@", &out, NULL, NULL, NULL) && out) {
+        char *pct = strchr(out, '%');
+        if (pct) {
+            char *start = pct - 1;
+            while (start > out && g_ascii_isdigit(*(start - 1))) {
+                start--;
+            }
+            int v = atoi(start);
+            if (v >= 0 && v <= 150) {
+                ctrl->metrics.volume = v > 100 ? 100 : v;
+            }
+        }
+        g_free(out);
+        out = NULL;
+    }
+    if (g_spawn_command_line_sync("pactl get-sink-mute @DEFAULT_SINK@", &out, NULL, NULL, NULL) && out) {
+        if (strstr(out, "yes") || strstr(out, "Mute: yes")) {
+            ctrl->metrics.is_muted = true;
+        } else if (strstr(out, "no") || strstr(out, "Mute: no")) {
+            ctrl->metrics.is_muted = false;
+        }
+        g_free(out);
+        out = NULL;
+    }
+}
+
+int system_controller_read_brightness(void) {
+    GDir *dir = g_dir_open("/sys/class/backlight", 0, NULL);
+    if (dir) {
+        const char *entry;
+        while ((entry = g_dir_read_name(dir)) != NULL) {
+            char b_path[256], m_path[256];
+            snprintf(b_path, sizeof(b_path), "/sys/class/backlight/%s/brightness", entry);
+            snprintf(m_path, sizeof(m_path), "/sys/class/backlight/%s/max_brightness", entry);
+            char *b_str = NULL, *m_str = NULL;
+            if (g_file_get_contents(b_path, &b_str, NULL, NULL) &&
+                g_file_get_contents(m_path, &m_str, NULL, NULL)) {
+                long b_val = strtol(b_str, NULL, 10);
+                long m_val = strtol(m_str, NULL, 10);
+                g_free(b_str);
+                g_free(m_str);
+                g_dir_close(dir);
+                if (m_val > 0) {
+                    int pct = (int)((b_val * 100) / m_val);
+                    if (pct < 1) pct = 1;
+                    if (pct > 100) pct = 100;
+                    return pct;
+                }
+            }
+            g_free(b_str);
+            g_free(m_str);
+        }
+        g_dir_close(dir);
+    }
+
+    char *out = NULL;
+    if (g_spawn_command_line_sync("brightnessctl -m", &out, NULL, NULL, NULL) && out) {
+        char **lines = g_strsplit(out, "\n", -1);
+        for (int i = 0; lines[i]; i++) {
+            if (lines[i][0] == '\0') continue;
+            char **cols = g_strsplit(lines[i], ",", -1);
+            int col_count = g_strv_length(cols);
+            if (col_count >= 4) {
+                int pct = atoi(cols[3]);
+                if (pct > 0) {
+                    g_strfreev(cols);
+                    g_strfreev(lines);
+                    g_free(out);
+                    return pct;
+                }
+            }
+            g_strfreev(cols);
+        }
+        g_strfreev(lines);
+        g_free(out);
+    }
+    return 100;
 }
 
 SystemController *system_controller_create(void) {
@@ -305,7 +444,9 @@ SystemController *system_controller_create(void) {
 
     ctrl->metrics.volume = 70;
     ctrl->metrics.is_muted = false;
-    ctrl->metrics.brightness = 85;
+    ctrl->metrics.brightness = system_controller_read_brightness();
+    read_audio_stats(ctrl);
+    read_cpu_temp(ctrl);
     ctrl->metrics.is_dark_mode = true;
     ctrl->metrics.wifi_ssid = g_strdup("Connected");
     ctrl->metrics.wifi_strength = 85;
@@ -393,6 +534,9 @@ void system_controller_poll_telemetry(SystemController *ctrl) {
     read_mem_stats(ctrl);
     read_battery_stats(ctrl);
     read_network_stats(ctrl);
+    read_cpu_temp(ctrl);
+    read_audio_stats(ctrl);
+    ctrl->metrics.brightness = system_controller_read_brightness();
 }
 
 static void scan_directory_for_apps(SystemController *ctrl, const char *dir_path) {

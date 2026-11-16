@@ -195,6 +195,7 @@ struct axis_output {
 	struct wl_list link;
 	struct axis_server *server;
 	struct wlr_output *wlr_output;
+	struct wlr_scene_rect *bg_rect;
 	struct wl_listener frame;
 	struct wl_listener destroy;
 };
@@ -1208,7 +1209,27 @@ static void xdg_toplevel_unmap(struct wl_listener *listener, void *data) {
 			wlr_scene_rect_set_size(view->border[i], 0, 0);
 		}
 	}
+	if (view->server->grabbed_view == view) {
+		view->server->grabbed_view = NULL;
+		view->server->cursor_mode = AXIS_CURSOR_PASSTHROUGH;
+	}
 	wl_list_remove(&view->link);
+
+	struct wlr_seat *seat = view->server->seat;
+	if (seat && view->xdg_surface && seat->keyboard_state.focused_surface == view->xdg_surface->surface) {
+		if (!wl_list_empty(&view->server->views)) {
+			struct axis_view *next_view = wl_container_of(view->server->views.next, next_view, link);
+			if (next_view && next_view->xdg_surface) {
+				focus_view(next_view, next_view->xdg_surface->surface);
+			} else {
+				wlr_seat_keyboard_notify_clear_focus(seat);
+			}
+		} else {
+			wlr_seat_keyboard_notify_clear_focus(seat);
+		}
+	}
+
+	axis_schedule_outputs_frame(view->server);
 }
 
 static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
@@ -1234,6 +1255,10 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
 			view->border[i] = NULL;
 		}
 	}
+	if (view->server->grabbed_view == view) {
+		view->server->grabbed_view = NULL;
+		view->server->cursor_mode = AXIS_CURSOR_PASSTHROUGH;
+	}
 	wl_list_remove(&view->map.link);
 	wl_list_remove(&view->unmap.link);
 	wl_list_remove(&view->destroy.link);
@@ -1244,7 +1269,10 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
 	wl_list_remove(&view->request_fullscreen.link);
 	wl_list_remove(&view->set_title.link);
 	wl_list_remove(&view->set_app_id.link);
+	struct axis_server *server = view->server;
 	free(view);
+
+	axis_schedule_outputs_frame(server);
 }
 
 static void xdg_toplevel_request_move(struct wl_listener *listener, void *data) {
@@ -1592,6 +1620,10 @@ static void output_frame(struct wl_listener *listener, void *data) {
 	struct wlr_scene_output *scene_output = wlr_scene_get_scene_output(scene, output->wlr_output);
 	if (!scene_output) return;
 
+	if (output->bg_rect) {
+		wlr_scene_rect_set_size(output->bg_rect, output->wlr_output->width, output->wlr_output->height);
+	}
+
 	axis_wlr_scene_output_commit(scene_output);
 
 	struct timespec now;
@@ -1602,6 +1634,10 @@ static void output_frame(struct wl_listener *listener, void *data) {
 static void output_destroy(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_output *output = wl_container_of(listener, output, destroy);
+	if (output->bg_rect) {
+		wlr_scene_node_destroy(&output->bg_rect->node);
+		output->bg_rect = NULL;
+	}
 	wl_list_remove(&output->frame.link);
 	wl_list_remove(&output->destroy.link);
 	wl_list_remove(&output->link);
@@ -1653,9 +1689,9 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 
 	/* Create solid AxisOS One UI Dark (#141826) base rectangle so screen is never blank before clients map */
 	float bg_color[4] = { 0x14 / 255.0f, 0x18 / 255.0f, 0x26 / 255.0f, 1.0f };
-	struct wlr_scene_rect *bg_rect = wlr_scene_rect_create(AXIS_SCENE_PARENT(server), wlr_output->width, wlr_output->height, bg_color);
-	if (bg_rect) {
-		wlr_scene_node_lower_to_bottom(&bg_rect->node);
+	output->bg_rect = wlr_scene_rect_create(AXIS_SCENE_PARENT(server), wlr_output->width, wlr_output->height, bg_color);
+	if (output->bg_rect) {
+		wlr_scene_node_lower_to_bottom(&output->bg_rect->node);
 	}
 
 	/* Force initial scene commit and schedule next frame (resolves VirtualBox/QEMU WLR_NO_HARDWARE_CURSORS black screen) */

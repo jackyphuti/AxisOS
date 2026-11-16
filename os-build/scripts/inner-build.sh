@@ -27,7 +27,8 @@ fi
 
 # Clean previous build artifacts (preserve package cache for speed)
 if command -v lb >/dev/null 2>&1; then
-    lb clean || true
+    lb clean --binary || true
+    rm -f "$BUILD_DIR/.build/binary"* "$BUILD_DIR/.build/chroot_includes"* "$BUILD_DIR/.build/chroot_hooks"* 2>/dev/null || true
 fi
 
 # 1b. Compile 100% Pure C binaries natively within Debian Bookworm environment
@@ -310,6 +311,13 @@ chmod 755 /run 2>/dev/null || true
 EOF
 chmod +x "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot"
 
+# Sync includes.chroot directly into chroot if chroot already exists
+if [ -d "$BUILD_DIR/chroot/usr/local/bin" ]; then
+    echo "--> Syncing staged files directly into existing chroot..."
+    cp -rf "$BUILD_DIR/config/includes.chroot/"* "$BUILD_DIR/chroot/" 2>/dev/null || true
+    chmod 755 "$BUILD_DIR/chroot/usr/local/bin/"* 2>/dev/null || true
+fi
+
 # 11. Run live-build config & build
 if command -v lb >/dev/null 2>&1; then
     lb config \
@@ -327,10 +335,19 @@ if command -v lb >/dev/null 2>&1; then
         --memtest none \
         --verbose
 
+    # Strip any obsolete squashfs compression level that mksquashfs xz does not accept
+    sed -i '/LB_CHROOT_SQUASHFS_COMPRESSION_LEVEL/d' "$BUILD_DIR/config/chroot" 2>/dev/null || true
+    sed -i '/LB_CHROOT_SQUASHFS_COMPRESSION_LEVEL/d' config/chroot 2>/dev/null || true
+    sed -i '/LB_CHROOT_SQUASHFS_COMPRESSION_LEVEL/d' "$BUILD_DIR/config/binary" 2>/dev/null || true
+    sed -i '/LB_CHROOT_SQUASHFS_COMPRESSION_LEVEL/d' config/binary 2>/dev/null || true
+
     lb build 2>&1 | tee "$BUILD_DIR/build.log"
     cp -f "$BUILD_DIR"/live-image-amd64.hybrid.iso "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true
     cp -f "$BUILD_DIR"/*.iso "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true
     chmod 0644 "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true
+    if [ -f "$WORKSPACE_DIR/axisos-live-amd64.iso" ]; then
+        (cd "$WORKSPACE_DIR" && sha256sum axisos-live-amd64.iso > axisos-live-amd64.iso.sha256)
+    fi
 fi
 
 if [ -f "$WORKSPACE_DIR/axisos-live-amd64.iso" ]; then

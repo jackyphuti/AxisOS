@@ -450,13 +450,106 @@ entry.launcher-search:focus,
   font-weight: 700;
 }
 
+.qs-round-btn {
+  min-width: 34px;
+  min-height: 34px;
+  border-radius: 9999px;
+  background-color: @axis_surface_raised;
+  border: 1px solid @axis_outline;
+  color: @axis_text;
+  padding: 0;
+  box-shadow: none;
+  background-image: none;
+  transition: all 150ms ease;
+}
+
+.qs-round-btn:hover {
+  background-color: alpha(@axis_accent, 0.16);
+  border-color: @axis_accent;
+  color: @axis_accent;
+}
+
+.qs-battery-pill {
+  background-color: @axis_surface_raised;
+  border: 1px solid @axis_outline;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  color: @axis_text;
+}
+
 .qs-tile {
-  border-radius: 18px;
+  border-radius: 14px;
   background-color: @axis_surface_raised;
   border: 1px solid @axis_outline;
   padding: 12px 14px;
   transition: all 180ms ease;
   background-image: none;
+  box-shadow: none;
+}
+
+.qs-tile-action {
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  border: none;
+  padding: 4px;
+  color: @axis_text_muted;
+  border-radius: 9999px;
+}
+
+.qs-tile-action:hover {
+  background-color: alpha(@axis_accent, 0.16);
+  color: @axis_accent;
+}
+
+.qs-sliders-card {
+  background-color: @axis_surface_raised;
+  border: 1px solid @axis_outline;
+  border-radius: 16px;
+  padding: 12px 16px;
+}
+
+.qs-slider-btn {
+  background: transparent;
+  background-image: none;
+  box-shadow: none;
+  border: none;
+  padding: 4px;
+  color: @axis_text;
+  border-radius: 9999px;
+}
+
+.qs-slider-btn:hover {
+  background-color: alpha(@axis_accent, 0.12);
+  color: @axis_accent;
+}
+
+.qs-slider-icon {
+  color: @axis_text;
+}
+
+.qs-slider-val {
+  color: @axis_text_muted;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 36px;
+}
+
+.qs-telemetry-btn {
+  background-color: @axis_surface_raised;
+  border: 1px solid @axis_outline;
+  border-radius: 9999px;
+  padding: 6px 16px;
+  color: @axis_text_muted;
+  box-shadow: none;
+  background-image: none;
+  transition: all 150ms ease;
+}
+
+.qs-telemetry-btn:hover {
+  background-color: alpha(@axis_accent, 0.12);
+  border-color: @axis_accent;
+  color: @axis_accent;
 }
 
 .qs-tile .title-4 {

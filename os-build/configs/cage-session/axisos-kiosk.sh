@@ -111,19 +111,13 @@ else
     STARTUP_APP="axis-welcome"
 fi
 
-# 7. Configure Desktop Shell Component (prefer native axis-shell, fallback to waybar)
-SHELL_CMD=""
-if [ -x "/usr/local/bin/axis-shell" ]; then
-    SHELL_CMD="/usr/local/bin/axis-shell &"
-elif [ -x "/usr/bin/axis-shell" ]; then
-    SHELL_CMD="/usr/bin/axis-shell &"
-elif command -v waybar >/dev/null 2>&1; then
-    SHELL_CMD="waybar &"
-fi
+# 7. Configure Desktop Shell Component with lightweight supervisor
+# Runs axis-shell in a loop so closing startup apps always returns to live desktop
+SHELL_SUPERVISOR='sh -c "while true; do if [ -x /usr/local/bin/axis-shell ]; then /usr/local/bin/axis-shell; elif [ -x /usr/bin/axis-shell ]; then /usr/bin/axis-shell; elif command -v waybar >/dev/null 2>&1; then waybar; else break; fi; sleep 1; done" &'
 
-STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & $SHELL_CMD (sleep 1 && GDK_BACKEND=wayland $STARTUP_APP) &"
+STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & $SHELL_SUPERVISOR (sleep 1 && GDK_BACKEND=wayland $STARTUP_APP) &"
 
-# 8. Execute Pure C wlroots Compositor with Software Rendering Fallback
+# 8. Execute Pure C wlroots axis-compositor (persistent session compositor)
 COMPOSITOR_BIN=""
 if [ -x "/usr/local/bin/axis-compositor" ]; then
     COMPOSITOR_BIN="/usr/local/bin/axis-compositor"
@@ -153,13 +147,13 @@ if [ -n "$COMPOSITOR_BIN" ]; then
             "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
         fi
         if [ $RET -ne 0 ]; then
-            echo "[AxisOS] Compositor failed ($RET). Launching fallback kiosk..."
-            if command -v cage >/dev/null 2>&1; then
-                exec cage -s -- /usr/local/bin/$STARTUP_APP
-            fi
+            echo "[AxisOS] axis-compositor terminated ($RET). Restarting session..."
+            sleep 2
+            exec "$0" "$@"
         fi
     fi
-elif command -v cage >/dev/null 2>&1; then
-    echo "[AxisOS] Fallback: Launching cage with $STARTUP_APP..."
-    exec cage -s -- /usr/local/bin/$STARTUP_APP
+else
+    echo "[AxisOS] ERROR: axis-compositor binary not found in /usr/local/bin or /usr/bin! Retrying..."
+    sleep 3
+    exec "$0" "$@"
 fi

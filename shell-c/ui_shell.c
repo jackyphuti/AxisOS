@@ -185,10 +185,14 @@ static void update_qs_tiles(UiShell *shell) {
     if (shell->qs_tile_wifi && shell->qs_sub_wifi) {
         if (m->wifi_connected) {
             add_class(shell->qs_tile_wifi, "active");
-            gtk_label_set_text(GTK_LABEL(shell->qs_sub_wifi), "Connected");
+            if (m->wifi_ssid && m->wifi_ssid[0] != '\0') {
+                gtk_label_set_text(GTK_LABEL(shell->qs_sub_wifi), m->wifi_ssid);
+            } else {
+                gtk_label_set_text(GTK_LABEL(shell->qs_sub_wifi), "Connected");
+            }
         } else {
             remove_class(shell->qs_tile_wifi, "active");
-            gtk_label_set_text(GTK_LABEL(shell->qs_sub_wifi), "Off");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_wifi), "Disconnected");
         }
     }
 
@@ -205,7 +209,7 @@ static void update_qs_tiles(UiShell *shell) {
     if (shell->qs_tile_dark && shell->qs_sub_dark) {
         if (m->is_dark_mode) {
             add_class(shell->qs_tile_dark, "active");
-            gtk_label_set_text(GTK_LABEL(shell->qs_sub_dark), "Active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_dark), "Dark");
         } else {
             remove_class(shell->qs_tile_dark, "active");
             gtk_label_set_text(GTK_LABEL(shell->qs_sub_dark), "Light");
@@ -213,13 +217,38 @@ static void update_qs_tiles(UiShell *shell) {
     }
 
     if (shell->qs_tile_game && shell->qs_sub_game) {
-        if (shell->gameboost_active) {
+        if (shell->power_mode == 1) {
             add_class(shell->qs_tile_game, "active");
             gtk_label_set_text(GTK_LABEL(shell->qs_sub_game), "Performance");
+        } else if (shell->power_mode == 2) {
+            add_class(shell->qs_tile_game, "active");
+            gtk_label_set_text(GTK_LABEL(shell->qs_sub_game), "Power Saver");
         } else {
             remove_class(shell->qs_tile_game, "active");
             gtk_label_set_text(GTK_LABEL(shell->qs_sub_game), "Balanced");
         }
+    }
+
+    if (shell->qs_btn_vol_mute) {
+        gtk_button_set_image(GTK_BUTTON(shell->qs_btn_vol_mute),
+            gtk_image_new_from_icon_name(m->is_muted ? "audio-volume-muted-symbolic" : "audio-volume-high-symbolic", GTK_ICON_SIZE_BUTTON));
+    }
+
+    if (shell->qs_lbl_battery) {
+        char bat_buf[32];
+        if (m->has_battery) {
+            snprintf(bat_buf, sizeof(bat_buf), " %d%%%s", m->battery_percent, m->battery_charging ? " ⚡" : "");
+        } else {
+            snprintf(bat_buf, sizeof(bat_buf), " 100%%");
+        }
+        gtk_label_set_text(GTK_LABEL(shell->qs_lbl_battery), bat_buf);
+    }
+
+    if (shell->qs_lbl_telemetry) {
+        char telem_buf[96];
+        snprintf(telem_buf, sizeof(telem_buf), "CPU: %d%%  •  RAM: %d%%  •  %d°C",
+                 m->cpu_load_percent, m->ram_usage_percent, m->cpu_temp_c);
+        gtk_label_set_text(GTK_LABEL(shell->qs_lbl_telemetry), telem_buf);
     }
 }
 
@@ -255,6 +284,9 @@ void ui_shell_toggle_launcher(UiShell *shell) {
     }
 }
 
+static void on_qs_vol_changed(GtkRange *range, gpointer user_data);
+static void on_qs_bright_changed(GtkRange *range, gpointer user_data);
+
 void ui_shell_toggle_quicksettings(UiShell *shell) {
     if (!shell || !shell->quicksettings_window) return;
     if (gtk_widget_get_visible(shell->quicksettings_window)) {
@@ -266,12 +298,31 @@ void ui_shell_toggle_quicksettings(UiShell *shell) {
         }
     } else {
         if (shell->launcher_window) gtk_widget_hide(shell->launcher_window);
+        if (shell->games_window) gtk_widget_hide(shell->games_window);
+
+        // Block value-changed signals so opening the panel never changes hardware state or fires OSD
         if (shell->qs_vol_scale) {
+            g_signal_handlers_block_by_func(shell->qs_vol_scale, on_qs_vol_changed, shell);
             gtk_range_set_value(GTK_RANGE(shell->qs_vol_scale), shell->sys_ctrl->metrics.volume);
+            g_signal_handlers_unblock_by_func(shell->qs_vol_scale, on_qs_vol_changed, shell);
         }
         if (shell->qs_bright_scale) {
+            g_signal_handlers_block_by_func(shell->qs_bright_scale, on_qs_bright_changed, shell);
             gtk_range_set_value(GTK_RANGE(shell->qs_bright_scale), shell->sys_ctrl->metrics.brightness);
+            g_signal_handlers_unblock_by_func(shell->qs_bright_scale, on_qs_bright_changed, shell);
         }
+
+        if (shell->qs_lbl_vol_val) {
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%d%%", shell->sys_ctrl->metrics.volume);
+            gtk_label_set_text(GTK_LABEL(shell->qs_lbl_vol_val), buf);
+        }
+        if (shell->qs_lbl_bright_val) {
+            char buf[16];
+            snprintf(buf, sizeof(buf), "%d%%", shell->sys_ctrl->metrics.brightness);
+            gtk_label_set_text(GTK_LABEL(shell->qs_lbl_bright_val), buf);
+        }
+
         update_qs_tiles(shell);
         gtk_widget_show_all(shell->quicksettings_window);
         if (shell->qs_revealer) {
@@ -684,6 +735,9 @@ static gboolean update_clock_and_status(gpointer user_data) {
         if (shell->topbar_net_label) {
             gtk_label_set_text(GTK_LABEL(shell->topbar_net_label), m->wifi_connected ? (m->wifi_ssid ? m->wifi_ssid : "Online") : "Offline");
         }
+        if (shell->quicksettings_window && gtk_widget_get_visible(shell->quicksettings_window)) {
+            update_qs_tiles(shell);
+        }
     }
 
     return G_SOURCE_CONTINUE;
@@ -752,8 +806,9 @@ static void setup_layer_window(GtkWidget *win, GtkLayerShellLayer layer, const c
     }
 }
 
-static GtkWidget *create_qs_tile(const char *icon_name, const char *title, const char *sub_init,
-                                 GtkWidget **out_icon, GtkWidget **out_sub) {
+static GtkWidget *create_qs_tile_with_action(const char *icon_name, const char *title, const char *sub_init,
+                                             GtkWidget **out_icon, GtkWidget **out_sub,
+                                             GCallback action_cb, gpointer user_data) {
     GtkWidget *btn = gtk_button_new();
     add_class(btn, "qs-tile");
 
@@ -772,11 +827,25 @@ static GtkWidget *create_qs_tile(const char *icon_name, const char *title, const
 
     gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hbox), vbox, TRUE, TRUE, 0);
+
+    if (action_cb) {
+        GtkWidget *action_btn = gtk_button_new_from_icon_name("pan-end-symbolic", GTK_ICON_SIZE_MENU);
+        add_class(action_btn, "qs-tile-action");
+        gtk_widget_set_tooltip_text(action_btn, "Network Settings");
+        g_signal_connect(action_btn, "clicked", action_cb, user_data);
+        gtk_box_pack_end(GTK_BOX(hbox), action_btn, FALSE, FALSE, 0);
+    }
+
     gtk_container_add(GTK_CONTAINER(btn), hbox);
 
     if (out_icon) *out_icon = icon;
     if (out_sub) *out_sub = sub_lbl;
     return btn;
+}
+
+static GtkWidget *create_qs_tile(const char *icon_name, const char *title, const char *sub_init,
+                                 GtkWidget **out_icon, GtkWidget **out_sub) {
+    return create_qs_tile_with_action(icon_name, title, sub_init, out_icon, out_sub, NULL, NULL);
 }
 
 static void on_qs_tile_wifi_clicked(GtkButton *btn, gpointer user_data) {
@@ -787,6 +856,14 @@ static void on_qs_tile_wifi_clicked(GtkButton *btn, gpointer user_data) {
     system_controller_toggle_wifi(shell->sys_ctrl, new_state);
     shell->sys_ctrl->metrics.wifi_connected = new_state;
     update_qs_tiles(shell);
+}
+
+static void on_qs_wifi_chevron_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell) return;
+    ui_shell_toggle_quicksettings(shell);
+    system_controller_launch_app(shell->sys_ctrl, "axis-settings network");
 }
 
 static void on_qs_tile_bt_clicked(GtkButton *btn, gpointer user_data) {
@@ -822,7 +899,18 @@ static void on_qs_tile_game_clicked(GtkButton *btn, gpointer user_data) {
     (void)btn;
     UiShell *shell = (UiShell *)user_data;
     if (!shell) return;
-    shell->gameboost_active = !shell->gameboost_active;
+    // Cycle modes: 0 = Balanced, 1 = Performance, 2 = Power Saver
+    shell->power_mode = (shell->power_mode + 1) % 3;
+    if (shell->power_mode == 1) {
+        shell->gameboost_active = TRUE;
+        g_spawn_command_line_async("axis-game-boost enable 2>/dev/null || powerprofilesctl set performance 2>/dev/null || true", NULL);
+    } else if (shell->power_mode == 2) {
+        shell->gameboost_active = FALSE;
+        g_spawn_command_line_async("powerprofilesctl set power-saver 2>/dev/null || true", NULL);
+    } else {
+        shell->gameboost_active = FALSE;
+        g_spawn_command_line_async("axis-game-boost disable 2>/dev/null || powerprofilesctl set balanced 2>/dev/null || true", NULL);
+    }
     update_qs_tiles(shell);
 }
 
@@ -832,6 +920,25 @@ static void on_qs_vol_changed(GtkRange *range, gpointer user_data) {
     int val = (int)gtk_range_get_value(range);
     system_controller_set_volume(shell->sys_ctrl, val);
     ui_shell_show_osd(shell, val == 0 ? "audio-volume-muted-symbolic" : "audio-volume-high-symbolic", val);
+    if (shell->qs_lbl_vol_val) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%d%%", val);
+        gtk_label_set_text(GTK_LABEL(shell->qs_lbl_vol_val), buf);
+    }
+}
+
+static void on_qs_vol_mute_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell || !shell->sys_ctrl) return;
+    bool new_mute = !shell->sys_ctrl->metrics.is_muted;
+    system_controller_set_muted(shell->sys_ctrl, new_mute);
+    if (shell->qs_btn_vol_mute) {
+        gtk_button_set_image(GTK_BUTTON(shell->qs_btn_vol_mute),
+            gtk_image_new_from_icon_name(new_mute ? "audio-volume-muted-symbolic" : "audio-volume-high-symbolic", GTK_ICON_SIZE_BUTTON));
+    }
+    ui_shell_show_osd(shell, new_mute ? "audio-volume-muted-symbolic" : "audio-volume-high-symbolic",
+                      new_mute ? 0 : shell->sys_ctrl->metrics.volume);
 }
 
 static void on_qs_bright_changed(GtkRange *range, gpointer user_data) {
@@ -840,6 +947,21 @@ static void on_qs_bright_changed(GtkRange *range, gpointer user_data) {
     int val = (int)gtk_range_get_value(range);
     system_controller_set_brightness(shell->sys_ctrl, val);
     ui_shell_show_osd(shell, "display-brightness-symbolic", val);
+    if (shell->qs_lbl_bright_val) {
+        char buf[16];
+        snprintf(buf, sizeof(buf), "%d%%", val);
+        gtk_label_set_text(GTK_LABEL(shell->qs_lbl_bright_val), buf);
+    }
+}
+
+static gboolean on_qs_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+    (void)widget;
+    UiShell *shell = (UiShell *)user_data;
+    if (event && event->keyval == GDK_KEY_Escape) {
+        ui_shell_toggle_quicksettings(shell);
+        return TRUE;
+    }
+    return FALSE;
 }
 
 UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboolean greeter_mode) {
@@ -954,7 +1076,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
 
     // Quick Settings trigger button
     GtkWidget *qs_btn = gtk_button_new_from_icon_name("open-menu-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_widget_set_tooltip_text(qs_btn, "Quick Settings");
+    gtk_widget_set_tooltip_text(qs_btn, "Control Center");
     add_class(qs_btn, "workspace-pill");
     g_signal_connect_swapped(qs_btn, "clicked", G_CALLBACK(ui_shell_toggle_quicksettings), shell);
     gtk_box_pack_start(GTK_BOX(right_island), qs_btn, FALSE, FALSE, 4);
@@ -1193,9 +1315,11 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         gtk_layer_set_anchor(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_EDGE_RIGHT, TRUE);
         gtk_layer_set_margin(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_EDGE_TOP, 50);
         gtk_layer_set_margin(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_EDGE_RIGHT, 12);
+        gtk_layer_set_keyboard_mode(GTK_WINDOW(shell->quicksettings_window), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
     }
-    gtk_widget_set_size_request(shell->quicksettings_window, 360, -1);
+    gtk_widget_set_size_request(shell->quicksettings_window, 380, -1);
     g_signal_connect(shell->quicksettings_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
+    g_signal_connect(shell->quicksettings_window, "key-press-event", G_CALLBACK(on_qs_key_press), shell);
 
     shell->qs_revealer = gtk_revealer_new();
     gtk_revealer_set_transition_type(GTK_REVEALER(shell->qs_revealer), GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
@@ -1203,23 +1327,62 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     gtk_container_add(GTK_CONTAINER(shell->quicksettings_window), shell->qs_revealer);
 
     GtkWidget *qs_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-    gtk_container_set_border_width(GTK_CONTAINER(qs_card), 18);
+    gtk_container_set_border_width(GTK_CONTAINER(qs_card), 16);
     gtk_container_add(GTK_CONTAINER(shell->qs_revealer), qs_card);
 
-    // Title / user header
+    // 1. Top Header Row: User Name + Live Battery Badge on Left; Circular Settings, Lock, Power on Right
+    GtkWidget *hdr_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+
+    GtkWidget *user_left = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     GtkWidget *user_hdr = gtk_label_new(auth_mgr ? auth_mgr->display_name : "AxisOS User");
     add_class(user_hdr, "title-3");
-    gtk_widget_set_halign(user_hdr, GTK_ALIGN_START);
-    gtk_box_pack_start(GTK_BOX(qs_card), user_hdr, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(user_left), user_hdr, FALSE, FALSE, 0);
 
-    // Modern 2x2 Tile Grid
+    GtkWidget *bat_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 4);
+    add_class(bat_box, "qs-battery-pill");
+    GtkWidget *bat_icon = gtk_image_new_from_icon_name("battery-symbolic", GTK_ICON_SIZE_MENU);
+    shell->qs_lbl_battery = gtk_label_new("100%");
+    add_class(shell->qs_lbl_battery, "caption");
+    gtk_box_pack_start(GTK_BOX(bat_box), bat_icon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(bat_box), shell->qs_lbl_battery, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(user_left), bat_box, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(hdr_row), user_left, TRUE, TRUE, 0);
+
+    GtkWidget *hdr_actions = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+
+    GtkWidget *settings_btn = gtk_button_new_from_icon_name("preferences-system-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(settings_btn, "Settings");
+    add_class(settings_btn, "qs-round-btn");
+    g_signal_connect(settings_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)"axis-settings");
+
+    GtkWidget *lock_btn = gtk_button_new_from_icon_name("system-lock-screen-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(lock_btn, "Lock Screen");
+    add_class(lock_btn, "qs-round-btn");
+    g_signal_connect_swapped(lock_btn, "clicked", G_CALLBACK(ui_shell_lock), shell);
+
+    GtkWidget *power_btn = gtk_button_new_from_icon_name("system-shutdown-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(power_btn, "Power Off");
+    add_class(power_btn, "qs-round-btn");
+    g_signal_connect_swapped(power_btn, "clicked", G_CALLBACK(system_controller_power_off), sys_ctrl);
+
+    gtk_box_pack_start(GTK_BOX(hdr_actions), settings_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hdr_actions), lock_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hdr_actions), power_btn, FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(hdr_row), hdr_actions, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(qs_card), hdr_row, FALSE, FALSE, 0);
+
+    // 2. 2x2 Quick Toggle Grid (border-radius: 14px elevated tiles)
     GtkWidget *qs_grid = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(qs_grid), 10);
     gtk_grid_set_column_spacing(GTK_GRID(qs_grid), 10);
     gtk_grid_set_row_homogeneous(GTK_GRID(qs_grid), TRUE);
     gtk_grid_set_column_homogeneous(GTK_GRID(qs_grid), TRUE);
 
-    shell->qs_tile_wifi = create_qs_tile("network-wireless-signal-excellent-symbolic", "Wi-Fi", "Off", NULL, &shell->qs_sub_wifi);
+    shell->qs_tile_wifi = create_qs_tile_with_action("network-wireless-signal-excellent-symbolic", "Wi-Fi", "Off",
+                                                    NULL, &shell->qs_sub_wifi,
+                                                    G_CALLBACK(on_qs_wifi_chevron_clicked), shell);
     g_signal_connect(shell->qs_tile_wifi, "clicked", G_CALLBACK(on_qs_tile_wifi_clicked), shell);
     gtk_grid_attach(GTK_GRID(qs_grid), shell->qs_tile_wifi, 0, 0, 1, 1);
 
@@ -1227,62 +1390,76 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     g_signal_connect(shell->qs_tile_bt, "clicked", G_CALLBACK(on_qs_tile_bt_clicked), shell);
     gtk_grid_attach(GTK_GRID(qs_grid), shell->qs_tile_bt, 1, 0, 1, 1);
 
-    shell->qs_tile_dark = create_qs_tile("weather-clear-night-symbolic", "Dark Theme", "Active", NULL, &shell->qs_sub_dark);
+    shell->qs_tile_dark = create_qs_tile("weather-clear-night-symbolic", "Theme", "Dark", NULL, &shell->qs_sub_dark);
     g_signal_connect(shell->qs_tile_dark, "clicked", G_CALLBACK(on_qs_tile_dark_clicked), shell);
     gtk_grid_attach(GTK_GRID(qs_grid), shell->qs_tile_dark, 0, 1, 1, 1);
 
-    shell->qs_tile_game = create_qs_tile("applications-games-symbolic", "GameBoost", "Balanced", NULL, &shell->qs_sub_game);
+    shell->qs_tile_game = create_qs_tile("applications-games-symbolic", "Mode", "Balanced", NULL, &shell->qs_sub_game);
     g_signal_connect(shell->qs_tile_game, "clicked", G_CALLBACK(on_qs_tile_game_clicked), shell);
     gtk_grid_attach(GTK_GRID(qs_grid), shell->qs_tile_game, 1, 1, 1, 1);
 
-    gtk_box_pack_start(GTK_BOX(qs_card), qs_grid, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(qs_card), qs_grid, FALSE, FALSE, 2);
 
-    // Sliders: Volume & Brightness with icons beside them
+    // 3. Media & Display Sliders Card (#262A3D surface)
+    GtkWidget *sliders_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    add_class(sliders_card, "qs-sliders-card");
+
+    // Volume Row
     GtkWidget *vol_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-    GtkWidget *vol_icon = gtk_image_new_from_icon_name("audio-volume-high-symbolic", GTK_ICON_SIZE_BUTTON);
+    shell->qs_btn_vol_mute = gtk_button_new_from_icon_name("audio-volume-high-symbolic", GTK_ICON_SIZE_BUTTON);
+    add_class(shell->qs_btn_vol_mute, "qs-slider-btn");
+    g_signal_connect(shell->qs_btn_vol_mute, "clicked", G_CALLBACK(on_qs_vol_mute_clicked), shell);
+
     shell->qs_vol_scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
     gtk_scale_set_draw_value(GTK_SCALE(shell->qs_vol_scale), FALSE);
     gtk_widget_set_hexpand(shell->qs_vol_scale, TRUE);
     g_signal_connect(shell->qs_vol_scale, "value-changed", G_CALLBACK(on_qs_vol_changed), shell);
-    gtk_box_pack_start(GTK_BOX(vol_row), vol_icon, FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(vol_row), shell->qs_vol_scale, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(qs_card), vol_row, FALSE, FALSE, 2);
 
+    shell->qs_lbl_vol_val = gtk_label_new("70%");
+    add_class(shell->qs_lbl_vol_val, "qs-slider-val");
+
+    gtk_box_pack_start(GTK_BOX(vol_row), shell->qs_btn_vol_mute, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vol_row), shell->qs_vol_scale, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vol_row), shell->qs_lbl_vol_val, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(sliders_card), vol_row, FALSE, FALSE, 0);
+
+    // Brightness Row
     GtkWidget *bright_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     GtkWidget *bright_icon = gtk_image_new_from_icon_name("display-brightness-symbolic", GTK_ICON_SIZE_BUTTON);
+    add_class(bright_icon, "qs-slider-icon");
+
     shell->qs_bright_scale = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 5, 100, 1);
     gtk_scale_set_draw_value(GTK_SCALE(shell->qs_bright_scale), FALSE);
     gtk_widget_set_hexpand(shell->qs_bright_scale, TRUE);
     g_signal_connect(shell->qs_bright_scale, "value-changed", G_CALLBACK(on_qs_bright_changed), shell);
-    gtk_box_pack_start(GTK_BOX(bright_row), bright_icon, FALSE, FALSE, 0);
+
+    shell->qs_lbl_bright_val = gtk_label_new("100%");
+    add_class(shell->qs_lbl_bright_val, "qs-slider-val");
+
+    gtk_box_pack_start(GTK_BOX(bright_row), bright_icon, FALSE, FALSE, 4);
     gtk_box_pack_start(GTK_BOX(bright_row), shell->qs_bright_scale, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(qs_card), bright_row, FALSE, FALSE, 2);
+    gtk_box_pack_start(GTK_BOX(bright_row), shell->qs_lbl_bright_val, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(sliders_card), bright_row, FALSE, FALSE, 0);
 
-    // Power buttons with icons and secondary-button class
-    GtkWidget *pwr_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_box_pack_start(GTK_BOX(qs_card), sliders_card, FALSE, FALSE, 2);
 
-    GtkWidget *lock_btn = gtk_button_new_from_icon_name("system-lock-screen-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_button_set_label(GTK_BUTTON(lock_btn), " Lock");
-    gtk_button_set_always_show_image(GTK_BUTTON(lock_btn), TRUE);
-    add_class(lock_btn, "secondary-button");
-    g_signal_connect_swapped(lock_btn, "clicked", G_CALLBACK(ui_shell_lock), shell);
+    // 4. System Telemetry Footer Strip (Pill Bar clickable to launch axis-task-manager)
+    GtkWidget *telem_btn = gtk_button_new();
+    add_class(telem_btn, "qs-telemetry-btn");
 
-    GtkWidget *settings_btn = gtk_button_new_from_icon_name("preferences-system-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_button_set_label(GTK_BUTTON(settings_btn), " Settings");
-    gtk_button_set_always_show_image(GTK_BUTTON(settings_btn), TRUE);
-    add_class(settings_btn, "secondary-button");
-    g_signal_connect(settings_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)"axis-settings");
+    GtkWidget *telem_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_widget_set_halign(telem_box, GTK_ALIGN_CENTER);
 
-    GtkWidget *power_btn = gtk_button_new_from_icon_name("system-shutdown-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_button_set_label(GTK_BUTTON(power_btn), " Power");
-    gtk_button_set_always_show_image(GTK_BUTTON(power_btn), TRUE);
-    add_class(power_btn, "secondary-button");
-    g_signal_connect_swapped(power_btn, "clicked", G_CALLBACK(system_controller_power_off), sys_ctrl);
+    GtkWidget *telem_icon = gtk_image_new_from_icon_name("utilities-system-monitor-symbolic", GTK_ICON_SIZE_MENU);
+    shell->qs_lbl_telemetry = gtk_label_new("CPU: 0%  •  RAM: 0%  •  40°C");
+    add_class(shell->qs_lbl_telemetry, "caption");
 
-    gtk_box_pack_start(GTK_BOX(pwr_box), lock_btn, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(pwr_box), settings_btn, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(pwr_box), power_btn, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(qs_card), pwr_box, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(telem_box), telem_icon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(telem_box), shell->qs_lbl_telemetry, FALSE, FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(telem_btn), telem_box);
+    g_signal_connect(telem_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)"axis-task-manager");
+
+    gtk_box_pack_start(GTK_BOX(qs_card), telem_btn, FALSE, FALSE, 2);
 
     // ==========================================
     // 5. OSD OVERLAY (OSDOverlay)

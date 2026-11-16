@@ -65,7 +65,13 @@ typedef struct {
     GtkWidget *qs_sub_dark;
     GtkWidget *qs_tile_game;
     GtkWidget *qs_sub_game;
+    GtkWidget *qs_lbl_vol_val;
+    GtkWidget *qs_lbl_bright_val;
+    GtkWidget *qs_btn_vol_mute;
+    GtkWidget *qs_lbl_battery;
+    GtkWidget *qs_lbl_telemetry;
     gboolean gameboost_active;
+    int power_mode;
 
     // OSD Widgets
     GtkWidget *osd_icon;

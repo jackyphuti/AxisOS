@@ -1,8 +1,14 @@
 CC ?= gcc
 CFLAGS ?= -std=c11 -Wall -Wextra -Wno-unused-parameter -O2
+WLR_PKG ?= $(shell for pkg in wlroots-0.18 wlroots-0.17 wlroots; do if pkg-config --exists $$pkg 2>/dev/null; then echo $$pkg; break; fi; done)
+
+ifeq ($(WLR_PKG),)
+$(error "No compatible wlroots package (wlroots-0.18, wlroots-0.17, or wlroots) found via pkg-config")
+endif
+
 CFLAGS += -DWLR_USE_UNSTABLE=1
-CFLAGS += -I. $(shell pkg-config --cflags wlroots wayland-server xkbcommon libinput libdrm)
-LIBS += $(shell pkg-config --libs wlroots wayland-server xkbcommon libinput libdrm)
+CFLAGS += -I. $(shell pkg-config --cflags $(WLR_PKG) wayland-server xkbcommon libinput libdrm)
+LIBS += $(shell pkg-config --libs $(WLR_PKG) wayland-server xkbcommon libinput libdrm)
 
 WAYLAND_SCANNER ?= $(shell pkg-config --variable=wayland_scanner wayland-scanner 2>/dev/null || echo wayland-scanner)
 

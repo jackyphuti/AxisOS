@@ -37,6 +37,7 @@ typedef struct {
     int volume;
     bool is_muted;
     int brightness;
+    int cpu_temp_c;
     bool is_dark_mode;
     char kernel_version[128];
     char hostname[128];
@@ -78,6 +79,7 @@ bool system_controller_launch_app(SystemController *ctrl, const char *command);
 void system_controller_set_volume(SystemController *ctrl, int volume);
 void system_controller_set_muted(SystemController *ctrl, bool muted);
 void system_controller_set_brightness(SystemController *ctrl, int brightness);
+int system_controller_read_brightness(void);
 void system_controller_toggle_wifi(SystemController *ctrl, bool enabled);
 void system_controller_toggle_bluetooth(SystemController *ctrl, bool enabled);
 void system_controller_set_dark_mode(SystemController *ctrl, bool dark);

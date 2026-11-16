@@ -12,6 +12,7 @@ public_apt/
 
 # Live ISO and VM files
 *.iso
+*.sha256
 *.img
 *.qcow2
 os-build/work/

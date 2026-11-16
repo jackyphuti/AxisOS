@@ -643,6 +643,40 @@ static void check_captive_portal_banner(AxisSettingsApp *app) {
     g_free(conn);
 }
 
+static char **parse_nmcli_terse_line(const char *line, int expected_fields) {
+    char **fields = g_new0(char *, expected_fields + 1);
+    int field_idx = 0;
+    GString *cur = g_string_new("");
+    for (int i = 0; line[i] != '\0' && field_idx < expected_fields; i++) {
+        if (line[i] == '\\' && line[i+1] == ':') {
+            g_string_append_c(cur, ':');
+            i++;
+        } else if (line[i] == '\\' && line[i+1] == '\\') {
+            g_string_append_c(cur, '\\');
+            i++;
+        } else if (line[i] == ':') {
+            fields[field_idx++] = g_string_free(cur, FALSE);
+            cur = g_string_new("");
+        } else {
+            g_string_append_c(cur, line[i]);
+        }
+    }
+    if (field_idx < expected_fields) {
+        fields[field_idx++] = g_string_free(cur, FALSE);
+    } else {
+        g_string_free(cur, TRUE);
+    }
+    return fields;
+}
+
+static const char *get_wifi_signal_icon(int signal) {
+    if (signal >= 75) return "network-wireless-signal-excellent-symbolic";
+    if (signal >= 50) return "network-wireless-signal-good-symbolic";
+    if (signal >= 25) return "network-wireless-signal-ok-symbolic";
+    if (signal > 0) return "network-wireless-signal-weak-symbolic";
+    return "network-wireless-signal-none-symbolic";
+}
+
 static void on_disconnect_wifi_cb(GtkButton *btn, gpointer user_data) {
     (void)btn;
     (void)user_data;
@@ -661,14 +695,25 @@ static void refresh_wifi_list(AxisSettingsApp *app) {
     char *out = exec_cmd("nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY device wifi list 2>/dev/null || true");
     gboolean found = FALSE;
     char **lines = g_strsplit(out, "\n", -1);
+    GHashTable *seen_ssids = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+
     for (int i = 0; lines[i] != NULL; i++) {
         if (lines[i][0] == '\0') continue;
-        char **parts = g_strsplit(lines[i], ":", 4);
-        if (parts[0] && parts[1] && parts[1][0] != '\0') {
-            gboolean in_use = (g_strcmp0(parts[0], "*") == 0);
+        char **parts = parse_nmcli_terse_line(lines[i], 4);
+        if (parts && parts[0] && parts[1] && parts[1][0] != '\0' && g_strcmp0(parts[1], "--") != 0) {
             const char *ssid = parts[1];
-            const char *signal = parts[2] ? parts[2] : "";
+            gboolean in_use = (g_strcmp0(parts[0], "*") == 0);
+
+            if (!in_use && g_hash_table_contains(seen_ssids, ssid)) {
+                g_strfreev(parts);
+                continue;
+            }
+            g_hash_table_add(seen_ssids, g_strdup(ssid));
+
+            const char *signal_str = parts[2] ? parts[2] : "0";
+            int signal = atoi(signal_str);
             const char *sec = parts[3] ? parts[3] : "";
+            gboolean is_secured = (sec[0] != '\0' && g_strcmp0(sec, "--") != 0);
 
             GtkWidget *row = gtk_list_box_row_new();
             GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
@@ -677,7 +722,7 @@ static void refresh_wifi_list(AxisSettingsApp *app) {
             gtk_widget_set_margin_top(hbox, 8);
             gtk_widget_set_margin_bottom(hbox, 8);
 
-            GtkWidget *icon = gtk_image_new_from_icon_name("network-wireless-symbolic", GTK_ICON_SIZE_BUTTON);
+            GtkWidget *icon = gtk_image_new_from_icon_name(get_wifi_signal_icon(signal), GTK_ICON_SIZE_BUTTON);
             gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
 
             GtkWidget *lbl_ssid = gtk_label_new(ssid);
@@ -695,7 +740,12 @@ static void refresh_wifi_list(AxisSettingsApp *app) {
                 gtk_box_pack_start(GTK_BOX(hbox), btn_disc, FALSE, FALSE, 4);
             }
 
-            char *sig_str = g_strdup_printf("%s%%  %s", signal, (sec[0] && g_strcmp0(sec, "--") != 0) ? sec : "Open");
+            if (is_secured) {
+                GtkWidget *lock_icon = gtk_image_new_from_icon_name("network-wireless-encrypted-symbolic", GTK_ICON_SIZE_MENU);
+                gtk_box_pack_start(GTK_BOX(hbox), lock_icon, FALSE, FALSE, 2);
+            }
+
+            char *sig_str = g_strdup_printf("%d%%  %s", signal, is_secured ? sec : "Open");
             GtkWidget *lbl_sig = gtk_label_new(sig_str);
             g_free(sig_str);
             gtk_style_context_add_class(gtk_widget_get_style_context(lbl_sig), "dim-label");
@@ -709,6 +759,7 @@ static void refresh_wifi_list(AxisSettingsApp *app) {
         }
         g_strfreev(parts);
     }
+    g_hash_table_destroy(seen_ssids);
     g_strfreev(lines);
     g_free(out);
 
@@ -721,11 +772,17 @@ static void refresh_wifi_list(AxisSettingsApp *app) {
     gtk_widget_show_all(app->list_wifi);
 }
 
+static gboolean on_delayed_settings_wifi_refresh(gpointer user_data) {
+    AxisSettingsApp *app = (AxisSettingsApp *)user_data;
+    refresh_wifi_list(app);
+    return G_SOURCE_REMOVE;
+}
+
 static void on_scan_wifi_cb(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     AxisSettingsApp *app = (AxisSettingsApp *)user_data;
-    exec_cmd("nmcli device wifi rescan 2>/dev/null || true");
-    refresh_wifi_list(app);
+    g_spawn_command_line_async("nmcli device wifi rescan 2>/dev/null || true", NULL);
+    g_timeout_add(1500, (GSourceFunc)on_delayed_settings_wifi_refresh, app);
 }
 
 static void on_show_pass_toggled(GtkToggleButton *tb, gpointer user_data) {

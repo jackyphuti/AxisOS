@@ -18,6 +18,10 @@ typedef struct {
     GtkWidget *window;
     GtkWidget *stack;
     GtkWidget *lbl_net_status;
+    GtkWidget *switch_wifi;
+    GtkWidget *list_wifi;
+    GtkWidget *btn_scan;
+    GtkWidget *lbl_scan_status;
 } AxisOobeApp;
 
 static char *exec_cmd(const char *cmd) {
@@ -35,6 +39,16 @@ static char *exec_cmd(const char *cmd) {
 }
 
 static const char *CSS_OOBE =
+    "@define-color axis_base #141826;"
+    "@define-color axis_surface #1F2231;"
+    "@define-color axis_surface_raised #262A3D;"
+    "@define-color axis_outline #2E3349;"
+    "@define-color axis_accent #7D95FF;"
+    "@define-color axis_accent_btn_text #0F1422;"
+    "@define-color axis_text #E2E8F0;"
+    "@define-color axis_text_muted #94A3B8;"
+    "@define-color axis_danger #F87171;"
+    "@define-color axis_success #34D399;"
     ".card {"
     "    background-color: @axis_surface_raised;"
     "    color: @axis_text;"
@@ -67,6 +81,36 @@ static const char *CSS_OOBE =
     ".btn-secondary:hover {"
     "    background-color: @axis_surface_raised;"
     "    color: @axis_accent;"
+    "}"
+    ".badge-green {"
+    "    background-color: @axis_success;"
+    "    color: #0F1422;"
+    "    font-weight: 700;"
+    "    font-size: 11px;"
+    "    padding: 2px 8px;"
+    "    border-radius: 9999px;"
+    "}"
+    ".dim-label {"
+    "    color: @axis_text_muted;"
+    "    font-size: 12px;"
+    "}"
+    "listbox {"
+    "    background-color: @axis_surface;"
+    "    border-radius: 12px;"
+    "}"
+    "listbox row {"
+    "    background-color: transparent;"
+    "    color: @axis_text;"
+    "    padding: 6px 10px;"
+    "    border-bottom: 1px solid @axis_outline;"
+    "    border-radius: 8px;"
+    "}"
+    "listbox row:hover {"
+    "    background-color: @axis_surface_raised;"
+    "}"
+    "listbox row:selected {"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
     "}";
 
 static void load_axis_theme(void) {
@@ -141,10 +185,255 @@ static char *check_network(void) {
     return res;
 }
 
+static char **parse_nmcli_terse_line(const char *line, int expected_fields) {
+    char **fields = g_new0(char *, expected_fields + 1);
+    int field_idx = 0;
+    GString *cur = g_string_new("");
+    for (int i = 0; line[i] != '\0' && field_idx < expected_fields; i++) {
+        if (line[i] == '\\' && line[i+1] == ':') {
+            g_string_append_c(cur, ':');
+            i++;
+        } else if (line[i] == '\\' && line[i+1] == '\\') {
+            g_string_append_c(cur, '\\');
+            i++;
+        } else if (line[i] == ':') {
+            fields[field_idx++] = g_string_free(cur, FALSE);
+            cur = g_string_new("");
+        } else {
+            g_string_append_c(cur, line[i]);
+        }
+    }
+    if (field_idx < expected_fields) {
+        fields[field_idx++] = g_string_free(cur, FALSE);
+    } else {
+        g_string_free(cur, TRUE);
+    }
+    return fields;
+}
+
+static const char *get_wifi_icon_name(int signal) {
+    if (signal >= 75) return "network-wireless-signal-excellent-symbolic";
+    if (signal >= 50) return "network-wireless-signal-good-symbolic";
+    if (signal >= 25) return "network-wireless-signal-ok-symbolic";
+    if (signal > 0) return "network-wireless-signal-weak-symbolic";
+    return "network-wireless-signal-none-symbolic";
+}
+
+static void on_show_pass_toggled(GtkToggleButton *tb, gpointer user_data) {
+    GtkEntry *entry = GTK_ENTRY(user_data);
+    gtk_entry_set_visibility(entry, gtk_toggle_button_get_active(tb));
+}
+
+static void refresh_wifi_list(AxisOobeApp *app);
+
+static gboolean on_delayed_wifi_refresh(gpointer user_data) {
+    AxisOobeApp *app = (AxisOobeApp *)user_data;
+    if (app && app->lbl_scan_status) {
+        gtk_label_set_text(GTK_LABEL(app->lbl_scan_status), "");
+    }
+    refresh_wifi_list(app);
+    return G_SOURCE_REMOVE;
+}
+
+static void trigger_wifi_rescan(AxisOobeApp *app) {
+    if (app->lbl_scan_status) {
+        gtk_label_set_text(GTK_LABEL(app->lbl_scan_status), "Scanning...");
+    }
+    g_spawn_command_line_async("nmcli radio wifi on && nmcli device wifi rescan", NULL);
+    g_timeout_add(1500, (GSourceFunc)on_delayed_wifi_refresh, app);
+}
+
+static void on_wifi_row_activated(GtkListBox *box, GtkListBoxRow *row, gpointer user_data) {
+    (void)box;
+    AxisOobeApp *app = (AxisOobeApp *)user_data;
+    if (!row) return;
+
+    const char *ssid = (const char *)g_object_get_data(G_OBJECT(row), "ssid");
+    const char *sec = (const char *)g_object_get_data(G_OBJECT(row), "security");
+    gboolean in_use = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(row), "in_use"));
+
+    if (!ssid || ssid[0] == '\0') return;
+    if (in_use) return;
+
+    gboolean is_secured = (sec && sec[0] != '\0' && g_strcmp0(sec, "--") != 0);
+
+    if (!is_secured) {
+        char *cmd = g_strdup_printf("nmcli device wifi connect \"%s\"", ssid);
+        exec_cmd(cmd);
+        g_free(cmd);
+        char *status = check_network();
+        gtk_label_set_text(GTK_LABEL(app->lbl_net_status), status);
+        g_free(status);
+        refresh_wifi_list(app);
+    } else {
+        GtkWidget *dialog = gtk_dialog_new_with_buttons(
+            "Connect to Wi-Fi",
+            GTK_WINDOW(app->window),
+            GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+            "Cancel", GTK_RESPONSE_CANCEL,
+            "Connect", GTK_RESPONSE_ACCEPT,
+            NULL
+        );
+        gtk_window_set_default_size(GTK_WINDOW(dialog), 380, 160);
+
+        GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+        gtk_container_set_border_width(GTK_CONTAINER(content), 16);
+        GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+
+        char *prompt_text = g_strdup_printf("Enter password for \"%s\":", ssid);
+        GtkWidget *lbl = gtk_label_new(prompt_text);
+        g_free(prompt_text);
+        gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
+        gtk_box_pack_start(GTK_BOX(vbox), lbl, FALSE, FALSE, 0);
+
+        GtkWidget *entry = gtk_entry_new();
+        gtk_entry_set_visibility(GTK_ENTRY(entry), FALSE);
+        gtk_box_pack_start(GTK_BOX(vbox), entry, FALSE, FALSE, 0);
+
+        GtkWidget *chk_show = gtk_check_button_new_with_label("Show Password");
+        g_signal_connect(chk_show, "toggled", G_CALLBACK(on_show_pass_toggled), entry);
+        gtk_box_pack_start(GTK_BOX(vbox), chk_show, FALSE, FALSE, 0);
+
+        gtk_container_add(GTK_CONTAINER(content), vbox);
+        gtk_widget_show_all(dialog);
+
+        gint res = gtk_dialog_run(GTK_DIALOG(dialog));
+        if (res == GTK_RESPONSE_ACCEPT) {
+            const char *pass = gtk_entry_get_text(GTK_ENTRY(entry));
+            char *cmd = g_strdup_printf("nmcli device wifi connect \"%s\" password \"%s\"", ssid, pass);
+            exec_cmd(cmd);
+            g_free(cmd);
+            char *status = check_network();
+            gtk_label_set_text(GTK_LABEL(app->lbl_net_status), status);
+            g_free(status);
+            refresh_wifi_list(app);
+        }
+        gtk_widget_destroy(dialog);
+    }
+}
+
+static void on_wifi_switch_active_changed(GtkSwitch *sw, GParamSpec *pspec, gpointer user_data) {
+    (void)pspec;
+    AxisOobeApp *app = (AxisOobeApp *)user_data;
+    gboolean active = gtk_switch_get_active(sw);
+    char *cmd = g_strdup_printf("nmcli radio wifi %s", active ? "on" : "off");
+    g_spawn_command_line_async(cmd, NULL);
+    g_free(cmd);
+    if (active) {
+        trigger_wifi_rescan(app);
+    } else {
+        GList *children = gtk_container_get_children(GTK_CONTAINER(app->list_wifi));
+        for (GList *iter = children; iter != NULL; iter = g_list_next(iter)) {
+            gtk_widget_destroy(GTK_WIDGET(iter->data));
+        }
+        g_list_free(children);
+        GtkWidget *row = gtk_list_box_row_new();
+        GtkWidget *lbl = gtk_label_new("Wi-Fi is turned off.");
+        gtk_container_add(GTK_CONTAINER(row), lbl);
+        gtk_list_box_insert(GTK_LIST_BOX(app->list_wifi), row, -1);
+        gtk_widget_show_all(app->list_wifi);
+    }
+}
+
+static void on_scan_clicked_cb(GtkWidget *widget, gpointer user_data) {
+    (void)widget;
+    AxisOobeApp *app = (AxisOobeApp *)user_data;
+    trigger_wifi_rescan(app);
+}
+
+static void refresh_wifi_list(AxisOobeApp *app) {
+    if (!app || !app->list_wifi) return;
+
+    GList *children = gtk_container_get_children(GTK_CONTAINER(app->list_wifi));
+    for (GList *iter = children; iter != NULL; iter = g_list_next(iter)) {
+        gtk_widget_destroy(GTK_WIDGET(iter->data));
+    }
+    g_list_free(children);
+
+    char *out = exec_cmd("nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY device wifi list 2>/dev/null || true");
+    gboolean found = FALSE;
+    char **lines = g_strsplit(out, "\n", -1);
+    GHashTable *seen_ssids = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+
+    for (int i = 0; lines[i] != NULL; i++) {
+        if (lines[i][0] == '\0') continue;
+        char **parts = parse_nmcli_terse_line(lines[i], 4);
+        if (parts && parts[0] && parts[1] && parts[1][0] != '\0' && g_strcmp0(parts[1], "--") != 0) {
+            const char *ssid = parts[1];
+            gboolean in_use = (g_strcmp0(parts[0], "*") == 0);
+
+            if (!in_use && g_hash_table_contains(seen_ssids, ssid)) {
+                g_strfreev(parts);
+                continue;
+            }
+            g_hash_table_add(seen_ssids, g_strdup(ssid));
+
+            const char *signal_str = parts[2] ? parts[2] : "0";
+            int signal = atoi(signal_str);
+            const char *sec = parts[3] ? parts[3] : "";
+            gboolean is_secured = (sec[0] != '\0' && g_strcmp0(sec, "--") != 0);
+
+            GtkWidget *row = gtk_list_box_row_new();
+            GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+            gtk_widget_set_margin_start(hbox, 12);
+            gtk_widget_set_margin_end(hbox, 12);
+            gtk_widget_set_margin_top(hbox, 6);
+            gtk_widget_set_margin_bottom(hbox, 6);
+
+            GtkWidget *icon = gtk_image_new_from_icon_name(get_wifi_icon_name(signal), GTK_ICON_SIZE_BUTTON);
+            gtk_box_pack_start(GTK_BOX(hbox), icon, FALSE, FALSE, 0);
+
+            GtkWidget *lbl_ssid = gtk_label_new(ssid);
+            gtk_label_set_xalign(GTK_LABEL(lbl_ssid), 0.0);
+            gtk_box_pack_start(GTK_BOX(hbox), lbl_ssid, TRUE, TRUE, 0);
+
+            if (in_use) {
+                GtkWidget *badge = gtk_label_new("Connected");
+                gtk_style_context_add_class(gtk_widget_get_style_context(badge), "badge-green");
+                gtk_box_pack_start(GTK_BOX(hbox), badge, FALSE, FALSE, 4);
+            }
+
+            if (is_secured) {
+                GtkWidget *lock_icon = gtk_image_new_from_icon_name("network-wireless-encrypted-symbolic", GTK_ICON_SIZE_MENU);
+                gtk_box_pack_start(GTK_BOX(hbox), lock_icon, FALSE, FALSE, 2);
+            }
+
+            char *sig_lbl_str = g_strdup_printf("%d%%  %s", signal, is_secured ? sec : "Open");
+            GtkWidget *lbl_sig = gtk_label_new(sig_lbl_str);
+            g_free(sig_lbl_str);
+            gtk_style_context_add_class(gtk_widget_get_style_context(lbl_sig), "dim-label");
+            gtk_box_pack_end(GTK_BOX(hbox), lbl_sig, FALSE, FALSE, 0);
+
+            gtk_container_add(GTK_CONTAINER(row), hbox);
+            g_object_set_data_full(G_OBJECT(row), "ssid", g_strdup(ssid), g_free);
+            g_object_set_data_full(G_OBJECT(row), "security", g_strdup(sec), g_free);
+            g_object_set_data(G_OBJECT(row), "in_use", GINT_TO_POINTER(in_use));
+
+            gtk_list_box_insert(GTK_LIST_BOX(app->list_wifi), row, -1);
+            found = TRUE;
+        }
+        g_strfreev(parts);
+    }
+    g_hash_table_destroy(seen_ssids);
+    g_strfreev(lines);
+    g_free(out);
+
+    if (!found) {
+        GtkWidget *row = gtk_list_box_row_new();
+        GtkWidget *lbl = gtk_label_new("No Wi-Fi access points found. Ensure Wi-Fi is enabled and click Scan.");
+        gtk_widget_set_margin_top(lbl, 12);
+        gtk_widget_set_margin_bottom(lbl, 12);
+        gtk_container_add(GTK_CONTAINER(row), lbl);
+        gtk_list_box_insert(GTK_LIST_BOX(app->list_wifi), row, -1);
+    }
+    gtk_widget_show_all(app->list_wifi);
+}
+
 static void on_goto_net_cb(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     AxisOobeApp *app = (AxisOobeApp *)user_data;
     gtk_stack_set_visible_child_name(GTK_STACK(app->stack), "step_net");
+    trigger_wifi_rescan(app);
 }
 
 static void on_goto_finish_cb(GtkWidget *widget, gpointer user_data) {
@@ -240,8 +529,47 @@ static void build_network_step(AxisOobeApp *app) {
     app->lbl_net_status = gtk_label_new(net_status);
     g_free(net_status);
     gtk_label_set_xalign(GTK_LABEL(app->lbl_net_status), 0.0);
-    gtk_box_pack_start(GTK_BOX(card), app->lbl_net_status, FALSE, FALSE, 8);
+    gtk_box_pack_start(GTK_BOX(card), app->lbl_net_status, FALSE, FALSE, 4);
 
+    // Wi-Fi Header: Switch + Scan Button + Status
+    GtkWidget *wifi_hdr = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
+    GtkWidget *wifi_icon = gtk_image_new_from_icon_name("network-wireless-symbolic", GTK_ICON_SIZE_BUTTON);
+    GtkWidget *lbl_wifi = gtk_label_new("Wi-Fi Networks");
+    PangoAttrList *attrs_w = pango_attr_list_new();
+    pango_attr_list_insert(attrs_w, pango_attr_weight_new(PANGO_WEIGHT_BOLD));
+    gtk_label_set_attributes(GTK_LABEL(lbl_wifi), attrs_w);
+    pango_attr_list_unref(attrs_w);
+
+    app->switch_wifi = gtk_switch_new();
+    gtk_switch_set_active(GTK_SWITCH(app->switch_wifi), TRUE);
+    g_signal_connect(app->switch_wifi, "notify::active", G_CALLBACK(on_wifi_switch_active_changed), app);
+
+    app->btn_scan = gtk_button_new_with_label("Scan");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_scan), "btn-secondary");
+    g_signal_connect(app->btn_scan, "clicked", G_CALLBACK(on_scan_clicked_cb), app);
+
+    app->lbl_scan_status = gtk_label_new("");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_scan_status), "dim-label");
+
+    gtk_box_pack_start(GTK_BOX(wifi_hdr), wifi_icon, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(wifi_hdr), lbl_wifi, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(wifi_hdr), app->switch_wifi, FALSE, FALSE, 6);
+    gtk_box_pack_start(GTK_BOX(wifi_hdr), app->btn_scan, FALSE, FALSE, 6);
+    gtk_box_pack_start(GTK_BOX(wifi_hdr), app->lbl_scan_status, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(card), wifi_hdr, FALSE, FALSE, 4);
+
+    // Scrollable Wi-Fi List
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 200);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+
+    app->list_wifi = gtk_list_box_new();
+    gtk_list_box_set_selection_mode(GTK_LIST_BOX(app->list_wifi), GTK_SELECTION_SINGLE);
+    g_signal_connect(app->list_wifi, "row-activated", G_CALLBACK(on_wifi_row_activated), app);
+    gtk_container_add(GTK_CONTAINER(scroll), app->list_wifi);
+    gtk_box_pack_start(GTK_BOX(card), scroll, TRUE, TRUE, 4);
+
+    // Secondary buttons: Open Network Settings & Check Connection
     GtkWidget *hbox_b = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
     GtkWidget *btn_settings = gtk_button_new_with_label("Open Network Settings");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_settings), "btn-secondary");
@@ -253,7 +581,7 @@ static void build_network_step(AxisOobeApp *app) {
     g_signal_connect(btn_check, "clicked", G_CALLBACK(on_check_net_cb), app);
     gtk_box_pack_start(GTK_BOX(hbox_b), btn_check, FALSE, FALSE, 0);
 
-    gtk_box_pack_start(GTK_BOX(card), hbox_b, FALSE, FALSE, 8);
+    gtk_box_pack_start(GTK_BOX(card), hbox_b, FALSE, FALSE, 4);
     gtk_box_pack_start(GTK_BOX(vbox), card, TRUE, TRUE, 0);
 
     GtkWidget *btn_next = gtk_button_new_with_label("Next: Complete Setup →");
