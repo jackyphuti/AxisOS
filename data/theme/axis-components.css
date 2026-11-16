@@ -469,21 +469,21 @@ entry.launcher-search:focus,
 
 .qs-tile.active {
   background-color: @axis_accent;
-  color: #FFFFFF;
+  color: @axis_accent_btn_text;
   border-color: @axis_accent;
   background-image: none;
 }
 
 .qs-tile.active .title-4 {
-  color: #FFFFFF;
+  color: @axis_accent_btn_text;
 }
 
 .qs-tile.active .caption {
-  color: #E0E7FF;
+  color: @axis_accent_btn_text;
 }
 
 .qs-tile.active image {
-  color: #FFFFFF;
+  color: @axis_accent_btn_text;
 }
 
 scale trough {
@@ -501,13 +501,13 @@ scale highlight {
 }
 
 scale slider {
-  background-color: #FFFFFF;
+  background-color: @axis_accent_btn_text;
   border-radius: 999px;
   min-width: 18px;
   min-height: 18px;
   margin: -5px;
   border: none;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 2px 6px @axis_shadow;
   background-image: none;
 }
 
@@ -546,4 +546,35 @@ scale slider {
   padding: 28px 32px;
   box-shadow: 0 16px 40px @axis_shadow;
 }
+
+/* -------------------------------------------------------------------------
+ * Dialogs & Message Dialogs (Modern Rounded Frosted Modals)
+ * ------------------------------------------------------------------------- */
+dialog,
+messagedialog,
+.background.csd {
+  background-color: @axis_surface;
+  color: @axis_text;
+  border: 1px solid @axis_outline;
+  border-radius: 16px;
+}
+
+messagedialog .titlebar,
+dialog headerbar {
+  background-color: @axis_surface_raised;
+  color: @axis_text;
+  border-bottom: 1px solid @axis_outline;
+}
+
+messagedialog label,
+dialog label {
+  color: @axis_text;
+}
+
+messagedialog .dialog-action-box button {
+  min-height: 36px;
+  padding: 8px 20px;
+  border-radius: 9999px;
+}
+
 
