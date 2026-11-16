@@ -80,9 +80,8 @@ libwayland-egl1
 libinput10
 libxkbcommon0
 
-# Web Browser & Utilities
+# Web Browser & File Manager
 chromium
-nautilus
 thunar
 
 # Storage, Filesystems & Real Partitioning Tools
@@ -132,12 +131,9 @@ gamemode
 mangohud
 gamescope
 rtkit
-pipewire-pulse
-wireplumber
 steam-devices
 lutris
 retroarch
-intel-media-va-driver-non-free
 dkms
 vkbasalt
 cpufrequtils
@@ -148,8 +144,6 @@ nvtop
 # AxisOS Container Isolation & Desktop Portal Stack
 # ==============================================================================
 jq
-distrobox
-podman
 flatpak
 xdg-desktop-portal
 xdg-desktop-portal-wlr

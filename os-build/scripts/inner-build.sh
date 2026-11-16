@@ -323,8 +323,7 @@ if command -v lb >/dev/null 2>&1; then
         --iso-application "AxisOS Pure C Linux" \
         --iso-publisher "AxisOS Team" \
         --iso-volume "AxisOS_Live" \
-        --chroot-squashfs-compression-type zstd \
-        --chroot-squashfs-compression-level 6 \
+        --chroot-squashfs-compression-type xz \
         --memtest none \
         --verbose
 

@@ -69,6 +69,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     debootstrap \
     squashfs-tools \
     zstd \
+    xz-utils \
     xorriso \
     isolinux \
     syslinux-common \
