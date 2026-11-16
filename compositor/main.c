@@ -48,6 +48,29 @@
 #include <wlr/types/wlr_xdg_shell.h>
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_foreign_toplevel_management_v1.h>
+#include <wlr/types/wlr_xdg_output_v1.h>
+#include <wlr/types/wlr_output_power_management_v1.h>
+#include <wlr/types/wlr_output_management_v1.h>
+#include <wlr/types/wlr_screencopy_v1.h>
+#include <wlr/types/wlr_export_dmabuf_v1.h>
+#include <wlr/types/wlr_gamma_control_v1.h>
+#include <wlr/types/wlr_idle.h>
+#include <wlr/types/wlr_idle_inhibit_v1.h>
+#include <wlr/types/wlr_relative_pointer_v1.h>
+#include <wlr/types/wlr_pointer_constraints_v1.h>
+#include <wlr/types/wlr_server_decoration.h>
+#include <wlr/types/wlr_xdg_decoration_v1.h>
+#include <wlr/types/wlr_primary_selection_v1.h>
+#include <wlr/types/wlr_data_control_v1.h>
+#include <wlr/types/wlr_viewporter.h>
+#include <wlr/types/wlr_tablet_v2.h>
+#include <wlr/types/wlr_virtual_keyboard_v1.h>
+#include <wlr/types/wlr_virtual_pointer_v1.h>
+#include <wlr/types/wlr_input_method_v2.h>
+#include <wlr/types/wlr_text_input_v3.h>
+#include <wlr/types/wlr_xdg_activation_v1.h>
+#include "gtk-shell-protocol.h"
+#include "kde-appmenu-protocol.h"
 #include <wlr/util/log.h>
 #include <wlr/version.h>
 #include <xkbcommon/xkbcommon.h>
@@ -125,6 +148,36 @@ struct axis_server {
 	struct wlr_output_layout *output_layout;
 	struct wl_list outputs;
 	struct wl_listener new_output;
+
+	/* Modern Desktop & Hardware Protocol Managers */
+	struct wlr_xdg_output_manager_v1 *xdg_output_manager;
+	struct wlr_output_power_manager_v1 *output_power_manager;
+	struct wl_listener output_power_set_mode;
+	struct wlr_output_manager_v1 *output_manager;
+	struct wl_listener output_manager_apply;
+	struct wl_listener output_manager_test;
+	struct wlr_screencopy_manager_v1 *screencopy_manager;
+	struct wlr_export_dmabuf_manager_v1 *export_dmabuf_manager;
+	struct wlr_gamma_control_manager_v1 *gamma_control_manager;
+	struct wlr_idle *idle;
+	struct wlr_idle_inhibit_manager_v1 *idle_inhibit_manager;
+	struct wlr_relative_pointer_manager_v1 *relative_pointer_manager;
+	struct wlr_pointer_constraints_v1 *pointer_constraints;
+	struct wl_listener new_pointer_constraint;
+	struct wlr_server_decoration_manager *server_decoration_manager;
+	struct wlr_xdg_decoration_manager_v1 *xdg_decoration_manager;
+	struct wl_listener new_xdg_decoration;
+	struct wlr_primary_selection_v1_device_manager *primary_selection_manager;
+	struct wlr_data_control_manager_v1 *data_control_manager;
+	struct wlr_viewporter *viewporter;
+	struct wlr_tablet_manager_v2 *tablet_v2;
+	struct wlr_virtual_keyboard_manager_v1 *virtual_keyboard_manager;
+	struct wlr_virtual_pointer_manager_v1 *virtual_pointer_manager;
+	struct wlr_input_method_manager_v2 *input_method_manager;
+	struct wlr_text_input_manager_v3 *text_input_manager;
+	struct wlr_xdg_activation_v1 *xdg_activation;
+	struct wl_global *gtk_shell_global;
+	struct wl_global *kde_appmenu_global;
 };
 
 struct axis_output {
@@ -352,6 +405,180 @@ static bool axis_has_maximized_view(struct axis_server *server, struct axis_view
 }
 
 /* ========================================================================= */
+/* Wayland Desktop & Hardware Protocols (DPMS, Screencopy, Gaming, GTK Shell)*/
+/* ========================================================================= */
+
+static void handle_output_power_set_mode(struct wl_listener *listener, void *data) {
+	(void)listener;
+	struct wlr_output_power_v1_set_mode_event *event = data;
+	bool enable = (event->mode == ZWLR_OUTPUT_POWER_V1_MODE_ON);
+	wlr_output_enable(event->output, enable);
+	wlr_output_commit(event->output);
+}
+
+static void handle_output_manager_apply(struct wl_listener *listener, void *data) {
+	struct axis_server *server = wl_container_of(listener, server, output_manager_apply);
+	struct wlr_output_configuration_v1 *config = data;
+	struct wlr_output_configuration_head_v1 *head;
+	wl_list_for_each(head, &config->heads, link) {
+		struct wlr_output *output = head->state.output;
+		if (head->state.enabled) {
+			wlr_output_enable(output, true);
+			if (head->state.mode) {
+				wlr_output_set_mode(output, head->state.mode);
+			} else {
+				wlr_output_set_custom_mode(output, head->state.custom_mode.width,
+					head->state.custom_mode.height, head->state.custom_mode.refresh);
+			}
+			wlr_output_set_scale(output, head->state.scale);
+			wlr_output_set_transform(output, head->state.transform);
+			wlr_output_layout_add(server->output_layout, output, head->state.x, head->state.y);
+		} else {
+			wlr_output_enable(output, false);
+		}
+		wlr_output_commit(output);
+	}
+	wlr_output_configuration_v1_send_succeeded(config);
+}
+
+static void handle_output_manager_test(struct wl_listener *listener, void *data) {
+	(void)listener;
+	struct wlr_output_configuration_v1 *config = data;
+	wlr_output_configuration_v1_send_succeeded(config);
+}
+
+static void handle_new_pointer_constraint(struct wl_listener *listener, void *data) {
+	(void)listener;
+	struct wlr_pointer_constraint_v1 *constraint = data;
+	wlr_pointer_constraint_v1_send_activated(constraint);
+}
+
+static void handle_new_xdg_decoration(struct wl_listener *listener, void *data) {
+	(void)listener;
+	struct wlr_xdg_toplevel_decoration_v1 *decoration = data;
+	wlr_xdg_toplevel_decoration_v1_set_mode(decoration,
+		WLR_XDG_TOPLEVEL_DECORATION_V1_MODE_CLIENT_SIDE);
+}
+
+/* GTK Shell Protocol Implementation */
+static void handle_gtk_surface_set_dbus_properties(struct wl_client *client, struct wl_resource *resource,
+	const char *app_id, const char *app_menu_path, const char *menubar_path,
+	const char *window_object_path, const char *application_object_path, const char *unique_bus_name) {
+	(void)client; (void)resource; (void)app_id; (void)app_menu_path; (void)menubar_path;
+	(void)window_object_path; (void)application_object_path; (void)unique_bus_name;
+}
+
+static void handle_gtk_surface_set_modal(struct wl_client *client, struct wl_resource *resource) {
+	(void)client; (void)resource;
+}
+
+static void handle_gtk_surface_unset_modal(struct wl_client *client, struct wl_resource *resource) {
+	(void)client; (void)resource;
+}
+
+static void handle_gtk_surface_present(struct wl_client *client, struct wl_resource *resource, uint32_t time) {
+	(void)client; (void)resource; (void)time;
+}
+
+static void handle_gtk_surface_request_focus(struct wl_client *client, struct wl_resource *resource, const char *startup_id) {
+	(void)client; (void)resource; (void)startup_id;
+}
+
+static const struct gtk_surface1_interface gtk_surface1_impl = {
+	.set_dbus_properties = handle_gtk_surface_set_dbus_properties,
+	.set_modal = handle_gtk_surface_set_modal,
+	.unset_modal = handle_gtk_surface_unset_modal,
+	.present = handle_gtk_surface_present,
+	.request_focus = handle_gtk_surface_request_focus,
+};
+
+static void handle_gtk_surface_destroy(struct wl_resource *resource) {
+	(void)resource;
+}
+
+static void handle_gtk_shell_get_gtk_surface(struct wl_client *client, struct wl_resource *resource,
+	uint32_t id, struct wl_resource *surface_resource) {
+	(void)surface_resource;
+	struct wl_resource *gtk_surf = wl_resource_create(client, &gtk_surface1_interface,
+		wl_resource_get_version(resource), id);
+	if (gtk_surf) {
+		wl_resource_set_implementation(gtk_surf, &gtk_surface1_impl, NULL, handle_gtk_surface_destroy);
+	}
+}
+
+static void handle_gtk_shell_set_startup_id(struct wl_client *client, struct wl_resource *resource, const char *startup_id) {
+	(void)client; (void)resource; (void)startup_id;
+}
+
+static void handle_gtk_shell_system_bell(struct wl_client *client, struct wl_resource *resource, struct wl_resource *surface) {
+	(void)client; (void)resource; (void)surface;
+}
+
+static void handle_gtk_shell_notify_launch(struct wl_client *client, struct wl_resource *resource, const char *startup_id) {
+	(void)client; (void)resource; (void)startup_id;
+}
+
+static const struct gtk_shell1_interface gtk_shell1_impl = {
+	.get_gtk_surface = handle_gtk_shell_get_gtk_surface,
+	.set_startup_id = handle_gtk_shell_set_startup_id,
+	.system_bell = handle_gtk_shell_system_bell,
+	.notify_launch = handle_gtk_shell_notify_launch,
+};
+
+static void bind_gtk_shell1(struct wl_client *client, void *data, uint32_t version, uint32_t id) {
+	(void)data;
+	struct wl_resource *resource = wl_resource_create(client, &gtk_shell1_interface,
+		version < 3 ? version : 3, id);
+	if (resource) {
+		wl_resource_set_implementation(resource, &gtk_shell1_impl, NULL, NULL);
+		gtk_shell1_send_capabilities(resource, 0);
+	}
+}
+
+/* KDE AppMenu Protocol Implementation */
+static void handle_appmenu_set_address(struct wl_client *client, struct wl_resource *resource,
+	const char *service_name, const char *object_path) {
+	(void)client; (void)resource; (void)service_name; (void)object_path;
+}
+
+static void handle_appmenu_release(struct wl_client *client, struct wl_resource *resource) {
+	(void)client;
+	wl_resource_destroy(resource);
+}
+
+static const struct org_kde_kwin_appmenu_interface appmenu_impl = {
+	.set_address = handle_appmenu_set_address,
+	.release = handle_appmenu_release,
+};
+
+static void handle_appmenu_destroy(struct wl_resource *resource) {
+	(void)resource;
+}
+
+static void handle_appmenu_manager_create(struct wl_client *client, struct wl_resource *resource,
+	uint32_t id, struct wl_resource *surface) {
+	(void)surface;
+	struct wl_resource *appmenu_res = wl_resource_create(client, &org_kde_kwin_appmenu_interface,
+		wl_resource_get_version(resource), id);
+	if (appmenu_res) {
+		wl_resource_set_implementation(appmenu_res, &appmenu_impl, NULL, handle_appmenu_destroy);
+	}
+}
+
+static const struct org_kde_kwin_appmenu_manager_interface appmenu_manager_impl = {
+	.create = handle_appmenu_manager_create,
+};
+
+static void bind_kde_appmenu_manager(struct wl_client *client, void *data, uint32_t version, uint32_t id) {
+	(void)data;
+	struct wl_resource *resource = wl_resource_create(client, &org_kde_kwin_appmenu_manager_interface,
+		version < 1 ? version : 1, id);
+	if (resource) {
+		wl_resource_set_implementation(resource, &appmenu_manager_impl, NULL, NULL);
+	}
+}
+
+/* ========================================================================= */
 /* Keyboard Handling & Keybindings                                          */
 /* ========================================================================= */
 static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xkb_keysym_t sym) {
@@ -487,6 +714,113 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 						view->is_maximized = true;
 						axis_view_update_borders(view);
 					}
+				}
+			}
+		}
+		return true;
+	}
+
+	/* Super + Left: Snap Active Window to Left Half (Labwc / Windows Ergonomics) */
+	if (is_super && (sym == XKB_KEY_Left || sym == XKB_KEY_KP_Left)) {
+		if (!wl_list_empty(&server->views)) {
+			struct axis_view *view = wl_container_of(server->views.next, view, link);
+			if (view && view->xdg_surface && view->xdg_surface->toplevel) {
+				struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
+				if (output) {
+					if (!view->is_maximized && !view->is_fullscreen) {
+						view->saved_geometry.x = view->x;
+						view->saved_geometry.y = view->y;
+						struct wlr_box geo_box;
+						wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+						view->saved_geometry.width = geo_box.width;
+						view->saved_geometry.height = geo_box.height;
+					}
+					int half_w = output->width / 2;
+					view->x = 0;
+					view->y = 0;
+					wlr_scene_node_set_position(view->scene_node, 0, 0);
+					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, half_w, output->height);
+					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
+					view->is_maximized = false;
+					axis_view_update_borders(view);
+				}
+			}
+		}
+		return true;
+	}
+
+	/* Super + Right: Snap Active Window to Right Half (Labwc / Windows Ergonomics) */
+	if (is_super && (sym == XKB_KEY_Right || sym == XKB_KEY_KP_Right)) {
+		if (!wl_list_empty(&server->views)) {
+			struct axis_view *view = wl_container_of(server->views.next, view, link);
+			if (view && view->xdg_surface && view->xdg_surface->toplevel) {
+				struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
+				if (output) {
+					if (!view->is_maximized && !view->is_fullscreen) {
+						view->saved_geometry.x = view->x;
+						view->saved_geometry.y = view->y;
+						struct wlr_box geo_box;
+						wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+						view->saved_geometry.width = geo_box.width;
+						view->saved_geometry.height = geo_box.height;
+					}
+					int half_w = output->width / 2;
+					view->x = half_w;
+					view->y = 0;
+					wlr_scene_node_set_position(view->scene_node, half_w, 0);
+					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, half_w, output->height);
+					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
+					view->is_maximized = false;
+					axis_view_update_borders(view);
+				}
+			}
+		}
+		return true;
+	}
+
+	/* Super + Up: Maximize Active Window */
+	if (is_super && (sym == XKB_KEY_Up || sym == XKB_KEY_KP_Up)) {
+		if (!wl_list_empty(&server->views)) {
+			struct axis_view *view = wl_container_of(server->views.next, view, link);
+			if (view && view->xdg_surface && view->xdg_surface->toplevel && !view->is_maximized) {
+				struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
+				if (output) {
+					view->saved_geometry.x = view->x;
+					view->saved_geometry.y = view->y;
+					struct wlr_box geo_box;
+					wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+					view->saved_geometry.width = geo_box.width;
+					view->saved_geometry.height = geo_box.height;
+
+					axis_set_taskbars_visible(view->server, false);
+					wlr_scene_node_set_position(view->scene_node, 0, 0);
+					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, output->width, output->height);
+					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, true);
+					view->is_maximized = true;
+					axis_view_update_borders(view);
+				}
+			}
+		}
+		return true;
+	}
+
+	/* Super + Down: Restore Active Window from Maximized/Snapped */
+	if (is_super && (sym == XKB_KEY_Down || sym == XKB_KEY_KP_Down)) {
+		if (!wl_list_empty(&server->views)) {
+			struct axis_view *view = wl_container_of(server->views.next, view, link);
+			if (view && view->xdg_surface && view->xdg_surface->toplevel) {
+				if (view->saved_geometry.width > 0 && view->saved_geometry.height > 0) {
+					view->x = view->saved_geometry.x;
+					view->y = view->saved_geometry.y;
+					wlr_scene_node_set_position(view->scene_node, view->x, view->y);
+					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel,
+						view->saved_geometry.width, view->saved_geometry.height);
+					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
+					view->is_maximized = false;
+					if (!axis_has_maximized_view(view->server, NULL)) {
+						axis_set_taskbars_visible(view->server, true);
+					}
+					axis_view_update_borders(view);
 				}
 			}
 		}
@@ -1301,10 +1635,7 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 		wlr_scene_node_lower_to_bottom(&bg_rect->node);
 	}
 
-	/* Trigger initial frame render and scanout so monitor does not remain in power-saving / black state */
-	if (scene_output) {
-		axis_wlr_scene_output_commit(scene_output);
-	}
+	(void)scene_output;
 
 }
 
@@ -1472,6 +1803,59 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	/* Early Hypervisor & Virtual GPU Autodetection:
+	 * Check /proc/cpuinfo, /proc/modules, and /sys/class/drm/card* driver symlinks before creating
+	 * the wlroots backend or renderer to avoid Mesa SVGA EGL hangs on VirtualBox / QEMU / VMware. */
+	bool is_vm = false;
+	if (getenv("WLR_RENDERER") && strcmp(getenv("WLR_RENDERER"), "pixman") == 0) {
+		is_vm = true;
+	} else if (!getenv("WLR_RENDERER")) {
+		FILE *fcpu = fopen("/proc/cpuinfo", "r");
+		if (fcpu) {
+			char line[512];
+			while (fgets(line, sizeof(line), fcpu)) {
+				if (strstr(line, "flags") && strstr(line, "hypervisor")) {
+					is_vm = true;
+					break;
+				}
+			}
+			fclose(fcpu);
+		}
+		if (!is_vm) {
+			FILE *fmod = fopen("/proc/modules", "r");
+			if (fmod) {
+				char line[512];
+				while (fgets(line, sizeof(line), fmod)) {
+					if (strstr(line, "vmwgfx") || strstr(line, "vboxvideo") ||
+					    strstr(line, "qxl") || strstr(line, "bochs") || strstr(line, "virtio_gpu")) {
+						is_vm = true;
+						break;
+					}
+				}
+				fclose(fmod);
+			}
+		}
+		if (!is_vm) {
+			char drv_path[256];
+			ssize_t len = readlink("/sys/class/drm/card0/device/driver", drv_path, sizeof(drv_path) - 1);
+			if (len > 0) {
+				drv_path[len] = '\0';
+				if (strstr(drv_path, "vmwgfx") || strstr(drv_path, "vboxvideo") ||
+				    strstr(drv_path, "qxl") || strstr(drv_path, "bochs") || strstr(drv_path, "virtio")) {
+					is_vm = true;
+				}
+			}
+		}
+	}
+
+	if (is_vm) {
+		wlr_log(WLR_INFO, "[AxisOS] Hypervisor / virtual graphics detected; selecting pixman software renderer");
+		setenv("WLR_RENDERER", "pixman", 1);
+		setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
+		setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
+		setenv("LIBGL_ALWAYS_SOFTWARE", "1", 1);
+	}
+
 	struct axis_server server = {0};
 
 	/* 1. Initialize the Wayland Display */
@@ -1494,26 +1878,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* 3. Set Up Renderer and Allocator */
-	if (!getenv("WLR_RENDERER")) {
-		/* Auto-detect virtual machine graphics drivers (VirtualBox vmwgfx/vboxvideo, QEMU bochs/qxl/virtio_gpu)
-		 * to prevent EGL initialization hangs or crashes on hypervisors without hardware 3D */
-		FILE *fmodules = fopen("/proc/modules", "r");
-		if (fmodules) {
-			char mod_buf[512];
-			while (fgets(mod_buf, sizeof(mod_buf), fmodules)) {
-				if (strstr(mod_buf, "vmwgfx") || strstr(mod_buf, "vboxvideo") || strstr(mod_buf, "qxl") || strstr(mod_buf, "bochs")) {
-					wlr_log(WLR_INFO, "[AxisOS] Hypervisor / virtual graphics detected; defaulting to pixman software renderer");
-					setenv("WLR_RENDERER", "pixman", 1);
-					setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
-					setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
-					setenv("LIBGL_ALWAYS_SOFTWARE", "1", 1);
-					break;
-				}
-			}
-			fclose(fmodules);
-		}
-	}
-
 	server.renderer = wlr_renderer_autocreate(server.backend);
 	if (!server.renderer) {
 		wlr_log(WLR_INFO, "[AxisOS] Default hardware renderer unavailable, retrying with pixman software rendering...");
@@ -1567,6 +1931,52 @@ int main(int argc, char *argv[]) {
 	wl_signal_add(&server.layer_shell->events.new_surface, &server.new_layer_surface);
 
 	server.foreign_toplevel_mgr = wlr_foreign_toplevel_manager_v1_create(server.wl_display);
+
+	/* Modern Desktop & Hardware Protocol Managers (Injected from Wayfire, Sway, Labwc) */
+	server.xdg_output_manager = wlr_xdg_output_manager_v1_create(server.wl_display, server.output_layout);
+
+	server.output_power_manager = wlr_output_power_manager_v1_create(server.wl_display);
+	server.output_power_set_mode.notify = handle_output_power_set_mode;
+	wl_signal_add(&server.output_power_manager->events.set_mode, &server.output_power_set_mode);
+
+	server.output_manager = wlr_output_manager_v1_create(server.wl_display);
+	server.output_manager_apply.notify = handle_output_manager_apply;
+	wl_signal_add(&server.output_manager->events.apply, &server.output_manager_apply);
+	server.output_manager_test.notify = handle_output_manager_test;
+	wl_signal_add(&server.output_manager->events.test, &server.output_manager_test);
+
+	server.screencopy_manager = wlr_screencopy_manager_v1_create(server.wl_display);
+	server.export_dmabuf_manager = wlr_export_dmabuf_manager_v1_create(server.wl_display);
+	server.gamma_control_manager = wlr_gamma_control_manager_v1_create(server.wl_display);
+
+	server.idle = wlr_idle_create(server.wl_display);
+	server.idle_inhibit_manager = wlr_idle_inhibit_v1_create(server.wl_display);
+
+	server.relative_pointer_manager = wlr_relative_pointer_manager_v1_create(server.wl_display);
+	server.pointer_constraints = wlr_pointer_constraints_v1_create(server.wl_display);
+	server.new_pointer_constraint.notify = handle_new_pointer_constraint;
+	wl_signal_add(&server.pointer_constraints->events.new_constraint, &server.new_pointer_constraint);
+
+	server.server_decoration_manager = wlr_server_decoration_manager_create(server.wl_display);
+	wlr_server_decoration_manager_set_default_mode(server.server_decoration_manager, WLR_SERVER_DECORATION_MANAGER_MODE_CLIENT);
+
+	server.xdg_decoration_manager = wlr_xdg_decoration_manager_v1_create(server.wl_display);
+	server.new_xdg_decoration.notify = handle_new_xdg_decoration;
+	wl_signal_add(&server.xdg_decoration_manager->events.new_toplevel_decoration, &server.new_xdg_decoration);
+
+	server.primary_selection_manager = wlr_primary_selection_v1_device_manager_create(server.wl_display);
+	server.data_control_manager = wlr_data_control_manager_v1_create(server.wl_display);
+	server.viewporter = wlr_viewporter_create(server.wl_display);
+	server.tablet_v2 = wlr_tablet_v2_create(server.wl_display);
+	server.virtual_keyboard_manager = wlr_virtual_keyboard_manager_v1_create(server.wl_display);
+	server.virtual_pointer_manager = wlr_virtual_pointer_manager_v1_create(server.wl_display);
+	server.input_method_manager = wlr_input_method_manager_v2_create(server.wl_display);
+	server.text_input_manager = wlr_text_input_manager_v3_create(server.wl_display);
+	server.xdg_activation = wlr_xdg_activation_v1_create(server.wl_display);
+
+	/* Pure C Desktop Integration Protocols (GTK Shell & KDE AppMenu) */
+	server.gtk_shell_global = wl_global_create(server.wl_display, &gtk_shell1_interface, 3, NULL, bind_gtk_shell1);
+	server.kde_appmenu_global = wl_global_create(server.wl_display, &org_kde_kwin_appmenu_manager_interface, 1, NULL, bind_kde_appmenu_manager);
 
 	/* 5. Wire Up Hardware Listeners */
 	wl_list_init(&server.outputs);

@@ -911,13 +911,17 @@ User=${USERNAME}
 Group=${USERNAME}
 PAMName=axisos-autologin
 WorkingDirectory=/home/${USERNAME}
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
 Environment=GDK_BACKEND=wayland
+Environment=WLR_RENDERER=pixman
 Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=WLR_NO_HARDWARE_CURSORS=1
 Environment=LIBGL_ALWAYS_SOFTWARE=1
 Environment=LIBSEAT_BACKEND=logind
+Environment=XDG_SEAT=seat0
+Environment=XDG_VTNR=1
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000 2>/dev/null && chmod 0700 /run/user/1000 2>/dev/null || true'
 ExecStart=/usr/local/bin/axisos-kiosk.sh

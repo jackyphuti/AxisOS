@@ -43,13 +43,19 @@ export SDL_VIDEODRIVER=wayland
 # Auto-detect hypervisors with broken/unsupported host EGL (e.g. VirtualBox VMSVGA without 3D, VMware, QEMU)
 # and select pixman CPU rasterization up front to prevent EGL initialization crashes.
 IS_HYPERVISOR=0
-if command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --quiet; then
+if [ "${WLR_RENDERER:-}" = "pixman" ]; then
+    IS_HYPERVISOR=1
+elif grep -qa "hypervisor" /proc/cpuinfo 2>/dev/null; then
+    IS_HYPERVISOR=1
+elif command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --quiet; then
     IS_HYPERVISOR=1
 elif grep -qa -E "VirtualBox|VMware|QEMU|KVM|Bochs|innotek" /sys/class/dmi/id/* 2>/dev/null; then
     IS_HYPERVISOR=1
 elif grep -qa -E "VirtualBox|VMware|QEMU|KVM|Bochs|innotek" /sys/devices/virtual/dmi/id/* 2>/dev/null; then
     IS_HYPERVISOR=1
 elif grep -qa -E "vmwgfx|vboxvideo|bochs|qxl|cirrus|virtio_gpu" /proc/modules 2>/dev/null; then
+    IS_HYPERVISOR=1
+elif [ -e /sys/class/drm/card0/device/driver ] && readlink /sys/class/drm/card0/device/driver 2>/dev/null | grep -qE "vmwgfx|vboxvideo|qxl|bochs|virtio"; then
     IS_HYPERVISOR=1
 fi
 

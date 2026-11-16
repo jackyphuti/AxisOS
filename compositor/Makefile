@@ -7,22 +7,20 @@ LIBS += $(shell pkg-config --libs wlroots wayland-server xkbcommon libinput)
 WAYLAND_SCANNER ?= $(shell pkg-config --variable=wayland_scanner wayland-scanner 2>/dev/null || echo wayland-scanner)
 
 TARGET = axis-compositor
-GEN_SRC = xdg-shell-protocol.c wlr-layer-shell-unstable-v1-protocol.c
-GEN_HDR = xdg-shell-protocol.h wlr-layer-shell-unstable-v1-protocol.h
+
+PROTO_XMLS = $(wildcard protocols/*.xml)
+PROTO_BASENAMES = $(notdir $(basename $(PROTO_XMLS)))
+GEN_HDR = $(addsuffix -protocol.h, $(PROTO_BASENAMES))
+GEN_SRC = $(addsuffix -protocol.c, $(PROTO_BASENAMES))
+
 OBJS = main.o $(GEN_SRC:.c=.o)
 
 all: $(TARGET)
 
-xdg-shell-protocol.h: protocols/xdg-shell.xml
+%-protocol.h: protocols/%.xml
 	$(WAYLAND_SCANNER) server-header $< $@
 
-xdg-shell-protocol.c: protocols/xdg-shell.xml xdg-shell-protocol.h
-	$(WAYLAND_SCANNER) private-code $< $@
-
-wlr-layer-shell-unstable-v1-protocol.h: protocols/wlr-layer-shell-unstable-v1.xml
-	$(WAYLAND_SCANNER) server-header $< $@
-
-wlr-layer-shell-unstable-v1-protocol.c: protocols/wlr-layer-shell-unstable-v1.xml wlr-layer-shell-unstable-v1-protocol.h
+%-protocol.c: protocols/%.xml %-protocol.h
 	$(WAYLAND_SCANNER) private-code $< $@
 
 $(TARGET): $(GEN_HDR) $(OBJS)
