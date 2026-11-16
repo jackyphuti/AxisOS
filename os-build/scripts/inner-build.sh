@@ -331,6 +331,7 @@ if command -v lb >/dev/null 2>&1; then
     lb build 2>&1 | tee "$BUILD_DIR/build.log"
     cp -f "$BUILD_DIR"/live-image-amd64.hybrid.iso "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true
     cp -f "$BUILD_DIR"/*.iso "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true
+    chmod 0644 "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true
 fi
 
 if [ -f "$WORKSPACE_DIR/axisos-live-amd64.iso" ]; then

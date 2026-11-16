@@ -20,10 +20,12 @@ fi
 
 # Step 1: Determine builder environment (Container vs Native live-build)
 CONTAINER_TOOL=""
-if command -v podman >/dev/null 2>&1; then
-    CONTAINER_TOOL="podman"
-elif command -v docker >/dev/null 2>&1; then
+BUILD_FLAGS=""
+if command -v docker >/dev/null 2>&1; then
     CONTAINER_TOOL="docker"
+elif command -v podman >/dev/null 2>&1; then
+    CONTAINER_TOOL="podman"
+    BUILD_FLAGS="--cgroup-manager=cgroupfs"
 fi
 
 # Step 2: Compile Pure C Native Applications & Shell
@@ -66,6 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     live-build \
     debootstrap \
     squashfs-tools \
+    zstd \
     xorriso \
     isolinux \
     syslinux-common \
@@ -76,6 +79,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     dosfstools \
     ca-certificates \
     curl \
+    gnupg \
+    debian-archive-keyring \
     rsync \
     build-essential \
     pkg-config \
@@ -112,10 +117,10 @@ EOF
     fi
 
     echo "Building container image 'axisos-builder'..."
-    $SUDO_CMD $CONTAINER_TOOL build -t axisos-builder -f "$BUILD_DIR/Containerfile" "$BUILD_DIR"
+    $SUDO_CMD $CONTAINER_TOOL build $BUILD_FLAGS -t axisos-builder -f "$BUILD_DIR/Containerfile" "$BUILD_DIR"
 
     echo "[4/4] Generating AxisOS Hybrid Bootable ISO inside container..."
-    $SUDO_CMD $CONTAINER_TOOL run --privileged --rm \
+    $SUDO_CMD $CONTAINER_TOOL run $BUILD_FLAGS --privileged --rm \
         -v "$ROOT_DIR:/workspace:rw" \
         -v "$BUILD_DIR:/build:rw" \
         -e WORKSPACE_DIR=/workspace \
