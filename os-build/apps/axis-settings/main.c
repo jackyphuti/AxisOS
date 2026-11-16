@@ -98,6 +98,12 @@ static char *exec_cmd(const char *cmd) {
 }
 
 static const char *CSS_THEME =
+    "button, togglebutton, entry, notebook tab, treeview.view header button {"
+    "    background-image: none;"
+    "    box-shadow: none;"
+    "    text-shadow: none;"
+    "    -gtk-icon-shadow: none;"
+    "}"
     ".card {"
     "    background-color: @axis_surface_raised;"
     "    color: @axis_text;"
@@ -238,7 +244,7 @@ static void load_axis_theme(void) {
     gtk_style_context_add_provider_for_screen(
         screen,
         GTK_STYLE_PROVIDER(extra_prov),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+        GTK_STYLE_PROVIDER_PRIORITY_USER
     );
     g_object_unref(extra_prov);
 }
@@ -1928,6 +1934,14 @@ int main(int argc, char *argv[]) {
     }
 
     gtk_init(&argc, &argv);
+    GtkSettings *default_settings = gtk_settings_get_default();
+    if (default_settings) {
+        g_object_set(default_settings,
+                     "gtk-application-prefer-dark-theme", TRUE,
+                     "gtk-theme-name", "Adwaita-dark",
+                     "gtk-icon-theme-name", "Papirus-Dark",
+                     NULL);
+    }
     AxisSettingsApp *app = axis_settings_app_create();
 
     // CLI argument dispatching:

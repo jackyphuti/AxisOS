@@ -159,6 +159,12 @@ if [ -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" ]; then
     ln -sf /etc/systemd/system/axisos.service "$BUILD_DIR/config/includes.chroot/etc/systemd/system/graphical.target.wants/axisos.service" || true
 fi
 
+# Deploy GTK 3 Global Dark Theme settings
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/gtk-3.0"
+if [ -f "$WORKSPACE_DIR/os-build/configs/gtk-3.0/settings.ini" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/configs/gtk-3.0/settings.ini" "$BUILD_DIR/config/includes.chroot/etc/gtk-3.0/settings.ini"
+fi
+
 # Polkit rules for hardware & desktop administrative privileges
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/polkit-1/rules.d"
 cat << 'EOF' > "$BUILD_DIR/config/includes.chroot/etc/polkit-1/rules.d/10-axisos-admin.rules"
@@ -201,7 +207,7 @@ if ! id -u axis >/dev/null 2>&1; then
 fi
 
 # Ensure required hardware groups exist and axis user is member
-for grp in video render input audio plugdev users disk seat; do
+for grp in video render input audio plugdev users disk seat tty; do
     groupadd -f "$grp" 2>/dev/null || true
     usermod -aG "$grp" axis 2>/dev/null || true
 done
@@ -225,11 +231,15 @@ echo "axis ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/axis
 chmod 0440 /etc/sudoers.d/axis
 
 # Ensure /home/axis skeleton and permissions
-mkdir -p /home/axis/.config /home/axis/Desktop /home/axis/Downloads
+mkdir -p /home/axis/.config/gtk-3.0 /home/axis/Desktop /home/axis/Downloads
+if [ -f /etc/gtk-3.0/settings.ini ]; then
+    cp -f /etc/gtk-3.0/settings.ini /home/axis/.config/gtk-3.0/settings.ini
+fi
 chown -R 1000:1000 /home/axis 2>/dev/null || true
 
 # Systemd target and service configuration
 systemctl enable axisos.service 2>/dev/null || true
+systemctl enable seatd.service 2>/dev/null || true
 systemctl disable lightdm.service 2>/dev/null || true
 systemctl mask lightdm.service 2>/dev/null || true
 systemctl set-default graphical.target 2>/dev/null || true

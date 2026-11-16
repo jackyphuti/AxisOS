@@ -355,7 +355,7 @@ static gboolean update_clock_and_status(gpointer user_data) {
 
     GDateTime *now = g_date_time_new_now_local();
     if (now) {
-        gchar *time_str = g_date_time_format(now, "%a %b %d   %H:%M");
+        gchar *time_str = g_date_time_format(now, "%Y-%m-%d  %H:%M");
         if (shell->topbar_clock_label) {
             gtk_label_set_text(GTK_LABEL(shell->topbar_clock_label), time_str);
         }
@@ -585,7 +585,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         gtk_layer_set_margin(GTK_WINDOW(shell->topbar_window), GTK_LAYER_SHELL_EDGE_RIGHT, 12);
         gtk_layer_set_exclusive_zone(GTK_WINDOW(shell->topbar_window), 44);
     }
-    gtk_widget_set_size_request(shell->topbar_window, -1, 38);
+    gtk_widget_set_size_request(shell->topbar_window, -1, 36);
     g_signal_connect(shell->topbar_window, "draw", G_CALLBACK(on_draw_topbar), shell);
 
     GtkWidget *topbar_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -620,6 +620,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     add_class(center_island, "topbar-pill");
     shell->topbar_clock_label = gtk_label_new("Loading...");
     add_class(shell->topbar_clock_label, "title-4");
+    gtk_label_set_single_line_mode(GTK_LABEL(shell->topbar_clock_label), TRUE);
     gtk_box_pack_start(GTK_BOX(center_island), shell->topbar_clock_label, TRUE, TRUE, 6);
     gtk_box_set_center_widget(GTK_BOX(topbar_box), center_island);
 
@@ -631,6 +632,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     shell->topbar_cpu_icon = gtk_image_new_from_icon_name("utilities-system-monitor-symbolic", GTK_ICON_SIZE_MENU);
     shell->topbar_cpu_label = gtk_label_new("0%");
     add_class(shell->topbar_cpu_label, "caption");
+    gtk_label_set_single_line_mode(GTK_LABEL(shell->topbar_cpu_label), TRUE);
     gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_cpu_icon, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_cpu_label, FALSE, FALSE, 2);
 
@@ -638,6 +640,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     shell->topbar_net_icon = gtk_image_new_from_icon_name("network-wireless-signal-excellent-symbolic", GTK_ICON_SIZE_MENU);
     shell->topbar_net_label = gtk_label_new("Online");
     add_class(shell->topbar_net_label, "caption");
+    gtk_label_set_single_line_mode(GTK_LABEL(shell->topbar_net_label), TRUE);
     gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_net_icon, FALSE, FALSE, 4);
     gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_net_label, FALSE, FALSE, 2);
 
@@ -645,6 +648,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     shell->topbar_vol_icon = gtk_image_new_from_icon_name("audio-volume-high-symbolic", GTK_ICON_SIZE_MENU);
     shell->topbar_vol_label = gtk_label_new("70%");
     add_class(shell->topbar_vol_label, "caption");
+    gtk_label_set_single_line_mode(GTK_LABEL(shell->topbar_vol_label), TRUE);
     gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_vol_icon, FALSE, FALSE, 4);
     gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_vol_label, FALSE, FALSE, 2);
 
@@ -652,6 +656,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     shell->topbar_bat_icon = gtk_image_new_from_icon_name("battery-good-symbolic", GTK_ICON_SIZE_MENU);
     shell->topbar_bat_label = gtk_label_new("100%");
     add_class(shell->topbar_bat_label, "caption");
+    gtk_label_set_single_line_mode(GTK_LABEL(shell->topbar_bat_label), TRUE);
     gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_bat_icon, FALSE, FALSE, 4);
     gtk_box_pack_start(GTK_BOX(right_island), shell->topbar_bat_label, FALSE, FALSE, 2);
 
@@ -700,7 +705,8 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     for (int i = 0; pinned_apps[i].name != NULL; ++i) {
         GtkWidget *btn = gtk_button_new();
         add_class(btn, "dock-tile");
-        GtkWidget *img = gtk_image_new_from_icon_name(pinned_apps[i].icon, GTK_ICON_SIZE_DND);
+        GtkWidget *img = gtk_image_new_from_icon_name(pinned_apps[i].icon, GTK_ICON_SIZE_INVALID);
+        gtk_image_set_pixel_size(GTK_IMAGE(img), 48);
         gtk_button_set_image(GTK_BUTTON(btn), img);
         gtk_widget_set_tooltip_text(btn, pinned_apps[i].name);
         g_object_set_data(G_OBJECT(btn), "shell", shell);
@@ -874,20 +880,20 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     add_class(lock_btn, "secondary-button");
     g_signal_connect_swapped(lock_btn, "clicked", G_CALLBACK(ui_shell_lock), shell);
 
-    GtkWidget *reboot_btn = gtk_button_new_from_icon_name("system-reboot-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_button_set_label(GTK_BUTTON(reboot_btn), " Reboot");
-    gtk_button_set_always_show_image(GTK_BUTTON(reboot_btn), TRUE);
-    add_class(reboot_btn, "secondary-button");
-    g_signal_connect_swapped(reboot_btn, "clicked", G_CALLBACK(system_controller_reboot), sys_ctrl);
+    GtkWidget *settings_btn = gtk_button_new_from_icon_name("preferences-system-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_button_set_label(GTK_BUTTON(settings_btn), " Settings");
+    gtk_button_set_always_show_image(GTK_BUTTON(settings_btn), TRUE);
+    add_class(settings_btn, "secondary-button");
+    g_signal_connect(settings_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)"axis-settings");
 
     GtkWidget *power_btn = gtk_button_new_from_icon_name("system-shutdown-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_button_set_label(GTK_BUTTON(power_btn), " Power Off");
+    gtk_button_set_label(GTK_BUTTON(power_btn), " Power");
     gtk_button_set_always_show_image(GTK_BUTTON(power_btn), TRUE);
     add_class(power_btn, "secondary-button");
     g_signal_connect_swapped(power_btn, "clicked", G_CALLBACK(system_controller_power_off), sys_ctrl);
 
     gtk_box_pack_start(GTK_BOX(pwr_box), lock_btn, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(pwr_box), reboot_btn, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(pwr_box), settings_btn, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(pwr_box), power_btn, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(qs_card), pwr_box, FALSE, FALSE, 4);
 

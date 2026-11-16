@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # ==============================================================================
 # AxisOS 2.1 - Pure C Wayland Desktop Session Launcher
 # Launches native wlroots axis-compositor with pure C desktop shell and GTK 3 apps
@@ -15,20 +15,11 @@ if [ ! -d "$XDG_RUNTIME_DIR" ] || [ ! -w "$XDG_RUNTIME_DIR" ]; then
     chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
 fi
 
-# 2. Configure libseat / logind session backend
-# When launched via systemd PAMName=axisos-autologin, systemd-logind owns the VT/DRM master on tty1.
-# Query loginctl if XDG_SESSION_ID is not present in service environment.
-if [ -z "${XDG_SESSION_ID:-}" ] && command -v loginctl >/dev/null 2>&1; then
-    XDG_SESSION_ID=$(loginctl session-status 2>/dev/null | head -n1 | awk '{print $1}')
-    [ -n "$XDG_SESSION_ID" ] && export XDG_SESSION_ID
-fi
-
-if [ -d "/run/systemd/seats" ] || pgrep -x systemd-logind >/dev/null 2>&1; then
-    export LIBSEAT_BACKEND=logind
-elif [ -w "/run/seatd.sock" ]; then
+# 2. Configure libseat / logind / seatd session backend
+if [ -w "/run/seatd.sock" ]; then
     export LIBSEAT_BACKEND=seatd
-else
-    export LIBSEAT_BACKEND=builtin
+elif [ -n "${XDG_SESSION_ID:-}" ]; then
+    export LIBSEAT_BACKEND=logind
 fi
 
 export XDG_SESSION_TYPE=wayland
@@ -91,6 +82,12 @@ for cfg in waybar wofi mako foot; do
     fi
 done
 
+# Ensure GTK 3 Dark Theme settings are deployed to user session
+mkdir -p "$HOME/.config/gtk-3.0" 2>/dev/null || true
+if [ -f "/etc/gtk-3.0/settings.ini" ]; then
+    cp -f /etc/gtk-3.0/settings.ini "$HOME/.config/gtk-3.0/settings.ini" 2>/dev/null || true
+fi
+
 # 5. Determine Wallpaper
 WALLPAPER="/usr/share/backgrounds/axisos/01-axisos-signature-core.png"
 [ ! -f "$WALLPAPER" ] && WALLPAPER="/usr/share/backgrounds/axis-wallpaper.png"
@@ -105,15 +102,14 @@ else
     STARTUP_APP="axis-welcome"
 fi
 
-# 7. Configure Desktop Shell Component (waybar taskbar + optional axis-shell topbar)
+# 7. Configure Desktop Shell Component (prefer native axis-shell, fallback to waybar)
 SHELL_CMD=""
-if command -v waybar >/dev/null 2>&1; then
-    SHELL_CMD="waybar &"
-fi
 if [ -x "/usr/local/bin/axis-shell" ]; then
-    SHELL_CMD="$SHELL_CMD /usr/local/bin/axis-shell &"
+    SHELL_CMD="/usr/local/bin/axis-shell &"
 elif [ -x "/usr/bin/axis-shell" ]; then
-    SHELL_CMD="$SHELL_CMD /usr/bin/axis-shell &"
+    SHELL_CMD="/usr/bin/axis-shell &"
+elif command -v waybar >/dev/null 2>&1; then
+    SHELL_CMD="waybar &"
 fi
 
 STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & $SHELL_CMD (sleep 1 && GDK_BACKEND=wayland $STARTUP_APP) &"
@@ -129,14 +125,14 @@ fi
 if [ -n "$COMPOSITOR_BIN" ]; then
     echo "[AxisOS] Launching Native Pure C wlroots axis-compositor..."
     RET=0
-    "$COMPOSITOR_BIN" -s "$STARTUP_CMD" || RET=$?
+    "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
     if [ $RET -ne 0 ]; then
         echo "[AxisOS] Compositor exited ($RET). Retrying with pixman software rendering fallback..."
         export WLR_RENDERER=pixman
         export WLR_RENDERER_ALLOW_SOFTWARE=1
         export WLR_NO_HARDWARE_CURSORS=1
         RET=0
-        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" || RET=$?
+        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
         if [ $RET -ne 0 ]; then
             echo "[AxisOS] Compositor failed ($RET). Launching fallback kiosk..."
             if command -v cage >/dev/null 2>&1; then

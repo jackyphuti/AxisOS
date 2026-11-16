@@ -290,6 +290,22 @@ static void axis_view_update_borders(struct axis_view *view) {
 	/* Right: x + width, y - 2, 2, height + 4 */
 	wlr_scene_node_set_position(&view->border[3]->node, x + width, y - 2);
 	wlr_scene_rect_set_size(view->border[3], 2, height + 4);
+
+	const float *color = (view->server->seat && view->server->seat->keyboard_state.focused_surface == view->xdg_surface->surface)
+		? border_color_active : border_color_inactive;
+	for (int i = 0; i < 4; i++) {
+		wlr_scene_rect_set_color(view->border[i], color);
+	}
+}
+
+static void axis_schedule_outputs_frame(struct axis_server *server) {
+	if (!server) return;
+	struct axis_output *out;
+	wl_list_for_each(out, &server->outputs, link) {
+		if (out->wlr_output) {
+			wlr_output_schedule_frame(out->wlr_output);
+		}
+	}
 }
 
 static void focus_view(struct axis_view *view, struct wlr_surface *surface) {
@@ -1171,6 +1187,7 @@ static void xdg_toplevel_map(struct wl_listener *listener, void *data) {
 
 	focus_view(view, view->xdg_surface->surface);
 	axis_view_update_borders(view);
+	axis_schedule_outputs_frame(view->server);
 }
 
 static void xdg_toplevel_unmap(struct wl_listener *listener, void *data) {
@@ -1337,6 +1354,7 @@ static void xdg_toplevel_surface_commit(struct wl_listener *listener, void *data
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, surface_commit);
 	axis_view_update_borders(view);
+	axis_schedule_outputs_frame(view->server);
 }
 
 static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
@@ -1463,6 +1481,7 @@ static void layer_surface_map(struct wl_listener *listener, void *data) {
 	surface->x = x;
 	surface->y = y;
 	wlr_scene_node_set_position(surface->scene_node, x, y);
+	axis_schedule_outputs_frame(surface->server);
 }
 
 static void layer_surface_unmap(struct wl_listener *listener, void *data) {
@@ -1509,6 +1528,7 @@ static void layer_surface_commit(struct wl_listener *listener, void *data) {
 	}
 
 	wlr_layer_surface_v1_configure(wlr_layer, width, height);
+	axis_schedule_outputs_frame(surface->server);
 }
 
 static void server_new_layer_surface(struct wl_listener *listener, void *data) {
@@ -1558,6 +1578,7 @@ static void server_new_layer_surface(struct wl_listener *listener, void *data) {
 		height = (uint32_t)wlr_layer->output->height;
 	}
 	wlr_layer_surface_v1_configure(wlr_layer, width, height);
+	axis_schedule_outputs_frame(surface->server);
 }
 
 /* ========================================================================= */
@@ -1606,10 +1627,6 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 	}
 
 	wlr_output_enable(wlr_output, true);
-	if (!wlr_output_commit(wlr_output)) {
-		wlr_log(WLR_ERROR, "Failed to commit output mode");
-		return;
-	}
 
 	struct axis_output *output = calloc(1, sizeof(struct axis_output));
 	output->wlr_output = wlr_output;
@@ -1621,6 +1638,11 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 	wl_list_insert(&server->outputs, &output->link);
 
 	wlr_output_layout_add_auto(server->output_layout, wlr_output);
+
+	/* Commit mode to the output */
+	if (!wlr_output_commit(wlr_output)) {
+		wlr_log(WLR_INFO, "Output initial commit deferred to scene output commit");
+	}
 
 	/* Get or create scene output without creating duplicate entries */
 	struct wlr_scene_output *scene_output = wlr_scene_get_scene_output(server->scene, wlr_output);
@@ -1635,7 +1657,11 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 		wlr_scene_node_lower_to_bottom(&bg_rect->node);
 	}
 
-	(void)scene_output;
+	/* Force initial scene commit and schedule next frame (resolves VirtualBox/QEMU WLR_NO_HARDWARE_CURSORS black screen) */
+	if (scene_output) {
+		axis_wlr_scene_output_commit(scene_output);
+	}
+	wlr_output_schedule_frame(wlr_output);
 
 }
 

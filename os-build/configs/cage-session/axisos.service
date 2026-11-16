@@ -19,7 +19,6 @@ Environment=WLR_RENDERER=pixman
 Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=WLR_NO_HARDWARE_CURSORS=1
 Environment=LIBGL_ALWAYS_SOFTWARE=1
-Environment=LIBSEAT_BACKEND=logind
 Environment=XDG_SEAT=seat0
 Environment=XDG_VTNR=1
 Environment=XDG_RUNTIME_DIR=/run/user/1000

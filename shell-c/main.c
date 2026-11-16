@@ -22,7 +22,7 @@ void ui_shell_apply_theme(gboolean dark_mode) {
         gtk_style_context_add_provider_for_screen(
             screen,
             GTK_STYLE_PROVIDER(g_theme_provider),
-            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+            GTK_STYLE_PROVIDER_PRIORITY_USER
         );
     }
 
@@ -94,6 +94,16 @@ int main(int argc, char *argv[]) {
     }
 
     gtk_init(&argc, &argv);
+
+    GtkSettings *settings = gtk_settings_get_default();
+    if (settings) {
+        g_object_set(settings,
+            "gtk-application-prefer-dark-theme", TRUE,
+            "gtk-theme-name", "Adwaita-dark",
+            "gtk-icon-theme-name", "Papirus-Dark",
+            "gtk-font-name", "IBM Plex Sans 10",
+            NULL);
+    }
 
     SystemController *sys_ctrl = system_controller_create();
     AuthManager *auth_mgr = auth_manager_create();

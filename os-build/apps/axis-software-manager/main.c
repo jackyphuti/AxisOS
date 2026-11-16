@@ -132,6 +132,39 @@ static void on_mgr_child_exit(GPid pid, gint status, gpointer user_data) {
     populate_store(app);
 }
 
+static GdkPixbuf *load_app_icon_safe(const char *icon_name, const char *category, int size) {
+    GtkIconTheme *theme = gtk_icon_theme_get_default();
+    GdkPixbuf *pix = NULL;
+
+    // Tier 1: Direct name lookup
+    if (icon_name && *icon_name) {
+        pix = gtk_icon_theme_load_icon(theme, icon_name, size, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
+    }
+
+    // Tier 2: Category mapping
+    if (!pix && category) {
+        const char *fallback_name = "package-x-generic";
+        if (strcmp(category, "Internet") == 0) fallback_name = "applications-internet";
+        else if (strcmp(category, "Games") == 0) fallback_name = "applications-games";
+        else if (strcmp(category, "Development") == 0) fallback_name = "applications-development";
+        else if (strcmp(category, "Graphics") == 0) fallback_name = "applications-graphics";
+        else if (strcmp(category, "Sound & Video") == 0) fallback_name = "applications-multimedia";
+        else if (strcmp(category, "Office") == 0) fallback_name = "applications-office";
+        else if (strcmp(category, "Administration") == 0) fallback_name = "system-software-install";
+
+        pix = gtk_icon_theme_load_icon(theme, fallback_name, size, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
+    }
+
+    // Tier 3: Universal generic fallback
+    if (!pix) {
+        pix = gtk_icon_theme_load_icon(theme, "package-x-generic", size, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
+    }
+    if (!pix) {
+        pix = gtk_icon_theme_load_icon(theme, "application-x-executable", size, GTK_ICON_LOOKUP_FORCE_SIZE, NULL);
+    }
+    return pix;
+}
+
 static void populate_store(SoftMgrApp *app) {
     gtk_list_store_clear(app->store);
     const gchar *filter_cat = gtk_combo_box_text_get_active_text(GTK_COMBO_BOX_TEXT(app->category_combo));
@@ -150,11 +183,13 @@ static void populate_store(SoftMgrApp *app) {
             }
         }
 
+        GdkPixbuf *pix = load_app_icon_safe(it->icon, it->category, 32);
+
         GtkTreeIter iter;
         gtk_list_store_append(app->store, &iter);
         gtk_list_store_set(
             app->store, &iter,
-            COL_ICON, it->icon,
+            COL_ICON, pix,
             COL_NAME, it->name,
             COL_CAT, it->category,
             COL_SRC, it->source,
@@ -164,6 +199,7 @@ static void populate_store(SoftMgrApp *app) {
             COL_INSTALLED, it->installed,
             -1
         );
+        if (pix) g_object_unref(pix);
     }
 }
 
@@ -254,6 +290,32 @@ static void on_refresh_clicked(GtkButton *btn, gpointer user_data) {
     gtk_label_set_text(GTK_LABEL(app->status_label), "Package lists up to date.");
 }
 
+static const char *CSS_SOFTWARE_MGR =
+    "button, button:hover, button:active, button:focus, entry, treeview.view header button {\n"
+    "    background-image: none;\n"
+    "    box-shadow: none;\n"
+    "    text-shadow: none;\n"
+    "}\n"
+    "window, window.background {\n"
+    "    background-color: #141826;\n"
+    "    color: #F2F3F7;\n"
+    "}\n"
+    "treeview.view {\n"
+    "    background-color: #1F2231;\n"
+    "    color: #F2F3F7;\n"
+    "}\n"
+    "treeview.view:selected {\n"
+    "    background-color: #7D95FF;\n"
+    "    color: #FFFFFF;\n"
+    "}\n"
+    "treeview.view header button {\n"
+    "    background-color: #262A3D;\n"
+    "    color: #9EA3B5;\n"
+    "    font-weight: 600;\n"
+    "    border: none;\n"
+    "    padding: 6px 10px;\n"
+    "}\n";
+
 int main(int argc, char *argv[]) {
     if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("AxisOS Software Manager (Pure C11)\n");
@@ -275,6 +337,25 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     gtk_init(&argc, &argv);
+
+    GtkSettings *settings = gtk_settings_get_default();
+    if (settings) {
+        g_object_set(settings,
+            "gtk-application-prefer-dark-theme", TRUE,
+            "gtk-theme-name", "Adwaita-dark",
+            "gtk-icon-theme-name", "Papirus-Dark",
+            "gtk-font-name", "IBM Plex Sans 10",
+            NULL);
+    }
+
+    GtkCssProvider *css_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(css_prov, CSS_SOFTWARE_MGR, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        gdk_screen_get_default(),
+        GTK_STYLE_PROVIDER(css_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(css_prov);
 
     SoftMgrApp app = {0};
 
@@ -323,26 +404,29 @@ int main(int argc, char *argv[]) {
     // TreeView Table
     app.store = gtk_list_store_new(
         NUM_COLS,
-        G_TYPE_STRING, // icon
-        G_TYPE_STRING, // name
-        G_TYPE_STRING, // cat
-        G_TYPE_STRING, // src
-        G_TYPE_STRING, // status
-        G_TYPE_STRING, // id
-        G_TYPE_STRING, // desc
-        G_TYPE_BOOLEAN // installed
+        GDK_TYPE_PIXBUF, // icon
+        G_TYPE_STRING,   // name
+        G_TYPE_STRING,   // cat
+        G_TYPE_STRING,   // src
+        G_TYPE_STRING,   // status
+        G_TYPE_STRING,   // id
+        G_TYPE_STRING,   // desc
+        G_TYPE_BOOLEAN   // installed
     );
 
     app.tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(app.store));
     g_object_unref(app.store);
 
     GtkCellRenderer *rend_icon = gtk_cell_renderer_pixbuf_new();
+    g_object_set(rend_icon, "ypad", 8, "xpad", 10, NULL);
+
     GtkCellRenderer *rend_text = gtk_cell_renderer_text_new();
+    g_object_set(rend_text, "ypad", 8, "xpad", 10, NULL);
 
     GtkTreeViewColumn *col_app = gtk_tree_view_column_new();
     gtk_tree_view_column_set_title(col_app, "Application");
     gtk_tree_view_column_pack_start(col_app, rend_icon, FALSE);
-    gtk_tree_view_column_add_attribute(col_app, rend_icon, "icon-name", COL_ICON);
+    gtk_tree_view_column_add_attribute(col_app, rend_icon, "pixbuf", COL_ICON);
     gtk_tree_view_column_pack_start(col_app, rend_text, TRUE);
     gtk_tree_view_column_add_attribute(col_app, rend_text, "text", COL_NAME);
     gtk_tree_view_append_column(GTK_TREE_VIEW(app.tree_view), col_app);
@@ -365,6 +449,7 @@ int main(int argc, char *argv[]) {
     g_signal_connect(sel, "changed", G_CALLBACK(on_selection_changed), &app);
 
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_widget_set_size_request(scroll, 800, 380);
     gtk_container_add(GTK_CONTAINER(scroll), app.tree_view);
     gtk_box_pack_start(GTK_BOX(main_box), scroll, TRUE, TRUE, 0);
 

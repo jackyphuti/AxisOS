@@ -119,6 +119,7 @@ typedef struct {
     GtkWidget *drawing_sparklines;
     GtkWidget *drawing_cores;
     GtkWidget *drawing_memory;
+    GtkWidget *lbl_mem_legend;
     GtkWidget *drawing_thermals;
     GtkWidget *lbl_nvme_read;
     GtkWidget *lbl_net_io;
@@ -126,6 +127,7 @@ typedef struct {
     GtkWidget *lbl_summary_badge;
     GtkWidget *lbl_footer_stats;
     GtkWidget *lbl_footer_uptime;
+    gboolean show_kernel_threads;
 
     // Stores
     GtkListStore *store_startup;
@@ -185,6 +187,12 @@ typedef struct {
 } AxisTaskManagerApp;
 
 static const char *CSS_TASK_MANAGER =
+    "button, togglebutton, entry, notebook tab, treeview.view header button {"
+    "    background-image: none;"
+    "    box-shadow: none;"
+    "    text-shadow: none;"
+    "    -gtk-icon-shadow: none;"
+    "}"
     ".sidebar {"
     "    background-color: @axis_surface;"
     "    border-right: 1px solid @axis_outline;"
@@ -197,15 +205,18 @@ static const char *CSS_TASK_MANAGER =
     "    font-weight: 600;"
     "    font-size: 13px;"
     "    border: none;"
+    "    background-image: none;"
     "    background-color: transparent;"
     "}"
     ".sidebar button:hover {"
+    "    background-image: none;"
     "    background-color: alpha(@axis_accent, 0.12);"
     "    color: @axis_accent;"
     "}"
     ".sidebar button.active {"
-    "    background-color: @axis_accent;"
-    "    color: @axis_accent_btn_text;"
+    "    background-image: none;"
+    "    background-color: #7D95FF;"
+    "    color: #141826;"
     "    font-weight: 700;"
     "}"
     ".content-pane {"
@@ -320,7 +331,7 @@ static void load_axis_theme(void) {
     gtk_style_context_add_provider_for_screen(
         screen,
         GTK_STYLE_PROVIDER(extra_prov),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+        GTK_STYLE_PROVIDER_PRIORITY_USER
     );
     g_object_unref(extra_prov);
 }
@@ -519,7 +530,7 @@ static void draw_circular_gauge(cairo_t *cr, double cx, double cy, double radius
     } else {
         render_pango_text(cr, cx, cy, "N/A", "Inter, Cantarell, DejaVu Sans, Sans Bold 11", 0.58, 0.64, 0.72, 1.0, TRUE, TRUE);
     }
-    render_pango_text(cr, cx, cy + radius + 14, label, "Inter, Cantarell, DejaVu Sans, Sans 9", 0.58, 0.64, 0.72, 1.0, TRUE, FALSE);
+    render_pango_text(cr, cx, cy + radius + 20, label, "Inter, Cantarell, DejaVu Sans, Sans 9", 0.58, 0.64, 0.72, 1.0, TRUE, FALSE);
 }
 
 static gboolean draw_thermals_cb(GtkWidget *widget, cairo_t *cr, gpointer data) {
@@ -529,7 +540,7 @@ static gboolean draw_thermals_cb(GtkWidget *widget, cairo_t *cr, gpointer data) 
 
     double cx1 = w * 0.28;
     double cx2 = w * 0.72;
-    double cy = h * 0.46;
+    double cy = h * 0.40;
     double min_dim = w < h ? w : h;
     double radius = min_dim * 0.32;
 
@@ -544,7 +555,7 @@ static gboolean draw_memory_bar_cb(GtkWidget *widget, cairo_t *cr, gpointer data
     int h = gtk_widget_get_allocated_height(widget);
 
     cairo_set_source_rgb(cr, 0.08, 0.10, 0.14);
-    cairo_rectangle(cr, 0, 4, w, h - 8);
+    cairo_rectangle(cr, 0, 0, w, h);
     cairo_fill(cr);
 
     double tot = app->total_mem_gb > 0 ? app->total_mem_gb : 16.0;
@@ -565,18 +576,13 @@ static gboolean draw_memory_bar_cb(GtkWidget *widget, cairo_t *cr, gpointer data
     cairo_pattern_add_color_stop_rgb(pat, 1.0, 0.88, 0.11, 0.28);
 
     cairo_set_source(cr, pat);
-    cairo_rectangle(cr, 0, 4, active_w, h - 8);
+    cairo_rectangle(cr, 0, 0, active_w, h);
     cairo_fill(cr);
     cairo_pattern_destroy(pat);
 
     cairo_set_source_rgba(cr, 0.541, 0.168, 0.886, 0.30);
-    cairo_rectangle(cr, active_w, 4, cached_w, h - 8);
+    cairo_rectangle(cr, active_w, 0, cached_w, h);
     cairo_fill(cr);
-
-    char buf[128];
-    snprintf(buf, sizeof(buf), "In Use: %.1f GB   •   Cached: %.1f GB   •   Available: %.1f GB / %.1f GB",
-             app->current_mem_gb, app->cached_mem_gb, app->free_mem_gb, app->total_mem_gb);
-    render_pango_text(cr, 12.0, (h - 14) / 2.0, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 1.0, 1.0, 1.0, 1.0, FALSE, FALSE);
 
     return FALSE;
 }
@@ -739,6 +745,15 @@ static void refresh_all_telemetry(AxisTaskManagerApp *app) {
     if (app->drawing_memory) gtk_widget_queue_draw(app->drawing_memory);
     if (app->drawing_thermals) gtk_widget_queue_draw(app->drawing_thermals);
 
+    if (app->lbl_mem_legend) {
+        char buf[128];
+        double tot = app->total_mem_gb > 0 ? app->total_mem_gb : 1.0;
+        double pct = (app->current_mem_gb / tot) * 100.0;
+        snprintf(buf, sizeof(buf), "In Use: %.1f GB (%.0f%%)   •   Cached: %.1f GB   •   Available: %.1f GB / %.1f GB",
+                 app->current_mem_gb, pct, app->cached_mem_gb, app->free_mem_gb, app->total_mem_gb);
+        gtk_label_set_text(GTK_LABEL(app->lbl_mem_legend), buf);
+    }
+
     if (app->lbl_nvme_read) {
         char buf[64];
         snprintf(buf, sizeof(buf), "R: %.1f MB/s  W: %.1f MB/s", app->disk_read_mbs, app->disk_write_mbs);
@@ -799,6 +814,7 @@ static void refresh_processes(AxisTaskManagerApp *app) {
         char name[64] = "unknown";
         char status[32] = "Running";
         uid_t uid = 0;
+        int ppid = 0;
         double mem_mb = 0.0;
         int threads = 1;
 
@@ -806,6 +822,8 @@ static void refresh_processes(AxisTaskManagerApp *app) {
         while (fgets(line, sizeof(line), sf)) {
             if (strncmp(line, "Name:", 5) == 0) {
                 sscanf(line + 5, "%63s", name);
+            } else if (strncmp(line, "PPid:", 5) == 0) {
+                sscanf(line + 5, "%d", &ppid);
             } else if (strncmp(line, "State:", 6) == 0) {
                 char s = 'R';
                 sscanf(line + 6, " %c", &s);
@@ -824,6 +842,10 @@ static void refresh_processes(AxisTaskManagerApp *app) {
             }
         }
         fclose(sf);
+
+        if (!app->show_kernel_threads && (pid == 2 || ppid == 2 || (ppid == 0 && pid != 1))) {
+            continue;
+        }
         thread_cnt += (threads > 1 ? threads : 1);
 
         // /proc/[pid]/stat
@@ -1194,6 +1216,13 @@ static void on_terminate_process_clicked(GtkWidget *widget, gpointer user_data) 
     }
 }
 
+static void on_toggle_kernel_threads(GtkToggleButton *btn, gpointer user_data) {
+    AxisTaskManagerApp *app = (AxisTaskManagerApp *)user_data;
+    app->show_kernel_threads = gtk_toggle_button_get_active(btn);
+    gtk_list_store_clear(app->store_processes);
+    refresh_processes(app);
+}
+
 static GtkWidget *build_processes_page(AxisTaskManagerApp *app) {
     GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_style_context_add_class(gtk_widget_get_style_context(page), "content-pane");
@@ -1208,6 +1237,11 @@ static GtkWidget *build_processes_page(AxisTaskManagerApp *app) {
     GtkWidget *lbl_hint = gtk_label_new("Real-time Process Monitor & Heatmap");
     gtk_label_set_xalign(GTK_LABEL(lbl_hint), 0.0);
     gtk_box_pack_start(GTK_BOX(bar), lbl_hint, TRUE, TRUE, 8);
+
+    GtkWidget *chk_kthreads = gtk_check_button_new_with_label("Show kernel threads");
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(chk_kthreads), app->show_kernel_threads);
+    g_signal_connect(chk_kthreads, "toggled", G_CALLBACK(on_toggle_kernel_threads), app);
+    gtk_box_pack_end(GTK_BOX(bar), chk_kthreads, FALSE, FALSE, 0);
 
     gtk_box_pack_start(GTK_BOX(page), bar, FALSE, FALSE, 0);
 
@@ -1233,14 +1267,39 @@ static GtkWidget *build_processes_page(AxisTaskManagerApp *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->tree_view), "treeview");
 
     GtkCellRenderer *r = gtk_cell_renderer_text_new();
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_view), -1, "PID", r, "text", COL_PID, NULL);
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_view), -1, "Process Name", r, "text", COL_NAME, NULL);
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_view), -1, "CPU", r, "text", COL_CPU_TXT, NULL);
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_view), -1, "Memory", r, "text", COL_MEM_TXT, NULL);
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_view), -1, "Disk", r, "text", COL_DISK_TXT, NULL);
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_view), -1, "GPU", r, "text", COL_GPU, NULL);
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_view), -1, "Status", r, "text", COL_STATUS, NULL);
-    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_view), -1, "User", r, "text", COL_USER, NULL);
+    g_object_set(r, "xpad", 10, "ypad", 6, NULL);
+
+    GtkTreeViewColumn *col;
+    col = gtk_tree_view_column_new_with_attributes("PID", r, "text", COL_PID, NULL);
+    gtk_tree_view_column_set_sort_column_id(col, COL_PID);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
+
+    col = gtk_tree_view_column_new_with_attributes("Process Name", r, "text", COL_NAME, NULL);
+    gtk_tree_view_column_set_sort_column_id(col, COL_NAME);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
+
+    col = gtk_tree_view_column_new_with_attributes("CPU", r, "text", COL_CPU_TXT, NULL);
+    gtk_tree_view_column_set_sort_column_id(col, COL_CPU_VAL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
+
+    col = gtk_tree_view_column_new_with_attributes("Memory", r, "text", COL_MEM_TXT, NULL);
+    gtk_tree_view_column_set_sort_column_id(col, COL_MEM_VAL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
+
+    col = gtk_tree_view_column_new_with_attributes("Disk", r, "text", COL_DISK_TXT, NULL);
+    gtk_tree_view_column_set_sort_column_id(col, COL_DISK_VAL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
+
+    col = gtk_tree_view_column_new_with_attributes("GPU", r, "text", COL_GPU, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
+
+    col = gtk_tree_view_column_new_with_attributes("Status", r, "text", COL_STATUS, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
+
+    col = gtk_tree_view_column_new_with_attributes("User", r, "text", COL_USER, NULL);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
+
+    gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(app->store_processes), COL_CPU_VAL, GTK_SORT_DESCENDING);
 
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_container_add(GTK_CONTAINER(scroll), app->tree_view);
@@ -1290,9 +1349,15 @@ static GtkWidget *build_performance_page(AxisTaskManagerApp *app) {
     gtk_box_pack_start(GTK_BOX(card_mem), t3, FALSE, FALSE, 0);
 
     app->drawing_memory = gtk_drawing_area_new();
-    gtk_widget_set_size_request(app->drawing_memory, -1, 38);
+    gtk_widget_set_size_request(app->drawing_memory, -1, 14);
     g_signal_connect(app->drawing_memory, "draw", G_CALLBACK(draw_memory_bar_cb), app);
     gtk_box_pack_start(GTK_BOX(card_mem), app->drawing_memory, FALSE, FALSE, 0);
+
+    app->lbl_mem_legend = gtk_label_new("In Use: 0.0 GB (0%)   •   Cached: 0.0 GB   •   Available: 0.0 GB / 0.0 GB");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_mem_legend), "card-subtitle");
+    gtk_label_set_xalign(GTK_LABEL(app->lbl_mem_legend), 0.0);
+    gtk_box_pack_start(GTK_BOX(card_mem), app->lbl_mem_legend, FALSE, FALSE, 0);
+
     gtk_box_pack_start(GTK_BOX(page), card_mem, FALSE, FALSE, 0);
 
     // Thermals & Throughput Row
@@ -1306,7 +1371,7 @@ static GtkWidget *build_performance_page(AxisTaskManagerApp *app) {
     gtk_box_pack_start(GTK_BOX(card_therm), t4, FALSE, FALSE, 0);
 
     app->drawing_thermals = gtk_drawing_area_new();
-    gtk_widget_set_size_request(app->drawing_thermals, 240, 90);
+    gtk_widget_set_size_request(app->drawing_thermals, 240, 155);
     g_signal_connect(app->drawing_thermals, "draw", G_CALLBACK(draw_thermals_cb), app);
     gtk_box_pack_start(GTK_BOX(card_therm), app->drawing_thermals, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(hbox_bot), card_therm, TRUE, TRUE, 0);
@@ -1503,6 +1568,14 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     gtk_init(&argc, &argv);
+    GtkSettings *settings = gtk_settings_get_default();
+    if (settings) {
+        g_object_set(settings,
+                     "gtk-application-prefer-dark-theme", TRUE,
+                     "gtk-theme-name", "Adwaita-dark",
+                     "gtk-icon-theme-name", "Papirus-Dark",
+                     NULL);
+    }
     AxisTaskManagerApp *app = axis_task_manager_app_create();
     gtk_widget_show_all(app->window);
     gtk_main();

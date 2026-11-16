@@ -4,6 +4,35 @@
  */
 
 /* -------------------------------------------------------------------------
+ * Strip GTK 3 Adwaita white linear-gradient leaks across all surfaces
+ * ------------------------------------------------------------------------- */
+button,
+button:hover,
+button:active,
+button:checked,
+button:focus,
+togglebutton,
+togglebutton:hover,
+togglebutton:active,
+togglebutton:checked,
+entry,
+entry:focus,
+notebook tab,
+treeview.view header button,
+.topbar-pill,
+.workspace-pill,
+.qs-tile,
+.dock-tile,
+.filter-pill,
+.app-tile,
+.secondary-button {
+  background-image: none;
+  box-shadow: none;
+  text-shadow: none;
+  -gtk-icon-shadow: none;
+}
+
+/* -------------------------------------------------------------------------
  * Typography
  * ------------------------------------------------------------------------- */
 * {
@@ -404,12 +433,59 @@ progressbar progress {
   border: 1px solid @axis_outline;
   padding: 12px 14px;
   transition: all 180ms ease;
+  background-image: none;
+}
+
+.qs-tile .title-4 {
+  color: @axis_text;
+}
+
+.qs-tile .caption {
+  color: @axis_text_muted;
 }
 
 .qs-tile.active {
   background-color: @axis_accent;
-  color: @axis_accent_btn_text;
+  color: #FFFFFF;
   border-color: @axis_accent;
+  background-image: none;
+}
+
+.qs-tile.active .title-4 {
+  color: #FFFFFF;
+}
+
+.qs-tile.active .caption {
+  color: #E0E7FF;
+}
+
+.qs-tile.active image {
+  color: #FFFFFF;
+}
+
+scale trough {
+  background-color: @axis_outline;
+  border-radius: 999px;
+  min-height: 8px;
+  border: none;
+}
+
+scale highlight {
+  background-color: @axis_accent;
+  border-radius: 999px;
+  min-height: 8px;
+  border: none;
+}
+
+scale slider {
+  background-color: #FFFFFF;
+  border-radius: 999px;
+  min-width: 18px;
+  min-height: 18px;
+  margin: -5px;
+  border: none;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  background-image: none;
 }
 
 .filter-pill {

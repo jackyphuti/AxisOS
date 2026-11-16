@@ -337,6 +337,14 @@ int main(int argc, char **argv) {
     }
 
     gtk_init(&argc, &argv);
+    GtkSettings *default_settings = gtk_settings_get_default();
+    if (default_settings) {
+        g_object_set(default_settings,
+                     "gtk-application-prefer-dark-theme", TRUE,
+                     "gtk-theme-name", "Adwaita-dark",
+                     "gtk-icon-theme-name", "Papirus-Dark",
+                     NULL);
+    }
     apply_theme();
 
     AxisCalculatorApp app = {0};

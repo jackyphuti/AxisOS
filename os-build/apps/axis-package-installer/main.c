@@ -329,6 +329,14 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     gtk_init(&argc, &argv);
+    GtkSettings *default_settings = gtk_settings_get_default();
+    if (default_settings) {
+        g_object_set(default_settings,
+                     "gtk-application-prefer-dark-theme", TRUE,
+                     "gtk-theme-name", "Adwaita-dark",
+                     "gtk-icon-theme-name", "Papirus-Dark",
+                     NULL);
+    }
 
     PkgInstallerApp app = {0};
     app.active_category = g_strdup("All");
