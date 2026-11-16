@@ -323,6 +323,10 @@ static void spawn_command(const char *cmd) {
 		setenv("OZONE_PLATFORM", "wayland", 1);
 		setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
 		setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
+		const char *libgl = getenv("LIBGL_ALWAYS_SOFTWARE");
+		if (libgl) {
+			setenv("LIBGL_ALWAYS_SOFTWARE", libgl, 1);
+		}
 		execl("/bin/sh", "/bin/sh", "-c", cmd, (void *)NULL);
 		_exit(1);
 	}
@@ -1297,6 +1301,11 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 		wlr_scene_node_lower_to_bottom(&bg_rect->node);
 	}
 
+	/* Trigger initial frame render and scanout so monitor does not remain in power-saving / black state */
+	if (scene_output) {
+		axis_wlr_scene_output_commit(scene_output);
+	}
+
 }
 
 /* ========================================================================= */
@@ -1485,6 +1494,26 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* 3. Set Up Renderer and Allocator */
+	if (!getenv("WLR_RENDERER")) {
+		/* Auto-detect virtual machine graphics drivers (VirtualBox vmwgfx/vboxvideo, QEMU bochs/qxl/virtio_gpu)
+		 * to prevent EGL initialization hangs or crashes on hypervisors without hardware 3D */
+		FILE *fmodules = fopen("/proc/modules", "r");
+		if (fmodules) {
+			char mod_buf[512];
+			while (fgets(mod_buf, sizeof(mod_buf), fmodules)) {
+				if (strstr(mod_buf, "vmwgfx") || strstr(mod_buf, "vboxvideo") || strstr(mod_buf, "qxl") || strstr(mod_buf, "bochs")) {
+					wlr_log(WLR_INFO, "[AxisOS] Hypervisor / virtual graphics detected; defaulting to pixman software renderer");
+					setenv("WLR_RENDERER", "pixman", 1);
+					setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
+					setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
+					setenv("LIBGL_ALWAYS_SOFTWARE", "1", 1);
+					break;
+				}
+			}
+			fclose(fmodules);
+		}
+	}
+
 	server.renderer = wlr_renderer_autocreate(server.backend);
 	if (!server.renderer) {
 		wlr_log(WLR_INFO, "[AxisOS] Default hardware renderer unavailable, retrying with pixman software rendering...");

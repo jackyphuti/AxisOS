@@ -1,7 +1,7 @@
 [Unit]
 Description=AxisOS LiquidNodes Desktop Environment
 After=live-config.service systemd-user-sessions.service user-runtime-dir@1000.service user@1000.service plymouth-quit-wait.service seatd.service systemd-logind.service
-Wants=user-runtime-dir@1000.service seatd.service
+Wants=user-runtime-dir@1000.service user@1000.service seatd.service systemd-logind.service
 Conflicts=getty@tty1.service
 After=getty@tty1.service
 
@@ -16,6 +16,7 @@ Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
 Environment=GDK_BACKEND=wayland
 Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=WLR_NO_HARDWARE_CURSORS=1
+Environment=LIBGL_ALWAYS_SOFTWARE=1
 Environment=LIBSEAT_BACKEND=logind
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000 2>/dev/null && chmod 0700 /run/user/1000 2>/dev/null || true'

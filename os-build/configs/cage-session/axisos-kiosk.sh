@@ -40,12 +40,25 @@ export MOZ_ENABLE_WAYLAND=1
 export OZONE_PLATFORM=wayland
 export SDL_VIDEODRIVER=wayland
 
-# Auto-detect hypervisors with broken/unsupported host EGL (e.g. VirtualBox VMSVGA without 3D)
+# Auto-detect hypervisors with broken/unsupported host EGL (e.g. VirtualBox VMSVGA without 3D, VMware, QEMU)
 # and select pixman CPU rasterization up front to prevent EGL initialization crashes.
-if grep -qa "VirtualBox\|VMware" /sys/class/dmi/id/product_name 2>/dev/null || \
-   grep -qa "innotek GmbH" /sys/class/dmi/id/sys_vendor 2>/dev/null; then
-    echo "[AxisOS] Hypervisor detected without reliable 3D EGL; defaulting to pixman software renderer."
+IS_HYPERVISOR=0
+if command -v systemd-detect-virt >/dev/null 2>&1 && systemd-detect-virt --quiet; then
+    IS_HYPERVISOR=1
+elif grep -qa -E "VirtualBox|VMware|QEMU|KVM|Bochs|innotek" /sys/class/dmi/id/* 2>/dev/null; then
+    IS_HYPERVISOR=1
+elif grep -qa -E "VirtualBox|VMware|QEMU|KVM|Bochs|innotek" /sys/devices/virtual/dmi/id/* 2>/dev/null; then
+    IS_HYPERVISOR=1
+elif grep -qa -E "vmwgfx|vboxvideo|bochs|qxl|cirrus|virtio_gpu" /proc/modules 2>/dev/null; then
+    IS_HYPERVISOR=1
+fi
+
+if [ "$IS_HYPERVISOR" -eq 1 ]; then
+    echo "[AxisOS] Hypervisor / virtual graphics detected; defaulting to pixman software renderer."
     export WLR_RENDERER=pixman
+    export WLR_RENDERER_ALLOW_SOFTWARE=1
+    export WLR_NO_HARDWARE_CURSORS=1
+    export LIBGL_ALWAYS_SOFTWARE=1
 fi
 
 # Unset parent display server variables
