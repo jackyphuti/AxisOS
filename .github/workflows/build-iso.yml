@@ -1,17 +1,26 @@
-name: "Build Bootable ISO (Manual)"
+name: "Build Bootable ISO"
 
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Release version label (e.g. v2.0.0-horizon)'
+        description: 'Release version label (e.g. v2.1.1)'
         required: true
-        default: 'v2.0.0-horizon'
+        default: 'v2.1.1'
+      publish_release:
+        description: 'Publish to GitHub Releases'
+        required: false
+        default: 'true'
+  push:
+    tags:
+      - 'v*.*.*'
 
 jobs:
   build-iso:
     name: Build AxisOS Live Hybrid ISO
     runs-on: ubuntu-22.04
+    permissions:
+      contents: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -55,9 +64,22 @@ jobs:
       - name: Upload ISO Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: axisos-live-amd64-${{ github.event.inputs.release_tag }}
+          name: axisos-live-amd64-${{ github.event.inputs.release_tag || github.ref_name }}
           path: |
             axisos-live-amd64.iso
             axisos-live-amd64.iso.sha256
           if-no-files-found: warn
           retention-days: 7
+
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
+        if: ${{ github.event.inputs.publish_release != 'false' || startsWith(github.ref, 'refs/tags/') }}
+        with:
+          tag_name: ${{ github.event.inputs.release_tag || github.ref_name }}
+          name: "AxisOS ${{ github.event.inputs.release_tag || github.ref_name }} — Live Hybrid ISO (Gaming & Pure C Edition)"
+          files: |
+            axisos-live-amd64.iso
+            axisos-live-amd64.iso.sha256
+          generate_release_notes: true
+          draft: false
+          prerelease: false
