@@ -27,6 +27,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <fcntl.h>
+#include <xf86drm.h>
 
 #include <wayland-server-core.h>
 #include <wlr/backend.h>
@@ -138,6 +140,7 @@ struct axis_server {
 	struct wl_listener request_cursor;
 	struct wl_listener request_set_selection;
 	struct wl_list keyboards;
+	bool super_tap_pending;
 
 	enum axis_cursor_mode cursor_mode;
 	struct axis_view *grabbed_view;
@@ -253,49 +256,7 @@ static const float border_color_inactive[4] = { 0.18f, 0.20f, 0.29f, 0.65f };
 static const float border_color_active[4]   = { 0.49f, 0.58f, 1.0f,  0.90f };
 
 static void axis_view_update_borders(struct axis_view *view) {
-	if (!view || !view->xdg_surface) {
-		return;
-	}
-	for (int i = 0; i < 4; i++) {
-		if (!view->border[i]) return;
-	}
-
-	if (view->is_fullscreen) {
-		for (int i = 0; i < 4; i++) {
-			wlr_scene_rect_set_size(view->border[i], 0, 0);
-		}
-		return;
-	}
-
-	struct wlr_box geom;
-	wlr_xdg_surface_get_geometry(view->xdg_surface, &geom);
-
-	int x = view->x + geom.x;
-	int y = view->y + geom.y;
-	int width = geom.width;
-	int height = geom.height;
-
-	/* Top: x, y - 2, width, 2 */
-	wlr_scene_node_set_position(&view->border[0]->node, x, y - 2);
-	wlr_scene_rect_set_size(view->border[0], width, 2);
-
-	/* Bottom: x, y + height, width, 2 */
-	wlr_scene_node_set_position(&view->border[1]->node, x, y + height);
-	wlr_scene_rect_set_size(view->border[1], width, 2);
-
-	/* Left: x - 2, y - 2, 2, height + 4 */
-	wlr_scene_node_set_position(&view->border[2]->node, x - 2, y - 2);
-	wlr_scene_rect_set_size(view->border[2], 2, height + 4);
-
-	/* Right: x + width, y - 2, 2, height + 4 */
-	wlr_scene_node_set_position(&view->border[3]->node, x + width, y - 2);
-	wlr_scene_rect_set_size(view->border[3], 2, height + 4);
-
-	const float *color = (view->server->seat && view->server->seat->keyboard_state.focused_surface == view->xdg_surface->surface)
-		? border_color_active : border_color_inactive;
-	for (int i = 0; i < 4; i++) {
-		wlr_scene_rect_set_color(view->border[i], color);
-	}
+	(void)view;
 }
 
 static void axis_schedule_outputs_frame(struct axis_server *server) {
@@ -392,6 +353,7 @@ static void spawn_command(const char *cmd) {
 		setenv("OZONE_PLATFORM", "wayland", 1);
 		setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
 		setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
+		setenv("GSK_RENDERER", "cairo", 1);
 		const char *libgl = getenv("LIBGL_ALWAYS_SOFTWARE");
 		if (libgl) {
 			setenv("LIBGL_ALWAYS_SOFTWARE", libgl, 1);
@@ -399,6 +361,10 @@ static void spawn_command(const char *cmd) {
 		execl("/bin/sh", "/bin/sh", "-c", cmd, (void *)NULL);
 		_exit(1);
 	}
+}
+
+static void toggle_app_launcher(void) {
+	spawn_command("killall -USR1 axis-shell axisos-shell 2>/dev/null || pkill -USR1 -f 'axis.*shell' || wofi --show drun --prompt 'Search Apps...' &");
 }
 
 static void axis_set_taskbars_visible(struct axis_server *server, bool visible) {
@@ -611,7 +577,7 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 
 	/* Super + D or Super + Space: Axis App Launcher */
 	if (is_super && (sym == XKB_KEY_d || sym == XKB_KEY_D || sym == XKB_KEY_space)) {
-		spawn_command("pkill -USR1 -x axis-shell || pkill -USR1 -x axisos-shell || wofi --show drun --prompt 'Search Apps...' &");
+		toggle_app_launcher();
 		return true;
 	}
 
@@ -629,13 +595,13 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 
 	/* Super + B or Super + W: Web Browser */
 	if (is_super && (sym == XKB_KEY_b || sym == XKB_KEY_B || sym == XKB_KEY_w || sym == XKB_KEY_W)) {
-		spawn_command("chromium --ozone-platform=wayland &");
+		spawn_command("firefox || firefox-esr || chromium --no-sandbox --ozone-platform=wayland &");
 		return true;
 	}
 
 	/* Super + E: File Manager */
 	if (is_super && (sym == XKB_KEY_e || sym == XKB_KEY_E)) {
-		spawn_command("nautilus &");
+		spawn_command("GSK_RENDERER=cairo nautilus --new-window || thunar || pcmanfm &");
 		return true;
 	}
 
@@ -919,9 +885,30 @@ static void keyboard_handle_key(struct wl_listener *listener, void *data) {
 	bool handled = false;
 	uint32_t modifiers = wlr_keyboard_get_modifiers(wlr_kb);
 	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+		bool is_super_only = false;
+		for (int i = 0; i < nsyms; i++) {
+			if (syms[i] == XKB_KEY_Super_L || syms[i] == XKB_KEY_Super_R) {
+				is_super_only = true;
+			}
+		}
+		if (is_super_only && nsyms == 1) {
+			server->super_tap_pending = true;
+		} else {
+			server->super_tap_pending = false;
+		}
+
 		for (int i = 0; i < nsyms; i++) {
 			handled = handle_keybinding(server, modifiers, syms[i]);
 			if (handled) break;
+		}
+	} else if (event->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+		for (int i = 0; i < nsyms; i++) {
+			if ((syms[i] == XKB_KEY_Super_L || syms[i] == XKB_KEY_Super_R) && server->super_tap_pending) {
+				server->super_tap_pending = false;
+				toggle_app_launcher();
+				handled = true;
+				break;
+			}
 		}
 	}
 
@@ -1068,6 +1055,7 @@ static void server_cursor_motion_absolute(struct wl_listener *listener, void *da
 
 static void server_cursor_button(struct wl_listener *listener, void *data) {
 	struct axis_server *server = wl_container_of(listener, server, cursor_button);
+	server->super_tap_pending = false;
 #if AXIS_WLR_016_PLUS
 	struct wlr_pointer_button_event *event = data;
 #else
@@ -1394,9 +1382,9 @@ static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	xdg_surface->data = view->scene_node;
 #endif
 
-	/* Create 4 border rect nodes (border width 2px) initialized with subtle slate rgba(46, 52, 74, 0.65) */
+	/* Window borders are managed natively by GTK CSD and client styling */
 	for (int i = 0; i < 4; i++) {
-		view->border[i] = wlr_scene_rect_create(AXIS_SCENE_PARENT(server), 2, 2, border_color_inactive);
+		view->border[i] = NULL;
 	}
 
 	view->map.notify = xdg_toplevel_map;
@@ -1446,34 +1434,47 @@ static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 /* ========================================================================= */
 /* Layer Shell (Waybar, Swaybg, Mako, Panels)                                */
 /* ========================================================================= */
-static void layer_surface_map(struct wl_listener *listener, void *data) {
-	(void)data;
-	struct axis_layer_surface *surface = wl_container_of(listener, surface, map);
+static void axis_layer_surface_position(struct axis_layer_surface *surface) {
 	struct wlr_layer_surface_v1 *wlr_layer = surface->layer_surface;
 	struct wlr_output *output = wlr_layer->output;
 	if (!output) return;
 
 	int width = wlr_layer->current.actual_width;
 	int height = wlr_layer->current.actual_height;
+	if (width <= 0) width = wlr_layer->pending.desired_width ? (int)wlr_layer->pending.desired_width : 720;
+	if (height <= 0) height = wlr_layer->pending.desired_height ? (int)wlr_layer->pending.desired_height : 520;
+
 	int x = 0, y = 0;
+	uint32_t anchor = wlr_layer->current.anchor;
+
+	/* Horizontal positioning */
+	if ((anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) && (anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT)) {
+		x = wlr_layer->current.margin.left;
+	} else if (anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT) {
+		x = wlr_layer->current.margin.left;
+	} else if (anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
+		x = output->width - width - wlr_layer->current.margin.right;
+	} else {
+		/* Centered horizontally */
+		x = (output->width - width) / 2 + wlr_layer->current.margin.left - wlr_layer->current.margin.right;
+	}
+
+	/* Vertical positioning */
+	if ((anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) && (anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM)) {
+		y = wlr_layer->current.margin.top;
+	} else if (anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) {
+		y = wlr_layer->current.margin.top;
+	} else if (anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
+		y = output->height - height - wlr_layer->current.margin.bottom;
+	} else {
+		/* Centered vertically */
+		y = (output->height - height) / 2 + wlr_layer->current.margin.top - wlr_layer->current.margin.bottom;
+	}
 
 	if (wlr_layer->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
 		x = 0;
 		y = 0;
 		wlr_scene_node_lower_to_bottom(surface->scene_node);
-	} else if (wlr_layer->current.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP) {
-		y = wlr_layer->current.margin.top;
-		if (wlr_layer->current.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT &&
-		    !(wlr_layer->current.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT)) {
-			x = output->width - width - wlr_layer->current.margin.right;
-		} else {
-			x = wlr_layer->current.margin.left;
-		}
-		wlr_scene_node_raise_to_top(surface->scene_node);
-	} else if (wlr_layer->current.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
-		y = output->height - height - wlr_layer->current.margin.bottom;
-		x = wlr_layer->current.margin.left;
-		wlr_scene_node_raise_to_top(surface->scene_node);
 	} else {
 		wlr_scene_node_raise_to_top(surface->scene_node);
 	}
@@ -1481,6 +1482,12 @@ static void layer_surface_map(struct wl_listener *listener, void *data) {
 	surface->x = x;
 	surface->y = y;
 	wlr_scene_node_set_position(surface->scene_node, x, y);
+}
+
+static void layer_surface_map(struct wl_listener *listener, void *data) {
+	(void)data;
+	struct axis_layer_surface *surface = wl_container_of(listener, surface, map);
+	axis_layer_surface_position(surface);
 	axis_schedule_outputs_frame(surface->server);
 }
 
@@ -1504,30 +1511,7 @@ static void layer_surface_destroy(struct wl_listener *listener, void *data) {
 static void layer_surface_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_layer_surface *surface = wl_container_of(listener, surface, surface_commit);
-	struct wlr_layer_surface_v1 *wlr_layer = surface->layer_surface;
-	struct wlr_output *output = wlr_layer->output;
-	if (!output) return;
-
-	uint32_t width = wlr_layer->pending.desired_width;
-	uint32_t height = wlr_layer->pending.desired_height;
-
-	if (wlr_layer->pending.layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
-		width = (uint32_t)output->width;
-		height = (uint32_t)output->height;
-	} else {
-		if (wlr_layer->pending.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT &&
-		    wlr_layer->pending.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
-			width = (uint32_t)output->width - wlr_layer->pending.margin.left - wlr_layer->pending.margin.right;
-		}
-		if (wlr_layer->pending.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP &&
-		    wlr_layer->pending.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
-			height = (uint32_t)output->height - wlr_layer->pending.margin.top - wlr_layer->pending.margin.bottom;
-		}
-		if (height == 0) height = 36;
-		if (width == 0) width = (uint32_t)output->width;
-	}
-
-	wlr_layer_surface_v1_configure(wlr_layer, width, height);
+	axis_layer_surface_position(surface);
 	axis_schedule_outputs_frame(surface->server);
 }
 
@@ -1570,12 +1554,21 @@ static void server_new_layer_surface(struct wl_listener *listener, void *data) {
 
 	wl_list_insert(&server->layer_surfaces, &surface->link);
 
-	/* Initial configuration */
-	uint32_t width = wlr_layer->pending.desired_width ? wlr_layer->pending.desired_width : (uint32_t)wlr_layer->output->width;
-	uint32_t height = wlr_layer->pending.desired_height ? wlr_layer->pending.desired_height : 36;
+	/* Initial configuration: pass requested dimensions directly without forcing 36px */
+	uint32_t width = wlr_layer->pending.desired_width;
+	uint32_t height = wlr_layer->pending.desired_height;
 	if (wlr_layer->pending.layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
 		width = (uint32_t)wlr_layer->output->width;
 		height = (uint32_t)wlr_layer->output->height;
+	} else {
+		if (wlr_layer->pending.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_LEFT &&
+		    wlr_layer->pending.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_RIGHT) {
+			width = (uint32_t)wlr_layer->output->width - wlr_layer->pending.margin.left - wlr_layer->pending.margin.right;
+		}
+		if (wlr_layer->pending.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_TOP &&
+		    wlr_layer->pending.anchor & ZWLR_LAYER_SURFACE_V1_ANCHOR_BOTTOM) {
+			height = (uint32_t)wlr_layer->output->height - wlr_layer->pending.margin.top - wlr_layer->pending.margin.bottom;
+		}
 	}
 	wlr_layer_surface_v1_configure(wlr_layer, width, height);
 	axis_schedule_outputs_frame(surface->server);
@@ -1803,9 +1796,139 @@ static void seat_request_set_selection(struct wl_listener *listener, void *data)
 }
 
 /* ========================================================================= */
+/* Hypervisor & Virtual GPU Autodetection                                   */
+/* ========================================================================= */
+static bool detect_is_virtual_gpu(void) {
+	if (getenv("WLR_RENDERER") && strcmp(getenv("WLR_RENDERER"), "pixman") == 0) {
+		return true;
+	}
+
+	/* 1. Direct DRM Driver Query: open /dev/dri/card0..card7 and renderD128..renderD135 and inspect drmVersion name */
+	for (int i = 0; i < 8; i++) {
+		char card_path[64];
+		snprintf(card_path, sizeof(card_path), "/dev/dri/card%d", i);
+		int fd = open(card_path, O_RDWR | O_CLOEXEC);
+		if (fd < 0) {
+			fd = open(card_path, O_RDONLY | O_CLOEXEC);
+		}
+		if (fd >= 0) {
+			drmVersionPtr ver = drmGetVersion(fd);
+			if (ver) {
+				if (ver->name) {
+					if (strstr(ver->name, "vmwgfx") || strstr(ver->name, "vboxvideo") ||
+					    strstr(ver->name, "qxl") || strstr(ver->name, "bochs") ||
+					    strstr(ver->name, "virtio_gpu") || strstr(ver->name, "cirrus")) {
+						drmFreeVersion(ver);
+						close(fd);
+						return true;
+					}
+				}
+				drmFreeVersion(ver);
+			}
+			close(fd);
+		}
+
+		snprintf(card_path, sizeof(card_path), "/dev/dri/renderD%d", 128 + i);
+		fd = open(card_path, O_RDWR | O_CLOEXEC);
+		if (fd < 0) {
+			fd = open(card_path, O_RDONLY | O_CLOEXEC);
+		}
+		if (fd >= 0) {
+			drmVersionPtr ver = drmGetVersion(fd);
+			if (ver) {
+				if (ver->name) {
+					if (strstr(ver->name, "vmwgfx") || strstr(ver->name, "vboxvideo") ||
+					    strstr(ver->name, "qxl") || strstr(ver->name, "bochs") ||
+					    strstr(ver->name, "virtio_gpu") || strstr(ver->name, "cirrus")) {
+						drmFreeVersion(ver);
+						close(fd);
+						return true;
+					}
+				}
+				drmFreeVersion(ver);
+			}
+			close(fd);
+		}
+	}
+
+	/* 2. Sysfs Driver Link: check /sys/class/drm/card* driver symlinks */
+	for (int i = 0; i < 8; i++) {
+		char drv_link[128], drv_path[256];
+		snprintf(drv_link, sizeof(drv_link), "/sys/class/drm/card%d/device/driver", i);
+		ssize_t len = readlink(drv_link, drv_path, sizeof(drv_path) - 1);
+		if (len > 0) {
+			drv_path[len] = '\0';
+			if (strstr(drv_path, "vmwgfx") || strstr(drv_path, "vboxvideo") ||
+			    strstr(drv_path, "qxl") || strstr(drv_path, "bochs") ||
+			    strstr(drv_path, "virtio") || strstr(drv_path, "cirrus")) {
+				return true;
+			}
+		}
+	}
+
+	/* 3. Proc Modules: check /proc/modules for virtual driver modules */
+	FILE *fmod = fopen("/proc/modules", "r");
+	if (fmod) {
+		char line[512];
+		while (fgets(line, sizeof(line), fmod)) {
+			if (strstr(line, "vmwgfx") || strstr(line, "vboxvideo") ||
+			    strstr(line, "qxl") || strstr(line, "bochs") ||
+			    strstr(line, "virtio_gpu") || strstr(line, "cirrus")) {
+				fclose(fmod);
+				return true;
+			}
+		}
+		fclose(fmod);
+	}
+
+	/* 4. DMI / Sysfs Product strings */
+	const char *dmi_files[] = {
+		"/sys/class/dmi/id/product_name",
+		"/sys/class/dmi/id/sys_vendor",
+		"/sys/class/dmi/id/board_name",
+		"/sys/class/dmi/id/bios_vendor",
+		NULL
+	};
+	for (int i = 0; dmi_files[i]; i++) {
+		FILE *fdmi = fopen(dmi_files[i], "r");
+		if (fdmi) {
+			char buf[256];
+			if (fgets(buf, sizeof(buf), fdmi)) {
+				if (strstr(buf, "VirtualBox") || strstr(buf, "VMware") ||
+				    strstr(buf, "QEMU") || strstr(buf, "KVM") ||
+				    strstr(buf, "Bochs") || strstr(buf, "innotek")) {
+					fclose(fdmi);
+					return true;
+				}
+			}
+			fclose(fdmi);
+		}
+	}
+
+	/* 5. CPU flags: read /proc/cpuinfo token by token without line length truncation */
+	FILE *fcpu = fopen("/proc/cpuinfo", "r");
+	if (fcpu) {
+		char word[128];
+		while (fscanf(fcpu, "%127s", word) == 1) {
+			if (strcmp(word, "hypervisor") == 0) {
+				fclose(fcpu);
+				return true;
+			}
+		}
+		fclose(fcpu);
+	}
+
+	return false;
+}
+
+/* ========================================================================= */
 /* Main Server Initialization & Event Loop                                   */
 /* ========================================================================= */
 int main(int argc, char *argv[]) {
+	/* Ensure unbuffered logging for systemd / console output */
+	setvbuf(stdout, NULL, _IOLBF, 0);
+	setvbuf(stderr, NULL, _IONBF, 0);
+
 	/* Automatically reap spawned child processes to prevent zombies */
 	struct sigaction sa_chld = {0};
 	sa_chld.sa_handler = SIG_IGN;
@@ -1830,56 +1953,14 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* Early Hypervisor & Virtual GPU Autodetection:
-	 * Check /proc/cpuinfo, /proc/modules, and /sys/class/drm/card* driver symlinks before creating
-	 * the wlroots backend or renderer to avoid Mesa SVGA EGL hangs on VirtualBox / QEMU / VMware. */
-	bool is_vm = false;
-	if (getenv("WLR_RENDERER") && strcmp(getenv("WLR_RENDERER"), "pixman") == 0) {
-		is_vm = true;
-	} else if (!getenv("WLR_RENDERER")) {
-		FILE *fcpu = fopen("/proc/cpuinfo", "r");
-		if (fcpu) {
-			char line[512];
-			while (fgets(line, sizeof(line), fcpu)) {
-				if (strstr(line, "flags") && strstr(line, "hypervisor")) {
-					is_vm = true;
-					break;
-				}
-			}
-			fclose(fcpu);
-		}
-		if (!is_vm) {
-			FILE *fmod = fopen("/proc/modules", "r");
-			if (fmod) {
-				char line[512];
-				while (fgets(line, sizeof(line), fmod)) {
-					if (strstr(line, "vmwgfx") || strstr(line, "vboxvideo") ||
-					    strstr(line, "qxl") || strstr(line, "bochs") || strstr(line, "virtio_gpu")) {
-						is_vm = true;
-						break;
-					}
-				}
-				fclose(fmod);
-			}
-		}
-		if (!is_vm) {
-			char drv_path[256];
-			ssize_t len = readlink("/sys/class/drm/card0/device/driver", drv_path, sizeof(drv_path) - 1);
-			if (len > 0) {
-				drv_path[len] = '\0';
-				if (strstr(drv_path, "vmwgfx") || strstr(drv_path, "vboxvideo") ||
-				    strstr(drv_path, "qxl") || strstr(drv_path, "bochs") || strstr(drv_path, "virtio")) {
-					is_vm = true;
-				}
-			}
-		}
-	}
-
-	if (is_vm) {
-		wlr_log(WLR_INFO, "[AxisOS] Hypervisor / virtual graphics detected; selecting pixman software renderer");
+	 * Auto-select pixman software renderer to prevent SVGA3D EGL hangs on VirtualBox / VMware / QEMU */
+	if (detect_is_virtual_gpu()) {
+		wlr_log(WLR_INFO, "[AxisOS] Virtual graphics / hypervisor detected; selecting pixman software renderer");
 		setenv("WLR_RENDERER", "pixman", 1);
 		setenv("WLR_RENDERER_ALLOW_SOFTWARE", "1", 1);
 		setenv("WLR_NO_HARDWARE_CURSORS", "1", 1);
 		setenv("LIBGL_ALWAYS_SOFTWARE", "1", 1);
+		setenv("GSK_RENDERER", "cairo", 1);
 	}
 
 	struct axis_server server = {0};

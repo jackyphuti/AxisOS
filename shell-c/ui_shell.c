@@ -294,8 +294,11 @@ static void filter_launcher_apps(UiShell *shell) {
 
     for (GList *l = children; l != NULL; l = l->next) {
         GtkWidget *child = GTK_WIDGET(l->data);
+        GtkWidget *target = GTK_IS_BIN(child) ? gtk_bin_get_child(GTK_BIN(child)) : child;
         const char *name = (const char *)g_object_get_data(G_OBJECT(child), "app_name");
+        if (!name && target) name = (const char *)g_object_get_data(G_OBJECT(target), "app_name");
         const char *cat = (const char *)g_object_get_data(G_OBJECT(child), "app_cat");
+        if (!cat && target) cat = (const char *)g_object_get_data(G_OBJECT(target), "app_cat");
 
         gboolean match = TRUE;
         if (query && *query) {
@@ -680,6 +683,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         gtk_layer_set_margin(GTK_WINDOW(shell->dock_window), GTK_LAYER_SHELL_EDGE_BOTTOM, 10);
         gtk_layer_set_exclusive_zone(GTK_WINDOW(shell->dock_window), 72);
     }
+    gtk_widget_set_size_request(shell->dock_window, 460, 68);
     g_signal_connect(shell->dock_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
 
     GtkWidget *dock_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
@@ -692,9 +696,9 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         const char *name;
         const char *exec;
     } pinned_apps[] = {
-        {"utilities-terminal", "Terminal", "axis-terminal"},
-        {"system-file-manager", "Files", "nautilus || thunar"},
-        {"web-browser", "Browser", "firefox || chromium"},
+        {"utilities-terminal", "Terminal", "axis-terminal || foot"},
+        {"system-file-manager", "Files", "GSK_RENDERER=cairo nautilus --new-window || thunar || pcmanfm"},
+        {"web-browser", "Browser", "firefox || firefox-esr || chromium --no-sandbox --ozone-platform=wayland"},
         {"preferences-system", "Settings", "axis-settings"},
         {"utilities-system-monitor", "Task Manager", "axis-task-manager"},
         {"system-software-install", "Software", "axis-software-manager"},
@@ -722,10 +726,10 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
 
     if (gtk_layer_is_supported()) {
         gtk_layer_set_anchor(GTK_WINDOW(shell->launcher_window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
-        gtk_layer_set_margin(GTK_WINDOW(shell->launcher_window), GTK_LAYER_SHELL_EDGE_TOP, 50);
+        gtk_layer_set_margin(GTK_WINDOW(shell->launcher_window), GTK_LAYER_SHELL_EDGE_TOP, 58);
         gtk_layer_set_keyboard_mode(GTK_WINDOW(shell->launcher_window), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
     }
-    gtk_window_set_default_size(GTK_WINDOW(shell->launcher_window), 680, 520);
+    gtk_widget_set_size_request(shell->launcher_window, 720, 520);
     g_signal_connect(shell->launcher_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
 
     shell->launcher_revealer = gtk_revealer_new();
@@ -735,6 +739,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
 
     GtkWidget *launcher_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
     gtk_container_set_border_width(GTK_CONTAINER(launcher_card), 18);
+    gtk_widget_set_size_request(launcher_card, 720, 520);
     gtk_container_add(GTK_CONTAINER(shell->launcher_revealer), launcher_card);
 
     shell->launcher_search_entry = gtk_search_entry_new();
@@ -760,10 +765,18 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     // Scrolled apps flowbox
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_vexpand(scroll, TRUE);
+    gtk_widget_set_hexpand(scroll, TRUE);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 380);
+    gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(scroll), 660);
     gtk_box_pack_start(GTK_BOX(launcher_card), scroll, TRUE, TRUE, 4);
 
     shell->launcher_flowbox = gtk_flow_box_new();
     gtk_widget_set_valign(shell->launcher_flowbox, GTK_ALIGN_START);
+    gtk_flow_box_set_row_spacing(GTK_FLOW_BOX(shell->launcher_flowbox), 12);
+    gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(shell->launcher_flowbox), 12);
+    gtk_flow_box_set_homogeneous(GTK_FLOW_BOX(shell->launcher_flowbox), TRUE);
+    gtk_flow_box_set_min_children_per_line(GTK_FLOW_BOX(shell->launcher_flowbox), 5);
     gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(shell->launcher_flowbox), 5);
     gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(shell->launcher_flowbox), GTK_SELECTION_NONE);
     gtk_container_add(GTK_CONTAINER(scroll), shell->launcher_flowbox);
@@ -787,11 +800,16 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
             gtk_container_add(GTK_CONTAINER(app_btn), box);
 
             g_object_set_data(G_OBJECT(app_btn), "shell", shell);
-            g_object_set_data_full(G_OBJECT(app_btn), "app_name", g_strdup(app->name), g_free);
-            g_object_set_data_full(G_OBJECT(app_btn), "app_cat", g_strdup(app->categories), g_free);
             g_signal_connect(app_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)app->exec);
 
-            gtk_container_add(GTK_CONTAINER(shell->launcher_flowbox), app_btn);
+            GtkWidget *flow_child = gtk_flow_box_child_new();
+            gtk_container_add(GTK_CONTAINER(flow_child), app_btn);
+            g_object_set_data_full(G_OBJECT(flow_child), "app_name", g_strdup(app->name), g_free);
+            g_object_set_data_full(G_OBJECT(flow_child), "app_cat", g_strdup(app->categories ? app->categories : ""), g_free);
+            g_object_set_data_full(G_OBJECT(app_btn), "app_name", g_strdup(app->name), g_free);
+            g_object_set_data_full(G_OBJECT(app_btn), "app_cat", g_strdup(app->categories ? app->categories : ""), g_free);
+
+            gtk_container_add(GTK_CONTAINER(shell->launcher_flowbox), flow_child);
         }
     }
 

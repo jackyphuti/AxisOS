@@ -82,6 +82,8 @@ libxkbcommon0
 
 # Web Browser & Utilities
 chromium
+nautilus
+thunar
 
 # Storage, Filesystems & Real Partitioning Tools
 btrfs-progs

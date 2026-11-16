@@ -1,8 +1,8 @@
 CC ?= gcc
 CFLAGS ?= -std=c11 -Wall -Wextra -Wno-unused-parameter -O2
 CFLAGS += -DWLR_USE_UNSTABLE=1
-CFLAGS += -I. $(shell pkg-config --cflags wlroots wayland-server xkbcommon libinput)
-LIBS += $(shell pkg-config --libs wlroots wayland-server xkbcommon libinput)
+CFLAGS += -I. $(shell pkg-config --cflags wlroots wayland-server xkbcommon libinput libdrm)
+LIBS += $(shell pkg-config --libs wlroots wayland-server xkbcommon libinput libdrm)
 
 WAYLAND_SCANNER ?= $(shell pkg-config --variable=wayland_scanner wayland-scanner 2>/dev/null || echo wayland-scanner)
 

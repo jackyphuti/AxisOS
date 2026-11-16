@@ -207,7 +207,7 @@ if ! id -u axis >/dev/null 2>&1; then
 fi
 
 # Ensure required hardware groups exist and axis user is member
-for grp in video render input audio plugdev users disk seat tty; do
+for grp in video render input audio plugdev users disk seat _seatd tty; do
     groupadd -f "$grp" 2>/dev/null || true
     usermod -aG "$grp" axis 2>/dev/null || true
 done

@@ -400,6 +400,57 @@ static gboolean on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpoin
     return FALSE;
 }
 
+static void load_axis_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+
+    gboolean dark_mode = TRUE;
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_path[512];
+        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
+        FILE *f = fopen(conf_path, "r");
+        if (f) {
+            char buf[128];
+            if (fgets(buf, sizeof(buf), f)) {
+                if (strstr(buf, "light") || strstr(buf, "Light")) {
+                    dark_mode = FALSE;
+                }
+            }
+            fclose(f);
+        }
+    }
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
+    const char *light_paths[] = {
+        "data/theme/axis-light.css",
+        "/usr/share/axisos/theme/axis-light.css",
+        "/usr/local/share/axisos/theme/axis-light.css",
+        NULL
+    };
+
+    const char **paths = dark_mode ? dark_paths : light_paths;
+    GtkCssProvider *provider = gtk_css_provider_new();
+    for (int i = 0; paths[i] != NULL; ++i) {
+        if (access(paths[i], R_OK) == 0) {
+            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
+                gtk_style_context_add_provider_for_screen(
+                    screen,
+                    GTK_STYLE_PROVIDER(provider),
+                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+                break;
+            }
+        }
+    }
+    g_object_unref(provider);
+}
+
 int main(int argc, char *argv[]) {
     if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
         printf("AxisOS Terminal Emulator (Pure C11 / libvterm)\n");
@@ -414,6 +465,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     gtk_init(&argc, &argv);
+    load_axis_theme();
     GtkSettings *default_settings = gtk_settings_get_default();
     if (default_settings) {
         g_object_set(default_settings,

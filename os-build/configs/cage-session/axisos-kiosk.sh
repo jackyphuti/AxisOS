@@ -16,10 +16,16 @@ if [ ! -d "$XDG_RUNTIME_DIR" ] || [ ! -w "$XDG_RUNTIME_DIR" ]; then
 fi
 
 # 2. Configure libseat / logind / seatd session backend
-if [ -w "/run/seatd.sock" ]; then
+if [ -w "/run/seatd.sock" ] || [ -S "/run/seatd.sock" ]; then
     export LIBSEAT_BACKEND=seatd
+elif command -v loginctl >/dev/null 2>&1 && loginctl show-session self >/dev/null 2>&1; then
+    export LIBSEAT_BACKEND=logind
 elif [ -n "${XDG_SESSION_ID:-}" ]; then
     export LIBSEAT_BACKEND=logind
+elif [ -d "/run/systemd/system" ]; then
+    export LIBSEAT_BACKEND=logind
+else
+    export LIBSEAT_BACKEND=seatd
 fi
 
 export XDG_SESSION_TYPE=wayland
@@ -48,6 +54,8 @@ elif grep -qa -E "vmwgfx|vboxvideo|bochs|qxl|cirrus|virtio_gpu" /proc/modules 2>
     IS_HYPERVISOR=1
 elif [ -e /sys/class/drm/card0/device/driver ] && readlink /sys/class/drm/card0/device/driver 2>/dev/null | grep -qE "vmwgfx|vboxvideo|qxl|bochs|virtio"; then
     IS_HYPERVISOR=1
+elif command -v lspci >/dev/null 2>&1 && lspci 2>/dev/null | grep -qiE "VMware|VirtualBox|QEMU|Red Hat.*Virtio|Cirrus"; then
+    IS_HYPERVISOR=1
 fi
 
 if [ "$IS_HYPERVISOR" -eq 1 ]; then
@@ -56,6 +64,7 @@ if [ "$IS_HYPERVISOR" -eq 1 ]; then
     export WLR_RENDERER_ALLOW_SOFTWARE=1
     export WLR_NO_HARDWARE_CURSORS=1
     export LIBGL_ALWAYS_SOFTWARE=1
+    export GSK_RENDERER=cairo
 fi
 
 # Unset parent display server variables
@@ -125,14 +134,24 @@ fi
 if [ -n "$COMPOSITOR_BIN" ]; then
     echo "[AxisOS] Launching Native Pure C wlroots axis-compositor..."
     RET=0
-    "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+    if command -v stdbuf >/dev/null 2>&1; then
+        stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+    else
+        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+    fi
     if [ $RET -ne 0 ]; then
         echo "[AxisOS] Compositor exited ($RET). Retrying with pixman software rendering fallback..."
         export WLR_RENDERER=pixman
         export WLR_RENDERER_ALLOW_SOFTWARE=1
         export WLR_NO_HARDWARE_CURSORS=1
+        export LIBGL_ALWAYS_SOFTWARE=1
+        export GSK_RENDERER=cairo
         RET=0
-        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+        if command -v stdbuf >/dev/null 2>&1; then
+            stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee -a /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+        else
+            "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+        fi
         if [ $RET -ne 0 ]; then
             echo "[AxisOS] Compositor failed ($RET). Launching fallback kiosk..."
             if command -v cage >/dev/null 2>&1; then

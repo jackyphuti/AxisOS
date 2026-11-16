@@ -496,8 +496,9 @@ GPtrArray *system_controller_get_installed_apps(SystemController *ctrl) {
 bool system_controller_launch_app(SystemController *ctrl, const char *command) {
     (void)ctrl;
     if (!command || !*command) return false;
+    char *argv[] = { "/bin/sh", "-c", (char *)command, NULL };
     GError *error = NULL;
-    gboolean ret = g_spawn_command_line_async(command, &error);
+    gboolean ret = g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, &error);
     if (error) {
         g_error_free(error);
         return false;

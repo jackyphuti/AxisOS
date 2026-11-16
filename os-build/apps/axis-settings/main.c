@@ -104,6 +104,31 @@ static const char *CSS_THEME =
     "    text-shadow: none;"
     "    -gtk-icon-shadow: none;"
     "}"
+    "list, list row {"
+    "    background-color: transparent;"
+    "    color: @axis_text;"
+    "}"
+    "list row:hover {"
+    "    background-color: alpha(@axis_accent, 0.08);"
+    "}"
+    "combobox button {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 8px;"
+    "    padding: 6px 12px;"
+    "}"
+    "entry {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 8px;"
+    "    padding: 8px 12px;"
+    "}"
+    "textview, textview text {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "}"
     ".card {"
     "    background-color: @axis_surface_raised;"
     "    color: @axis_text;"
@@ -129,15 +154,15 @@ static const char *CSS_THEME =
     "    border-right: 1px solid @axis_outline;"
     "}"
     ".sidebar list row {"
-    "    padding: 12px 18px;"
+    "    padding: 10px 14px;"
     "    color: @axis_text_muted;"
     "    font-weight: 600;"
     "    font-size: 13px;"
     "    border-left: 3px solid transparent;"
     "}"
     ".sidebar list row:selected {"
-    "    background-color: alpha(@axis_accent, 0.16);"
-    "    color: @axis_accent;"
+    "    background-color: alpha(@axis_accent, 0.18);"
+    "    color: @axis_text;"
     "    border-left: 3px solid @axis_accent;"
     "}"
     ".content-pane {"
@@ -631,7 +656,7 @@ static void on_scan_wifi_cb(GtkWidget *widget, gpointer user_data) {
 static void on_captive_portal_cb(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     (void)user_data;
-    char *out = exec_cmd("/usr/local/bin/axis-captive-portal.sh &");
+    char *out = exec_cmd("/usr/local/bin/axis-captive-portal || /usr/local/bin/axis-captive-portal.sh &");
     g_free(out);
 }
 
@@ -1006,11 +1031,30 @@ static void on_apply_taskbar_cb(GtkWidget *widget, gpointer user_data) {
     if (home) {
         char *cmd = g_strdup_printf(
             "sed -i 's/\"position\": \".*\"/\"position\": \"%s\"/g' %s/.config/waybar/config.jsonc 2>/dev/null || true; "
-            "pkill -SIGUSR2 waybar 2>/dev/null || true", pos, home);
+            "pkill -SIGUSR2 waybar 2>/dev/null || true; "
+            "killall -USR2 axis-shell axisos-shell 2>/dev/null || true", pos, home);
         char *out = exec_cmd(cmd);
         g_free(out);
         g_free(cmd);
     }
+}
+
+static gboolean on_toggle_dark_mode_cb(GtkSwitch *sw, gboolean state, gpointer user_data) {
+    (void)sw; (void)user_data;
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_dir[512], conf_path[1024];
+        snprintf(conf_dir, sizeof(conf_dir), "%s/.config/axisos", home);
+        snprintf(conf_path, sizeof(conf_path), "%s/theme.conf", conf_dir);
+        g_mkdir_with_parents(conf_dir, 0755);
+        FILE *f = fopen(conf_path, "w");
+        if (f) {
+            fprintf(f, "%s\n", state ? "dark" : "light");
+            fclose(f);
+        }
+    }
+    load_axis_theme();
+    return FALSE;
 }
 
 static void on_apply_icons_cb(GtkWidget *widget, gpointer user_data) {
@@ -1050,11 +1094,22 @@ static void build_appearance_page(AxisSettingsApp *app) {
     gtk_box_pack_start(GTK_BOX(page), card_taskbar, FALSE, FALSE, 0);
 
     GtkWidget *card_theme = create_card("Theme Colors & System Icons",
-        "Consistent monochrome palette: Obsidian Black (#0A0B0D), Titanium Slate (#94A3B8), and Crisp White (#FFFFFF).");
+        "Consistent dark aesthetic: Obsidian Black (#141826), Surface Raised (#262A3D), and Indigo Accent (#7D95FF).");
 
     GtkWidget *grid = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(grid), 12);
     gtk_grid_set_column_spacing(GTK_GRID(grid), 16);
+
+    GtkWidget *lbl_dark = gtk_label_new("Global Dark Mode:");
+    gtk_label_set_xalign(GTK_LABEL(lbl_dark), 0.0);
+    gtk_widget_set_hexpand(lbl_dark, TRUE);
+    GtkWidget *switch_dark = gtk_switch_new();
+    gtk_switch_set_active(GTK_SWITCH(switch_dark), TRUE);
+    gtk_widget_set_halign(switch_dark, GTK_ALIGN_END);
+    g_signal_connect(switch_dark, "state-set", G_CALLBACK(on_toggle_dark_mode_cb), app);
+
+    gtk_grid_attach(GTK_GRID(grid), lbl_dark, 0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), switch_dark, 1, 0, 2, 1);
 
     GtkWidget *lbl_icon = gtk_label_new("System Icon Set:");
     gtk_label_set_xalign(GTK_LABEL(lbl_icon), 0.0);
@@ -1065,13 +1120,13 @@ static void build_appearance_page(AxisSettingsApp *app) {
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(app->combo_icon_theme), "Adwaita");
     gtk_combo_box_set_active(GTK_COMBO_BOX(app->combo_icon_theme), 0);
 
-    gtk_grid_attach(GTK_GRID(grid), lbl_icon, 0, 0, 1, 1);
-    gtk_grid_attach(GTK_GRID(grid), app->combo_icon_theme, 1, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), lbl_icon, 0, 1, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), app->combo_icon_theme, 1, 1, 1, 1);
 
     GtkWidget *btn_apply_icons = gtk_button_new_with_label("Set Icon Theme");
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_apply_icons), "btn-secondary");
     g_signal_connect(btn_apply_icons, "clicked", G_CALLBACK(on_apply_icons_cb), app);
-    gtk_grid_attach(GTK_GRID(grid), btn_apply_icons, 2, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(grid), btn_apply_icons, 2, 1, 1, 1);
 
     gtk_box_pack_start(GTK_BOX(card_theme), grid, FALSE, FALSE, 6);
     gtk_box_pack_start(GTK_BOX(page), card_theme, FALSE, FALSE, 0);
@@ -1211,7 +1266,7 @@ static void build_updates_page(AxisSettingsApp *app) {
 static void on_sync_tz_cb(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     AxisSettingsApp *app = (AxisSettingsApp *)user_data;
-    char *out = exec_cmd("/usr/local/bin/axis-autotimezone.sh &");
+    char *out = exec_cmd("/usr/local/bin/axis-autotimezone || /usr/local/bin/axis-autotimezone.sh &");
     g_free(out);
 
     GtkWidget *dlg = gtk_message_dialog_new(GTK_WINDOW(app->window),
@@ -1847,32 +1902,40 @@ static AxisSettingsApp *axis_settings_app_create(void) {
     typedef struct {
         const char *label;
         const char *id;
+        const char *icon;
     } PageDef;
 
     static const PageDef pages[] = {
-        {"Display & Graphics", "display"},
-        {"Gaming Boost & Performance", "game_boost"},
-        {"Brightness & Sound", "audio_display"},
-        {"Wi-Fi & Network", "network"},
-        {"Bluetooth", "bluetooth"},
-        {"USB & Connected Devices", "usb"},
-        {"Appearance & Taskbar", "appearance"},
-        {"Software & Updates", "updates"},
-        {"Date, Time & Location", "datetime"},
-        {"Accounts & Security", "security"},
-        {"About AxisOS", "about"}
+        {"Display & Graphics", "display", "video-display-symbolic"},
+        {"Gaming Boost & Performance", "game_boost", "input-gaming-symbolic"},
+        {"Brightness & Sound", "audio_display", "audio-volume-high-symbolic"},
+        {"Wi-Fi & Network", "network", "network-wireless-symbolic"},
+        {"Bluetooth", "bluetooth", "bluetooth-active-symbolic"},
+        {"USB & Connected Devices", "usb", "drive-removable-media-symbolic"},
+        {"Appearance & Taskbar", "appearance", "preferences-desktop-theme-symbolic"},
+        {"Software & Updates", "updates", "system-software-update-symbolic"},
+        {"Date, Time & Location", "datetime", "preferences-system-time-symbolic"},
+        {"Accounts & Security", "security", "security-high-symbolic"},
+        {"About AxisOS", "about", "help-about-symbolic"}
     };
 
     for (size_t i = 0; i < sizeof(pages) / sizeof(pages[0]); i++) {
         GtkWidget *row = gtk_list_box_row_new();
+        GtkWidget *row_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+        gtk_widget_set_margin_start(row_box, 16);
+        gtk_widget_set_margin_end(row_box, 16);
+        gtk_widget_set_margin_top(row_box, 10);
+        gtk_widget_set_margin_bottom(row_box, 10);
+
+        GtkWidget *img = gtk_image_new_from_icon_name(pages[i].icon, GTK_ICON_SIZE_MENU);
         GtkWidget *lbl = gtk_label_new(pages[i].label);
         gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
-        gtk_widget_set_margin_start(lbl, 16);
-        gtk_widget_set_margin_end(lbl, 16);
-        gtk_widget_set_margin_top(lbl, 12);
-        gtk_widget_set_margin_bottom(lbl, 12);
+
+        gtk_box_pack_start(GTK_BOX(row_box), img, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(row_box), lbl, TRUE, TRUE, 0);
+
         g_object_set_data_full(G_OBJECT(row), "page_id", g_strdup(pages[i].id), g_free);
-        gtk_container_add(GTK_CONTAINER(row), lbl);
+        gtk_container_add(GTK_CONTAINER(row), row_box);
         gtk_list_box_insert(GTK_LIST_BOX(app->listbox), row, -1);
     }
 
@@ -1884,14 +1947,20 @@ static AxisSettingsApp *axis_settings_app_create(void) {
     gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
     gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
 
+    GtkWidget *stack_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_widget_set_size_request(stack_container, 680, -1);
+    gtk_widget_set_halign(stack_container, GTK_ALIGN_CENTER);
+    gtk_widget_set_margin_top(stack_container, 24);
+    gtk_widget_set_margin_bottom(stack_container, 24);
+    gtk_widget_set_margin_start(stack_container, 32);
+    gtk_widget_set_margin_end(stack_container, 32);
+    gtk_box_pack_start(GTK_BOX(stack_container), app->stack, TRUE, TRUE, 0);
+
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
-    gtk_container_add(GTK_CONTAINER(scroll), app->stack);
+    gtk_container_add(GTK_CONTAINER(scroll), stack_container);
 
-    GtkWidget *content_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    gtk_style_context_add_class(gtk_widget_get_style_context(content_box), "content-pane");
-    gtk_box_pack_start(GTK_BOX(content_box), scroll, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(hbox), content_box, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), scroll, TRUE, TRUE, 0);
 
     // Build Pages
     build_display_page(app);
@@ -1926,6 +1995,8 @@ int main(int argc, char *argv[]) {
         printf("  audio        Sound volume and hardware backlight\n");
         printf("  bluetooth    Bluetooth radio and device pairing\n");
         printf("  power        Performance tuning and GameBoost\n");
+        printf("  gaming       Gaming Boost & performance scheduler\n");
+        printf("  health       System diagnostics and hardware overview\n");
         printf("  usb          Connected USB peripherals and storage\n");
         printf("  appearance   Dark/Light mode and icon themes\n");
         printf("  datetime     Timezone, NTP synchronization, and clock\n");
@@ -1934,6 +2005,7 @@ int main(int argc, char *argv[]) {
     }
 
     gtk_init(&argc, &argv);
+    load_axis_theme();
     GtkSettings *default_settings = gtk_settings_get_default();
     if (default_settings) {
         g_object_set(default_settings,
@@ -1948,7 +2020,7 @@ int main(int argc, char *argv[]) {
     // e.g. axisos-settings-panel about / updates / network / display / audio / bluetooth / power / users
     if (argc > 1) {
         const char *arg = argv[1];
-        if (strcmp(arg, "about") == 0 || strcmp(arg, "--about") == 0 || strcmp(arg, "-a") == 0) {
+        if (strcmp(arg, "about") == 0 || strcmp(arg, "--about") == 0 || strcmp(arg, "-a") == 0 || strcmp(arg, "health") == 0) {
             select_page_by_id(app, "about");
         } else if (strcmp(arg, "updates") == 0 || strcmp(arg, "--updates") == 0 || strcmp(arg, "-u") == 0) {
             select_page_by_id(app, "updates");
@@ -1960,7 +2032,7 @@ int main(int argc, char *argv[]) {
             select_page_by_id(app, "audio_display");
         } else if (strcmp(arg, "bluetooth") == 0 || strcmp(arg, "--bluetooth") == 0 || strcmp(arg, "-b") == 0) {
             select_page_by_id(app, "bluetooth");
-        } else if (strcmp(arg, "game_boost") == 0 || strcmp(arg, "power") == 0 || strcmp(arg, "performance") == 0) {
+        } else if (strcmp(arg, "game_boost") == 0 || strcmp(arg, "gaming") == 0 || strcmp(arg, "power") == 0 || strcmp(arg, "performance") == 0) {
             select_page_by_id(app, "game_boost");
         } else if (strcmp(arg, "usb") == 0) {
             select_page_by_id(app, "usb");
