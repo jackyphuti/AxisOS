@@ -56,7 +56,11 @@
 #include <wlr/types/wlr_screencopy_v1.h>
 #include <wlr/types/wlr_export_dmabuf_v1.h>
 #include <wlr/types/wlr_gamma_control_v1.h>
+#if __has_include(<wlr/types/wlr_idle.h>)
 #include <wlr/types/wlr_idle.h>
+#else
+#include <wlr/types/wlr_idle_notify_v1.h>
+#endif
 #include <wlr/types/wlr_idle_inhibit_v1.h>
 #include <wlr/types/wlr_relative_pointer_v1.h>
 #include <wlr/types/wlr_pointer_constraints_v1.h>
@@ -162,7 +166,11 @@ struct axis_server {
 	struct wlr_screencopy_manager_v1 *screencopy_manager;
 	struct wlr_export_dmabuf_manager_v1 *export_dmabuf_manager;
 	struct wlr_gamma_control_manager_v1 *gamma_control_manager;
+#if __has_include(<wlr/types/wlr_idle.h>)
 	struct wlr_idle *idle;
+#else
+	struct wlr_idle_notifier_v1 *idle;
+#endif
 	struct wlr_idle_inhibit_manager_v1 *idle_inhibit_manager;
 	struct wlr_relative_pointer_manager_v1 *relative_pointer_manager;
 	struct wlr_pointer_constraints_v1 *pointer_constraints;
@@ -1105,7 +1113,7 @@ static void toplevel_handle_request_close(struct wl_listener *listener, void *da
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, toplevel_request_close);
 	if (view && view->xdg_surface && view->xdg_surface->toplevel) {
-		wlr_xdg_toplevel_send_close(view->xdg_surface);
+		axis_wlr_xdg_toplevel_send_close(view->xdg_surface, view->xdg_surface->toplevel);
 	}
 }
 
@@ -1735,24 +1743,55 @@ static void server_new_keyboard(struct axis_server *server, struct wlr_input_dev
 	wl_list_insert(&server->keyboards, &keyboard->link);
 }
 
+static void load_input_config(int *tap_to_click, int *natural_scroll, double *pointer_speed) {
+	*tap_to_click = 1;
+	*natural_scroll = 1;
+	*pointer_speed = 0.0;
+
+	const char *home = getenv("HOME");
+	if (!home) return;
+	char conf_path[512];
+	snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/input.conf", home);
+	FILE *f = fopen(conf_path, "r");
+	if (!f) return;
+
+	char line[256];
+	while (fgets(line, sizeof(line), f)) {
+		if (strncmp(line, "tap_to_click=", 13) == 0) {
+			*tap_to_click = atoi(line + 13);
+		} else if (strncmp(line, "natural_scroll=", 15) == 0) {
+			*natural_scroll = atoi(line + 15);
+		} else if (strncmp(line, "pointer_speed=", 14) == 0) {
+			*pointer_speed = atof(line + 14);
+		}
+	}
+	fclose(f);
+}
+
 static void server_new_pointer(struct axis_server *server, struct wlr_input_device *device) {
 	wlr_cursor_attach_input_device(server->cursor, device);
 
 	if (wlr_input_device_is_libinput(device)) {
 		struct libinput_device *libinput_dev = wlr_libinput_get_device_handle(device);
 		if (libinput_dev) {
+			int tap_to_click = 1;
+			int natural_scroll = 1;
+			double pointer_speed = 0.0;
+			load_input_config(&tap_to_click, &natural_scroll, &pointer_speed);
+
 			/* Pointer acceleration profile */
 			if (libinput_device_config_accel_is_available(libinput_dev)) {
 				libinput_device_config_accel_set_profile(libinput_dev, LIBINPUT_CONFIG_ACCEL_PROFILE_ADAPTIVE);
-				libinput_device_config_accel_set_speed(libinput_dev, 0.0);
+				libinput_device_config_accel_set_speed(libinput_dev, pointer_speed);
 			}
 			/* Touchpad natural scrolling */
 			if (libinput_device_config_scroll_has_natural_scroll(libinput_dev)) {
-				libinput_device_config_scroll_set_natural_scroll_enabled(libinput_dev, 1);
+				libinput_device_config_scroll_set_natural_scroll_enabled(libinput_dev, natural_scroll ? 1 : 0);
 			}
 			/* Touchpad tap-to-click */
 			if (libinput_device_config_tap_get_finger_count(libinput_dev) > 0) {
-				libinput_device_config_tap_set_enabled(libinput_dev, LIBINPUT_CONFIG_TAP_ENABLED);
+				libinput_device_config_tap_set_enabled(libinput_dev,
+					tap_to_click ? LIBINPUT_CONFIG_TAP_ENABLED : LIBINPUT_CONFIG_TAP_DISABLED);
 			}
 		}
 	}
@@ -2056,7 +2095,11 @@ int main(int argc, char *argv[]) {
 	server.export_dmabuf_manager = wlr_export_dmabuf_manager_v1_create(server.wl_display);
 	server.gamma_control_manager = wlr_gamma_control_manager_v1_create(server.wl_display);
 
+#if __has_include(<wlr/types/wlr_idle.h>)
 	server.idle = wlr_idle_create(server.wl_display);
+#else
+	server.idle = wlr_idle_notifier_v1_create(server.wl_display);
+#endif
 	server.idle_inhibit_manager = wlr_idle_inhibit_v1_create(server.wl_display);
 
 	server.relative_pointer_manager = wlr_relative_pointer_manager_v1_create(server.wl_display);

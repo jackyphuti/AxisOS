@@ -37,6 +37,7 @@ log() {
 cleanup_mounts() {
     sync
     umount -l /mnt/sys/firmware/efi/efivars 2>/dev/null || true
+    umount -R /mnt/dev /mnt/proc /mnt/sys /mnt/run 2>/dev/null || true
     umount -l /mnt/dev/pts 2>/dev/null || true
     umount -l /mnt/dev 2>/dev/null || true
     umount -l /mnt/proc 2>/dev/null || true
@@ -48,6 +49,8 @@ cleanup_mounts() {
     umount -l /mnt/.snapshots 2>/dev/null || true
     umount -R /mnt 2>/dev/null || umount -l /mnt 2>/dev/null || true
 }
+
+trap cleanup_mounts EXIT INT TERM
 
 error_exit() {
     local message="$1"
@@ -572,6 +575,9 @@ if [[ ${#real_partitions[@]} -lt 3 ]]; then
     error_exit "Partition discovery failed: expected 3 partitions on $TARGET_DISK, found ${#real_partitions[@]} (${real_partitions[*]})."
 fi
 
+# Explicitly sort partitions naturally so NVMe/eMMC (p1, p2, p3) and SATA/SCSI (1, 2, 3) are in order
+IFS=$'\n' real_partitions=($(sort -V <<<"${real_partitions[*]}")); unset IFS
+
 ESP_PART="${real_partitions[0]}"
 SWAP_PART="${real_partitions[1]}"
 ROOT_PART="${real_partitions[2]}"
@@ -717,10 +723,21 @@ log "rsync completed cleanly (exit code ${RSYNC_EXIT})."
 report 76 "System file transfer complete."
 
 report 77 "Generating filesystem mount table (/etc/fstab)..."
-udevadm settle --timeout=3 2>/dev/null || true
+udevadm settle --timeout=5 2>/dev/null || true
 ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART" 2>/dev/null || lsblk -no UUID "$ROOT_PART" 2>/dev/null || true)
 ESP_UUID=$(blkid -s UUID -o value "$ESP_PART" 2>/dev/null || lsblk -no UUID "$ESP_PART" 2>/dev/null || true)
 SWAP_UUID=$(blkid -s UUID -o value "$SWAP_PART" 2>/dev/null || lsblk -no UUID "$SWAP_PART" 2>/dev/null || true)
+
+# If UUID discovery returned empty, settle again and retry
+if [[ -z "$ROOT_UUID" || -z "$ESP_UUID" ]]; then
+    sleep 1
+    udevadm settle --timeout=5 2>/dev/null || true
+    [ -z "$ROOT_UUID" ] && ROOT_UUID=$(blkid -s UUID -o value "$ROOT_PART" 2>/dev/null || lsblk -no UUID "$ROOT_PART" 2>/dev/null || true)
+    [ -z "$ESP_UUID" ] && ESP_UUID=$(blkid -s UUID -o value "$ESP_PART" 2>/dev/null || lsblk -no UUID "$ESP_PART" 2>/dev/null || true)
+    [ -z "$SWAP_UUID" ] && SWAP_UUID=$(blkid -s UUID -o value "$SWAP_PART" 2>/dev/null || lsblk -no UUID "$SWAP_PART" 2>/dev/null || true)
+fi
+
+mkdir -p /mnt/etc /mnt/etc/apt /mnt/etc/default /mnt/etc/sysctl.d
 
 if [[ "$FILESYSTEM" == "ext4" ]]; then
 cat << EOF > /mnt/etc/fstab
@@ -757,9 +774,13 @@ if [[ -f /mnt/etc/locale.gen ]]; then
     sed -i "s/^#\s*${LOCALE}/${LOCALE}/" /mnt/etc/locale.gen 2>/dev/null || echo "${LOCALE} UTF-8" >> /mnt/etc/locale.gen
 fi
 
-if [[ -n "$TIMEZONE" && -f "/mnt/usr/share/zoneinfo/$TIMEZONE" ]]; then
-    chroot /mnt ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime
-    echo "$TIMEZONE" > /mnt/etc/timezone
+if [[ -n "$TIMEZONE" ]]; then
+    if [[ -f "/mnt/usr/share/zoneinfo/$TIMEZONE" ]]; then
+        chroot /mnt ln -sf "/usr/share/zoneinfo/$TIMEZONE" /etc/localtime 2>&1 | tee -a /tmp/axisos-installer.log || log "Warning: failed to link /etc/localtime"
+        echo "$TIMEZONE" > /mnt/etc/timezone
+    else
+        log "Warning: Timezone $TIMEZONE not found in /usr/share/zoneinfo"
+    fi
 fi
 
 cat << EOF > /mnt/etc/default/keyboard
@@ -771,7 +792,8 @@ BACKSPACE="guess"
 EOF
 
 report 80 "Mounting virtual filesystems for configuration..."
-# Mount kernel virtual filesystems for chroot operations
+# Ensure all mount target directories exist before bind mounting
+mkdir -p /mnt/dev /mnt/dev/pts /mnt/proc /mnt/sys /mnt/run /mnt/sys/firmware/efi/efivars
 mount --bind /dev /mnt/dev
 mount --bind /dev/pts /mnt/dev/pts
 mount --bind /proc /mnt/proc
@@ -781,7 +803,7 @@ mount -t efivarfs efivarfs /mnt/sys/firmware/efi/efivars 2>/dev/null || true
 
 # Enable 32-bit multiarch for Steam, Proton, and Wine compatibility
 report 82 "Enabling 32-bit multiarch (i386) for gaming compatibility..."
-chroot /mnt dpkg --add-architecture i386 || true
+chroot /mnt dpkg --add-architecture i386 2>&1 | tee -a /tmp/axisos-installer.log || log "Warning: dpkg --add-architecture i386 returned non-zero"
 
 # Configure Debian Bookworm repositories including contrib, non-free, non-free-firmware, and backports
 report 84 "Configuring Debian Bookworm repositories with non-free and backports..."
@@ -816,7 +838,7 @@ EOF
 # Enable Flathub for universal application distribution
 if chroot /mnt command -v flatpak >/dev/null 2>&1; then
     report 85 "Configuring Flathub universal software repository..."
-    chroot /mnt flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+    timeout 8 chroot /mnt flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
 fi
 
 # Deploy Steam pre-installed launcher & menu entry

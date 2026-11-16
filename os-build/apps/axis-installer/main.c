@@ -389,14 +389,95 @@ typedef struct {
     GtkWidget *lbl_stage_fin;
     GtkWidget *progress_bar;
     GtkWidget *lbl_progress_percent;
+    GtkWidget *expander_log;
+    GtkWidget *txt_install_log;
 } AxisInstallerApp;
 
+static void show_visible_error_dialog(GtkWindow *parent, const char *title, const char *msg, const char *log_tail) {
+    GtkWidget *dialog = gtk_dialog_new_with_buttons(
+        title ? title : "Installation Issue",
+        parent,
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        "_OK",
+        GTK_RESPONSE_ACCEPT,
+        NULL);
+
+    if (parent) {
+        gtk_window_set_transient_for(GTK_WINDOW(dialog), parent);
+        gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER_ON_PARENT);
+    } else {
+        gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
+    }
+    gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+    gtk_window_set_keep_above(GTK_WINDOW(dialog), TRUE);
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 620, 380);
+
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_set_border_width(GTK_CONTAINER(content_area), 16);
+    gtk_box_set_spacing(GTK_BOX(content_area), 12);
+
+    GtkWidget *msg_label = gtk_label_new(msg);
+    gtk_label_set_xalign(GTK_LABEL(msg_label), 0.0);
+    gtk_label_set_line_wrap(GTK_LABEL(msg_label), TRUE);
+    gtk_label_set_max_width_chars(GTK_LABEL(msg_label), 70);
+    gtk_box_pack_start(GTK_BOX(content_area), msg_label, FALSE, FALSE, 0);
+
+    // If log_tail is not provided, read the last 25 lines of /tmp/axisos-installer.log
+    char log_buf[8192] = {0};
+    if (log_tail && *log_tail) {
+        snprintf(log_buf, sizeof(log_buf), "%s", log_tail);
+    } else {
+        FILE *f = fopen("/tmp/axisos-installer.log", "r");
+        if (f) {
+            char lines[30][512];
+            int count = 0;
+            char line[512];
+            while (fgets(line, sizeof(line), f)) {
+                snprintf(lines[count % 25], sizeof(lines[0]), "%s", line);
+                count++;
+            }
+            fclose(f);
+            int start = count > 25 ? count - 25 : 0;
+            int total = count > 25 ? 25 : count;
+            int offset = 0;
+            for (int i = 0; i < total; i++) {
+                int idx = (start + i) % 25;
+                offset += snprintf(log_buf + offset, sizeof(log_buf) - offset, "%s", lines[idx]);
+            }
+        }
+    }
+
+    if (log_buf[0] != '\0') {
+        GtkWidget *log_lbl = gtk_label_new("Recent Log Output (/tmp/axisos-installer.log):");
+        gtk_label_set_xalign(GTK_LABEL(log_lbl), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(log_lbl), "title-4");
+        gtk_box_pack_start(GTK_BOX(content_area), log_lbl, FALSE, FALSE, 0);
+
+        GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+        gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+        gtk_widget_set_size_request(scrolled, -1, 180);
+        gtk_widget_set_hexpand(scrolled, TRUE);
+        gtk_widget_set_vexpand(scrolled, TRUE);
+
+        GtkWidget *tv = gtk_text_view_new();
+        gtk_text_view_set_editable(GTK_TEXT_VIEW(tv), FALSE);
+        gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(tv), FALSE);
+        gtk_text_view_set_monospace(GTK_TEXT_VIEW(tv), TRUE);
+        gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(tv), GTK_WRAP_WORD_CHAR);
+        GtkTextBuffer *tb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(tv));
+        gtk_text_buffer_set_text(tb, log_buf, -1);
+
+        gtk_container_add(GTK_CONTAINER(scrolled), tv);
+        gtk_box_pack_start(GTK_BOX(content_area), scrolled, TRUE, TRUE, 0);
+    }
+
+    gtk_widget_show_all(dialog);
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
+}
+
 static void show_alert(GtkWidget *parent, const char *msg) {
-    GtkWidget *d = gtk_message_dialog_new(GTK_WINDOW(parent),
-        GTK_DIALOG_MODAL, GTK_MESSAGE_WARNING, GTK_BUTTONS_OK,
-        "%s", msg);
-    gtk_dialog_run(GTK_DIALOG(d));
-    gtk_widget_destroy(d);
+    show_visible_error_dialog(parent ? GTK_WINDOW(parent) : NULL, "Notice", msg, NULL);
 }
 
 static GtkWidget *create_scaled_logo(int max_w, int max_h) {
@@ -424,7 +505,13 @@ static GtkWidget *create_scaled_logo(int max_w, int max_h) {
 static GtkWidget *wrap_in_scroller(GtkWidget *content) {
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_hexpand(scroll, TRUE);
+    gtk_widget_set_vexpand(scroll, TRUE);
     GtkWidget *vp = gtk_viewport_new(NULL, NULL);
+    gtk_widget_set_hexpand(vp, TRUE);
+    gtk_widget_set_vexpand(vp, TRUE);
+    gtk_widget_set_hexpand(content, TRUE);
+    gtk_widget_set_vexpand(content, TRUE);
     gtk_container_add(GTK_CONTAINER(vp), content);
     gtk_container_add(GTK_CONTAINER(scroll), vp);
     gtk_style_context_add_class(gtk_widget_get_style_context(content), "setup-canvas");
@@ -1381,6 +1468,26 @@ static void build_step_installing(AxisInstallerApp *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_progress_percent), "field-label");
     gtk_box_pack_start(GTK_BOX(card), app->lbl_progress_percent, FALSE, FALSE, 0);
 
+    // Inline collapsible "Show Installation Log" GtkExpander
+    app->expander_log = gtk_expander_new("Show Installation Log");
+    gtk_expander_set_expanded(GTK_EXPANDER(app->expander_log), FALSE);
+    gtk_widget_set_margin_top(app->expander_log, 8);
+
+    GtkWidget *log_scroller = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(log_scroller), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_size_request(log_scroller, -1, 140);
+    gtk_widget_set_hexpand(log_scroller, TRUE);
+
+    app->txt_install_log = gtk_text_view_new();
+    gtk_text_view_set_editable(GTK_TEXT_VIEW(app->txt_install_log), FALSE);
+    gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(app->txt_install_log), FALSE);
+    gtk_text_view_set_monospace(GTK_TEXT_VIEW(app->txt_install_log), TRUE);
+    gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(app->txt_install_log), GTK_WRAP_WORD_CHAR);
+
+    gtk_container_add(GTK_CONTAINER(log_scroller), app->txt_install_log);
+    gtk_container_add(GTK_CONTAINER(app->expander_log), log_scroller);
+    gtk_box_pack_start(GTK_BOX(card), app->expander_log, FALSE, FALSE, 4);
+
     gtk_box_pack_start(GTK_BOX(box), card, FALSE, FALSE, 4);
 
     GtkWidget *scroller = wrap_in_scroller(box);
@@ -1456,6 +1563,34 @@ static gboolean idle_update_progress(gpointer user_data) {
         gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_stage_fin), "done");
     }
 
+    if (app->txt_install_log) {
+        FILE *lf = fopen("/tmp/axisos-installer.log", "r");
+        if (lf) {
+            char lbuf[8192] = {0};
+            char lines[30][512];
+            int count = 0;
+            char l[512];
+            while (fgets(l, sizeof(l), lf)) {
+                snprintf(lines[count % 25], sizeof(lines[0]), "%s", l);
+                count++;
+            }
+            fclose(lf);
+            int start = count > 25 ? count - 25 : 0;
+            int total = count > 25 ? 25 : count;
+            int off = 0;
+            for (int i = 0; i < total; i++) {
+                int idx = (start + i) % 25;
+                off += snprintf(lbuf + off, sizeof(lbuf) - off, "%s", lines[idx]);
+            }
+            GtkTextBuffer *tb = gtk_text_view_get_buffer(GTK_TEXT_VIEW(app->txt_install_log));
+            gtk_text_buffer_set_text(tb, lbuf, -1);
+            GtkTextIter end_iter;
+            gtk_text_buffer_get_end_iter(tb, &end_iter);
+            GtkTextMark *mark = gtk_text_buffer_create_mark(tb, NULL, &end_iter, FALSE);
+            gtk_text_view_scroll_to_mark(GTK_TEXT_VIEW(app->txt_install_log), mark, 0.0, TRUE, 0.0, 1.0);
+        }
+    }
+
     g_free(p->msg);
     g_free(p);
     return G_SOURCE_REMOVE;
@@ -1485,12 +1620,12 @@ static gboolean idle_install_failure(gpointer user_data) {
     gtk_widget_set_sensitive(app->btn_back, TRUE);
     gtk_button_set_label(GTK_BUTTON(app->btn_back), "Back to Drive Selection");
 
-    GtkWidget *dialog = gtk_message_dialog_new(GTK_WINDOW(app->window),
-        GTK_DIALOG_MODAL, GTK_MESSAGE_ERROR, GTK_BUTTONS_OK,
-        "An issue occurred during installation:\n\n%s\n\nPlease select 'Back to Drive Selection' to choose another drive or verify disk health.",
+    char *dialog_msg = g_strdup_printf(
+        "An issue occurred during installation:\n\n%s\n\n"
+        "Please select 'Back to Drive Selection' to choose another drive or verify disk health.",
         d->err_msg);
-    gtk_dialog_run(GTK_DIALOG(dialog));
-    gtk_widget_destroy(dialog);
+    show_visible_error_dialog(GTK_WINDOW(app->window), "Installation Issue", dialog_msg, NULL);
+    g_free(dialog_msg);
 
     g_free(d->err_msg);
     g_free(d);
@@ -1578,6 +1713,10 @@ static gpointer thread_installer_worker(gpointer user_data) {
                 if (g_str_has_prefix(buf, "ERROR:") || g_str_has_prefix(buf, "Error:")) {
                     g_free(last_error_line);
                     last_error_line = g_strdup(buf);
+                } else if (g_strcmp0(last_error_line, "Unexpected installation error.") == 0 &&
+                           (strstr(buf, "error") || strstr(buf, "failed"))) {
+                    g_free(last_error_line);
+                    last_error_line = g_strdup(buf);
                 }
             }
             if (g_str_has_prefix(buf, "PROGRESS:")) {
@@ -1608,6 +1747,26 @@ static gpointer thread_installer_worker(gpointer user_data) {
         g_free(last_error_line);
         g_idle_add(idle_install_success, app);
     } else {
+        // Fallback: If last_error_line is still generic, read the last ERROR line from log
+        if (!last_error_line || g_strcmp0(last_error_line, "Unexpected installation error.") == 0) {
+            FILE *lf = fopen("/tmp/axisos-installer.log", "r");
+            if (lf) {
+                char lbuf[512];
+                char last_err_in_file[512] = {0};
+                while (fgets(lbuf, sizeof(lbuf), lf)) {
+                    g_strstrip(lbuf);
+                    if (g_str_has_prefix(lbuf, "ERROR:") || g_str_has_prefix(lbuf, "Error:") ||
+                        strstr(lbuf, "ERROR") || strstr(lbuf, "failed")) {
+                        snprintf(last_err_in_file, sizeof(last_err_in_file), "%s", lbuf);
+                    }
+                }
+                fclose(lf);
+                if (last_err_in_file[0] != '\0') {
+                    g_free(last_error_line);
+                    last_error_line = g_strdup(last_err_in_file);
+                }
+            }
+        }
         InstallFinishData *d = g_new0(InstallFinishData, 1);
         d->app = app;
         d->err_msg = last_error_line;
@@ -1648,7 +1807,18 @@ static AxisInstallerApp *axis_installer_app_create(void) {
     app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(app->window), "AxisOS 2.0 Setup");
 
-    gtk_window_set_default_size(GTK_WINDOW(app->window), 980, 640);
+    GdkDisplay *display = gdk_display_get_default();
+    GdkMonitor *monitor = display ? gdk_display_get_primary_monitor(display) : NULL;
+    if (!monitor && display) {
+        monitor = gdk_display_get_monitor_at_point(display, 0, 0);
+    }
+    GdkRectangle workarea = {0, 0, 1024, 768};
+    if (monitor) {
+        gdk_monitor_get_workarea(monitor, &workarea);
+    }
+    int def_w = MIN(920, workarea.width > 48 ? workarea.width - 48 : 800);
+    int def_h = MIN(620, workarea.height > 64 ? workarea.height - 64 : 600);
+    gtk_window_set_default_size(GTK_WINDOW(app->window), def_w, def_h);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
     gtk_window_set_resizable(GTK_WINDOW(app->window), TRUE);
     gtk_window_set_default_icon_name("axisos");
