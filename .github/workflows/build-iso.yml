@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Install Debian Live Build Toolchain
         run: |
@@ -26,7 +26,7 @@ jobs:
           sudo bash os-build/scripts/build-iso.sh
 
       - name: Upload ISO Artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: axisos-live-amd64-${{ github.event.inputs.release_tag }}
           path: axisos-live-amd64.iso

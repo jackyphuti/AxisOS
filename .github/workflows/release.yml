@@ -19,7 +19,7 @@ jobs:
       contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v4
 
       - name: Compute Checksums
         run: |
@@ -27,7 +27,7 @@ jobs:
           sha256sum README.md > release-assets/SHA256SUMS.txt
 
       - name: Publish Release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@v2
         with:
           files: release-assets/*
           generate_release_notes: true
