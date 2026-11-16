@@ -878,10 +878,32 @@ EOF
 chmod 0755 /mnt/usr/local/bin/steam
 
 # Deploy AxisOS PlayStation Universal Plug-and-Play Game Runner & Desktop Integration
-mkdir -p /mnt/usr/share/applications /mnt/usr/local/bin /mnt/usr/share/mime/packages /mnt/etc/udev/rules.d
+mkdir -p /mnt/usr/share/applications /mnt/usr/local/bin /mnt/usr/share/mime/packages /mnt/etc/udev/rules.d /mnt/usr/share/wayland-sessions /mnt/etc/axisos/kernel
 if [ -f "$SCRIPT_DIR/axis-game-runner" ]; then
     cp -f "$SCRIPT_DIR/axis-game-runner" /mnt/usr/local/bin/axis-game-runner
     chmod 0755 /mnt/usr/local/bin/axis-game-runner
+fi
+if [ -f "$SCRIPT_DIR/axis-switch-session" ]; then
+    cp -f "$SCRIPT_DIR/axis-switch-session" /mnt/usr/local/bin/axis-switch-session
+    chmod 0755 /mnt/usr/local/bin/axis-switch-session
+fi
+if [ -f "$SCRIPT_DIR/axis-gpu-setup.sh" ]; then
+    cp -f "$SCRIPT_DIR/axis-gpu-setup.sh" /mnt/usr/local/bin/axis-gpu-setup.sh
+    chmod 0755 /mnt/usr/local/bin/axis-gpu-setup.sh
+fi
+if [ -f "$SCRIPT_DIR/axisos-gamemode-session.sh" ]; then
+    cp -f "$SCRIPT_DIR/axisos-gamemode-session.sh" /mnt/usr/local/bin/axisos-gamemode-session.sh
+    chmod 0755 /mnt/usr/local/bin/axisos-gamemode-session.sh
+fi
+
+if [ -f "$SCRIPT_DIR/../configs/wayland/axisos-gamemode.desktop" ]; then
+    cp -f "$SCRIPT_DIR/../configs/wayland/axisos-gamemode.desktop" /mnt/usr/share/wayland-sessions/
+fi
+if [ -f "$SCRIPT_DIR/../configs/systemd/axisos-gamemode.service" ]; then
+    cp -f "$SCRIPT_DIR/../configs/systemd/axisos-gamemode.service" /mnt/etc/systemd/system/
+fi
+if [ -f "$SCRIPT_DIR/../configs/kernel/gaming-kernel.config" ]; then
+    cp -f "$SCRIPT_DIR/../configs/kernel/gaming-kernel.config" /mnt/etc/axisos/kernel/
 fi
 
 cat << 'EOF' > /mnt/usr/share/applications/axis-game-runner.desktop
@@ -1035,10 +1057,14 @@ mkdir -p /mnt/etc/skel/Emulation/bios/ps1 \
          /mnt/etc/skel/Emulation/bios/ps2 \
          /mnt/etc/skel/Emulation/bios/ps3 \
          /mnt/etc/skel/Emulation/bios/psp \
+         /mnt/etc/skel/Emulation/bios/psvita \
+         /mnt/etc/skel/Emulation/bios/ps4 \
          /mnt/etc/skel/Emulation/games/ps1 \
          /mnt/etc/skel/Emulation/games/ps2 \
          /mnt/etc/skel/Emulation/games/ps3 \
-         /mnt/etc/skel/Emulation/games/psp
+         /mnt/etc/skel/Emulation/games/psp \
+         /mnt/etc/skel/Emulation/games/psvita \
+         /mnt/etc/skel/Emulation/games/ps4
 
 report 86 "Setting up user account ($USERNAME)..."
 # Create user if it doesn't already exist
@@ -1058,10 +1084,14 @@ mkdir -p "/mnt/home/$USERNAME/Emulation/bios/ps1" \
          "/mnt/home/$USERNAME/Emulation/bios/ps2" \
          "/mnt/home/$USERNAME/Emulation/bios/ps3" \
          "/mnt/home/$USERNAME/Emulation/bios/psp" \
+         "/mnt/home/$USERNAME/Emulation/bios/psvita" \
+         "/mnt/home/$USERNAME/Emulation/bios/ps4" \
          "/mnt/home/$USERNAME/Emulation/games/ps1" \
          "/mnt/home/$USERNAME/Emulation/games/ps2" \
          "/mnt/home/$USERNAME/Emulation/games/ps3" \
-         "/mnt/home/$USERNAME/Emulation/games/psp"
+         "/mnt/home/$USERNAME/Emulation/games/psp" \
+         "/mnt/home/$USERNAME/Emulation/games/psvita" \
+         "/mnt/home/$USERNAME/Emulation/games/ps4"
 chroot /mnt chown -R "${USERNAME}:${USERNAME}" "/home/${USERNAME}/Emulation" 2>/dev/null || true
 
 # Set passwords

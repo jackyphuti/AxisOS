@@ -130,6 +130,15 @@ vulkan-tools
 libvulkan1
 gamemode
 mangohud
+gamescope
+rtkit
+pipewire-pulse
+wireplumber
+steam-devices
+lutris
+retroarch
+intel-media-va-driver-non-free
+dkms
 vkbasalt
 cpufrequtils
 linux-cpupower

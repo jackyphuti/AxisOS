@@ -42,6 +42,8 @@ os-build/scripts/compile-native-apps
 os-build/scripts/axis-disk-info
 os-build/scripts/axis-game-runner
 os-build/scripts/axis-game-runner.sh
+os-build/scripts/axis-switch-session
+os-build/scripts/axis-switch-session.sh
 os-build/apps/nobara-welcome/axis-hardware-manager
 
 # Logs

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Return to Desktop Shell
+Comment=Switch from Game Mode back to LiquidNodes Desktop Shell
+Exec=/usr/local/bin/axis-switch-session desktop
+Icon=user-desktop
+Terminal=false
+Type=Application
+Categories=System;Settings;
+StartupNotify=true

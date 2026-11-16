@@ -3,6 +3,8 @@
 #include <cairo.h>
 #include <math.h>
 #include <string.h>
+#include <glob.h>
+#include <ctype.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -284,8 +286,289 @@ static void on_launcher_app_clicked(GtkButton *btn, gpointer user_data) {
     UiShell *shell = (UiShell *)g_object_get_data(G_OBJECT(btn), "shell");
     if (cmd && shell) {
         system_controller_launch_app(shell->sys_ctrl, cmd);
-        gtk_widget_hide(shell->launcher_window);
+        if (shell->launcher_window) gtk_widget_hide(shell->launcher_window);
+        if (shell->games_window) gtk_widget_hide(shell->games_window);
+        if (shell->quicksettings_window) gtk_widget_hide(shell->quicksettings_window);
     }
+}
+
+void ui_shell_toggle_games(UiShell *shell) {
+    if (!shell || !shell->games_window) return;
+    if (gtk_widget_get_visible(shell->games_window)) {
+        if (shell->games_revealer) {
+            gtk_revealer_set_reveal_child(GTK_REVEALER(shell->games_revealer), FALSE);
+            g_timeout_add(190, on_hide_launcher_timeout, shell->games_window);
+        } else {
+            gtk_widget_hide(shell->games_window);
+        }
+    } else {
+        if (shell->launcher_window) gtk_widget_hide(shell->launcher_window);
+        if (shell->quicksettings_window) gtk_widget_hide(shell->quicksettings_window);
+        if (shell->games_search_entry) {
+            gtk_entry_set_text(GTK_ENTRY(shell->games_search_entry), "");
+        }
+        gtk_widget_show_all(shell->games_window);
+        if (shell->games_revealer) {
+            gtk_revealer_set_reveal_child(GTK_REVEALER(shell->games_revealer), TRUE);
+        }
+        if (shell->games_search_entry) {
+            gtk_widget_grab_focus(shell->games_search_entry);
+        }
+    }
+}
+
+static void filter_games_apps(UiShell *shell, const char *active_category) {
+    if (!shell || !shell->games_search_entry || !shell->games_flowbox) return;
+    const gchar *query = gtk_entry_get_text(GTK_ENTRY(shell->games_search_entry));
+    GList *children = gtk_container_get_children(GTK_CONTAINER(shell->games_flowbox));
+
+    for (GList *l = children; l != NULL; l = l->next) {
+        GtkWidget *child = GTK_WIDGET(l->data);
+        GtkWidget *target = GTK_IS_BIN(child) ? gtk_bin_get_child(GTK_BIN(child)) : child;
+        const char *name = (const char *)g_object_get_data(G_OBJECT(child), "game_name");
+        if (!name && target) name = (const char *)g_object_get_data(G_OBJECT(target), "game_name");
+        const char *cat = (const char *)g_object_get_data(G_OBJECT(child), "game_cat");
+        if (!cat && target) cat = (const char *)g_object_get_data(G_OBJECT(target), "game_cat");
+
+        gboolean match = TRUE;
+        if (query && *query) {
+            if (!name || !g_str_match_string(query, name, TRUE)) {
+                match = FALSE;
+            }
+        }
+        if (match && active_category && strcmp(active_category, "All") != 0) {
+            if (!cat || !strstr(cat, active_category)) {
+                match = FALSE;
+            }
+        }
+        gtk_widget_set_visible(child, match);
+    }
+    g_list_free(children);
+}
+
+static void on_games_search_changed(GtkSearchEntry *entry, gpointer user_data) {
+    (void)entry;
+    UiShell *shell = (UiShell *)user_data;
+    filter_games_apps(shell, "All");
+}
+
+static void on_games_filter_btn_clicked(GtkButton *btn, gpointer user_data) {
+    UiShell *shell = (UiShell *)user_data;
+    const char *cat = gtk_button_get_label(btn);
+    GtkWidget *parent = gtk_widget_get_parent(GTK_WIDGET(btn));
+    if (parent) {
+        GList *children = gtk_container_get_children(GTK_CONTAINER(parent));
+        for (GList *l = children; l != NULL; l = l->next) {
+            remove_class(GTK_WIDGET(l->data), "active");
+        }
+        g_list_free(children);
+    }
+    add_class(GTK_WIDGET(btn), "active");
+    filter_games_apps(shell, cat);
+}
+
+static void add_game_tile(UiShell *shell, const char *name, const char *icon, const char *exec, const char *category) {
+    if (!shell || !shell->games_flowbox) return;
+
+    GtkWidget *game_btn = gtk_button_new();
+    add_class(game_btn, "app-tile");
+    gtk_widget_set_size_request(game_btn, 118, 104);
+
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    GtkWidget *img = gtk_image_new_from_icon_name(icon && icon[0] ? icon : "input-gaming", GTK_ICON_SIZE_DND);
+    GtkWidget *lbl = gtk_label_new(name);
+    add_class(lbl, "caption");
+    gtk_label_set_ellipsize(GTK_LABEL(lbl), PANGO_ELLIPSIZE_END);
+    gtk_label_set_max_width_chars(GTK_LABEL(lbl), 13);
+
+    gtk_box_pack_start(GTK_BOX(box), img, TRUE, TRUE, 2);
+    gtk_box_pack_start(GTK_BOX(box), lbl, FALSE, FALSE, 2);
+    gtk_container_add(GTK_CONTAINER(game_btn), box);
+
+    g_object_set_data(G_OBJECT(game_btn), "shell", shell);
+    g_signal_connect(game_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), g_strdup(exec));
+
+    GtkWidget *flow_child = gtk_flow_box_child_new();
+    gtk_container_add(GTK_CONTAINER(flow_child), game_btn);
+    g_object_set_data_full(G_OBJECT(flow_child), "game_name", g_strdup(name), g_free);
+    g_object_set_data_full(G_OBJECT(flow_child), "game_cat", g_strdup(category ? category : ""), g_free);
+    g_object_set_data_full(G_OBJECT(game_btn), "game_name", g_strdup(name), g_free);
+    g_object_set_data_full(G_OBJECT(game_btn), "game_cat", g_strdup(category ? category : ""), g_free);
+
+    gtk_container_add(GTK_CONTAINER(shell->games_flowbox), flow_child);
+}
+
+static void populate_games_panel(UiShell *shell) {
+    const char *home = g_get_home_dir();
+    if (!home) return;
+
+    // 1. Scan Steam Games
+    char steam_pattern[512];
+    snprintf(steam_pattern, sizeof(steam_pattern), "%s/.steam/steam/steamapps/appmanifest_*.acf", home);
+    glob_t g_steam;
+    if (glob(steam_pattern, 0, NULL, &g_steam) == 0) {
+        for (size_t i = 0; i < g_steam.gl_pathc; ++i) {
+            FILE *f = fopen(g_steam.gl_pathv[i], "r");
+            if (f) {
+                char line[512];
+                char appid[32] = {0};
+                char name[256] = {0};
+                while (fgets(line, sizeof(line), f)) {
+                    if (strstr(line, "\"appid\"")) {
+                        char *q1 = strchr(line + 7, '\"');
+                        if (q1) {
+                            char *q2 = strchr(q1 + 1, '\"');
+                            if (q2) {
+                                size_t len = q2 - (q1 + 1);
+                                if (len < sizeof(appid)) {
+                                    strncpy(appid, q1 + 1, len);
+                                    appid[len] = '\0';
+                                }
+                            }
+                        }
+                    } else if (strstr(line, "\"name\"")) {
+                        char *q1 = strchr(line + 6, '\"');
+                        if (q1) {
+                            char *q2 = strchr(q1 + 1, '\"');
+                            if (q2) {
+                                size_t len = q2 - (q1 + 1);
+                                if (len < sizeof(name)) {
+                                    strncpy(name, q1 + 1, len);
+                                    name[len] = '\0';
+                                }
+                            }
+                        }
+                    }
+                }
+                fclose(f);
+                if (appid[0] && name[0] && strcmp(appid, "228980") != 0 && strcmp(appid, "1070560") != 0) {
+                    char exec[512];
+                    snprintf(exec, sizeof(exec), "steam steam://rungameid/%s", appid);
+                    add_game_tile(shell, name, "steam", exec, "Steam");
+                }
+            }
+        }
+        globfree(&g_steam);
+    }
+
+    // 2. Scan Lutris Titles
+    char lutris_pattern[512];
+    snprintf(lutris_pattern, sizeof(lutris_pattern), "%s/.local/share/applications/net.lutris.*.desktop", home);
+    glob_t g_lutris;
+    if (glob(lutris_pattern, 0, NULL, &g_lutris) == 0) {
+        for (size_t i = 0; i < g_lutris.gl_pathc; ++i) {
+            FILE *f = fopen(g_lutris.gl_pathv[i], "r");
+            if (f) {
+                char line[512];
+                char name[256] = {0};
+                char exec[512] = {0};
+                while (fgets(line, sizeof(line), f)) {
+                    if (strncmp(line, "Name=", 5) == 0 && !name[0]) {
+                        line[strcspn(line, "\r\n")] = '\0';
+                        g_strlcpy(name, line + 5, sizeof(name));
+                    } else if (strncmp(line, "Exec=", 5) == 0 && !exec[0]) {
+                        line[strcspn(line, "\r\n")] = '\0';
+                        g_strlcpy(exec, line + 5, sizeof(exec));
+                    }
+                }
+                fclose(f);
+                if (name[0] && exec[0]) {
+                    add_game_tile(shell, name, "lutris", exec, "Lutris");
+                }
+            }
+        }
+        globfree(&g_lutris);
+    }
+
+    // 3. Scan RetroArch Playlists
+    char retro_pattern[512];
+    snprintf(retro_pattern, sizeof(retro_pattern), "%s/.config/retroarch/playlists/*.lpl", home);
+    glob_t g_retro;
+    if (glob(retro_pattern, 0, NULL, &g_retro) == 0) {
+        for (size_t i = 0; i < g_retro.gl_pathc; ++i) {
+            FILE *f = fopen(g_retro.gl_pathv[i], "r");
+            if (f) {
+                char line[512];
+                char label[256] = {0};
+                char path[512] = {0};
+                while (fgets(line, sizeof(line), f)) {
+                    if (strstr(line, "\"label\":")) {
+                        char *q1 = strchr(line + 8, '\"');
+                        if (q1) {
+                            char *q2 = strchr(q1 + 1, '\"');
+                            if (q2) {
+                                size_t len = q2 - (q1 + 1);
+                                if (len < sizeof(label)) {
+                                    strncpy(label, q1 + 1, len);
+                                    label[len] = '\0';
+                                }
+                            }
+                        }
+                    } else if (strstr(line, "\"path\":")) {
+                        char *q1 = strchr(line + 7, '\"');
+                        if (q1) {
+                            char *q2 = strchr(q1 + 1, '\"');
+                            if (q2) {
+                                size_t len = q2 - (q1 + 1);
+                                if (len < sizeof(path)) {
+                                    strncpy(path, q1 + 1, len);
+                                    path[len] = '\0';
+                                }
+                            }
+                        }
+                    }
+                    if (label[0] && path[0]) {
+                        char exec[1024];
+                        snprintf(exec, sizeof(exec), "retroarch \"%s\"", path);
+                        add_game_tile(shell, label, "retroarch", exec, "RetroArch");
+                        label[0] = '\0';
+                        path[0] = '\0';
+                    }
+                }
+                fclose(f);
+            }
+        }
+        globfree(&g_retro);
+    }
+
+    // 4. Scan PlayStation Library (~/Emulation/games/ps*)
+    const char *systems[] = {"ps1", "ps2", "ps3", "psp", "psvita", "ps4", NULL};
+    for (int s = 0; systems[s] != NULL; ++s) {
+        char rom_pattern[512];
+        snprintf(rom_pattern, sizeof(rom_pattern), "%s/Emulation/games/%s/*.*", home, systems[s]);
+        glob_t g_roms;
+        if (glob(rom_pattern, 0, NULL, &g_roms) == 0) {
+            for (size_t i = 0; i < g_roms.gl_pathc; ++i) {
+                const char *path = g_roms.gl_pathv[i];
+                const char *base = strrchr(path, '/');
+                base = base ? base + 1 : path;
+                if (base[0] == '.') continue;
+
+                char game_name[256];
+                strncpy(game_name, base, sizeof(game_name) - 1);
+                game_name[sizeof(game_name) - 1] = '\0';
+                char *dot = strrchr(game_name, '.');
+                if (dot) *dot = '\0';
+
+                char exec[1024];
+                snprintf(exec, sizeof(exec), "/usr/local/bin/axis-game-runner %s \"%s\"", systems[s], path);
+                add_game_tile(shell, game_name, "input-gaming", exec, "PlayStation");
+            }
+            globfree(&g_roms);
+        }
+    }
+
+    // 5. Always include Core Game Launchers & PlayStation Emulators
+    add_game_tile(shell, "Steam Big Picture", "steam", "steam -gamepadui -steamos3 || steam", "Steam");
+    add_game_tile(shell, "Lutris Game Manager", "lutris", "lutris || flatpak run net.lutris.Lutris", "Lutris");
+    add_game_tile(shell, "RetroArch Frontend", "retroarch", "retroarch || flatpak run org.libretro.RetroArch", "RetroArch");
+    add_game_tile(shell, "Heroic Games Launcher", "heroic", "heroic || flatpak run com.heroicgameslauncher.hgl", "Steam");
+    add_game_tile(shell, "PlayStation 2 (PCSX2)", "input-gaming", "/usr/local/bin/axis-game-runner ps2", "PlayStation");
+    add_game_tile(shell, "PlayStation 3 (RPCS3)", "input-gaming", "/usr/local/bin/axis-game-runner ps3", "PlayStation");
+    add_game_tile(shell, "PlayStation 1 (DuckStation)", "input-gaming", "/usr/local/bin/axis-game-runner ps1", "PlayStation");
+    add_game_tile(shell, "PSP (PPSSPP)", "input-gaming", "/usr/local/bin/axis-game-runner psp", "PlayStation");
+    add_game_tile(shell, "PS Vita (Vita3K)", "input-gaming", "/usr/local/bin/axis-game-runner psvita", "PlayStation");
+    add_game_tile(shell, "PS4 (shadPS4)", "input-gaming", "/usr/local/bin/axis-game-runner ps4", "PlayStation");
 }
 
 static void filter_launcher_apps(UiShell *shell) {
@@ -604,6 +887,12 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     g_signal_connect_swapped(launcher_btn, "clicked", G_CALLBACK(ui_shell_toggle_launcher), shell);
     gtk_box_pack_start(GTK_BOX(left_island), launcher_btn, FALSE, FALSE, 2);
 
+    GtkWidget *games_btn = gtk_button_new_from_icon_name("input-gaming", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(games_btn, "Game Station & Library (Steam, Lutris, RetroArch, PlayStation)");
+    add_class(games_btn, "workspace-pill");
+    g_signal_connect_swapped(games_btn, "clicked", G_CALLBACK(ui_shell_toggle_games), shell);
+    gtk_box_pack_start(GTK_BOX(left_island), games_btn, FALSE, FALSE, 2);
+
     for (int i = 0; i < 4; ++i) {
         char ws_name[4];
         snprintf(ws_name, sizeof(ws_name), "%d", i + 1);
@@ -699,6 +988,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         {"utilities-terminal", "Terminal", "axis-terminal || foot"},
         {"system-file-manager", "Files", "GSK_RENDERER=cairo nautilus --new-window || thunar || pcmanfm"},
         {"web-browser", "Browser", "firefox || firefox-esr || chromium --no-sandbox --ozone-platform=wayland"},
+        {"input-gaming", "Game Station", "axis-game-runner"},
         {"preferences-system", "Settings", "axis-settings"},
         {"utilities-system-monitor", "Task Manager", "axis-task-manager"},
         {"system-software-install", "Software", "axis-software-manager"},
@@ -812,6 +1102,85 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
             gtk_container_add(GTK_CONTAINER(shell->launcher_flowbox), flow_child);
         }
     }
+
+    // ==========================================
+    // 3b. GAMES PANEL (LiquidGamesPanel)
+    // ==========================================
+    shell->games_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    setup_layer_window(shell->games_window, GTK_LAYER_SHELL_LAYER_OVERLAY, "LiquidGamesPanel");
+
+    if (gtk_layer_is_supported()) {
+        gtk_layer_set_anchor(GTK_WINDOW(shell->games_window), GTK_LAYER_SHELL_EDGE_TOP, TRUE);
+        gtk_layer_set_margin(GTK_WINDOW(shell->games_window), GTK_LAYER_SHELL_EDGE_TOP, 58);
+        gtk_layer_set_keyboard_mode(GTK_WINDOW(shell->games_window), GTK_LAYER_SHELL_KEYBOARD_MODE_ON_DEMAND);
+    }
+    gtk_widget_set_size_request(shell->games_window, 760, 540);
+    g_signal_connect(shell->games_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
+
+    shell->games_revealer = gtk_revealer_new();
+    gtk_revealer_set_transition_type(GTK_REVEALER(shell->games_revealer), GTK_REVEALER_TRANSITION_TYPE_CROSSFADE);
+    gtk_revealer_set_transition_duration(GTK_REVEALER(shell->games_revealer), 180);
+    gtk_container_add(GTK_CONTAINER(shell->games_window), shell->games_revealer);
+
+    GtkWidget *games_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
+    gtk_container_set_border_width(GTK_CONTAINER(games_card), 18);
+    gtk_widget_set_size_request(games_card, 760, 540);
+    gtk_container_add(GTK_CONTAINER(shell->games_revealer), games_card);
+
+    // Header with title & Game Mode Switch button
+    GtkWidget *header_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    GtkWidget *games_icon = gtk_image_new_from_icon_name("input-gaming", GTK_ICON_SIZE_LARGE_TOOLBAR);
+    GtkWidget *games_title = gtk_label_new("Game Station & Library");
+    add_class(games_title, "title-3");
+    gtk_box_pack_start(GTK_BOX(header_row), games_icon, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(header_row), games_title, FALSE, FALSE, 4);
+
+    GtkWidget *gamemode_btn = gtk_button_new_with_label("Enter Game Mode (gamescope)");
+    add_class(gamemode_btn, "suggested-action");
+    g_object_set_data(G_OBJECT(gamemode_btn), "shell", shell);
+    g_signal_connect(gamemode_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)"axis-switch-session gamemode");
+    gtk_box_pack_end(GTK_BOX(header_row), gamemode_btn, FALSE, FALSE, 4);
+
+    gtk_box_pack_start(GTK_BOX(games_card), header_row, FALSE, FALSE, 2);
+
+    shell->games_search_entry = gtk_search_entry_new();
+    add_class(shell->games_search_entry, "launcher-search");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(shell->games_search_entry), "Search Steam, Lutris, RetroArch & PlayStation titles...");
+    g_signal_connect(shell->games_search_entry, "search-changed", G_CALLBACK(on_games_search_changed), shell);
+    gtk_box_pack_start(GTK_BOX(games_card), shell->games_search_entry, FALSE, FALSE, 4);
+
+    // Filter pills
+    GtkWidget *filter_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    const char *game_cats[] = {"All", "PlayStation", "Steam", "Lutris", "RetroArch", NULL};
+    for (int i = 0; game_cats[i] != NULL; ++i) {
+        GtkWidget *cat_btn = gtk_button_new_with_label(game_cats[i]);
+        add_class(cat_btn, "filter-pill");
+        if (i == 0) add_class(cat_btn, "active");
+        g_signal_connect(cat_btn, "clicked", G_CALLBACK(on_games_filter_btn_clicked), shell);
+        gtk_box_pack_start(GTK_BOX(filter_box), cat_btn, FALSE, FALSE, 2);
+    }
+    gtk_box_pack_start(GTK_BOX(games_card), filter_box, FALSE, FALSE, 4);
+
+    // Scrolled apps flowbox
+    GtkWidget *games_scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(games_scroll), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_widget_set_vexpand(games_scroll, TRUE);
+    gtk_widget_set_hexpand(games_scroll, TRUE);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(games_scroll), 380);
+    gtk_scrolled_window_set_min_content_width(GTK_SCROLLED_WINDOW(games_scroll), 700);
+    gtk_box_pack_start(GTK_BOX(games_card), games_scroll, TRUE, TRUE, 4);
+
+    shell->games_flowbox = gtk_flow_box_new();
+    gtk_widget_set_valign(shell->games_flowbox, GTK_ALIGN_START);
+    gtk_flow_box_set_row_spacing(GTK_FLOW_BOX(shell->games_flowbox), 12);
+    gtk_flow_box_set_column_spacing(GTK_FLOW_BOX(shell->games_flowbox), 12);
+    gtk_flow_box_set_homogeneous(GTK_FLOW_BOX(shell->games_flowbox), TRUE);
+    gtk_flow_box_set_min_children_per_line(GTK_FLOW_BOX(shell->games_flowbox), 5);
+    gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(shell->games_flowbox), 5);
+    gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(shell->games_flowbox), GTK_SELECTION_NONE);
+    gtk_container_add(GTK_CONTAINER(games_scroll), shell->games_flowbox);
+
+    populate_games_panel(shell);
 
     // ==========================================
     // 4. QUICK SETTINGS (QuickSettingsPanel)

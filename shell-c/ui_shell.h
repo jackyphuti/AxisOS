@@ -20,6 +20,7 @@ typedef struct {
     GtkWidget *dock_window;
     GtkWidget *launcher_window;
     GtkWidget *quicksettings_window;
+    GtkWidget *games_window;
     GtkWidget *osd_window;
     GtkWidget *notification_window;
     GtkWidget *greeter_window;
@@ -43,6 +44,11 @@ typedef struct {
     GtkWidget *launcher_filter_box;
     GtkWidget *launcher_flowbox;
     char *launcher_active_filter;
+
+    // Games Panel Widgets
+    GtkWidget *games_revealer;
+    GtkWidget *games_search_entry;
+    GtkWidget *games_flowbox;
 
     // Quick Settings Widgets
     GtkWidget *qs_revealer;
@@ -90,6 +96,7 @@ void ui_shell_apply_theme(gboolean dark_mode);
 
 void ui_shell_toggle_launcher(UiShell *shell);
 void ui_shell_toggle_quicksettings(UiShell *shell);
+void ui_shell_toggle_games(UiShell *shell);
 void ui_shell_show_osd(UiShell *shell, const char *icon_name, int percent);
 void ui_shell_show_notification(UiShell *shell, const char *app_name, const char *summary,
                                 const char *body, const char *icon);

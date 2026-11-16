@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=AxisOS Game Mode
+Comment=Console gaming session powered by gamescope and Steam Big Picture
+Exec=/usr/local/bin/axisos-gamemode-session.sh
+Type=Application
+DesktopNames=gamescope;Steam;AxisOS
+Keywords=game;gaming;steam;console;

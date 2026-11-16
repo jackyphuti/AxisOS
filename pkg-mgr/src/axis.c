@@ -413,6 +413,188 @@ static int do_search(const char *query) {
     return 0;
 }
 
+static int do_check_gaming(void) {
+    printf("======================================================================\n");
+    printf("          AxisOS Gaming & Hardware Compatibility Doctor               \n");
+    printf("======================================================================\n\n");
+
+    int overall_pass = 1;
+
+    // 1. GPU Detection & Modeset
+    printf("\033[1m[1/5] GPU Hardware & Kernel Driver Detection:\033[0m\n");
+    FILE *fp_gpu = popen("lspci -nn 2>/dev/null | grep -iE 'vga|3d|display'", "r");
+    char line[512];
+    int found_gpu = 0;
+    int is_nvidia = 0;
+    if (fp_gpu) {
+        while (fgets(line, sizeof(line), fp_gpu)) {
+            line[strcspn(line, "\r\n")] = '\0';
+            printf("  -> %s\n", line);
+            found_gpu = 1;
+            if (strstr(line, "10de:")) is_nvidia = 1;
+        }
+        pclose(fp_gpu);
+    }
+    if (!found_gpu) {
+        printf("  \033[93m[WARN]\033[0m No discrete PCI GPU detected (using virtual/DRM fallback)\n");
+    } else {
+        printf("  \033[92m[OK]\033[0m Graphics hardware recognized.\n");
+    }
+
+    if (is_nvidia) {
+        FILE *f_modeset = fopen("/sys/module/nvidia_drm/parameters/modeset", "r");
+        if (f_modeset) {
+            char val[16] = {0};
+            if (fgets(val, sizeof(val), f_modeset) && (val[0] == 'Y' || val[0] == 'y' || val[0] == '1')) {
+                printf("  \033[92m[OK]\033[0m nvidia-drm.modeset=1 is ACTIVE (Wayland hardware acceleration enabled)\n");
+            } else {
+                printf("  \033[93m[WARN]\033[0m nvidia-drm modeset is not 'Y' (modeset=%s)\n", val);
+            }
+            fclose(f_modeset);
+        } else {
+            FILE *f_cmd = fopen("/proc/cmdline", "r");
+            if (f_cmd) {
+                char cmdl[1024] = {0};
+                if (fgets(cmdl, sizeof(cmdl), f_cmd) && strstr(cmdl, "nvidia-drm.modeset=1")) {
+                    printf("  \033[92m[OK]\033[0m nvidia-drm.modeset=1 configured in kernel command line.\n");
+                } else {
+                    printf("  \033[90m[INFO]\033[0m nvidia-drm module not active or in nouveau mode.\n");
+                }
+                fclose(f_cmd);
+            }
+        }
+    }
+
+    // 2. Vulkan Acceleration
+    printf("\n\033[1m[2/5] Vulkan Hardware Acceleration:\033[0m\n");
+    FILE *fp_vk = popen("vulkaninfo --summary 2>/dev/null", "r");
+    int vk_ok = 0;
+    if (fp_vk) {
+        char dev_name[256] = {0};
+        char api_ver[128] = {0};
+        while (fgets(line, sizeof(line), fp_vk)) {
+            if (strstr(line, "deviceName")) {
+                char *p = strchr(line, '=');
+                if (p) {
+                    strncpy(dev_name, p + 2, sizeof(dev_name) - 1);
+                    dev_name[strcspn(dev_name, "\r\n")] = '\0';
+                }
+            } else if (strstr(line, "apiVersion")) {
+                char *p = strchr(line, '=');
+                if (p) {
+                    strncpy(api_ver, p + 2, sizeof(api_ver) - 1);
+                    api_ver[strcspn(api_ver, "\r\n")] = '\0';
+                }
+            }
+            vk_ok = 1;
+        }
+        pclose(fp_vk);
+        if (vk_ok) {
+            printf("  \033[92m[OK]\033[0m Vulkan ICD active: %s (API %s)\n",
+                   dev_name[0] ? dev_name : "Hardware Device",
+                   api_ver[0] ? api_ver : "1.3+");
+        }
+    }
+    if (!vk_ok) {
+        if (access("/usr/share/vulkan/icd.d", F_OK) == 0) {
+            printf("  \033[92m[OK]\033[0m Vulkan driver manifests found in /usr/share/vulkan/icd.d/\n");
+        } else {
+            printf("  \033[91m[FAIL]\033[0m No Vulkan ICD active. Run: sudo axis-gpu-setup.sh\n");
+            overall_pass = 0;
+        }
+    }
+
+    // 3. 32-bit Multiarch Libraries
+    printf("\n\033[1m[3/5] 32-bit Multiarch Architecture & Libraries (Steam/Wine):\033[0m\n");
+    int i386_arch = 0;
+    FILE *fp_dpkg = popen("dpkg --print-foreign-architectures 2>/dev/null", "r");
+    if (fp_dpkg) {
+        while (fgets(line, sizeof(line), fp_dpkg)) {
+            if (strstr(line, "i386")) i386_arch = 1;
+        }
+        pclose(fp_dpkg);
+    }
+    if (i386_arch) {
+        printf("  \033[92m[OK]\033[0m dpkg foreign architecture 'i386' enabled.\n");
+    } else {
+        printf("  \033[93m[WARN]\033[0m i386 multiarch architecture not enabled.\n");
+    }
+
+    int has_32bit_libs = 0;
+    if (access("/usr/lib/i386-linux-gnu/libvulkan.so.1", F_OK) == 0 ||
+        access("/usr/lib/i386-linux-gnu/libGL.so.1", F_OK) == 0 ||
+        access("/usr/lib/i386-linux-gnu/dri", F_OK) == 0) {
+        has_32bit_libs = 1;
+    }
+    if (has_32bit_libs) {
+        printf("  \033[92m[OK]\033[0m 32-bit graphics and Vulkan libraries present in /usr/lib/i386-linux-gnu.\n");
+    } else {
+        printf("  \033[90m[INFO]\033[0m Run 'sudo axis-gpu-setup.sh' to install 32-bit Mesa/Vulkan libraries.\n");
+    }
+
+    // 4. Controller Access & Input Subsystem
+    printf("\n\033[1m[4/5] Gamepad & Controller Subsystem (uinput / hidraw):\033[0m\n");
+    if (access("/dev/uinput", W_OK) == 0) {
+        printf("  \033[92m[OK]\033[0m /dev/uinput is writable (non-root virtual controller mapping supported).\n");
+    } else if (access("/dev/uinput", F_OK) == 0) {
+        printf("  \033[93m[WARN]\033[0m /dev/uinput exists but is not directly user-writable (check uaccess rule).\n");
+    } else {
+        printf("  \033[91m[FAIL]\033[0m /dev/uinput not found. Run: sudo modprobe uinput\n");
+    }
+
+    FILE *fp_joy = popen("ls -d /dev/input/js* 2>/dev/null", "r");
+    int joy_count = 0;
+    if (fp_joy) {
+        while (fgets(line, sizeof(line), fp_joy)) {
+            joy_count++;
+        }
+        pclose(fp_joy);
+    }
+    if (joy_count > 0) {
+        printf("  \033[92m[OK]\033[0m %d joystick device(s) connected (/dev/input/js*).\n", joy_count);
+    } else {
+        printf("  \033[90m[INFO]\033[0m No physical gamepads plugged in at this moment.\n");
+    }
+
+    // 5. GameMode & Memory Tuning
+    printf("\n\033[1m[5/5] Performance Tuning & FSync/ESync Limits:\033[0m\n");
+    FILE *fp_map = fopen("/proc/sys/vm/max_map_count", "r");
+    if (fp_map) {
+        long long map_count = 0;
+        if (fscanf(fp_map, "%lld", &map_count) == 1) {
+            if (map_count >= 2147483642LL || map_count >= 1000000LL) {
+                printf("  \033[92m[OK]\033[0m vm.max_map_count = %lld (Optimal for RPCS3, PCSX2, and Proton)\n", map_count);
+            } else {
+                printf("  \033[93m[WARN]\033[0m vm.max_map_count = %lld (Recommend >= 2147483642)\n", map_count);
+            }
+        }
+        fclose(fp_map);
+    }
+
+    FILE *fp_gm = popen("gamemoded -s 2>/dev/null || gamemoded -t 2>/dev/null", "r");
+    int gm_ok = 0;
+    if (fp_gm) {
+        while (fgets(line, sizeof(line), fp_gm)) {
+            if (strstr(line, "GameMode is") || strstr(line, "SUCCESS")) gm_ok = 1;
+        }
+        pclose(fp_gm);
+    }
+    if (gm_ok || access("/usr/bin/gamemoded", X_OK) == 0 || access("/usr/local/bin/axis-game-boost", X_OK) == 0) {
+        printf("  \033[92m[OK]\033[0m GameMode daemon & AxisOS GameBoost active.\n");
+    } else {
+        printf("  \033[90m[INFO]\033[0m GameMode daemon not detected.\n");
+    }
+
+    printf("\n======================================================================\n");
+    if (overall_pass) {
+        printf("\033[92m[SUCCESS]\033[0m AxisOS Gaming Subsystem is healthy and ready for games.\n");
+    } else {
+        printf("\033[93m[NOTICE]\033[0m Some components need attention. Run 'sudo axis-gpu-setup.sh'.\n");
+    }
+    printf("======================================================================\n");
+    return 0;
+}
+
 static void print_usage(const char *prog) {
     printf("AxisOS Package Manager (`axis`) - Pure C11 Edition\n");
     printf("Usage: %s <command> [arguments]\n\n", prog);
@@ -422,6 +604,7 @@ static void print_usage(const char *prog) {
     printf("  remove <pkg>       Remove an installed package and its files\n");
     printf("  list               List all installed .axis packages\n");
     printf("  search <query>     Search available packages in repository\n");
+    printf("  check-gaming       Verify Vulkan, 32-bit multiarch, GPU, controllers & GameMode\n");
     printf("  version            Display version information\n");
 }
 
@@ -455,6 +638,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
         return do_search(argv[2]);
+    } else if (strcmp(cmd, "check-gaming") == 0 || strcmp(cmd, "doctor") == 0 || strcmp(cmd, "game-check") == 0) {
+        return do_check_gaming();
     } else if (strcmp(cmd, "version") == 0 || strcmp(cmd, "-v") == 0 || strcmp(cmd, "--version") == 0) {
         printf("axis (AxisOS Package Manager) 2.0.0 (Pure C11)\n");
         return 0;

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Switch to Game Mode
+Comment=Launch full-screen gamescope console gaming session
+Exec=/usr/local/bin/axis-switch-session gamemode
+Icon=input-gaming
+Terminal=false
+Type=Application
+Categories=Game;System;
+StartupNotify=true

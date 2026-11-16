@@ -96,12 +96,22 @@ if [ -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" ]; then
 fi
 
 # 5b. Copy AxisOS System Helper Daemons & Tools
-for helper in axis-game-boost axis-game-runner axis-update-notifier axis-autotimezone gpu-autodetect axis-biometrics axis-fastboot-patch axis-captive-portal axis-rewind; do
+for helper in axis-game-boost axis-game-runner axis-switch-session axis-update-notifier axis-autotimezone gpu-autodetect axis-biometrics axis-fastboot-patch axis-captive-portal axis-rewind; do
     if [ -x "$WORKSPACE_DIR/os-build/scripts/$helper" ]; then
         cp -f "$WORKSPACE_DIR/os-build/scripts/$helper" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
         ln -sf "$helper" "$BUILD_DIR/config/includes.chroot/usr/local/bin/$helper.sh" || true
     fi
 done
+
+# Copy GPU Setup and Game Mode session scripts
+if [ -f "$WORKSPACE_DIR/os-build/scripts/axis-gpu-setup.sh" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/scripts/axis-gpu-setup.sh" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
+    chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-gpu-setup.sh"
+fi
+if [ -f "$WORKSPACE_DIR/os-build/scripts/axisos-gamemode-session.sh" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/scripts/axisos-gamemode-session.sh" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
+    chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-gamemode-session.sh"
+fi
 
 # 6. Copy Updater and Package Manage
 if [ -x "$WORKSPACE_DIR/os-build/updater/axis-update" ]; then
@@ -148,10 +158,14 @@ mkdir -p "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/ps1" \
          "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/ps2" \
          "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/ps3" \
          "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/psp" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/psvita" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/bios/ps4" \
          "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/ps1" \
          "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/ps2" \
          "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/ps3" \
-         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/psp"
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/psp" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/psvita" \
+         "$BUILD_DIR/config/includes.chroot/etc/skel/Emulation/games/ps4"
 
 # 8. Copy PAM, Polkit, Udev Rules, and Systemd Services
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/pam.d"
@@ -180,6 +194,21 @@ fi
 if [ -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
     ln -sf /etc/systemd/system/axisos.service "$BUILD_DIR/config/includes.chroot/etc/systemd/system/graphical.target.wants/axisos.service" || true
+fi
+if [ -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
+fi
+
+# Deploy Sysctl Gaming Performance Drop-in
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/sysctl.d"
+if [ -f "$WORKSPACE_DIR/os-build/configs/sysctl/99-axisos-gaming.conf" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/configs/sysctl/99-axisos-gaming.conf" "$BUILD_DIR/config/includes.chroot/etc/sysctl.d/"
+fi
+
+# Deploy Gaming Kernel Configuration Fragment
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/axisos/kernel"
+if [ -f "$WORKSPACE_DIR/os-build/configs/kernel/gaming-kernel.config" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/configs/kernel/gaming-kernel.config" "$BUILD_DIR/config/includes.chroot/etc/axisos/kernel/"
 fi
 
 # Deploy GTK 3 Global Dark Theme settings
@@ -211,6 +240,9 @@ fi
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/wayland-sessions"
 if [ -f "$CHROOT_CONFIG_DIR/wayland/liquidnodes.desktop" ]; then
     cp -f "$CHROOT_CONFIG_DIR/wayland/liquidnodes.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/wayland-sessions/"
+fi
+if [ -f "$CHROOT_CONFIG_DIR/wayland/axisos-gamemode.desktop" ]; then
+    cp -f "$CHROOT_CONFIG_DIR/wayland/axisos-gamemode.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/wayland-sessions/"
 fi
 if [ -f "$CHROOT_CONFIG_DIR/cage-session/axisos-kiosk.sh" ]; then
     cp -f "$CHROOT_CONFIG_DIR/cage-session/axisos-kiosk.sh" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
