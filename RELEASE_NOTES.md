@@ -24,6 +24,17 @@ Welcome to **AxisOS 2.1**! This release features our native pure C desktop envir
 
 ---
 
+## Verification Checksum
+
+* **File**: `axisos-live-amd64.iso`
+* **Size**: `1,818,001,408` bytes (1.7 GB)
+* **SHA-256 Checksum**:
+  ```text
+  0dd865b2a0dbbfc4e34a4dda9c424c4482292540989eac23bcb47497028c78fd
+  ```
+
+---
+
 ## Testing & Feedback
 
 Please report bugs, hardware compatibility issues, or feedback on [GitHub Issues](https://github.com/jackyphuti/AxisOS/issues).
