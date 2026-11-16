@@ -40,6 +40,7 @@ scripts/verify-pure-c
 scripts/scan-codebase
 os-build/scripts/compile-native-apps
 os-build/scripts/axis-disk-info
+os-build/apps/nobara-welcome/axis-hardware-manager
 
 # Logs
 npm-debug.log*
