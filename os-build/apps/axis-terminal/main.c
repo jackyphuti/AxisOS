@@ -104,13 +104,56 @@ static gboolean on_pty_read(GIOChannel *source, GIOCondition condition, gpointer
     return G_SOURCE_CONTINUE;
 }
 
+static const char *CSS_TERMINAL =
+    "@define-color axis_base #141826;"
+    "@define-color axis_surface #1F2231;"
+    "@define-color axis_surface_raised #262A3D;"
+    "@define-color axis_outline #2E3349;"
+    "@define-color axis_accent #7D95FF;"
+    "@define-color axis_accent_btn_text #0F1422;"
+    "@define-color axis_text #F2F3F7;"
+    "@define-color axis_text_muted #9EA3B5;"
+    "window, headerbar, notebook, notebook header, button {"
+    "    background-image: none;"
+    "    box-shadow: none;"
+    "}"
+    "window {"
+    "    background-color: @axis_base;"
+    "    color: @axis_text;"
+    "    font-family: 'IBM Plex Sans', sans-serif;"
+    "}"
+    "headerbar {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border-bottom: 1px solid @axis_outline;"
+    "}"
+    "notebook, notebook stack {"
+    "    background-color: @axis_base;"
+    "    border: none;"
+    "}"
+    "notebook header {"
+    "    background-color: @axis_surface;"
+    "    border-bottom: 1px solid @axis_outline;"
+    "}"
+    "notebook tab {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text_muted;"
+    "    padding: 4px 12px;"
+    "    border-right: 1px solid @axis_outline;"
+    "}"
+    "notebook tab:checked {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border-bottom: 2px solid @axis_accent;"
+    "}";
+
 static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
     TerminalTab *tab = (TerminalTab *)user_data;
     GtkAllocation alloc;
     gtk_widget_get_allocation(widget, &alloc);
 
-    // Dark background #0f172a
-    cairo_set_source_rgb(cr, 15.0 / 255.0, 23.0 / 255.0, 42.0 / 255.0);
+    // AxisOS One UI Dark background #141826
+    cairo_set_source_rgb(cr, 20.0 / 255.0, 24.0 / 255.0, 38.0 / 255.0);
     cairo_paint(cr);
 
     if (!tab || !tab->vts) return FALSE;
@@ -129,8 +172,9 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
                 vterm_screen_convert_color_to_rgb(tab->vts, &cell.bg);
                 vterm_screen_convert_color_to_rgb(tab->vts, &cell.fg);
 
-                // Cell background if specified
-                if (VTERM_COLOR_IS_RGB(&cell.bg)) {
+                // Cell background if specified (ignore default pitch black 0,0,0 so #141826 base shows)
+                if (VTERM_COLOR_IS_RGB(&cell.bg) &&
+                    !(cell.bg.rgb.red == 0 && cell.bg.rgb.green == 0 && cell.bg.rgb.blue == 0)) {
                     cairo_set_source_rgb(cr, cell.bg.rgb.red / 255.0,
                                          cell.bg.rgb.green / 255.0,
                                          cell.bg.rgb.blue / 255.0);
@@ -138,13 +182,13 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
                     cairo_fill(cr);
                 }
 
-                // Cell text color
+                // Cell text color (#F2F3F7 default)
                 if (VTERM_COLOR_IS_RGB(&cell.fg)) {
                     cairo_set_source_rgb(cr, cell.fg.rgb.red / 255.0,
                                          cell.fg.rgb.green / 255.0,
                                          cell.fg.rgb.blue / 255.0);
                 } else {
-                    cairo_set_source_rgb(cr, 248.0 / 255.0, 250.0 / 255.0, 252.0 / 255.0);
+                    cairo_set_source_rgb(cr, 242.0 / 255.0, 243.0 / 255.0, 247.0 / 255.0);
                 }
 
                 char utf8[16] = {0};
@@ -157,12 +201,11 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
         }
     }
 
-    // Draw cursor
+    // Draw cursor (#7D95FF AxisOS One UI Dark accent)
     if (tab->cursor_visible) {
         double cx = tab->cursor_col * TERM_CHAR_WIDTH;
         double cy = tab->cursor_row * TERM_CHAR_HEIGHT;
-        // Cyan cursor #38bdf8
-        cairo_set_source_rgba(cr, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.75);
+        cairo_set_source_rgba(cr, 125.0 / 255.0, 149.0 / 255.0, 255.0 / 255.0, 0.80);
         cairo_rectangle(cr, cx, cy, TERM_CHAR_WIDTH, TERM_CHAR_HEIGHT);
         cairo_fill(cr);
     }
@@ -185,9 +228,19 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
     guint mod = event->state & gtk_accelerator_get_default_mod_mask();
 
     if ((mod & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) == (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) {
-        if (event->keyval == GDK_KEY_T || event->keyval == GDK_KEY_t) {
-            // New tab handled at window level
+        if (event->keyval == GDK_KEY_T || event->keyval == GDK_KEY_t ||
+            event->keyval == GDK_KEY_W || event->keyval == GDK_KEY_w) {
+            // New tab / close tab handled at window level
             return FALSE;
+        }
+        if (event->keyval == GDK_KEY_V || event->keyval == GDK_KEY_v) {
+            GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+            gchar *text = gtk_clipboard_wait_for_text(cb);
+            if (text && *text) {
+                send_to_pty(tab, text, strlen(text));
+                g_free(text);
+            }
+            return TRUE;
         }
     }
 
@@ -199,6 +252,26 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
         case GDK_KEY_BackSpace:
             send_to_pty(tab, "\x7f", 1);
             return TRUE;
+        case GDK_KEY_Delete:
+        case GDK_KEY_KP_Delete:
+            send_to_pty(tab, "\x1b[3~", 4);
+            return TRUE;
+        case GDK_KEY_Home:
+        case GDK_KEY_KP_Home:
+            send_to_pty(tab, "\x1b[H", 3);
+            return TRUE;
+        case GDK_KEY_End:
+        case GDK_KEY_KP_End:
+            send_to_pty(tab, "\x1b[F", 3);
+            return TRUE;
+        case GDK_KEY_Page_Up:
+        case GDK_KEY_KP_Page_Up:
+            send_to_pty(tab, "\x1b[5~", 4);
+            return TRUE;
+        case GDK_KEY_Page_Down:
+        case GDK_KEY_KP_Page_Down:
+            send_to_pty(tab, "\x1b[6~", 4);
+            return TRUE;
         case GDK_KEY_Tab:
             send_to_pty(tab, "\t", 1);
             return TRUE;
@@ -206,15 +279,19 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
             send_to_pty(tab, "\x1b", 1);
             return TRUE;
         case GDK_KEY_Up:
+        case GDK_KEY_KP_Up:
             send_to_pty(tab, "\x1b[A", 3);
             return TRUE;
         case GDK_KEY_Down:
+        case GDK_KEY_KP_Down:
             send_to_pty(tab, "\x1b[B", 3);
             return TRUE;
         case GDK_KEY_Right:
+        case GDK_KEY_KP_Right:
             send_to_pty(tab, "\x1b[C", 3);
             return TRUE;
         case GDK_KEY_Left:
+        case GDK_KEY_KP_Left:
             send_to_pty(tab, "\x1b[D", 3);
             return TRUE;
         default:
@@ -228,13 +305,30 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
                     send_to_pty(tab, &c, 1);
                     return TRUE;
                 }
-            } else if (event->string && event->string[0]) {
-                send_to_pty(tab, event->string, strlen(event->string));
-                return TRUE;
+            } else {
+                guint32 uc = gdk_keyval_to_unicode(event->keyval);
+                if (uc >= 32) {
+                    char utf8[8] = {0};
+                    int len = g_unichar_to_utf8(uc, utf8);
+                    if (len > 0) {
+                        send_to_pty(tab, utf8, (size_t)len);
+                        return TRUE;
+                    }
+                } else if (event->string && event->string[0]) {
+                    send_to_pty(tab, event->string, strlen(event->string));
+                    return TRUE;
+                }
             }
             break;
     }
 
+    return FALSE;
+}
+
+static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+    (void)event;
+    (void)user_data;
+    gtk_widget_grab_focus(widget);
     return FALSE;
 }
 
@@ -314,7 +408,8 @@ static TerminalTab *create_new_tab(TerminalApp *app) {
 
     tab->child_pid = forkpty(&tab->pty_fd, NULL, NULL, &ws);
     if (tab->child_pid == 0) {
-        // Child process: launch user's preferred shell
+        // Child process: restore default SIGCHLD and launch user's preferred shell
+        signal(SIGCHLD, SIG_DFL);
         const char *sh = getenv("SHELL");
         if (!sh || !*sh) sh = "/bin/bash";
 
@@ -340,6 +435,7 @@ static TerminalTab *create_new_tab(TerminalApp *app) {
 
     g_signal_connect(tab->drawing_area, "draw", G_CALLBACK(on_draw_terminal), tab);
     g_signal_connect(tab->drawing_area, "key-press-event", G_CALLBACK(on_key_press), tab);
+    g_signal_connect(tab->drawing_area, "button-press-event", G_CALLBACK(on_button_press), tab);
     g_signal_connect(tab->drawing_area, "size-allocate", G_CALLBACK(on_tab_size_allocate), tab);
 
     // Tab title
@@ -450,6 +546,15 @@ static void load_axis_theme(void) {
         }
     }
     g_object_unref(provider);
+
+    GtkCssProvider *extra_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra_prov, CSS_TERMINAL, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(extra_prov);
 }
 
 int main(int argc, char *argv[]) {

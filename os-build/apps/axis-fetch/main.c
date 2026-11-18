@@ -198,8 +198,8 @@ static void read_telemetry(SystemTelemetry *t) {
         snprintf(t->cpu_model, sizeof(t->cpu_model), "Standard x86_64 Processor");
     }
 
-    // 10. GPU Model (lspci clean last colon extraction)
-    FILE *fp_gpu = popen("lspci 2>/dev/null | grep -E 'VGA|3D' | sed 's/.*: //g' | head -n1", "r");
+    // 10. GPU Model (lspci + /sys/class/drm fallback)
+    FILE *fp_gpu = popen("lspci 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/.*: //g' | head -n1", "r");
     if (fp_gpu) {
         if (fgets(t->gpu_model, sizeof(t->gpu_model), fp_gpu)) {
             trim_trailing(t->gpu_model);
@@ -207,7 +207,15 @@ static void read_telemetry(SystemTelemetry *t) {
         pclose(fp_gpu);
     }
     if (!t->gpu_model[0]) {
-        snprintf(t->gpu_model, sizeof(t->gpu_model), "Hardware Accelerated Wayland (wlroots/drm)");
+        char drv_buf[256] = {0};
+        ssize_t len = readlink("/sys/class/drm/card0/device/driver", drv_buf, sizeof(drv_buf) - 1);
+        if (len > 0) {
+            drv_buf[len] = '\0';
+            const char *base = strrchr(drv_buf, '/');
+            snprintf(t->gpu_model, sizeof(t->gpu_model), "DRM Graphics (%s)", base ? base + 1 : drv_buf);
+        } else {
+            snprintf(t->gpu_model, sizeof(t->gpu_model), "Hardware Accelerated Wayland (wlroots/drm)");
+        }
     }
 
     // 11. Memory (RAM)

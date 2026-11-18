@@ -110,10 +110,10 @@ static gboolean on_draw_greeter_backdrop(GtkWidget *widget, cairo_t *cr, gpointe
     if (r < 1.0) r = 1.0;
 
     cairo_pattern_t *pat = cairo_pattern_create_radial(cx, cy, 0, cx, cy, r);
-    // Center: #1a2138 -> rgba(26, 33, 56)
-    cairo_pattern_add_color_stop_rgba(pat, 0.0, 26.0 / 255.0, 33.0 / 255.0, 56.0 / 255.0, 1.0);
-    // Edges: #0f1422 -> rgba(15, 20, 34)
-    cairo_pattern_add_color_stop_rgba(pat, 1.0, 15.0 / 255.0, 20.0 / 255.0, 34.0 / 255.0, 1.0);
+    // Center: AxisOS One UI Dark surface #1F2231 -> rgba(31, 34, 49)
+    cairo_pattern_add_color_stop_rgba(pat, 0.0, 31.0 / 255.0, 34.0 / 255.0, 49.0 / 255.0, 0.97);
+    // Edges: AxisOS One UI Dark base #141826 -> rgba(20, 24, 38)
+    cairo_pattern_add_color_stop_rgba(pat, 1.0, 20.0 / 255.0, 24.0 / 255.0, 38.0 / 255.0, 0.99);
 
     cairo_set_source(cr, pat);
     cairo_paint(cr);
@@ -770,6 +770,12 @@ static void on_greeter_submit(GtkWidget *widget, gpointer user_data) {
 
 void ui_shell_lock(UiShell *shell) {
     if (!shell) return;
+    if (shell->quicksettings_window) gtk_widget_hide(shell->quicksettings_window);
+    if (shell->launcher_window) gtk_widget_hide(shell->launcher_window);
+    if (shell->games_window) gtk_widget_hide(shell->games_window);
+    if (shell->qs_power_revealer) {
+        gtk_revealer_set_reveal_child(GTK_REVEALER(shell->qs_power_revealer), FALSE);
+    }
     auth_manager_lock(shell->auth_mgr);
     gtk_entry_set_text(GTK_ENTRY(shell->greeter_pass_entry), "");
     gtk_label_set_text(GTK_LABEL(shell->greeter_status_label), "Enter password to unlock");
@@ -964,6 +970,79 @@ static gboolean on_qs_key_press(GtkWidget *widget, GdkEventKey *event, gpointer 
     return FALSE;
 }
 
+static gboolean on_launcher_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+    (void)widget;
+    UiShell *shell = (UiShell *)user_data;
+    if (event && event->keyval == GDK_KEY_Escape) {
+        ui_shell_toggle_launcher(shell);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static gboolean on_games_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
+    (void)widget;
+    UiShell *shell = (UiShell *)user_data;
+    if (event && event->keyval == GDK_KEY_Escape) {
+        ui_shell_toggle_games(shell);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static void on_qs_toggle_power_strip(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell || !shell->qs_power_revealer) return;
+    gboolean cur = gtk_revealer_get_reveal_child(GTK_REVEALER(shell->qs_power_revealer));
+    gtk_revealer_set_reveal_child(GTK_REVEALER(shell->qs_power_revealer), !cur);
+}
+
+static void on_power_action_lock(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (shell) ui_shell_lock(shell);
+}
+
+static void on_power_action_sleep(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (!shell) return;
+    ui_shell_lock(shell);
+    system_controller_suspend(shell->sys_ctrl);
+}
+
+static void on_power_action_reboot(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (shell) system_controller_reboot(shell->sys_ctrl);
+}
+
+static void on_power_action_shutdown(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    UiShell *shell = (UiShell *)user_data;
+    if (shell) system_controller_power_off(shell->sys_ctrl);
+}
+
+static GtkWidget *create_power_action_btn(const char *icon_name, const char *label_text,
+                                          gboolean is_danger, GCallback cb, gpointer user_data) {
+    GtkWidget *btn = gtk_button_new();
+    add_class(btn, "qs-power-action-btn");
+    if (is_danger) add_class(btn, "danger");
+
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    gtk_widget_set_halign(vbox, GTK_ALIGN_CENTER);
+    GtkWidget *ic = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_BUTTON);
+    GtkWidget *lbl = gtk_label_new(label_text);
+    add_class(lbl, "caption");
+
+    gtk_box_pack_start(GTK_BOX(vbox), ic, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox), lbl, FALSE, FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(btn), vbox);
+    g_signal_connect(btn, "clicked", cb, user_data);
+    return btn;
+}
+
 UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboolean greeter_mode) {
     UiShell *shell = g_new0(UiShell, 1);
     shell->sys_ctrl = sys_ctrl;
@@ -1118,6 +1197,18 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         {NULL, NULL, NULL}
     };
 
+    if (access("/etc/axisos-installed", F_OK) != 0) {
+        GtkWidget *inst_btn = gtk_button_new();
+        add_class(inst_btn, "dock-tile");
+        GtkWidget *inst_img = gtk_image_new_from_icon_name("drive-harddisk-symbolic", GTK_ICON_SIZE_INVALID);
+        gtk_image_set_pixel_size(GTK_IMAGE(inst_img), 48);
+        gtk_button_set_image(GTK_BUTTON(inst_btn), inst_img);
+        gtk_widget_set_tooltip_text(inst_btn, "Install AxisOS");
+        g_object_set_data(G_OBJECT(inst_btn), "shell", shell);
+        g_signal_connect(inst_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)"axis-installer");
+        gtk_box_pack_start(GTK_BOX(dock_box), inst_btn, FALSE, FALSE, 2);
+    }
+
     for (int i = 0; pinned_apps[i].name != NULL; ++i) {
         GtkWidget *btn = gtk_button_new();
         add_class(btn, "dock-tile");
@@ -1143,6 +1234,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     }
     gtk_widget_set_size_request(shell->launcher_window, 720, 520);
     g_signal_connect(shell->launcher_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
+    g_signal_connect(shell->launcher_window, "key-press-event", G_CALLBACK(on_launcher_key_press), shell);
 
     shell->launcher_revealer = gtk_revealer_new();
     gtk_revealer_set_transition_type(GTK_REVEALER(shell->launcher_revealer), GTK_REVEALER_TRANSITION_TYPE_CROSSFADE);
@@ -1160,7 +1252,8 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     g_signal_connect(shell->launcher_search_entry, "search-changed", G_CALLBACK(on_launcher_search_changed), shell);
     gtk_box_pack_start(GTK_BOX(launcher_card), shell->launcher_search_entry, FALSE, FALSE, 4);
 
-    // Filter pills
+    // Filter pills + Session Power Actions on Right
+    GtkWidget *launcher_toolbar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     shell->launcher_filter_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
     const char *cats[] = {"All", "System", "Utility", "Development", "Network", "AudioVideo", NULL};
     for (int i = 0; cats[i] != NULL; ++i) {
@@ -1172,7 +1265,38 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
         g_signal_connect(cat_btn, "clicked", G_CALLBACK(on_filter_btn_clicked), shell);
         gtk_box_pack_start(GTK_BOX(shell->launcher_filter_box), cat_btn, FALSE, FALSE, 2);
     }
-    gtk_box_pack_start(GTK_BOX(launcher_card), shell->launcher_filter_box, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(launcher_toolbar), shell->launcher_filter_box, TRUE, TRUE, 0);
+
+    // Quick Session & Power Controls in Main Menu (Lock, Sleep, Restart, Shut Down)
+    GtkWidget *launcher_power_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+
+    GtkWidget *l_lock_btn = gtk_button_new_from_icon_name("system-lock-screen-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(l_lock_btn, "Lock Screen (Super+L)");
+    add_class(l_lock_btn, "qs-round-btn");
+    g_signal_connect(l_lock_btn, "clicked", G_CALLBACK(on_power_action_lock), shell);
+
+    GtkWidget *l_sleep_btn = gtk_button_new_from_icon_name("weather-clear-night-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(l_sleep_btn, "Sleep / Suspend");
+    add_class(l_sleep_btn, "qs-round-btn");
+    g_signal_connect(l_sleep_btn, "clicked", G_CALLBACK(on_power_action_sleep), shell);
+
+    GtkWidget *l_reboot_btn = gtk_button_new_from_icon_name("system-reboot-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(l_reboot_btn, "Restart Computer");
+    add_class(l_reboot_btn, "qs-round-btn");
+    g_signal_connect(l_reboot_btn, "clicked", G_CALLBACK(on_power_action_reboot), shell);
+
+    GtkWidget *l_power_btn = gtk_button_new_from_icon_name("system-shutdown-symbolic", GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(l_power_btn, "Shut Down Computer");
+    add_class(l_power_btn, "qs-round-btn");
+    g_signal_connect(l_power_btn, "clicked", G_CALLBACK(on_power_action_shutdown), shell);
+
+    gtk_box_pack_start(GTK_BOX(launcher_power_box), l_lock_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(launcher_power_box), l_sleep_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(launcher_power_box), l_reboot_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(launcher_power_box), l_power_btn, FALSE, FALSE, 0);
+    gtk_box_pack_end(GTK_BOX(launcher_toolbar), launcher_power_box, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(launcher_card), launcher_toolbar, FALSE, FALSE, 4);
 
     // Scrolled apps flowbox
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
@@ -1238,6 +1362,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     }
     gtk_widget_set_size_request(shell->games_window, 760, 540);
     g_signal_connect(shell->games_window, "draw", G_CALLBACK(on_draw_glassmorphic), shell);
+    g_signal_connect(shell->games_window, "key-press-event", G_CALLBACK(on_games_key_press), shell);
 
     shell->games_revealer = gtk_revealer_new();
     gtk_revealer_set_transition_type(GTK_REVEALER(shell->games_revealer), GTK_REVEALER_TRANSITION_TYPE_CROSSFADE);
@@ -1354,17 +1479,18 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     GtkWidget *settings_btn = gtk_button_new_from_icon_name("preferences-system-symbolic", GTK_ICON_SIZE_BUTTON);
     gtk_widget_set_tooltip_text(settings_btn, "Settings");
     add_class(settings_btn, "qs-round-btn");
+    g_object_set_data(G_OBJECT(settings_btn), "shell", shell);
     g_signal_connect(settings_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)"axis-settings");
 
     GtkWidget *lock_btn = gtk_button_new_from_icon_name("system-lock-screen-symbolic", GTK_ICON_SIZE_BUTTON);
     gtk_widget_set_tooltip_text(lock_btn, "Lock Screen");
     add_class(lock_btn, "qs-round-btn");
-    g_signal_connect_swapped(lock_btn, "clicked", G_CALLBACK(ui_shell_lock), shell);
+    g_signal_connect(lock_btn, "clicked", G_CALLBACK(on_power_action_lock), shell);
 
     GtkWidget *power_btn = gtk_button_new_from_icon_name("system-shutdown-symbolic", GTK_ICON_SIZE_BUTTON);
-    gtk_widget_set_tooltip_text(power_btn, "Power Off");
+    gtk_widget_set_tooltip_text(power_btn, "Power Menu (Lock, Sleep, Restart, Shut Down)");
     add_class(power_btn, "qs-round-btn");
-    g_signal_connect_swapped(power_btn, "clicked", G_CALLBACK(system_controller_power_off), sys_ctrl);
+    g_signal_connect(power_btn, "clicked", G_CALLBACK(on_qs_toggle_power_strip), shell);
 
     gtk_box_pack_start(GTK_BOX(hdr_actions), settings_btn, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hdr_actions), lock_btn, FALSE, FALSE, 0);
@@ -1372,6 +1498,30 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     gtk_box_pack_end(GTK_BOX(hdr_row), hdr_actions, FALSE, FALSE, 0);
 
     gtk_box_pack_start(GTK_BOX(qs_card), hdr_row, FALSE, FALSE, 0);
+
+    // 1b. Collapsible Session Power Actions Strip (Lock, Sleep, Restart, Shut Down)
+    shell->qs_power_revealer = gtk_revealer_new();
+    gtk_revealer_set_transition_type(GTK_REVEALER(shell->qs_power_revealer), GTK_REVEALER_TRANSITION_TYPE_SLIDE_DOWN);
+    gtk_revealer_set_transition_duration(GTK_REVEALER(shell->qs_power_revealer), 160);
+    gtk_revealer_set_reveal_child(GTK_REVEALER(shell->qs_power_revealer), FALSE);
+
+    GtkWidget *power_strip = gtk_grid_new();
+    add_class(power_strip, "qs-power-strip");
+    gtk_grid_set_column_spacing(GTK_GRID(power_strip), 8);
+    gtk_grid_set_column_homogeneous(GTK_GRID(power_strip), TRUE);
+
+    GtkWidget *p_lock = create_power_action_btn("system-lock-screen-symbolic", "Lock", FALSE, G_CALLBACK(on_power_action_lock), shell);
+    GtkWidget *p_sleep = create_power_action_btn("weather-clear-night-symbolic", "Sleep", FALSE, G_CALLBACK(on_power_action_sleep), shell);
+    GtkWidget *p_reboot = create_power_action_btn("system-reboot-symbolic", "Restart", FALSE, G_CALLBACK(on_power_action_reboot), shell);
+    GtkWidget *p_off = create_power_action_btn("system-shutdown-symbolic", "Shut Down", TRUE, G_CALLBACK(on_power_action_shutdown), shell);
+
+    gtk_grid_attach(GTK_GRID(power_strip), p_lock, 0, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(power_strip), p_sleep, 1, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(power_strip), p_reboot, 2, 0, 1, 1);
+    gtk_grid_attach(GTK_GRID(power_strip), p_off, 3, 0, 1, 1);
+
+    gtk_container_add(GTK_CONTAINER(shell->qs_power_revealer), power_strip);
+    gtk_box_pack_start(GTK_BOX(qs_card), shell->qs_power_revealer, FALSE, FALSE, 0);
 
     // 2. 2x2 Quick Toggle Grid (border-radius: 14px elevated tiles)
     GtkWidget *qs_grid = gtk_grid_new();
@@ -1457,6 +1607,7 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     gtk_box_pack_start(GTK_BOX(telem_box), telem_icon, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(telem_box), shell->qs_lbl_telemetry, FALSE, FALSE, 0);
     gtk_container_add(GTK_CONTAINER(telem_btn), telem_box);
+    g_object_set_data(G_OBJECT(telem_btn), "shell", shell);
     g_signal_connect(telem_btn, "clicked", G_CALLBACK(on_launcher_app_clicked), (gpointer)"axis-task-manager");
 
     gtk_box_pack_start(GTK_BOX(qs_card), telem_btn, FALSE, FALSE, 2);
@@ -1551,23 +1702,25 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     // Centered Frosted Authentication Card
     GtkWidget *greeter_card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
     add_class(greeter_card, "greeter-card");
-    gtk_widget_set_size_request(greeter_card, 340, -1);
+    gtk_widget_set_size_request(greeter_card, 360, -1);
     gtk_box_pack_start(GTK_BOX(greeter_center), greeter_card, FALSE, FALSE, 0);
 
-    GtkWidget *avatar = gtk_image_new_from_icon_name("avatar-default", GTK_ICON_SIZE_DIALOG);
+    GtkWidget *avatar = gtk_image_new_from_icon_name("avatar-default-symbolic", GTK_ICON_SIZE_DIALOG);
+    gtk_image_set_pixel_size(GTK_IMAGE(avatar), 56);
     gtk_box_pack_start(GTK_BOX(greeter_card), avatar, FALSE, FALSE, 4);
 
     GtkWidget *user_name_lbl = gtk_label_new(auth_mgr ? auth_mgr->display_name : "AxisOS User");
     add_class(user_name_lbl, "title-3");
-    gtk_box_pack_start(GTK_BOX(greeter_card), user_name_lbl, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(greeter_card), user_name_lbl, FALSE, FALSE, 2);
 
     shell->greeter_pass_entry = gtk_entry_new();
+    add_class(shell->greeter_pass_entry, "greeter-entry");
     gtk_entry_set_visibility(GTK_ENTRY(shell->greeter_pass_entry), FALSE);
-    gtk_entry_set_placeholder_text(GTK_ENTRY(shell->greeter_pass_entry), "Password");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(shell->greeter_pass_entry), "Enter Password...");
     g_signal_connect(shell->greeter_pass_entry, "activate", G_CALLBACK(on_greeter_submit), shell);
     gtk_box_pack_start(GTK_BOX(greeter_card), shell->greeter_pass_entry, FALSE, FALSE, 4);
 
-    GtkWidget *submit_btn = gtk_button_new_with_label("Unlock");
+    GtkWidget *submit_btn = gtk_button_new_with_label("Unlock Session");
     add_class(submit_btn, "suggested-action");
     g_signal_connect(submit_btn, "clicked", G_CALLBACK(on_greeter_submit), shell);
     gtk_box_pack_start(GTK_BOX(greeter_card), submit_btn, FALSE, FALSE, 4);
@@ -1576,9 +1729,36 @@ UiShell *ui_shell_create(SystemController *sys_ctrl, AuthManager *auth_mgr, gboo
     gtk_box_pack_start(GTK_BOX(greeter_card), shell->greeter_spinner, FALSE, FALSE, 2);
 
     shell->greeter_status_label = gtk_label_new(auth_mgr && auth_mgr->has_fingerprint ?
-                                                "Scan fingerprint or enter password" : "");
+                                                "Scan fingerprint or enter password" : "Enter password to unlock");
     add_class(shell->greeter_status_label, "caption");
-    gtk_box_pack_start(GTK_BOX(greeter_card), shell->greeter_status_label, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(greeter_card), shell->greeter_status_label, FALSE, FALSE, 2);
+
+    // Bottom Power Controls on Lock Screen (Sleep, Restart, Shut Down)
+    GtkWidget *greeter_power_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_widget_set_halign(greeter_power_bar, GTK_ALIGN_CENTER);
+
+    GtkWidget *g_sleep_btn = gtk_button_new_with_label("Sleep");
+    gtk_button_set_image(GTK_BUTTON(g_sleep_btn), gtk_image_new_from_icon_name("weather-clear-night-symbolic", GTK_ICON_SIZE_MENU));
+    gtk_button_set_always_show_image(GTK_BUTTON(g_sleep_btn), TRUE);
+    add_class(g_sleep_btn, "greeter-power-pill");
+    g_signal_connect(g_sleep_btn, "clicked", G_CALLBACK(on_power_action_sleep), shell);
+
+    GtkWidget *g_reboot_btn = gtk_button_new_with_label("Restart");
+    gtk_button_set_image(GTK_BUTTON(g_reboot_btn), gtk_image_new_from_icon_name("system-reboot-symbolic", GTK_ICON_SIZE_MENU));
+    gtk_button_set_always_show_image(GTK_BUTTON(g_reboot_btn), TRUE);
+    add_class(g_reboot_btn, "greeter-power-pill");
+    g_signal_connect(g_reboot_btn, "clicked", G_CALLBACK(on_power_action_reboot), shell);
+
+    GtkWidget *g_power_btn = gtk_button_new_with_label("Shut Down");
+    gtk_button_set_image(GTK_BUTTON(g_power_btn), gtk_image_new_from_icon_name("system-shutdown-symbolic", GTK_ICON_SIZE_MENU));
+    gtk_button_set_always_show_image(GTK_BUTTON(g_power_btn), TRUE);
+    add_class(g_power_btn, "greeter-power-pill");
+    g_signal_connect(g_power_btn, "clicked", G_CALLBACK(on_power_action_shutdown), shell);
+
+    gtk_box_pack_start(GTK_BOX(greeter_power_bar), g_sleep_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(greeter_power_bar), g_reboot_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(greeter_power_bar), g_power_btn, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(greeter_center), greeter_power_bar, FALSE, FALSE, 8);
 
     // Initial display states
     if (shell->is_greeter_mode) {

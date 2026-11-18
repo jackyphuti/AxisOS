@@ -62,6 +62,14 @@ static gboolean on_sigusr1_signal(gpointer user_data) {
     return G_SOURCE_CONTINUE;
 }
 
+static gboolean on_sigusr2_signal(gpointer user_data) {
+    UiShell *shell = (UiShell *)user_data;
+    if (shell) {
+        ui_shell_lock(shell);
+    }
+    return G_SOURCE_CONTINUE;
+}
+
 int main(int argc, char *argv[]) {
     gboolean is_greeter = FALSE;
     gboolean is_lock = FALSE;
@@ -112,8 +120,9 @@ int main(int argc, char *argv[]) {
 
     UiShell *shell = ui_shell_create(sys_ctrl, auth_mgr, is_greeter);
 
-    // Register SIGUSR1 handler to toggle native app launcher
+    // Register SIGUSR1 handler to toggle native app launcher, and SIGUSR2 to lock screen
     g_unix_signal_add(SIGUSR1, on_sigusr1_signal, shell);
+    g_unix_signal_add(SIGUSR2, on_sigusr2_signal, shell);
 
     if (is_lock && !is_greeter) {
         ui_shell_lock(shell);

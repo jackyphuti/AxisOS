@@ -398,7 +398,8 @@ int main(int argc, char *argv[]) {
     }
 
     app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(app.window), 980, 640);
+    gtk_window_set_default_size(GTK_WINDOW(app.window), 900, 560);
+    gtk_window_set_position(GTK_WINDOW(app.window), GTK_WIN_POS_CENTER);
     gtk_window_set_title(GTK_WINDOW(app.window), "AxisOS Package Installer");
 
     GtkWidget *hb = gtk_header_bar_new();

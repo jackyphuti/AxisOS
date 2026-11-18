@@ -1440,7 +1440,7 @@ static AxisTaskManagerApp *axis_task_manager_app_create(void) {
 
     app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(app->window), "AxisOS Task Manager");
-    gtk_window_set_default_size(GTK_WINDOW(app->window), 1080, 680);
+    gtk_window_set_default_size(GTK_WINDOW(app->window), 940, 560);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
     // Apply system theme

@@ -70,6 +70,7 @@ typedef struct {
     GtkWidget *qs_btn_vol_mute;
     GtkWidget *qs_lbl_battery;
     GtkWidget *qs_lbl_telemetry;
+    GtkWidget *qs_power_revealer;
     gboolean gameboost_active;
     int power_mode;
 

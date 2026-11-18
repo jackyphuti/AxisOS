@@ -84,6 +84,8 @@
 #if defined(WLR_VERSION_NUM) && WLR_VERSION_NUM >= ((0 << 16) | (16 << 8) | 0)
 #define AXIS_WLR_016_PLUS 1
 #define AXIS_SCENE_PARENT(server) (&(server)->scene->tree)
+#define AXIS_TREE_TO_PARENT(tree) (tree)
+#define AXIS_TREE_TO_NODE(tree) (&(tree)->node)
 #define axis_wlr_xdg_toplevel_set_activated(surf, toplevel, act) wlr_xdg_toplevel_set_activated((toplevel), (act))
 #define axis_wlr_xdg_toplevel_set_size(surf, toplevel, w, h) wlr_xdg_toplevel_set_size((toplevel), (w), (h))
 #define axis_wlr_xdg_toplevel_set_fullscreen(surf, toplevel, fs) wlr_xdg_toplevel_set_fullscreen((toplevel), (fs))
@@ -92,12 +94,17 @@
 #else
 #define AXIS_WLR_016_PLUS 0
 #define AXIS_SCENE_PARENT(server) (&(server)->scene->node)
+#define AXIS_TREE_TO_PARENT(tree) (&(tree)->node)
+#define AXIS_TREE_TO_NODE(tree) (&(tree)->node)
 #define axis_wlr_xdg_toplevel_set_activated(surf, toplevel, act) wlr_xdg_toplevel_set_activated((surf), (act))
 #define axis_wlr_xdg_toplevel_set_size(surf, toplevel, w, h) wlr_xdg_toplevel_set_size((surf), (w), (h))
 #define axis_wlr_xdg_toplevel_set_fullscreen(surf, toplevel, fs) wlr_xdg_toplevel_set_fullscreen((surf), (fs))
 #define axis_wlr_xdg_toplevel_set_maximized(surf, toplevel, max) wlr_xdg_toplevel_set_maximized((surf), (max))
 #define axis_wlr_xdg_toplevel_send_close(surf, toplevel) wlr_xdg_toplevel_send_close((surf))
 #endif
+
+#define AXIS_WORKAREA_TOP    48
+#define AXIS_WORKAREA_BOTTOM 84
 
 #if defined(WLR_VERSION_NUM) && WLR_VERSION_NUM >= ((0 << 16) | (17 << 8) | 0)
 #define AXIS_WLR_017_PLUS 1
@@ -120,6 +127,11 @@ struct axis_server {
 	struct wlr_renderer *renderer;
 	struct wlr_allocator *allocator;
 	struct wlr_scene *scene;
+	struct wlr_scene_tree *layer_bg;
+	struct wlr_scene_tree *layer_bottom;
+	struct wlr_scene_tree *layer_views;
+	struct wlr_scene_tree *layer_top;
+	struct wlr_scene_tree *layer_overlay;
 
 	struct wlr_xdg_shell *xdg_shell;
 	struct wl_listener new_xdg_surface;
@@ -355,7 +367,8 @@ static void spawn_command(const char *cmd) {
 	if (!cmd || !*cmd) return;
 	pid_t pid = fork();
 	if (pid == 0) {
-		/* Child process */
+		/* Child process: restore default SIGCHLD so waitpid/pclose/dpkg/apt work */
+		signal(SIGCHLD, SIG_DFL);
 		setsid();
 		setenv("GDK_BACKEND", "wayland", 1);
 		setenv("MOZ_ENABLE_WAYLAND", "1", 1);
@@ -369,6 +382,20 @@ static void spawn_command(const char *cmd) {
 		}
 		execl("/bin/sh", "/bin/sh", "-c", cmd, (void *)NULL);
 		_exit(1);
+	}
+}
+
+static void axis_get_workarea(struct axis_server *server, struct wlr_box *box) {
+	struct wlr_output *output = server ? wlr_output_layout_get_center_output(server->output_layout) : NULL;
+	int out_w = output ? output->width : 1280;
+	int out_h = output ? output->height : 800;
+	box->x = 0;
+	box->y = AXIS_WORKAREA_TOP;
+	box->width = out_w;
+	box->height = out_h - AXIS_WORKAREA_TOP - AXIS_WORKAREA_BOTTOM;
+	if (box->height < 360) {
+		box->y = 0;
+		box->height = out_h;
 	}
 }
 
@@ -388,7 +415,7 @@ static void axis_set_taskbars_visible(struct axis_server *server, bool visible) 
 static bool axis_has_maximized_view(struct axis_server *server, struct axis_view *ignore_view) {
 	struct axis_view *v;
 	wl_list_for_each(v, &server->views, link) {
-		if (v != ignore_view && v->is_maximized) {
+		if (v != ignore_view && v->is_fullscreen) {
 			return true;
 		}
 	}
@@ -616,7 +643,21 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 
 	/* Super + L: Lock Session */
 	if (is_super && (sym == XKB_KEY_l || sym == XKB_KEY_L)) {
-		spawn_command("loginctl lock-session &");
+		spawn_command("killall -USR2 axis-shell axisos-shell 2>/dev/null || pkill -USR2 -f 'axis.*shell' || loginctl lock-session &");
+		return true;
+	}
+
+	/* Multimedia Audio Keys */
+	if (sym == XKB_KEY_XF86AudioRaiseVolume) {
+		spawn_command("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ 2>/dev/null || pactl set-sink-volume @DEFAULT_SINK@ +5% 2>/dev/null || amixer -q sset Master 5%+ &");
+		return true;
+	}
+	if (sym == XKB_KEY_XF86AudioLowerVolume) {
+		spawn_command("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%- 2>/dev/null || pactl set-sink-volume @DEFAULT_SINK@ -5% 2>/dev/null || amixer -q sset Master 5%- &");
+		return true;
+	}
+	if (sym == XKB_KEY_XF86AudioMute) {
+		spawn_command("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null || pactl set-sink-mute @DEFAULT_SINK@ toggle 2>/dev/null || amixer -q sset Master toggle &");
 		return true;
 	}
 
@@ -679,32 +720,30 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 			if (current && current->xdg_surface && current->xdg_surface->toplevel) {
 				struct axis_view *view = current;
 				if (view->is_maximized) {
+					view->x = view->saved_geometry.x;
+					view->y = view->saved_geometry.y;
 					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, view->saved_geometry.width, view->saved_geometry.height);
 					wlr_scene_node_set_position(view->scene_node, view->saved_geometry.x, view->saved_geometry.y);
 					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
 					view->is_maximized = false;
-					if (!axis_has_maximized_view(view->server, NULL)) {
-						axis_set_taskbars_visible(view->server, true);
-					}
 					axis_view_update_borders(view);
 				} else {
-					struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
-					if (output) {
-						view->saved_geometry.x = view->x;
-						view->saved_geometry.y = view->y;
-						struct wlr_box geo_box;
-						wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
-						view->saved_geometry.width = geo_box.width;
-						view->saved_geometry.height = geo_box.height;
+					struct wlr_box workarea;
+					axis_get_workarea(view->server, &workarea);
+					view->saved_geometry.x = view->x;
+					view->saved_geometry.y = view->y;
+					struct wlr_box geo_box;
+					wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+					view->saved_geometry.width = geo_box.width > 0 ? geo_box.width : 840;
+					view->saved_geometry.height = geo_box.height > 0 ? geo_box.height : 560;
 
-						/* Auto-hide taskbar on maximize */
-						axis_set_taskbars_visible(view->server, false);
-						wlr_scene_node_set_position(view->scene_node, 0, 0);
-						axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, output->width, output->height);
-						axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, true);
-						view->is_maximized = true;
-						axis_view_update_borders(view);
-					}
+					view->x = workarea.x - geo_box.x;
+					view->y = workarea.y - geo_box.y;
+					wlr_scene_node_set_position(view->scene_node, view->x, view->y);
+					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, workarea.width, workarea.height);
+					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, true);
+					view->is_maximized = true;
+					axis_view_update_borders(view);
 				}
 			}
 		}
@@ -716,25 +755,24 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 		if (!wl_list_empty(&server->views)) {
 			struct axis_view *view = wl_container_of(server->views.next, view, link);
 			if (view && view->xdg_surface && view->xdg_surface->toplevel) {
-				struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
-				if (output) {
-					if (!view->is_maximized && !view->is_fullscreen) {
-						view->saved_geometry.x = view->x;
-						view->saved_geometry.y = view->y;
-						struct wlr_box geo_box;
-						wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
-						view->saved_geometry.width = geo_box.width;
-						view->saved_geometry.height = geo_box.height;
-					}
-					int half_w = output->width / 2;
-					view->x = 0;
-					view->y = 0;
-					wlr_scene_node_set_position(view->scene_node, 0, 0);
-					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, half_w, output->height);
-					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
-					view->is_maximized = false;
-					axis_view_update_borders(view);
+				struct wlr_box workarea;
+				axis_get_workarea(view->server, &workarea);
+				struct wlr_box geo_box;
+				wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+				if (!view->is_maximized && !view->is_fullscreen) {
+					view->saved_geometry.x = view->x;
+					view->saved_geometry.y = view->y;
+					view->saved_geometry.width = geo_box.width > 0 ? geo_box.width : 840;
+					view->saved_geometry.height = geo_box.height > 0 ? geo_box.height : 560;
 				}
+				int half_w = workarea.width / 2;
+				view->x = workarea.x - geo_box.x;
+				view->y = workarea.y - geo_box.y;
+				wlr_scene_node_set_position(view->scene_node, view->x, view->y);
+				axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, half_w, workarea.height);
+				axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
+				view->is_maximized = false;
+				axis_view_update_borders(view);
 			}
 		}
 		return true;
@@ -745,25 +783,24 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 		if (!wl_list_empty(&server->views)) {
 			struct axis_view *view = wl_container_of(server->views.next, view, link);
 			if (view && view->xdg_surface && view->xdg_surface->toplevel) {
-				struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
-				if (output) {
-					if (!view->is_maximized && !view->is_fullscreen) {
-						view->saved_geometry.x = view->x;
-						view->saved_geometry.y = view->y;
-						struct wlr_box geo_box;
-						wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
-						view->saved_geometry.width = geo_box.width;
-						view->saved_geometry.height = geo_box.height;
-					}
-					int half_w = output->width / 2;
-					view->x = half_w;
-					view->y = 0;
-					wlr_scene_node_set_position(view->scene_node, half_w, 0);
-					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, half_w, output->height);
-					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
-					view->is_maximized = false;
-					axis_view_update_borders(view);
+				struct wlr_box workarea;
+				axis_get_workarea(view->server, &workarea);
+				struct wlr_box geo_box;
+				wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+				if (!view->is_maximized && !view->is_fullscreen) {
+					view->saved_geometry.x = view->x;
+					view->saved_geometry.y = view->y;
+					view->saved_geometry.width = geo_box.width > 0 ? geo_box.width : 840;
+					view->saved_geometry.height = geo_box.height > 0 ? geo_box.height : 560;
 				}
+				int half_w = workarea.width / 2;
+				view->x = workarea.x + half_w - geo_box.x;
+				view->y = workarea.y - geo_box.y;
+				wlr_scene_node_set_position(view->scene_node, view->x, view->y);
+				axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, half_w, workarea.height);
+				axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
+				view->is_maximized = false;
+				axis_view_update_borders(view);
 			}
 		}
 		return true;
@@ -774,22 +811,22 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 		if (!wl_list_empty(&server->views)) {
 			struct axis_view *view = wl_container_of(server->views.next, view, link);
 			if (view && view->xdg_surface && view->xdg_surface->toplevel && !view->is_maximized) {
-				struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
-				if (output) {
-					view->saved_geometry.x = view->x;
-					view->saved_geometry.y = view->y;
-					struct wlr_box geo_box;
-					wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
-					view->saved_geometry.width = geo_box.width;
-					view->saved_geometry.height = geo_box.height;
+				struct wlr_box workarea;
+				axis_get_workarea(view->server, &workarea);
+				view->saved_geometry.x = view->x;
+				view->saved_geometry.y = view->y;
+				struct wlr_box geo_box;
+				wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+				view->saved_geometry.width = geo_box.width > 0 ? geo_box.width : 840;
+				view->saved_geometry.height = geo_box.height > 0 ? geo_box.height : 560;
 
-					axis_set_taskbars_visible(view->server, false);
-					wlr_scene_node_set_position(view->scene_node, 0, 0);
-					axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, output->width, output->height);
-					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, true);
-					view->is_maximized = true;
-					axis_view_update_borders(view);
-				}
+				view->x = workarea.x - geo_box.x;
+				view->y = workarea.y - geo_box.y;
+				wlr_scene_node_set_position(view->scene_node, view->x, view->y);
+				axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, workarea.width, workarea.height);
+				axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, true);
+				view->is_maximized = true;
+				axis_view_update_borders(view);
 			}
 		}
 		return true;
@@ -808,9 +845,6 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 						view->saved_geometry.width, view->saved_geometry.height);
 					axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
 					view->is_maximized = false;
-					if (!axis_has_maximized_view(view->server, NULL)) {
-						axis_set_taskbars_visible(view->server, true);
-					}
 					axis_view_update_borders(view);
 				}
 			}
@@ -822,20 +856,6 @@ static bool handle_keybinding(struct axis_server *server, uint32_t modifiers, xk
 	if ((is_super && is_shift && (sym == XKB_KEY_e || sym == XKB_KEY_E)) ||
 	    (is_ctrl && is_alt && sym == XKB_KEY_Delete)) {
 		wl_display_terminate(server->wl_display);
-		return true;
-	}
-
-	/* Multimedia Audio Keys */
-	if (sym == XKB_KEY_XF86AudioRaiseVolume) {
-		spawn_command("amixer -q sset Master 5%+ &");
-		return true;
-	}
-	if (sym == XKB_KEY_XF86AudioLowerVolume) {
-		spawn_command("amixer -q sset Master 5%- &");
-		return true;
-	}
-	if (sym == XKB_KEY_XF86AudioMute) {
-		spawn_command("amixer -q sset Master toggle &");
 		return true;
 	}
 
@@ -971,6 +991,18 @@ static void process_cursor_move(struct axis_server *server) {
 	struct axis_view *view = server->grabbed_view;
 	view->x = server->cursor->x - server->grab_x;
 	view->y = server->cursor->y - server->grab_y;
+
+	struct wlr_box workarea;
+	axis_get_workarea(server, &workarea);
+	struct wlr_box geo_box;
+	wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+	if (view->y + geo_box.y < workarea.y) {
+		view->y = workarea.y - geo_box.y;
+	}
+	if (view->y + geo_box.y > workarea.y + workarea.height - 36) {
+		view->y = workarea.y + workarea.height - 36 - geo_box.y;
+	}
+
 	wlr_scene_node_set_position(view->scene_node, view->x, view->y);
 	axis_view_update_borders(view);
 }
@@ -1079,6 +1111,23 @@ static void server_cursor_button(struct wl_listener *listener, void *data) {
 		server->cursor_mode = AXIS_CURSOR_PASSTHROUGH;
 	} else if (view) {
 		focus_view(view, surface);
+	} else if (surface) {
+		/* Layer surface click (TopBar, Dock, AppLauncher, QuickSettings, LockScreen):
+		 * grant keyboard focus if the layer surface requests keyboard interactivity */
+		struct axis_layer_surface *ls;
+		wl_list_for_each(ls, &server->layer_surfaces, link) {
+			if (ls->layer_surface && ls->layer_surface->surface == surface) {
+				if (ls->layer_surface->current.keyboard_interactive !=
+				    ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
+					struct wlr_keyboard *kb = wlr_seat_get_keyboard(server->seat);
+					if (kb) {
+						wlr_seat_keyboard_notify_enter(server->seat, surface,
+							kb->keycodes, kb->num_keycodes, &kb->modifiers);
+					}
+				}
+				break;
+			}
+		}
 	}
 }
 
@@ -1156,6 +1205,65 @@ static void xdg_toplevel_set_app_id(struct wl_listener *listener, void *data) {
 static void xdg_toplevel_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, map);
+
+	/* Smart workarea placement & sizing so windows never overlap TopBar or Dock */
+	struct wlr_box workarea;
+	axis_get_workarea(view->server, &workarea);
+	struct wlr_box geo_box;
+	wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+
+	int win_w = geo_box.width > 0 ? geo_box.width : 860;
+	int win_h = geo_box.height > 0 ? geo_box.height : 560;
+	int max_w = workarea.width - 16;
+	int max_h = workarea.height - 12;
+	bool need_resize = false;
+	if (win_w > max_w && max_w >= 480) {
+		win_w = max_w;
+		need_resize = true;
+	}
+	if (win_h > max_h && max_h >= 340) {
+		win_h = max_h;
+		need_resize = true;
+	}
+	if (need_resize && !view->is_maximized && !view->is_fullscreen) {
+		axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, win_w, win_h);
+	}
+
+	if (!view->is_maximized && !view->is_fullscreen) {
+		int target_x = workarea.x + (workarea.width - win_w) / 2 - geo_box.x;
+		int target_y = workarea.y + (workarea.height - win_h) / 2 - geo_box.y;
+
+		/* Cascade slightly if another mapped window is at the exact same spot */
+		struct axis_view *other;
+		int cascade = 0;
+		wl_list_for_each(other, &view->server->views, link) {
+			if (other != view && abs(other->x - target_x) < 16 && abs(other->y - target_y) < 16) {
+				cascade++;
+			}
+		}
+		if (cascade > 0) {
+			target_x += (cascade % 4) * 24;
+			target_y += (cascade % 4) * 20;
+		}
+
+		if (target_x + geo_box.x + win_w > workarea.x + workarea.width - 8) {
+			target_x = workarea.x + workarea.width - win_w - 8 - geo_box.x;
+		}
+		if (target_x + geo_box.x < workarea.x + 8) {
+			target_x = workarea.x + 8 - geo_box.x;
+		}
+		if (target_y + geo_box.y + win_h > workarea.y + workarea.height - 6) {
+			target_y = workarea.y + workarea.height - win_h - 6 - geo_box.y;
+		}
+		if (target_y + geo_box.y < workarea.y + 4) {
+			target_y = workarea.y + 4 - geo_box.y;
+		}
+
+		view->x = target_x;
+		view->y = target_y;
+		wlr_scene_node_set_position(view->scene_node, view->x, view->y);
+	}
+
 	wl_list_insert(&view->server->views, &view->link);
 
 	if (view->server->foreign_toplevel_mgr) {
@@ -1198,8 +1306,9 @@ static void xdg_toplevel_unmap(struct wl_listener *listener, void *data) {
 		wlr_foreign_toplevel_handle_v1_destroy(view->toplevel_handle);
 		view->toplevel_handle = NULL;
 	}
-	if (view->is_maximized) {
+	if (view->is_maximized || view->is_fullscreen) {
 		view->is_maximized = false;
+		view->is_fullscreen = false;
 		if (!axis_has_maximized_view(view->server, view)) {
 			axis_set_taskbars_visible(view->server, true);
 		}
@@ -1243,8 +1352,9 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
 		wlr_foreign_toplevel_handle_v1_destroy(view->toplevel_handle);
 		view->toplevel_handle = NULL;
 	}
-	if (view->is_maximized) {
+	if (view->is_maximized || view->is_fullscreen) {
 		view->is_maximized = false;
+		view->is_fullscreen = false;
 		if (!axis_has_maximized_view(view->server, view)) {
 			axis_set_taskbars_visible(view->server, true);
 		}
@@ -1307,35 +1417,34 @@ static void xdg_toplevel_request_maximize(struct wl_listener *listener, void *da
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, request_maximize);
 	if (view->is_maximized) {
+		view->x = view->saved_geometry.x;
+		view->y = view->saved_geometry.y;
 		axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, view->saved_geometry.width, view->saved_geometry.height);
-		wlr_scene_node_set_position(view->scene_node, view->saved_geometry.x, view->saved_geometry.y);
+		wlr_scene_node_set_position(view->scene_node, view->x, view->y);
 		axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, false);
 		view->is_maximized = false;
 		if (view->toplevel_handle) {
 			wlr_foreign_toplevel_handle_v1_set_maximized(view->toplevel_handle, false);
 		}
-		if (!axis_has_maximized_view(view->server, NULL)) {
-			axis_set_taskbars_visible(view->server, true);
-		}
 	} else {
-		struct wlr_output *output = wlr_output_layout_get_center_output(view->server->output_layout);
-		if (output) {
-			view->saved_geometry.x = view->x;
-			view->saved_geometry.y = view->y;
-			struct wlr_box geo_box;
-			wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
-			view->saved_geometry.width = geo_box.width;
-			view->saved_geometry.height = geo_box.height;
+		struct wlr_box workarea;
+		axis_get_workarea(view->server, &workarea);
+		view->saved_geometry.x = view->x;
+		view->saved_geometry.y = view->y;
+		struct wlr_box geo_box;
+		wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+		view->saved_geometry.width = geo_box.width > 0 ? geo_box.width : 860;
+		view->saved_geometry.height = geo_box.height > 0 ? geo_box.height : 560;
 
-			/* Auto-hide taskbar on maximize to occupy full screen */
-			axis_set_taskbars_visible(view->server, false);
-			wlr_scene_node_set_position(view->scene_node, 0, 0);
-			axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, output->width, output->height);
-			axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, true);
-			view->is_maximized = true;
-			if (view->toplevel_handle) {
-				wlr_foreign_toplevel_handle_v1_set_maximized(view->toplevel_handle, true);
-			}
+		/* Maximize within the desktop workarea so TopBar and Dock remain accessible */
+		view->x = workarea.x - geo_box.x;
+		view->y = workarea.y - geo_box.y;
+		wlr_scene_node_set_position(view->scene_node, view->x, view->y);
+		axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, workarea.width, workarea.height);
+		axis_wlr_xdg_toplevel_set_maximized(view->xdg_surface, view->xdg_surface->toplevel, true);
+		view->is_maximized = true;
+		if (view->toplevel_handle) {
+			wlr_foreign_toplevel_handle_v1_set_maximized(view->toplevel_handle, true);
 		}
 	}
 	axis_view_update_borders(view);
@@ -1351,9 +1460,12 @@ static void xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *
 			view->saved_geometry.y = view->y;
 			struct wlr_box geo_box;
 			wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
-			view->saved_geometry.width = geo_box.width;
-			view->saved_geometry.height = geo_box.height;
+			view->saved_geometry.width = geo_box.width > 0 ? geo_box.width : 860;
+			view->saved_geometry.height = geo_box.height > 0 ? geo_box.height : 560;
 
+			axis_set_taskbars_visible(view->server, false);
+			view->x = 0;
+			view->y = 0;
 			wlr_scene_node_set_position(view->scene_node, 0, 0);
 			axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, output->width, output->height);
 			axis_wlr_xdg_toplevel_set_fullscreen(view->xdg_surface, view->xdg_surface->toplevel, true);
@@ -1362,12 +1474,17 @@ static void xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *
 				wlr_foreign_toplevel_handle_v1_set_fullscreen(view->toplevel_handle, true);
 			}
 		} else {
+			view->x = view->saved_geometry.x;
+			view->y = view->saved_geometry.y;
 			axis_wlr_xdg_toplevel_set_size(view->xdg_surface, view->xdg_surface->toplevel, view->saved_geometry.width, view->saved_geometry.height);
-			wlr_scene_node_set_position(view->scene_node, view->saved_geometry.x, view->saved_geometry.y);
+			wlr_scene_node_set_position(view->scene_node, view->x, view->y);
 			axis_wlr_xdg_toplevel_set_fullscreen(view->xdg_surface, view->xdg_surface->toplevel, false);
 			view->is_fullscreen = false;
 			if (view->toplevel_handle) {
 				wlr_foreign_toplevel_handle_v1_set_fullscreen(view->toplevel_handle, false);
+			}
+			if (!axis_has_maximized_view(view->server, NULL)) {
+				axis_set_taskbars_visible(view->server, true);
 			}
 		}
 	}
@@ -1377,6 +1494,28 @@ static void xdg_toplevel_request_fullscreen(struct wl_listener *listener, void *
 static void xdg_toplevel_surface_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_view *view = wl_container_of(listener, view, surface_commit);
+	if (view->xdg_surface && !view->is_maximized && !view->is_fullscreen &&
+	    view->server->grabbed_view != view) {
+		struct wlr_box workarea;
+		axis_get_workarea(view->server, &workarea);
+		struct wlr_box geo_box;
+		wlr_xdg_surface_get_geometry(view->xdg_surface, &geo_box);
+		if (geo_box.height > 0) {
+			bool moved = false;
+			if (view->y + geo_box.y + geo_box.height > workarea.y + workarea.height &&
+			    view->y + geo_box.y > workarea.y + 4) {
+				view->y = workarea.y + workarea.height - geo_box.height - 4 - geo_box.y;
+				moved = true;
+			}
+			if (view->y + geo_box.y < workarea.y) {
+				view->y = workarea.y - geo_box.y;
+				moved = true;
+			}
+			if (moved) {
+				wlr_scene_node_set_position(view->scene_node, view->x, view->y);
+			}
+		}
+	}
 	axis_view_update_borders(view);
 	axis_schedule_outputs_frame(view->server);
 }
@@ -1407,13 +1546,13 @@ static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	view->xdg_toplevel = xdg_surface->toplevel;
 #if AXIS_WLR_016_PLUS
 	struct wlr_scene_tree *tree = wlr_scene_xdg_surface_create(
-			AXIS_SCENE_PARENT(server), xdg_surface);
+			server->layer_views ? AXIS_TREE_TO_PARENT(server->layer_views) : AXIS_SCENE_PARENT(server), xdg_surface);
 	view->scene_node = &tree->node;
 	view->scene_node->data = view;
 	xdg_surface->data = tree;
 #else
 	view->scene_node = wlr_scene_xdg_surface_create(
-			AXIS_SCENE_PARENT(server), xdg_surface);
+			server->layer_views ? AXIS_TREE_TO_PARENT(server->layer_views) : AXIS_SCENE_PARENT(server), xdg_surface);
 	view->scene_node->data = view;
 	xdg_surface->data = view->scene_node;
 #endif
@@ -1455,15 +1594,14 @@ static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	view->set_app_id.notify = xdg_toplevel_set_app_id;
 	wl_signal_add(&toplevel->events.set_app_id, &view->set_app_id);
 
-	/* Center new windows on screen */
-	struct wlr_output *primary_out = wlr_output_layout_get_center_output(server->output_layout);
-	if (primary_out) {
-		view->x = (primary_out->width - 900) / 2;
-		view->y = (primary_out->height - 600) / 2 + 18;
-		if (view->x < 40) view->x = 40;
-		if (view->y < 40) view->y = 40;
-		wlr_scene_node_set_position(view->scene_node, view->x, view->y);
-	}
+	/* Center new windows within desktop workarea */
+	struct wlr_box workarea;
+	axis_get_workarea(server, &workarea);
+	view->x = workarea.x + (workarea.width - 860) / 2;
+	view->y = workarea.y + (workarea.height - 560) / 2;
+	if (view->x < 24) view->x = 24;
+	if (view->y < workarea.y + 4) view->y = workarea.y + 4;
+	wlr_scene_node_set_position(view->scene_node, view->x, view->y);
 	axis_view_update_borders(view);
 }
 
@@ -1510,10 +1648,8 @@ static void axis_layer_surface_position(struct axis_layer_surface *surface) {
 	if (wlr_layer->current.layer == ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND) {
 		x = 0;
 		y = 0;
-		wlr_scene_node_lower_to_bottom(surface->scene_node);
-	} else {
-		wlr_scene_node_raise_to_top(surface->scene_node);
 	}
+	wlr_scene_node_raise_to_top(surface->scene_node);
 
 	surface->x = x;
 	surface->y = y;
@@ -1523,7 +1659,18 @@ static void axis_layer_surface_position(struct axis_layer_surface *surface) {
 static void layer_surface_map(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_layer_surface *surface = wl_container_of(listener, surface, map);
+	wlr_scene_node_set_enabled(surface->scene_node, true);
 	axis_layer_surface_position(surface);
+	if (surface->layer_surface &&
+	    surface->layer_surface->current.keyboard_interactive !=
+	    ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_NONE) {
+		struct wlr_keyboard *kb = wlr_seat_get_keyboard(surface->server->seat);
+		if (kb && surface->layer_surface->surface) {
+			wlr_seat_keyboard_notify_enter(surface->server->seat,
+				surface->layer_surface->surface,
+				kb->keycodes, kb->num_keycodes, &kb->modifiers);
+		}
+	}
 	axis_schedule_outputs_frame(surface->server);
 }
 
@@ -1531,6 +1678,21 @@ static void layer_surface_unmap(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_layer_surface *surface = wl_container_of(listener, surface, unmap);
 	wlr_scene_node_set_enabled(surface->scene_node, false);
+	struct wlr_seat *seat = surface->server->seat;
+	if (seat && surface->layer_surface &&
+	    seat->keyboard_state.focused_surface == surface->layer_surface->surface) {
+		if (!wl_list_empty(&surface->server->views)) {
+			struct axis_view *top_view = wl_container_of(surface->server->views.next, top_view, link);
+			if (top_view && top_view->xdg_surface && top_view->xdg_surface->surface) {
+				focus_view(top_view, top_view->xdg_surface->surface);
+			} else {
+				wlr_seat_keyboard_notify_clear_focus(seat);
+			}
+		} else {
+			wlr_seat_keyboard_notify_clear_focus(seat);
+		}
+	}
+	axis_schedule_outputs_frame(surface->server);
 }
 
 static void layer_surface_destroy(struct wl_listener *listener, void *data) {
@@ -1548,6 +1710,17 @@ static void layer_surface_commit(struct wl_listener *listener, void *data) {
 	(void)data;
 	struct axis_layer_surface *surface = wl_container_of(listener, surface, surface_commit);
 	axis_layer_surface_position(surface);
+	if (surface->layer_surface &&
+	    surface->layer_surface->current.keyboard_interactive ==
+	    ZWLR_LAYER_SURFACE_V1_KEYBOARD_INTERACTIVITY_EXCLUSIVE) {
+		struct wlr_keyboard *kb = wlr_seat_get_keyboard(surface->server->seat);
+		if (kb && surface->layer_surface->surface &&
+		    surface->server->seat->keyboard_state.focused_surface != surface->layer_surface->surface) {
+			wlr_seat_keyboard_notify_enter(surface->server->seat,
+				surface->layer_surface->surface,
+				kb->keycodes, kb->num_keycodes, &kb->modifiers);
+		}
+	}
 	axis_schedule_outputs_frame(surface->server);
 }
 
@@ -1564,11 +1737,34 @@ static void server_new_layer_surface(struct wl_listener *listener, void *data) {
 	surface->server = server;
 	surface->layer_surface = wlr_layer;
 
+	struct wlr_scene_tree *target_layer = server->layer_top;
+	switch (wlr_layer->pending.layer) {
+	case ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND:
+		target_layer = server->layer_bg;
+		break;
+	case ZWLR_LAYER_SHELL_V1_LAYER_BOTTOM:
+		target_layer = server->layer_bottom;
+		break;
+	case ZWLR_LAYER_SHELL_V1_LAYER_TOP:
+		target_layer = server->layer_top;
+		break;
+	case ZWLR_LAYER_SHELL_V1_LAYER_OVERLAY:
+		target_layer = server->layer_overlay;
+		break;
+	default:
+		target_layer = server->layer_top;
+		break;
+	}
+
 #if AXIS_WLR_016_PLUS
-	struct wlr_scene_tree *layer_tree = wlr_scene_subsurface_tree_create(&server->scene->tree, wlr_layer->surface);
+	struct wlr_scene_tree *layer_tree = wlr_scene_subsurface_tree_create(
+		target_layer ? AXIS_TREE_TO_PARENT(target_layer) : AXIS_SCENE_PARENT(server),
+		wlr_layer->surface);
 	surface->scene_node = &layer_tree->node;
 #else
-	surface->scene_node = wlr_scene_subsurface_tree_create(&server->scene->node, wlr_layer->surface);
+	surface->scene_node = wlr_scene_subsurface_tree_create(
+		target_layer ? AXIS_TREE_TO_PARENT(target_layer) : AXIS_SCENE_PARENT(server),
+		wlr_layer->surface);
 #endif
 
 	surface->map.notify = layer_surface_map;
@@ -1689,7 +1885,9 @@ static void server_new_output(struct wl_listener *listener, void *data) {
 
 	/* Create solid AxisOS One UI Dark (#141826) base rectangle so screen is never blank before clients map */
 	float bg_color[4] = { 0x14 / 255.0f, 0x18 / 255.0f, 0x26 / 255.0f, 1.0f };
-	output->bg_rect = wlr_scene_rect_create(AXIS_SCENE_PARENT(server), wlr_output->width, wlr_output->height, bg_color);
+	output->bg_rect = wlr_scene_rect_create(
+		server->layer_bg ? AXIS_TREE_TO_PARENT(server->layer_bg) : AXIS_SCENE_PARENT(server),
+		wlr_output->width, wlr_output->height, bg_color);
 	if (output->bg_rect) {
 		wlr_scene_node_lower_to_bottom(&output->bg_rect->node);
 	}
@@ -1999,15 +2197,20 @@ static bool detect_is_virtual_gpu(void) {
 /* ========================================================================= */
 /* Main Server Initialization & Event Loop                                   */
 /* ========================================================================= */
+static void sigchld_handler(int sig) {
+	(void)sig;
+	while (waitpid(-1, NULL, WNOHANG) > 0) {}
+}
+
 int main(int argc, char *argv[]) {
 	/* Ensure unbuffered logging for systemd / console output */
 	setvbuf(stdout, NULL, _IOLBF, 0);
 	setvbuf(stderr, NULL, _IONBF, 0);
 
-	/* Automatically reap spawned child processes to prevent zombies */
+	/* Reap spawned child processes via handler (not SIG_IGN, which would break waitpid in children) */
 	struct sigaction sa_chld = {0};
-	sa_chld.sa_handler = SIG_IGN;
-	sa_chld.sa_flags = SA_NOCLDWAIT;
+	sa_chld.sa_handler = sigchld_handler;
+	sa_chld.sa_flags = SA_RESTART | SA_NOCLDSTOP;
 	sigaction(SIGCHLD, &sa_chld, NULL);
 
 	wlr_log_init(WLR_DEBUG, NULL);
@@ -2089,10 +2292,15 @@ int main(int argc, char *argv[]) {
 #endif
 	wlr_data_device_manager_create(server.wl_display);
 
-	/* 4. Initialize the Shell and Scene Graph */
+	/* 4. Initialize the Shell and Scene Graph (with ordered Z-layer trees) */
 	server.output_layout = wlr_output_layout_create();
 	server.scene = wlr_scene_create();
 	wlr_scene_attach_output_layout(server.scene, server.output_layout);
+	server.layer_bg = wlr_scene_tree_create(AXIS_SCENE_PARENT(&server));
+	server.layer_bottom = wlr_scene_tree_create(AXIS_SCENE_PARENT(&server));
+	server.layer_views = wlr_scene_tree_create(AXIS_SCENE_PARENT(&server));
+	server.layer_top = wlr_scene_tree_create(AXIS_SCENE_PARENT(&server));
+	server.layer_overlay = wlr_scene_tree_create(AXIS_SCENE_PARENT(&server));
 
 	wl_list_init(&server.views);
 #if AXIS_WLR_017_PLUS

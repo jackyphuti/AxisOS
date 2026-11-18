@@ -9,6 +9,9 @@
 # Standard error handling (explicit checks for critical operations)
 export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 umask 022
+trap - CHLD 2>/dev/null || true
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || echo "/usr/local/bin")"
 
 TARGET_DISK=""
 USERNAME="axis"
@@ -1079,6 +1082,9 @@ else
     chroot /mnt usermod -aG sudo,video,audio,render,input,seat,netdev,gamemode,games,docker,plugdev "$USERNAME" 2>/dev/null || true
 fi
 
+TARGET_UID=$(chroot /mnt id -u "$USERNAME" 2>/dev/null || echo 1000)
+TARGET_GID=$(chroot /mnt id -g "$USERNAME" 2>/dev/null || echo 1000)
+
 # Pre-create and set permissions on User Emulation library
 mkdir -p "/mnt/home/$USERNAME/Emulation/bios/ps1" \
          "/mnt/home/$USERNAME/Emulation/bios/ps2" \
@@ -1112,9 +1118,10 @@ chroot /mnt gpasswd -a "${USERNAME}" nopasswdlogin 2>/dev/null || true
 # Remove tty1 conflicting autologin or old service overrides
 rm -rf /mnt/etc/systemd/system/getty@tty1.service.d 2>/dev/null || true
 rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos.service 2>/dev/null || true
+rm -f /mnt/etc/systemd/system/axisos.service 2>/dev/null || true
 rm -rf /mnt/etc/lightdm/lightdm.conf.d 2>/dev/null || true
 
-# Configure Native AxisOS LiquidNodes Qt6 Wayland Session & Display Manager
+# Configure Native AxisOS Pure C Wayland Session & Display Manager
 mkdir -p /mnt/etc/systemd/system
 mkdir -p /mnt/usr/share/wayland-sessions
 
@@ -1127,8 +1134,8 @@ fi
 cat << EOF > /mnt/etc/systemd/system/axisos-session.service
 [Unit]
 Description=AxisOS Desktop Environment
-After=systemd-user-sessions.service user-runtime-dir@1000.service user@1000.service systemd-logind.service seatd.service
-Wants=user-runtime-dir@1000.service systemd-logind.service
+After=systemd-user-sessions.service user-runtime-dir@${TARGET_UID}.service user@${TARGET_UID}.service systemd-logind.service seatd.service
+Wants=user-runtime-dir@${TARGET_UID}.service user@${TARGET_UID}.service systemd-logind.service seatd.service
 Conflicts=getty@tty1.service
 After=getty@tty1.service
 
@@ -1146,23 +1153,36 @@ Environment=WLR_RENDERER=pixman
 Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
 Environment=WLR_NO_HARDWARE_CURSORS=1
 Environment=LIBGL_ALWAYS_SOFTWARE=1
+Environment=GSK_RENDERER=cairo
 Environment=LIBSEAT_BACKEND=logind
 Environment=XDG_SEAT=seat0
 Environment=XDG_VTNR=1
-Environment=XDG_RUNTIME_DIR=/run/user/1000
-ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000 2>/dev/null && chmod 0700 /run/user/1000 2>/dev/null || true'
+Environment=XDG_RUNTIME_DIR=/run/user/${TARGET_UID}
+ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/${TARGET_UID} && chown ${TARGET_UID}:${TARGET_GID} /run/user/${TARGET_UID} 2>/dev/null && chmod 0700 /run/user/${TARGET_UID} 2>/dev/null || true'
 ExecStart=/usr/local/bin/axisos-kiosk.sh
-Restart=on-failure
+Restart=always
 RestartSec=2
 StandardInput=tty
-StandardOutput=journal
-StandardError=journal
+StandardOutput=journal+console
+StandardError=journal+console
 TTYPath=/dev/tty1
-TTYReset=no
-TTYVHangup=no
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+UtmpIdentifier=tty1
 
 [Install]
 WantedBy=graphical.target
+EOF
+
+# Update Polkit administrative rules so custom username is authorized
+mkdir -p /mnt/etc/polkit-1/rules.d
+cat << EOF > /mnt/etc/polkit-1/rules.d/10-axisos-admin.rules
+polkit.addRule(function(action, subject) {
+    if (subject.isInGroup("sudo") || subject.user == "${USERNAME}" || subject.user == "axis") {
+        return polkit.Result.YES;
+    }
+});
 EOF
 
 cat << 'EOF' > /mnt/etc/pam.d/axisos-autologin
@@ -1191,9 +1211,9 @@ chroot /mnt systemctl enable seatd.service 2>/dev/null || true
 
 cat << 'EOF' > /mnt/usr/share/wayland-sessions/axisos-liquidnodes.desktop
 [Desktop Entry]
-Name=AxisOS LiquidNodes
-Comment=AxisOS Native Qt 6 Wayland Compositor & Glassmorphic Desktop
-Exec=/usr/local/bin/LiquidNodesOS
+Name=AxisOS Desktop
+Comment=AxisOS Pure C wlroots Wayland Compositor & One UI Dark Desktop
+Exec=/usr/local/bin/axisos-kiosk.sh
 Type=Application
 DesktopNames=AxisOS:LiquidNodes
 EOF
@@ -1210,12 +1230,18 @@ if [ -d /mnt/etc/skel/Desktop ]; then
     cp -r /mnt/etc/skel/Desktop/* "/mnt/home/${USERNAME}/Desktop/" 2>/dev/null || true
 fi
 
-# Ensure installer is completely removed and unavailable in installed system
+# Ensure installer and live-welcome popups do not bother user on installed system
 rm -f "/mnt/home/${USERNAME}/Desktop/axis-installer.desktop" 2>/dev/null || true
 rm -f "/mnt/etc/skel/Desktop/axis-installer.desktop" 2>/dev/null || true
 rm -f "/mnt/usr/share/applications/axis-installer.desktop" 2>/dev/null || true
 rm -f "/mnt/usr/local/bin/axisos-installer.sh" 2>/dev/null || true
 rm -f "/mnt/usr/local/bin/axisos-install.sh" 2>/dev/null || true
+rm -f "/mnt/home/${USERNAME}/.config/autostart/axis-welcome.desktop" 2>/dev/null || true
+rm -f "/mnt/etc/skel/.config/autostart/axis-welcome.desktop" 2>/dev/null || true
+rm -f "/mnt/etc/xdg/autostart/axis-welcome.desktop" 2>/dev/null || true
+mkdir -p "/mnt/home/${USERNAME}/.config/axisos" 2>/dev/null || true
+echo "1" > "/mnt/home/${USERNAME}/.config/axisos/welcome-disabled"
+echo "/usr/share/backgrounds/axisos/08-axisos-obsidian-wave.jpg" > "/mnt/home/${USERNAME}/.config/axisos/wallpaper.conf"
 
 # Strip axis-installer.desktop from GNOME dock favorites in dconf
 if [ -f /mnt/etc/dconf/db/local.d/00-axisos-gnome ]; then

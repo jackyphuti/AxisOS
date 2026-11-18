@@ -97,17 +97,30 @@ if [ -f "/etc/gtk-3.0/settings.ini" ]; then
     cp -f /etc/gtk-3.0/settings.ini "$HOME/.config/gtk-3.0/settings.ini" 2>/dev/null || true
 fi
 
-# 5. Determine Wallpaper
-WALLPAPER="/usr/share/backgrounds/axisos/01-axisos-signature-core.png"
+# 5. Determine Wallpaper (supports user override in ~/.config/axisos/wallpaper.conf)
+WALLPAPER=""
+if [ -f "$HOME/.config/axisos/wallpaper.conf" ]; then
+    USER_WP="$(head -n 1 "$HOME/.config/axisos/wallpaper.conf" 2>/dev/null | tr -d '\r\n')"
+    if [ -n "$USER_WP" ] && [ -f "$USER_WP" ]; then
+        WALLPAPER="$USER_WP"
+    fi
+fi
+[ -z "$WALLPAPER" ] || [ ! -f "$WALLPAPER" ] && WALLPAPER="/usr/share/backgrounds/axisos/08-axisos-obsidian-wave.jpg"
+[ ! -f "$WALLPAPER" ] && WALLPAPER="/usr/share/backgrounds/axisos/01-axisos-signature-core.png"
 [ ! -f "$WALLPAPER" ] && WALLPAPER="/usr/share/backgrounds/axis-wallpaper.png"
 [ ! -f "$WALLPAPER" ] && WALLPAPER="/usr/share/backgrounds/axisos/03-axisos-arctic-light.jpg"
 
 # 6. Determine Startup App (with GDK_BACKEND=wayland)
-if [ -f "/var/lib/axisos/first-boot-pending" ] && command -v axis-oobe >/dev/null 2>&1; then
+# Once AxisOS is installed (/etc/axisos-installed exists) and first-boot OOBE is complete,
+# boot straight to the clean desktop without opening welcome/installer popups.
+STARTUP_APP=""
+if [ -f "/var/lib/axisos/first-boot-pending" ] && [ ! -f "$HOME/.config/axisos/oobe-done" ] && command -v axis-oobe >/dev/null 2>&1; then
     STARTUP_APP="axis-oobe"
 elif grep -q "axisos.autoinstall=1" /proc/cmdline 2>/dev/null; then
     STARTUP_APP="axis-installer"
-else
+elif [ ! -f "/etc/axisos-installed" ] && [ ! -f "$HOME/.config/axisos/welcome-disabled" ]; then
+    STARTUP_APP="axis-welcome"
+elif [ -f "/etc/axisos-installed" ] && [ -f "$HOME/.config/autostart/axis-welcome.desktop" ] && [ ! -f "$HOME/.config/axisos/welcome-disabled" ]; then
     STARTUP_APP="axis-welcome"
 fi
 
@@ -115,7 +128,16 @@ fi
 # Runs axis-shell in a loop so closing startup apps always returns to live desktop
 SHELL_SUPERVISOR='sh -c "while true; do if [ -x /usr/local/bin/axis-shell ]; then /usr/local/bin/axis-shell; elif [ -x /usr/bin/axis-shell ]; then /usr/bin/axis-shell; elif command -v waybar >/dev/null 2>&1; then waybar; else break; fi; sleep 1; done" &'
 
-STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & $SHELL_SUPERVISOR (sleep 1 && GDK_BACKEND=wayland $STARTUP_APP) &"
+if [ -n "$STARTUP_APP" ]; then
+    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & $SHELL_SUPERVISOR (sleep 1 && GDK_BACKEND=wayland $STARTUP_APP) &"
+else
+    STARTUP_CMD="swaybg -i '$WALLPAPER' -m fill & mako & $SHELL_SUPERVISOR"
+fi
+
+# Clean up any leftover shell/background daemons from a previous run to prevent duplicate panels
+killall -q axis-shell axisos-shell swaybg mako waybar 2>/dev/null || true
+
+LOG_FILE="${HOME:-/tmp}/.compositor.log"
 
 # 8. Execute Pure C wlroots axis-compositor (persistent session compositor)
 COMPOSITOR_BIN=""
@@ -129,12 +151,13 @@ if [ -n "$COMPOSITOR_BIN" ]; then
     echo "[AxisOS] Launching Native Pure C wlroots axis-compositor..."
     RET=0
     if command -v stdbuf >/dev/null 2>&1; then
-        stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+        stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee "$LOG_FILE" || RET=${PIPESTATUS[0]}
     else
-        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee "$LOG_FILE" || RET=${PIPESTATUS[0]}
     fi
     if [ $RET -ne 0 ]; then
         echo "[AxisOS] Compositor exited ($RET). Retrying with pixman software rendering fallback..."
+        killall -q axis-shell axisos-shell swaybg mako waybar 2>/dev/null || true
         export WLR_RENDERER=pixman
         export WLR_RENDERER_ALLOW_SOFTWARE=1
         export WLR_NO_HARDWARE_CURSORS=1
@@ -142,9 +165,9 @@ if [ -n "$COMPOSITOR_BIN" ]; then
         export GSK_RENDERER=cairo
         RET=0
         if command -v stdbuf >/dev/null 2>&1; then
-            stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee -a /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+            stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee -a "$LOG_FILE" || RET=${PIPESTATUS[0]}
         else
-            "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a /home/axis/.compositor.log || RET=${PIPESTATUS[0]}
+            "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a "$LOG_FILE" || RET=${PIPESTATUS[0]}
         fi
         if [ $RET -ne 0 ]; then
             echo "[AxisOS] axis-compositor terminated ($RET). Restarting session..."

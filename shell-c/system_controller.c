@@ -236,8 +236,29 @@ static void read_battery_stats(SystemController *ctrl) {
 }
 
 static void read_network_stats(SystemController *ctrl) {
-    // Read active connection via NetworkManager D-Bus or sysfs
-    if (ctrl->system_bus) {
+    bool connected = false;
+
+    // 1. Check if Wi-Fi radio is enabled and check active Wi-Fi SSID via nmcli
+    char *wifi_out = NULL;
+    if (g_spawn_command_line_sync("nmcli -t -f ACTIVE,SSID dev wifi", &wifi_out, NULL, NULL, NULL) && wifi_out) {
+        char **lines = g_strsplit(wifi_out, "\n", -1);
+        for (int i = 0; lines[i] != NULL; i++) {
+            if (g_str_has_prefix(lines[i], "yes:")) {
+                const char *ssid = lines[i] + 4;
+                if (ssid[0] != '\0') {
+                    g_free(ctrl->metrics.wifi_ssid);
+                    ctrl->metrics.wifi_ssid = g_strdup(ssid);
+                    connected = true;
+                    break;
+                }
+            }
+        }
+        g_strfreev(lines);
+        g_free(wifi_out);
+    }
+
+    // 2. Check NetworkManager D-Bus PrimaryConnection if not found yet
+    if (!connected && ctrl->system_bus) {
         GError *error = NULL;
         GDBusProxy *proxy = g_dbus_proxy_new_sync(
             ctrl->system_bus,
@@ -255,7 +276,7 @@ static void read_network_stats(SystemController *ctrl) {
             if (primary_conn) {
                 const gchar *path = g_variant_get_string(primary_conn, NULL);
                 if (path && strlen(path) > 1 && strcmp(path, "/") != 0) {
-                    ctrl->metrics.wifi_connected = true;
+                    connected = true;
                 }
                 g_variant_unref(primary_conn);
             }
@@ -265,8 +286,8 @@ static void read_network_stats(SystemController *ctrl) {
         }
     }
 
-    // Fallback: check /sys/class/net
-    if (!ctrl->metrics.wifi_connected) {
+    // 3. Fallback: check /sys/class/net for any active interface
+    if (!connected) {
         DIR *d = opendir("/sys/class/net");
         if (d) {
             struct dirent *ent;
@@ -280,11 +301,9 @@ static void read_network_stats(SystemController *ctrl) {
                     char st[32] = {0};
                     if (fgets(st, sizeof(st), f)) {
                         if (strncmp(st, "up", 2) == 0) {
-                            ctrl->metrics.wifi_connected = true;
-                            if (!ctrl->metrics.wifi_ssid || strcmp(ctrl->metrics.wifi_ssid, "Offline") == 0) {
-                                g_free(ctrl->metrics.wifi_ssid);
-                                ctrl->metrics.wifi_ssid = g_strdup(ent->d_name);
-                            }
+                            connected = true;
+                            g_free(ctrl->metrics.wifi_ssid);
+                            ctrl->metrics.wifi_ssid = g_strdup(ent->d_name);
                             ctrl->metrics.wifi_strength = 90;
                             fclose(f);
                             break;
@@ -297,16 +316,45 @@ static void read_network_stats(SystemController *ctrl) {
         }
     }
 
-    // Read active SSID if connected
-    char *ssid_out = NULL;
-    if (g_spawn_command_line_sync("nmcli -t -f ACTIVE,SSID dev wifi 2>/dev/null | grep '^yes:' | cut -d: -f2", &ssid_out, NULL, NULL, NULL) && ssid_out) {
-        g_strstrip(ssid_out);
-        if (ssid_out[0] != '\0') {
-            g_free(ctrl->metrics.wifi_ssid);
-            ctrl->metrics.wifi_ssid = g_strdup(ssid_out);
-            ctrl->metrics.wifi_connected = true;
+    ctrl->metrics.wifi_connected = connected;
+    if (!connected) {
+        g_free(ctrl->metrics.wifi_ssid);
+        ctrl->metrics.wifi_ssid = g_strdup("Disconnected");
+    }
+}
+
+static void read_bluetooth_stats(SystemController *ctrl) {
+    bool bt_on = false;
+    bool found_rfkill = false;
+
+    DIR *d = opendir("/sys/class/rfkill");
+    if (d) {
+        struct dirent *ent;
+        while ((ent = readdir(d)) != NULL) {
+            if (ent->d_name[0] == '.') continue;
+            char type_path[512];
+            snprintf(type_path, sizeof(type_path), "/sys/class/rfkill/%s/type", ent->d_name);
+            char *t_str = NULL;
+            if (g_file_get_contents(type_path, &t_str, NULL, NULL) && t_str) {
+                g_strstrip(t_str);
+                if (g_strcmp0(t_str, "bluetooth") == 0) {
+                    found_rfkill = true;
+                    char soft_path[512];
+                    snprintf(soft_path, sizeof(soft_path), "/sys/class/rfkill/%s/soft", ent->d_name);
+                    char *s_str = NULL;
+                    if (g_file_get_contents(soft_path, &s_str, NULL, NULL) && s_str) {
+                        if (atoi(s_str) == 0) bt_on = true;
+                        g_free(s_str);
+                    }
+                }
+                g_free(t_str);
+            }
         }
-        g_free(ssid_out);
+        closedir(d);
+    }
+
+    if (found_rfkill) {
+        ctrl->metrics.bluetooth_enabled = bt_on;
     }
 }
 
@@ -376,7 +424,33 @@ static void read_audio_stats(SystemController *ctrl) {
     if (g_spawn_command_line_sync("pactl get-sink-mute @DEFAULT_SINK@", &out, NULL, NULL, NULL) && out) {
         if (strstr(out, "yes") || strstr(out, "Mute: yes")) {
             ctrl->metrics.is_muted = true;
+            g_free(out);
+            return;
         } else if (strstr(out, "no") || strstr(out, "Mute: no")) {
+            ctrl->metrics.is_muted = false;
+            g_free(out);
+            return;
+        }
+        g_free(out);
+        out = NULL;
+    }
+
+    // 3. Fallback to ALSA amixer
+    if (g_spawn_command_line_sync("amixer sget Master", &out, NULL, NULL, NULL) && out) {
+        char *pct = strchr(out, '%');
+        if (pct) {
+            char *start = pct - 1;
+            while (start > out && g_ascii_isdigit(*(start - 1))) {
+                start--;
+            }
+            int v = atoi(start);
+            if (v >= 0 && v <= 100) {
+                ctrl->metrics.volume = v;
+            }
+        }
+        if (strstr(out, "[off]")) {
+            ctrl->metrics.is_muted = true;
+        } else if (strstr(out, "[on]")) {
             ctrl->metrics.is_muted = false;
         }
         g_free(out);
@@ -534,6 +608,7 @@ void system_controller_poll_telemetry(SystemController *ctrl) {
     read_mem_stats(ctrl);
     read_battery_stats(ctrl);
     read_network_stats(ctrl);
+    read_bluetooth_stats(ctrl);
     read_cpu_temp(ctrl);
     read_audio_stats(ctrl);
     ctrl->metrics.brightness = system_controller_read_brightness();
@@ -656,18 +731,20 @@ void system_controller_set_volume(SystemController *ctrl, int volume) {
     if (volume > 100) volume = 100;
     ctrl->metrics.volume = volume;
 
-    char cmd[128];
-    snprintf(cmd, sizeof(cmd), "pactl set-sink-volume @DEFAULT_SINK@ %d%% 2>/dev/null || wpctl set-volume @DEFAULT_AUDIO_SINK@ %.2f 2>/dev/null",
-             volume, volume / 100.0);
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd),
+             "wpctl set-volume @DEFAULT_AUDIO_SINK@ %.2f 2>/dev/null || pactl set-sink-volume @DEFAULT_SINK@ %d%% 2>/dev/null || amixer -q sset Master %d%% 2>/dev/null",
+             volume / 100.0, volume, volume);
     g_spawn_command_line_async(cmd, NULL);
 }
 
 void system_controller_set_muted(SystemController *ctrl, bool muted) {
     if (!ctrl) return;
     ctrl->metrics.is_muted = muted;
-    char cmd[128];
-    snprintf(cmd, sizeof(cmd), "pactl set-sink-mute @DEFAULT_SINK@ %s 2>/dev/null || wpctl set-mute @DEFAULT_AUDIO_SINK@ %s 2>/dev/null",
-             muted ? "1" : "0", muted ? "1" : "0");
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd),
+             "wpctl set-mute @DEFAULT_AUDIO_SINK@ %s 2>/dev/null || pactl set-sink-mute @DEFAULT_SINK@ %s 2>/dev/null || amixer -q sset Master %s 2>/dev/null",
+             muted ? "1" : "0", muted ? "1" : "0", muted ? "mute" : "unmute");
     g_spawn_command_line_async(cmd, NULL);
 }
 
@@ -677,8 +754,10 @@ void system_controller_set_brightness(SystemController *ctrl, int brightness) {
     if (brightness > 100) brightness = 100;
     ctrl->metrics.brightness = brightness;
 
-    char cmd[128];
-    snprintf(cmd, sizeof(cmd), "brightnessctl set %d%% 2>/dev/null", brightness);
+    char cmd[256];
+    snprintf(cmd, sizeof(cmd),
+             "brightnessctl set %d%% 2>/dev/null || pkexec brightnessctl set %d%% 2>/dev/null",
+             brightness, brightness);
     g_spawn_command_line_async(cmd, NULL);
 }
 
@@ -686,15 +765,21 @@ void system_controller_toggle_wifi(SystemController *ctrl, bool enabled) {
     if (!ctrl) return;
     ctrl->metrics.wifi_connected = enabled;
     char cmd[128];
-    snprintf(cmd, sizeof(cmd), "nmcli radio wifi %s 2>/dev/null", enabled ? "on" : "off");
+    snprintf(cmd, sizeof(cmd),
+             "nmcli radio wifi %s 2>/dev/null || rfkill %s wifi 2>/dev/null",
+             enabled ? "on" : "off", enabled ? "unblock" : "block");
     g_spawn_command_line_async(cmd, NULL);
 }
 
 void system_controller_toggle_bluetooth(SystemController *ctrl, bool enabled) {
     if (!ctrl) return;
     ctrl->metrics.bluetooth_enabled = enabled;
-    char cmd[128];
-    snprintf(cmd, sizeof(cmd), "bluetoothctl power %s 2>/dev/null", enabled ? "on" : "off");
+    char cmd[192];
+    if (enabled) {
+        snprintf(cmd, sizeof(cmd), "rfkill unblock bluetooth 2>/dev/null; bluetoothctl power on 2>/dev/null");
+    } else {
+        snprintf(cmd, sizeof(cmd), "bluetoothctl power off 2>/dev/null; rfkill block bluetooth 2>/dev/null");
+    }
     g_spawn_command_line_async(cmd, NULL);
 }
 
@@ -705,15 +790,15 @@ void system_controller_set_dark_mode(SystemController *ctrl, bool dark) {
 
 void system_controller_power_off(SystemController *ctrl) {
     (void)ctrl;
-    g_spawn_command_line_async("systemctl poweroff 2>/dev/null || loginctl poweroff 2>/dev/null", NULL);
+    g_spawn_command_line_async("systemctl poweroff 2>/dev/null || loginctl poweroff 2>/dev/null || sudo -n poweroff 2>/dev/null || pkexec poweroff 2>/dev/null", NULL);
 }
 
 void system_controller_reboot(SystemController *ctrl) {
     (void)ctrl;
-    g_spawn_command_line_async("systemctl reboot 2>/dev/null || loginctl reboot 2>/dev/null", NULL);
+    g_spawn_command_line_async("systemctl reboot 2>/dev/null || loginctl reboot 2>/dev/null || sudo -n reboot 2>/dev/null || pkexec reboot 2>/dev/null", NULL);
 }
 
 void system_controller_suspend(SystemController *ctrl) {
     (void)ctrl;
-    g_spawn_command_line_async("systemctl suspend 2>/dev/null || loginctl suspend 2>/dev/null", NULL);
+    g_spawn_command_line_async("systemctl suspend 2>/dev/null || loginctl suspend 2>/dev/null || sudo -n systemctl suspend 2>/dev/null", NULL);
 }

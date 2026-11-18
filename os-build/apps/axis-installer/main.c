@@ -11,6 +11,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <sys/file.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
@@ -45,6 +48,48 @@ static const char *AXIS_CSS =
     "    border: 1px solid @axis_outline;"
     "    border-radius: 12px;"
     "    background-color: @axis_surface;"
+    "}"
+    "viewport, stack {"
+    "    background-color: @axis_base;"
+    "    border: none;"
+    "}"
+    "treeview.view {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: none;"
+    "}"
+    "treeview.view:hover {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "}"
+    "treeview.view:selected, treeview.view:selected:focus {"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
+    "    font-weight: 600;"
+    "}"
+    "treeview.view header button {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text_muted;"
+    "    border-bottom: 1px solid @axis_outline;"
+    "    border-right: 1px solid @axis_outline;"
+    "    font-weight: 700;"
+    "    padding: 6px 10px;"
+    "    background-image: none;"
+    "    box-shadow: none;"
+    "}"
+    "scrollbar {"
+    "    background-color: transparent;"
+    "    border: none;"
+    "}"
+    "scrollbar slider {"
+    "    background-color: @axis_outline;"
+    "    border-radius: 9999px;"
+    "    min-width: 6px;"
+    "    min-height: 24px;"
+    "    margin: 2px;"
+    "}"
+    "scrollbar slider:hover {"
+    "    background-color: @axis_accent;"
     "}"
     "listbox {"
     "    background-color: @axis_surface;"
@@ -137,23 +182,23 @@ static const char *AXIS_CSS =
     "}"
     ".setup-canvas {"
     "    background-color: @axis_base;"
-    "    padding: 24px 36px;"
+    "    padding: 16px 28px;"
     "}"
     ".setup-footer {"
     "    background-color: @axis_surface;"
     "    border-top: 1px solid @axis_outline;"
-    "    padding: 12px 32px;"
+    "    padding: 10px 28px;"
     "}"
     ".win-title {"
-    "    font-size: 22px;"
+    "    font-size: 20px;"
     "    font-weight: 700;"
     "    color: @axis_text;"
-    "    margin-bottom: 6px;"
+    "    margin-bottom: 4px;"
     "}"
     ".win-subtitle {"
     "    font-size: 13px;"
     "    color: @axis_text_muted;"
-    "    margin-bottom: 18px;"
+    "    margin-bottom: 12px;"
     "}"
     ".field-label {"
     "    font-size: 13px;"
@@ -1502,7 +1547,7 @@ static void build_step_locale(AxisInstallerApp *app) {
     app->tree_lang = gtk_tree_view_new_with_model(filter_l);
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(app->tree_lang), FALSE);
     GtkCellRenderer *rend_lang = gtk_cell_renderer_text_new();
-    g_object_set(rend_lang, "ypad", 6, "xpad", 8, NULL);
+    g_object_set(rend_lang, "ypad", 6, "xpad", 8, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_lang), -1, "Language", rend_lang, "text", 0, NULL);
 
     GtkTreeSelection *sel_lang = gtk_tree_view_get_selection(GTK_TREE_VIEW(app->tree_lang));
@@ -1513,17 +1558,12 @@ static void build_step_locale(AxisInstallerApp *app) {
         GtkTreeIter filter_iter;
         if (gtk_tree_model_filter_convert_child_iter_to_iter(app->filter_lang, &filter_iter, &default_lang_iter)) {
             gtk_tree_selection_select_iter(sel_lang, &filter_iter);
-            GtkTreePath *path = gtk_tree_model_get_path(filter_l, &filter_iter);
-            if (path) {
-                gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(app->tree_lang), path, NULL, TRUE, 0.5, 0.0);
-                gtk_tree_path_free(path);
-            }
         }
     }
 
     GtkWidget *scroll_lang = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_lang), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
-    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll_lang), 220);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_lang), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll_lang), 180);
     gtk_widget_set_vexpand(scroll_lang, TRUE);
     gtk_widget_set_hexpand(scroll_lang, TRUE);
     gtk_container_add(GTK_CONTAINER(scroll_lang), app->tree_lang);
@@ -1565,7 +1605,7 @@ static void build_step_locale(AxisInstallerApp *app) {
     app->tree_tz = gtk_tree_view_new_with_model(filter_t);
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(app->tree_tz), FALSE);
     GtkCellRenderer *rend_tz = gtk_cell_renderer_text_new();
-    g_object_set(rend_tz, "ypad", 6, "xpad", 8, NULL);
+    g_object_set(rend_tz, "ypad", 6, "xpad", 8, "ellipsize", PANGO_ELLIPSIZE_END, NULL);
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_tz), -1, "Timezone", rend_tz, "text", 0, NULL);
 
     GtkTreeSelection *sel_tz = gtk_tree_view_get_selection(GTK_TREE_VIEW(app->tree_tz));
@@ -1576,17 +1616,12 @@ static void build_step_locale(AxisInstallerApp *app) {
         GtkTreeIter filter_iter;
         if (gtk_tree_model_filter_convert_child_iter_to_iter(app->filter_tz, &filter_iter, &default_tz_iter)) {
             gtk_tree_selection_select_iter(sel_tz, &filter_iter);
-            GtkTreePath *path = gtk_tree_model_get_path(filter_t, &filter_iter);
-            if (path) {
-                gtk_tree_view_scroll_to_cell(GTK_TREE_VIEW(app->tree_tz), path, NULL, TRUE, 0.5, 0.0);
-                gtk_tree_path_free(path);
-            }
         }
     }
 
     GtkWidget *scroll_tz = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_tz), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
-    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll_tz), 220);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll_tz), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll_tz), 180);
     gtk_widget_set_vexpand(scroll_tz, TRUE);
     gtk_widget_set_hexpand(scroll_tz, TRUE);
     gtk_container_add(GTK_CONTAINER(scroll_tz), app->tree_tz);
@@ -1597,6 +1632,7 @@ static void build_step_locale(AxisInstallerApp *app) {
 
     // --- STATUS BADGE PILL ---
     app->lbl_locale_badge = gtk_label_new("Selected: English (United States)  •  New York / Eastern Time (USA / UTC-5)");
+    gtk_label_set_ellipsize(GTK_LABEL(app->lbl_locale_badge), PANGO_ELLIPSIZE_END);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_locale_badge), "selection-pill");
     gtk_widget_set_halign(app->lbl_locale_badge, GTK_ALIGN_CENTER);
     gtk_box_pack_start(GTK_BOX(box), app->lbl_locale_badge, FALSE, FALSE, 2);
@@ -1628,8 +1664,11 @@ static void build_step_locale(AxisInstallerApp *app) {
 
     gtk_box_pack_start(GTK_BOX(box), kbd_card, FALSE, FALSE, 0);
 
-    GtkWidget *scroller = wrap_in_scroller(box);
-    gtk_stack_add_named(GTK_STACK(app->stack), scroller, "step_0");
+    /* Do not wrap step_0 in a second outer GtkScrolledWindow since scroll_lang and scroll_tz are already scrollable */
+    gtk_widget_set_hexpand(box, TRUE);
+    gtk_widget_set_vexpand(box, TRUE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(box), "setup-canvas");
+    gtk_stack_add_named(GTK_STACK(app->stack), box, "step_0");
 }
 
 static GtkWidget *create_edition_card(AxisInstallerApp *app,
@@ -1758,6 +1797,7 @@ static void build_step_disk(AxisInstallerApp *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->tree_drives), "treeview");
 
     GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+    g_object_set(renderer, "ypad", 8, "xpad", 8, NULL);
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_drives), -1, "Drive", renderer, "text", 0, NULL);
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_drives), -1, "Capacity", renderer, "text", 1, NULL);
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_drives), -1, "Free Space", renderer, "text", 2, NULL);
@@ -1767,12 +1807,16 @@ static void build_step_disk(AxisInstallerApp *app) {
     g_signal_connect(sel, "changed", G_CALLBACK(on_drive_selection_changed), app);
 
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 180);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scroll), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
+    gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(scroll), 160);
+    gtk_widget_set_vexpand(scroll, TRUE);
+    gtk_widget_set_hexpand(scroll, TRUE);
     gtk_container_add(GTK_CONTAINER(scroll), app->tree_drives);
     gtk_box_pack_start(GTK_BOX(box), scroll, TRUE, TRUE, 0);
 
     app->lbl_disk_selection_status = gtk_label_new("Selected: /dev/sda");
     gtk_label_set_xalign(GTK_LABEL(app->lbl_disk_selection_status), 0.0);
+    gtk_label_set_ellipsize(GTK_LABEL(app->lbl_disk_selection_status), PANGO_ELLIPSIZE_END);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_disk_selection_status), "field-label");
 
     GtkWidget *btn_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
@@ -1807,8 +1851,11 @@ static void build_step_disk(AxisInstallerApp *app) {
     gtk_box_pack_start(GTK_BOX(fs_card), fs_row, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), fs_card, FALSE, FALSE, 4);
 
-    GtkWidget *scroller = wrap_in_scroller(box);
-    gtk_stack_add_named(GTK_STACK(app->stack), scroller, "step_2");
+    /* Do not wrap step_2 in a second outer GtkScrolledWindow since the drive list is already scrollable */
+    gtk_widget_set_hexpand(box, TRUE);
+    gtk_widget_set_vexpand(box, TRUE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(box), "setup-canvas");
+    gtk_stack_add_named(GTK_STACK(app->stack), box, "step_2");
     populate_drives(app);
 }
 
@@ -2201,6 +2248,9 @@ static gboolean idle_install_failure(gpointer user_data) {
 static gpointer thread_installer_worker(gpointer user_data) {
     AxisInstallerApp *app = (AxisInstallerApp *)user_data;
 
+    /* Ensure default SIGCHLD disposition so waitpid() succeeds reliably */
+    signal(SIGCHLD, SIG_DFL);
+
     int in_pipe[2];
     int out_pipe[2];
     if (pipe(in_pipe) != 0 || pipe(out_pipe) != 0) {
@@ -2215,6 +2265,7 @@ static gpointer thread_installer_worker(gpointer user_data) {
     }
 
     if (pid == 0) {
+        signal(SIGCHLD, SIG_DFL);
         close(in_pipe[1]);
         dup2(in_pipe[0], STDIN_FILENO);
         close(in_pipe[0]);
@@ -2378,12 +2429,12 @@ static AxisInstallerApp *axis_installer_app_create(void) {
     if (!monitor && display) {
         monitor = gdk_display_get_monitor_at_point(display, 0, 0);
     }
-    GdkRectangle workarea = {0, 0, 1024, 768};
+    GdkRectangle workarea = {0, 0, 1280, 800};
     if (monitor) {
         gdk_monitor_get_workarea(monitor, &workarea);
     }
-    int def_w = MIN(920, workarea.width > 48 ? workarea.width - 48 : 800);
-    int def_h = MIN(620, workarea.height > 64 ? workarea.height - 64 : 600);
+    int def_w = MIN(880, workarea.width > 48 ? workarea.width - 48 : 800);
+    int def_h = MIN(560, workarea.height > 150 ? workarea.height - 150 : 540);
     gtk_window_set_default_size(GTK_WINDOW(app->window), def_w, def_h);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
     gtk_window_set_resizable(GTK_WINDOW(app->window), TRUE);
@@ -2403,8 +2454,8 @@ static AxisInstallerApp *axis_installer_app_create(void) {
     gtk_container_add(GTK_CONTAINER(app->window), root_box);
 
     app->stack = gtk_stack_new();
-    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
-    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
+    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
+    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 150);
     gtk_box_pack_start(GTK_BOX(root_box), app->stack, TRUE, TRUE, 0);
 
     GtkWidget *footer = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
@@ -2474,6 +2525,18 @@ int main(int argc, char *argv[]) {
         g_print("AxisOS is already installed on this machine. Pass --force to run anyway.\n");
         return 0;
     }
+
+    /* Single-instance lock so multiple clicks never spawn overlapping installer windows */
+    int lock_fd = open("/tmp/axis-installer.lock", O_CREAT | O_RDWR, 0666);
+    if (lock_fd >= 0) {
+        if (flock(lock_fd, LOCK_EX | LOCK_NB) != 0) {
+            g_print("AxisOS Installer is already running.\n");
+            close(lock_fd);
+            return 0;
+        }
+    }
+
+    signal(SIGCHLD, SIG_DFL);
     gtk_init(&argc, &argv);
     GtkSettings *default_settings = gtk_settings_get_default();
     if (default_settings) {

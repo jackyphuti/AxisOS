@@ -97,6 +97,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libwayland-bin \
     libxkbcommon-dev \
     libinput-dev \
+    libdrm-dev \
     libpam0g-dev \
     libudev-dev \
     libvterm-dev \

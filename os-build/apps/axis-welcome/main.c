@@ -77,8 +77,8 @@ static void read_system_info(SystemInfo *info) {
     info->is_live = (access("/run/live", F_OK) == 0 ||
                      access("/etc/axisos-installed", F_OK) != 0);
 
-    // Detect GPU
-    FILE *fp_gpu = popen("lspci 2>/dev/null | grep -E 'VGA|3D' | sed 's/.*: //g' | head -n1", "r");
+    // Detect GPU (lspci + /sys/class/drm fallback)
+    FILE *fp_gpu = popen("lspci 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/.*: //g' | head -n1", "r");
     if (fp_gpu) {
         if (fgets(info->gpu_model, sizeof(info->gpu_model), fp_gpu)) {
             g_strstrip(info->gpu_model);
@@ -86,12 +86,70 @@ static void read_system_info(SystemInfo *info) {
         pclose(fp_gpu);
     }
     if (!info->gpu_model[0]) {
-        g_strlcpy(info->gpu_model, "Hardware Accelerated Wayland (wlroots/drm)", sizeof(info->gpu_model));
+        char drv_buf[256] = {0};
+        ssize_t len = readlink("/sys/class/drm/card0/device/driver", drv_buf, sizeof(drv_buf) - 1);
+        if (len > 0) {
+            drv_buf[len] = '\0';
+            const char *base = strrchr(drv_buf, '/');
+            snprintf(info->gpu_model, sizeof(info->gpu_model), "DRM Graphics (%s)", base ? base + 1 : drv_buf);
+        } else {
+            g_strlcpy(info->gpu_model, "Hardware Accelerated Wayland (wlroots/drm)", sizeof(info->gpu_model));
+        }
     }
 }
 
+static const char *CSS_WELCOME =
+    "@define-color axis_base #141826;"
+    "@define-color axis_surface #1F2231;"
+    "@define-color axis_surface_raised #262A3D;"
+    "@define-color axis_outline #2E3349;"
+    "@define-color axis_accent #7D95FF;"
+    "@define-color axis_accent_btn_text #0F1422;"
+    "@define-color axis_text #E2E8F0;"
+    "@define-color axis_text_muted #94A3B8;"
+    "window, headerbar, button, checkbutton {"
+    "    background-image: none;"
+    "    box-shadow: none;"
+    "}"
+    "window {"
+    "    background-color: @axis_base;"
+    "    color: @axis_text;"
+    "    font-family: 'IBM Plex Sans', sans-serif;"
+    "}"
+    "headerbar {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border-bottom: 1px solid @axis_outline;"
+    "}"
+    "frame, frame > border {"
+    "    background-color: @axis_surface;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 14px;"
+    "}"
+    "button.welcome-card {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 14px;"
+    "}"
+    "button.welcome-card:hover {"
+    "    background-color: alpha(@axis_accent, 0.14);"
+    "    border-color: @axis_accent;"
+    "}"
+    "button.btn-close {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 9999px;"
+    "    padding: 6px 20px;"
+    "    font-weight: 600;"
+    "}"
+    "button.btn-close:hover {"
+    "    border-color: @axis_accent;"
+    "    color: @axis_accent;"
+    "}";
+
 static void on_launch_action(GtkButton *btn, gpointer user_data) {
-    (void)btn;
     const char *cmd = (const char *)user_data;
     if (cmd) {
         GError *err = NULL;
@@ -99,6 +157,11 @@ static void on_launch_action(GtkButton *btn, gpointer user_data) {
         if (err) {
             g_warning("Failed to launch %s: %s", cmd, err->message);
             g_error_free(err);
+        } else if (g_strcmp0(cmd, "axis-installer") == 0) {
+            GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(btn));
+            if (GTK_IS_WINDOW(toplevel)) {
+                gtk_window_close(GTK_WINDOW(toplevel));
+            }
         }
     }
 }
@@ -108,7 +171,10 @@ static void on_autostart_toggled(GtkToggleButton *btn, gpointer user_data) {
     gboolean active = gtk_toggle_button_get_active(btn);
     gchar *autostart_dir = g_build_filename(g_get_user_config_dir(), "autostart", NULL);
     gchar *desktop_path = g_build_filename(autostart_dir, "axis-welcome.desktop", NULL);
+    gchar *axis_cfg_dir = g_build_filename(g_get_user_config_dir(), "axisos", NULL);
+    gchar *disabled_marker = g_build_filename(axis_cfg_dir, "welcome-disabled", NULL);
 
+    g_mkdir_with_parents(axis_cfg_dir, 0755);
     if (active) {
         g_mkdir_with_parents(autostart_dir, 0755);
         const char *content =
@@ -120,16 +186,21 @@ static void on_autostart_toggled(GtkToggleButton *btn, gpointer user_data) {
             "Terminal=false\n"
             "X-GNOME-Autostart-enabled=true\n";
         g_file_set_contents(desktop_path, content, -1, NULL);
+        unlink(disabled_marker);
     } else {
         unlink(desktop_path);
+        g_file_set_contents(disabled_marker, "1\n", -1, NULL);
     }
     g_free(autostart_dir);
     g_free(desktop_path);
+    g_free(axis_cfg_dir);
+    g_free(disabled_marker);
 }
 
 static GtkWidget *create_action_card(const char *icon_name, const char *title, const char *desc, const char *cmd) {
     GtkWidget *card = gtk_button_new();
-    gtk_widget_set_size_request(card, 240, 110);
+    gtk_style_context_add_class(gtk_widget_get_style_context(card), "welcome-card");
+    gtk_widget_set_size_request(card, 236, 98);
 
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     gtk_container_set_border_width(GTK_CONTAINER(box), 12);
@@ -207,6 +278,15 @@ static void load_axis_theme(void) {
         }
     }
     g_object_unref(provider);
+
+    GtkCssProvider *extra_prov = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra_prov, CSS_WELCOME, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra_prov),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(extra_prov);
 }
 
 int main(int argc, char *argv[]) {
@@ -245,7 +325,8 @@ int main(int argc, char *argv[]) {
     }
 
     app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(app.window), 820, 600);
+    gtk_window_set_default_size(GTK_WINDOW(app.window), 780, 540);
+    gtk_window_set_position(GTK_WINDOW(app.window), GTK_WIN_POS_CENTER);
     gtk_window_set_title(GTK_WINDOW(app.window), "Welcome to AxisOS");
 
     GtkWidget *hb = gtk_header_bar_new();
@@ -287,12 +368,6 @@ int main(int argc, char *argv[]) {
     gtk_grid_set_column_spacing(GTK_GRID(grid), 12);
     gtk_widget_set_halign(grid, GTK_ALIGN_CENTER);
 
-    GtkWidget *card_inst = create_action_card(
-        "system-software-install",
-        "Install AxisOS",
-        "Launch the visual disk partitioner and installation wizard.",
-        "axis-installer"
-    );
     GtkWidget *card_set = create_action_card(
         "preferences-system",
         "System Settings",
@@ -303,7 +378,7 @@ int main(int argc, char *argv[]) {
         "system-software-install",
         "Software Manager",
         "Install applications, games, tools, and .axis packages.",
-        "axis-package-installer"
+        "axis-software-manager"
     );
     GtkWidget *card_sched = create_action_card(
         "utilities-system-monitor",
@@ -324,7 +399,23 @@ int main(int argc, char *argv[]) {
         "axis-terminal"
     );
 
-    gtk_grid_attach(GTK_GRID(grid), card_inst, 0, 0, 1, 1);
+    if (app.sys_info.is_live) {
+        GtkWidget *card_inst = create_action_card(
+            "system-software-install",
+            "Install AxisOS",
+            "Launch the visual disk partitioner and installation wizard.",
+            "axis-installer"
+        );
+        gtk_grid_attach(GTK_GRID(grid), card_inst, 0, 0, 1, 1);
+    } else {
+        GtkWidget *card_game = create_action_card(
+            "input-gaming",
+            "Game Station",
+            "Play Steam, Lutris, RetroArch, and PlayStation titles.",
+            "axis-game-runner"
+        );
+        gtk_grid_attach(GTK_GRID(grid), card_game, 0, 0, 1, 1);
+    }
     gtk_grid_attach(GTK_GRID(grid), card_set, 1, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), card_soft, 0, 1, 1, 1);
     gtk_grid_attach(GTK_GRID(grid), card_sched, 1, 1, 1, 1);
@@ -336,13 +427,18 @@ int main(int argc, char *argv[]) {
     // Footer
     GtkWidget *footer_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
     app.autostart_check = gtk_check_button_new_with_label("Show this welcome dialog on startup");
+    gchar *disabled_file = g_build_filename(g_get_user_config_dir(), "axisos", "welcome-disabled", NULL);
     gchar *autostart_file = g_build_filename(g_get_user_config_dir(), "autostart", "axis-welcome.desktop", NULL);
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(app.autostart_check), access(autostart_file, F_OK) == 0);
+    gboolean show_on_start = app.sys_info.is_live ? (access(disabled_file, F_OK) != 0)
+                                                  : (access(autostart_file, F_OK) == 0 && access(disabled_file, F_OK) != 0);
+    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(app.autostart_check), show_on_start);
+    g_free(disabled_file);
     g_free(autostart_file);
     g_signal_connect(app.autostart_check, "toggled", G_CALLBACK(on_autostart_toggled), &app);
     gtk_box_pack_start(GTK_BOX(footer_box), app.autostart_check, FALSE, FALSE, 0);
 
     GtkWidget *close_btn = gtk_button_new_with_label("Close");
+    gtk_style_context_add_class(gtk_widget_get_style_context(close_btn), "btn-close");
     g_signal_connect_swapped(close_btn, "clicked", G_CALLBACK(gtk_window_close), app.window);
     gtk_box_pack_end(GTK_BOX(footer_box), close_btn, FALSE, FALSE, 0);
 

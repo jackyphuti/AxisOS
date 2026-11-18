@@ -49,6 +49,30 @@ static const char *CSS_OOBE =
     "@define-color axis_text_muted #94A3B8;"
     "@define-color axis_danger #F87171;"
     "@define-color axis_success #34D399;"
+    "window, dialog, headerbar, button, entry, switch {"
+    "    background-image: none;"
+    "    box-shadow: none;"
+    "}"
+    "window, dialog {"
+    "    background-color: @axis_base;"
+    "    color: @axis_text;"
+    "    font-family: 'IBM Plex Sans', sans-serif;"
+    "}"
+    "headerbar {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border-bottom: 1px solid @axis_outline;"
+    "}"
+    "entry {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 10px;"
+    "    padding: 8px 12px;"
+    "}"
+    "entry:focus {"
+    "    border-color: @axis_accent;"
+    "}"
     ".card {"
     "    background-color: @axis_surface_raised;"
     "    color: @axis_text;"
@@ -231,6 +255,11 @@ static gboolean on_delayed_wifi_refresh(gpointer user_data) {
     if (app && app->lbl_scan_status) {
         gtk_label_set_text(GTK_LABEL(app->lbl_scan_status), "");
     }
+    if (app && app->lbl_net_status) {
+        char *status = check_network();
+        gtk_label_set_text(GTK_LABEL(app->lbl_net_status), status);
+        g_free(status);
+    }
     refresh_wifi_list(app);
     return G_SOURCE_REMOVE;
 }
@@ -258,13 +287,15 @@ static void on_wifi_row_activated(GtkListBox *box, GtkListBoxRow *row, gpointer 
     gboolean is_secured = (sec && sec[0] != '\0' && g_strcmp0(sec, "--") != 0);
 
     if (!is_secured) {
-        char *cmd = g_strdup_printf("nmcli device wifi connect \"%s\"", ssid);
-        exec_cmd(cmd);
+        if (app->lbl_scan_status) {
+            gtk_label_set_text(GTK_LABEL(app->lbl_scan_status), "Connecting...");
+        }
+        char *q_ssid = g_shell_quote(ssid);
+        char *cmd = g_strdup_printf("nmcli device wifi connect %s", q_ssid);
+        g_spawn_command_line_async(cmd, NULL);
         g_free(cmd);
-        char *status = check_network();
-        gtk_label_set_text(GTK_LABEL(app->lbl_net_status), status);
-        g_free(status);
-        refresh_wifi_list(app);
+        g_free(q_ssid);
+        g_timeout_add(2500, (GSourceFunc)on_delayed_wifi_refresh, app);
     } else {
         GtkWidget *dialog = gtk_dialog_new_with_buttons(
             "Connect to Wi-Fi",
@@ -300,13 +331,17 @@ static void on_wifi_row_activated(GtkListBox *box, GtkListBoxRow *row, gpointer 
         gint res = gtk_dialog_run(GTK_DIALOG(dialog));
         if (res == GTK_RESPONSE_ACCEPT) {
             const char *pass = gtk_entry_get_text(GTK_ENTRY(entry));
-            char *cmd = g_strdup_printf("nmcli device wifi connect \"%s\" password \"%s\"", ssid, pass);
-            exec_cmd(cmd);
+            if (app->lbl_scan_status) {
+                gtk_label_set_text(GTK_LABEL(app->lbl_scan_status), "Connecting...");
+            }
+            char *q_ssid = g_shell_quote(ssid);
+            char *q_pass = g_shell_quote(pass ? pass : "");
+            char *cmd = g_strdup_printf("nmcli device wifi connect %s password %s", q_ssid, q_pass);
+            g_spawn_command_line_async(cmd, NULL);
             g_free(cmd);
-            char *status = check_network();
-            gtk_label_set_text(GTK_LABEL(app->lbl_net_status), status);
-            g_free(status);
-            refresh_wifi_list(app);
+            g_free(q_ssid);
+            g_free(q_pass);
+            g_timeout_add(2500, (GSourceFunc)on_delayed_wifi_refresh, app);
         }
         gtk_widget_destroy(dialog);
     }
@@ -457,10 +492,30 @@ static void on_check_net_cb(GtkWidget *widget, gpointer user_data) {
     g_free(status);
 }
 
+static void mark_oobe_complete(void) {
+    gchar *axis_cfg_dir = g_build_filename(g_get_user_config_dir(), "axisos", NULL);
+    gchar *oobe_done = g_build_filename(axis_cfg_dir, "oobe-done", NULL);
+    gchar *welcome_dis = g_build_filename(axis_cfg_dir, "welcome-disabled", NULL);
+    gchar *autostart_welcome = g_build_filename(g_get_user_config_dir(), "autostart", "axis-welcome.desktop", NULL);
+    gchar *autostart_oobe = g_build_filename(g_get_user_config_dir(), "autostart", "axis-oobe-firstboot.desktop", NULL);
+    g_mkdir_with_parents(axis_cfg_dir, 0755);
+    g_file_set_contents(oobe_done, "1\n", -1, NULL);
+    g_file_set_contents(welcome_dis, "1\n", -1, NULL);
+    unlink(autostart_welcome);
+    unlink(autostart_oobe);
+    g_free(axis_cfg_dir);
+    g_free(oobe_done);
+    g_free(welcome_dis);
+    g_free(autostart_welcome);
+    g_free(autostart_oobe);
+    unlink("/var/lib/axisos/first-boot-pending");
+    g_spawn_command_line_async("sudo -n rm -f /var/lib/axisos/first-boot-pending", NULL);
+}
+
 static void on_finish_cb(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     AxisOobeApp *app = (AxisOobeApp *)user_data;
-    unlink("/var/lib/axisos/first-boot-pending");
+    mark_oobe_complete();
     gtk_widget_destroy(app->window);
 }
 
@@ -486,17 +541,24 @@ static void build_welcome_step(AxisOobeApp *app) {
 
     // Hardware details
     char *cpu = exec_cmd("grep -m1 'model name' /proc/cpuinfo | cut -d: -f2 || echo 'x86_64 CPU'");
-    char *mem = exec_cmd("free -h | awk '/^Mem:/ {print $2}' || echo '8 GB'");
+    char *mem = exec_cmd("awk '/^MemTotal:/ {printf \"%.1f GB\", $2/1048576}' /proc/meminfo 2>/dev/null || free -h | awk '/^Mem:/ {print $2}'");
+    char *gpu = exec_cmd("lspci 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/.*: //g' | head -n1");
     g_strstrip(cpu);
     g_strstrip(mem);
+    g_strstrip(gpu);
+    if (!gpu[0]) {
+        g_free(gpu);
+        gpu = g_strdup("Wayland DRM / KMS Graphics");
+    }
 
-    char *hw_str = g_strdup_printf("Hardware Profile:\n• Processor: %s\n• Memory: %s RAM\n• Compositor: Wayland Native (wlroots)", cpu, mem);
+    char *hw_str = g_strdup_printf("Hardware Profile:\n• Processor: %s\n• Memory: %s RAM\n• Graphics: %s\n• Compositor: Wayland Native (wlroots)", cpu, mem, gpu);
     GtkWidget *lbl_hw = gtk_label_new(hw_str);
     gtk_label_set_xalign(GTK_LABEL(lbl_hw), 0.0);
     gtk_box_pack_start(GTK_BOX(card), lbl_hw, FALSE, FALSE, 12);
 
     g_free(cpu);
     g_free(mem);
+    g_free(gpu);
     g_free(hw_str);
 
     gtk_box_pack_start(GTK_BOX(vbox), card, TRUE, TRUE, 0);
@@ -622,6 +684,13 @@ static void build_finish_step(AxisOobeApp *app) {
     gtk_stack_add_named(GTK_STACK(app->stack), vbox, "step_finish");
 }
 
+static void on_oobe_window_destroy(GtkWidget *w, gpointer user_data) {
+    (void)w;
+    (void)user_data;
+    mark_oobe_complete();
+    gtk_main_quit();
+}
+
 static AxisOobeApp *axis_oobe_app_create(void) {
     AxisOobeApp *app = g_new0(AxisOobeApp, 1);
     app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -639,15 +708,15 @@ static AxisOobeApp *axis_oobe_app_create(void) {
     gtk_window_set_titlebar(GTK_WINDOW(app->window), hb);
 
     app->stack = gtk_stack_new();
-    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
-    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
+    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_SLIDE_LEFT_RIGHT);
+    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 150);
     gtk_container_add(GTK_CONTAINER(app->window), app->stack);
 
     build_welcome_step(app);
     build_network_step(app);
     build_finish_step(app);
 
-    g_signal_connect(app->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+    g_signal_connect(app->window, "destroy", G_CALLBACK(on_oobe_window_destroy), NULL);
     return app;
 }
 

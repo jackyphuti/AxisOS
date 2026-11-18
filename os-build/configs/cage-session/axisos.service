@@ -26,7 +26,7 @@ Environment=XDG_VTNR=1
 Environment=XDG_RUNTIME_DIR=/run/user/1000
 ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/1000 && chown 1000:1000 /run/user/1000 2>/dev/null && chmod 0700 /run/user/1000 2>/dev/null || true'
 ExecStart=/usr/local/bin/axisos-kiosk.sh
-Restart=on-failure
+Restart=always
 RestartSec=2
 StandardInput=tty
 StandardOutput=journal+console

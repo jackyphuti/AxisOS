@@ -360,7 +360,8 @@ int main(int argc, char *argv[]) {
     SoftMgrApp app = {0};
 
     app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(app.window), 960, 620);
+    gtk_window_set_default_size(GTK_WINDOW(app.window), 900, 560);
+    gtk_window_set_position(GTK_WINDOW(app.window), GTK_WIN_POS_CENTER);
     gtk_window_set_title(GTK_WINDOW(app.window), "AxisOS Software Manager");
 
     GtkWidget *hb = gtk_header_bar_new();
@@ -449,7 +450,7 @@ int main(int argc, char *argv[]) {
     g_signal_connect(sel, "changed", G_CALLBACK(on_selection_changed), &app);
 
     GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-    gtk_widget_set_size_request(scroll, 800, 380);
+    gtk_widget_set_size_request(scroll, 760, 320);
     gtk_container_add(GTK_CONTAINER(scroll), app.tree_view);
     gtk_box_pack_start(GTK_BOX(main_box), scroll, TRUE, TRUE, 0);
 

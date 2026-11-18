@@ -119,21 +119,87 @@ static void on_copy_clicked(GtkButton *btn, gpointer user_data) {
     gtk_clipboard_set_text(cb, text, -1);
 }
 
+static const char *CSS_COLOR_PICKER =
+    "@define-color axis_base #141826;"
+    "@define-color axis_surface #1F2231;"
+    "@define-color axis_surface_raised #262A3D;"
+    "@define-color axis_outline #2E3349;"
+    "@define-color axis_accent #7D95FF;"
+    "@define-color axis_accent_btn_text #0F1422;"
+    "@define-color axis_text #F2F3F7;"
+    "@define-color axis_text_muted #9EA3B5;"
+    "window, headerbar, button, entry {"
+    "    background-image: none;"
+    "    box-shadow: none;"
+    "}"
+    "window {"
+    "    background-color: @axis_base;"
+    "    color: @axis_text;"
+    "    font-family: 'IBM Plex Sans', sans-serif;"
+    "}"
+    ".card {"
+    "    background-color: @axis_surface_raised;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 14px;"
+    "    padding: 12px 16px;"
+    "}"
+    "entry {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 8px;"
+    "    padding: 6px 10px;"
+    "}"
+    "button.btn-primary {"
+    "    background-color: @axis_accent;"
+    "    color: @axis_accent_btn_text;"
+    "    border: 1px solid @axis_accent;"
+    "    border-radius: 9999px;"
+    "    padding: 6px 16px;"
+    "    font-weight: 700;"
+    "}"
+    "button.btn-secondary {"
+    "    background-color: @axis_surface;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 9999px;"
+    "    padding: 6px 16px;"
+    "    font-weight: 600;"
+    "}";
+
 static void apply_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+
+    const char *dark_paths[] = {
+        "data/theme/axis-dark.css",
+        "/usr/share/axisos/theme/axis-dark.css",
+        "/usr/local/share/axisos/theme/axis-dark.css",
+        NULL
+    };
     GtkCssProvider *provider = gtk_css_provider_new();
-    const char *theme_path = "/usr/share/themes/Axis-Dark/gtk-3.0/gtk.css";
-    if (access(theme_path, R_OK) != 0) {
-        theme_path = "data/theme/axis-dark.css";
-    }
-    if (access(theme_path, R_OK) == 0) {
-        gtk_css_provider_load_from_path(provider, theme_path, NULL);
-        gtk_style_context_add_provider_for_screen(
-            gdk_screen_get_default(),
-            GTK_STYLE_PROVIDER(provider),
-            GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-        );
+    for (int i = 0; dark_paths[i] != NULL; ++i) {
+        if (access(dark_paths[i], R_OK) == 0) {
+            if (gtk_css_provider_load_from_path(provider, dark_paths[i], NULL)) {
+                gtk_style_context_add_provider_for_screen(
+                    screen,
+                    GTK_STYLE_PROVIDER(provider),
+                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
+                );
+                break;
+            }
+        }
     }
     g_object_unref(provider);
+
+    GtkCssProvider *extra = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(extra, CSS_COLOR_PICKER, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(extra),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
+    );
+    g_object_unref(extra);
 }
 
 static int parse_hex_color(const char *hex, double *r, double *g, double *b) {

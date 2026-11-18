@@ -111,6 +111,14 @@ static char *exec_cmd(const char *cmd) {
 }
 
 static const char *CSS_THEME =
+    "window, headerbar, stack, viewport {"
+    "    background-color: @axis_base;"
+    "    color: @axis_text;"
+    "}"
+    "headerbar {"
+    "    background-color: @axis_surface;"
+    "    border-bottom: 1px solid @axis_outline;"
+    "}"
     "button, togglebutton, entry, notebook tab, treeview.view header button {"
     "    background-image: none;"
     "    box-shadow: none;"
@@ -314,8 +322,8 @@ static GtkWidget *wrap_settings_page(GtkWidget *content) {
 
     GtkWidget *outer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_widget_set_hexpand(outer, TRUE);
-    gtk_widget_set_halign(outer, GTK_ALIGN_CENTER);
-    gtk_widget_set_size_request(outer, 760, -1);
+    gtk_widget_set_halign(outer, GTK_ALIGN_FILL);
+    gtk_widget_set_size_request(outer, 540, -1);
     gtk_style_context_add_class(gtk_widget_get_style_context(outer), "content-pane");
 
     gtk_container_add(GTK_CONTAINER(outer), content);
@@ -522,28 +530,99 @@ static void build_display_page(AxisSettingsApp *app) {
 // -----------------------------------------------------------------------------
 // 2. Sound & Audio Page
 // -----------------------------------------------------------------------------
+static int read_current_brightness_pct(void) {
+    GDir *dir = g_dir_open("/sys/class/backlight", 0, NULL);
+    if (dir) {
+        const char *entry;
+        while ((entry = g_dir_read_name(dir)) != NULL) {
+            char b_path[256], m_path[256];
+            snprintf(b_path, sizeof(b_path), "/sys/class/backlight/%s/brightness", entry);
+            snprintf(m_path, sizeof(m_path), "/sys/class/backlight/%s/max_brightness", entry);
+            char *b_str = NULL, *m_str = NULL;
+            if (g_file_get_contents(b_path, &b_str, NULL, NULL) &&
+                g_file_get_contents(m_path, &m_str, NULL, NULL)) {
+                long b_val = strtol(b_str, NULL, 10);
+                long m_val = strtol(m_str, NULL, 10);
+                g_free(b_str);
+                g_free(m_str);
+                g_dir_close(dir);
+                if (m_val > 0) {
+                    int pct = (int)((b_val * 100) / m_val);
+                    if (pct < 5) pct = 5;
+                    if (pct > 100) pct = 100;
+                    return pct;
+                }
+            }
+            g_free(b_str);
+            g_free(m_str);
+        }
+        g_dir_close(dir);
+    }
+    char *out = exec_cmd("brightnessctl -m 2>/dev/null || true");
+    if (out) {
+        char **cols = g_strsplit(out, ",", -1);
+        if (g_strv_length(cols) >= 4) {
+            int pct = atoi(cols[3]);
+            g_strfreev(cols);
+            g_free(out);
+            if (pct >= 5 && pct <= 100) return pct;
+        } else {
+            g_strfreev(cols);
+        }
+        g_free(out);
+    }
+    return 100;
+}
+
+static int read_current_volume_pct(void) {
+    char *out = exec_cmd("wpctl get-volume @DEFAULT_AUDIO_SINK@ 2>/dev/null || true");
+    if (out && strstr(out, "Volume:")) {
+        float vol = 0.70f;
+        if (sscanf(strstr(out, "Volume:") + 7, "%f", &vol) == 1) {
+            g_free(out);
+            int v = (int)(vol * 100.0f + 0.5f);
+            if (v < 0) v = 0;
+            if (v > 100) v = 100;
+            return v;
+        }
+    }
+    g_free(out);
+
+    out = exec_cmd("pactl get-sink-volume @DEFAULT_SINK@ 2>/dev/null || amixer sget Master 2>/dev/null || true");
+    if (out) {
+        char *pct = strchr(out, '%');
+        if (pct) {
+            char *start = pct - 1;
+            while (start > out && g_ascii_isdigit(*(start - 1))) start--;
+            int v = atoi(start);
+            g_free(out);
+            if (v >= 0 && v <= 100) return v;
+        }
+        g_free(out);
+    }
+    return 70;
+}
+
 static void on_brightness_changed_cb(GtkRange *range, gpointer user_data) {
     (void)user_data;
     double val = gtk_range_get_value(range);
-    char *cmd = g_strdup_printf("brightnessctl s %.0f%% 2>/dev/null || true", val);
-    char *out = exec_cmd(cmd);
-    g_free(out);
+    char *cmd = g_strdup_printf("brightnessctl set %.0f%% 2>/dev/null || pkexec brightnessctl set %.0f%% 2>/dev/null || true", val, val);
+    g_spawn_command_line_async(cmd, NULL);
     g_free(cmd);
 }
 
 static void on_volume_changed_cb(GtkRange *range, gpointer user_data) {
     (void)user_data;
     double val = gtk_range_get_value(range);
-    char *cmd = g_strdup_printf("wpctl set-volume @DEFAULT_AUDIO_SINK@ %.2f 2>/dev/null || pactl set-sink-volume @DEFAULT_SINK@ %.0f%% 2>/dev/null || amixer set Master %.0f%% 2>/dev/null || true", val / 100.0, val, val);
-    char *out = exec_cmd(cmd);
-    g_free(out);
+    char *cmd = g_strdup_printf("wpctl set-volume @DEFAULT_AUDIO_SINK@ %.2f 2>/dev/null || pactl set-sink-volume @DEFAULT_SINK@ %.0f%% 2>/dev/null || amixer -q sset Master %.0f%% 2>/dev/null || true", val / 100.0, val, val);
+    g_spawn_command_line_async(cmd, NULL);
     g_free(cmd);
 }
 
 static void on_mute_toggle_cb(GtkButton *btn, gpointer user_data) {
     (void)user_data;
     (void)btn;
-    exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null || pactl set-sink-mute @DEFAULT_SINK@ toggle 2>/dev/null || amixer set Master toggle 2>/dev/null || true");
+    g_spawn_command_line_async("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle 2>/dev/null || pactl set-sink-mute @DEFAULT_SINK@ toggle 2>/dev/null || amixer -q sset Master toggle 2>/dev/null || true", NULL);
 }
 
 static void on_test_audio_cb(GtkWidget *widget, gpointer user_data) {
@@ -565,7 +644,7 @@ static void build_brightness_audio_page(AxisSettingsApp *app) {
     GtkWidget *lbl_vol = gtk_label_new("Master Volume:");
     gtk_label_set_xalign(GTK_LABEL(lbl_vol), 0.0);
     app->scale_volume = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 0, 100, 1);
-    gtk_range_set_value(GTK_RANGE(app->scale_volume), 70);
+    gtk_range_set_value(GTK_RANGE(app->scale_volume), read_current_volume_pct());
     gtk_widget_set_hexpand(app->scale_volume, TRUE);
     g_signal_connect(app->scale_volume, "value-changed", G_CALLBACK(on_volume_changed_cb), app);
 
@@ -598,7 +677,7 @@ static void build_brightness_audio_page(AxisSettingsApp *app) {
     GtkWidget *lbl_br = gtk_label_new("Brightness:");
     gtk_label_set_xalign(GTK_LABEL(lbl_br), 0.0);
     app->scale_brightness = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 5, 100, 1);
-    gtk_range_set_value(GTK_RANGE(app->scale_brightness), 80);
+    gtk_range_set_value(GTK_RANGE(app->scale_brightness), read_current_brightness_pct());
     gtk_widget_set_hexpand(app->scale_brightness, TRUE);
     g_signal_connect(app->scale_brightness, "value-changed", G_CALLBACK(on_brightness_changed_cb), app);
 
@@ -934,9 +1013,13 @@ static void on_bt_toggle_cb(GtkSwitch *sw, GParamSpec *pspec, gpointer user_data
     (void)pspec;
     (void)user_data;
     gboolean active = gtk_switch_get_active(sw);
-    char *cmd = g_strdup_printf("bluetoothctl power %s 2>/dev/null || true", active ? "on" : "off");
-    char *out = exec_cmd(cmd);
-    g_free(out);
+    char *cmd;
+    if (active) {
+        cmd = g_strdup("rfkill unblock bluetooth 2>/dev/null; bluetoothctl power on 2>/dev/null || true");
+    } else {
+        cmd = g_strdup("bluetoothctl power off 2>/dev/null; rfkill block bluetooth 2>/dev/null || true");
+    }
+    g_spawn_command_line_async(cmd, NULL);
     g_free(cmd);
 }
 
@@ -987,11 +1070,18 @@ static void refresh_bt_list(AxisSettingsApp *app) {
     gtk_widget_show_all(app->list_bt);
 }
 
+static gboolean on_delayed_bt_refresh(gpointer user_data) {
+    AxisSettingsApp *app = (AxisSettingsApp *)user_data;
+    refresh_bt_list(app);
+    return G_SOURCE_REMOVE;
+}
+
 static void on_scan_bt_cb(GtkWidget *widget, gpointer user_data) {
     (void)widget;
     AxisSettingsApp *app = (AxisSettingsApp *)user_data;
-    g_spawn_command_line_async("bluetoothctl --timeout 5 scan on 2>/dev/null || true", NULL);
+    g_spawn_command_line_async("rfkill unblock bluetooth 2>/dev/null; bluetoothctl power on 2>/dev/null; bluetoothctl --timeout 5 scan on 2>/dev/null || true", NULL);
     refresh_bt_list(app);
+    g_timeout_add(3000, (GSourceFunc)on_delayed_bt_refresh, app);
 }
 
 static void on_pair_bt_cb(GtkButton *btn, gpointer user_data) {
@@ -1473,8 +1563,63 @@ static void on_apply_icons_cb(GtkWidget *widget, gpointer user_data) {
     g_free(cmd);
 }
 
+static void on_set_wallpaper_cb(GtkWidget *widget, gpointer user_data) {
+    (void)widget;
+    const char *wp_path = (const char *)user_data;
+    if (!wp_path || !*wp_path) return;
+
+    const char *home = g_get_home_dir();
+    if (home) {
+        char conf_dir[512], conf_path[1024];
+        snprintf(conf_dir, sizeof(conf_dir), "%s/.config/axisos", home);
+        g_mkdir_with_parents(conf_dir, 0755);
+        snprintf(conf_path, sizeof(conf_path), "%s/wallpaper.conf", conf_dir);
+        g_file_set_contents(conf_path, wp_path, -1, NULL);
+    }
+
+    char *q_path = g_shell_quote(wp_path);
+    char *cmd = g_strdup_printf("killall -q swaybg 2>/dev/null; swaybg -i %s -m fill >/dev/null 2>&1 &", q_path);
+    g_spawn_command_line_async(cmd, NULL);
+    g_free(cmd);
+    g_free(q_path);
+}
+
 static void build_appearance_page(AxisSettingsApp *app) {
     GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 14);
+
+    GtkWidget *card_wp = create_card("Desktop Wallpaper",
+        "Choose a signature AxisOS wallpaper. Changes apply immediately to your live Wayland desktop.");
+
+    typedef struct {
+        const char *label;
+        const char *file;
+    } WallpaperChoice;
+
+    static const WallpaperChoice wp_choices[] = {
+        {"Obsidian Wave (Default)", "/usr/share/backgrounds/axisos/08-axisos-obsidian-wave.jpg"},
+        {"Signature Core", "/usr/share/backgrounds/axisos/01-axisos-signature-core.png"},
+        {"Cyan Horizon", "/usr/share/backgrounds/axisos/02-axisos-cyan-horizon.jpg"},
+        {"Quantum Trace", "/usr/share/backgrounds/axisos/06-axisos-quantum-trace.jpg"},
+        {"Deep Space", "/usr/share/backgrounds/axisos/07-axisos-deep-space.jpg"},
+        {"Synth Horizon", "/usr/share/backgrounds/axisos/10-axisos-synth-horizon.jpg"},
+        {"Metallic Flow", "/usr/share/backgrounds/axisos/09-axisos-metallic-flow.jpg"},
+        {"Arctic Light", "/usr/share/backgrounds/axisos/03-axisos-arctic-light.jpg"}
+    };
+
+    GtkWidget *wp_grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(wp_grid), 8);
+    gtk_grid_set_column_spacing(GTK_GRID(wp_grid), 8);
+    gtk_grid_set_column_homogeneous(GTK_GRID(wp_grid), TRUE);
+
+    for (size_t i = 0; i < sizeof(wp_choices) / sizeof(wp_choices[0]); i++) {
+        GtkWidget *btn = gtk_button_new_with_label(wp_choices[i].label);
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn), i == 0 ? "btn-primary" : "btn-secondary");
+        g_signal_connect(btn, "clicked", G_CALLBACK(on_set_wallpaper_cb), (gpointer)wp_choices[i].file);
+        gtk_grid_attach(GTK_GRID(wp_grid), btn, (int)(i % 4), (int)(i / 4), 1, 1);
+    }
+
+    gtk_box_pack_start(GTK_BOX(card_wp), wp_grid, FALSE, FALSE, 6);
+    gtk_box_pack_start(GTK_BOX(page), card_wp, FALSE, FALSE, 0);
 
     GtkWidget *card_taskbar = create_card("Taskbar Orientation & Dock Position",
         "Switch the desktop taskbar between bottom (default) and top without needing to edit config files.");
@@ -2531,11 +2676,19 @@ static void build_about_page(AxisSettingsApp *app) {
         g_strlcpy(mem_buf, "8.0 GB RAM", sizeof(mem_buf));
     }
 
-    char *gpu = exec_cmd("lspci 2>/dev/null | grep -E 'VGA|3D' | sed 's/.*: //g' | head -n1");
+    char *gpu = exec_cmd("lspci 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/.*: //g' | head -n1");
     g_strstrip(gpu);
     if (gpu[0] == '\0') {
         g_free(gpu);
-        gpu = g_strdup("Intel / AMD / NVIDIA Hardware Accelerated Graphics");
+        char drv_buf[256] = {0};
+        ssize_t len = readlink("/sys/class/drm/card0/device/driver", drv_buf, sizeof(drv_buf) - 1);
+        if (len > 0) {
+            drv_buf[len] = '\0';
+            const char *base = strrchr(drv_buf, '/');
+            gpu = g_strdup_printf("DRM Display Controller (%s)", base ? base + 1 : drv_buf);
+        } else {
+            gpu = g_strdup("Hardware Accelerated Wayland Graphics (wlroots/DRM)");
+        }
     }
 
     char disk_buf[128];
@@ -2706,7 +2859,7 @@ static AxisSettingsApp *axis_settings_app_create(void) {
     AxisSettingsApp *app = g_new0(AxisSettingsApp, 1);
     app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(app->window), "Settings - AxisOS Control Center");
-    gtk_window_set_default_size(GTK_WINDOW(app->window), 1020, 680);
+    gtk_window_set_default_size(GTK_WINDOW(app->window), 920, 560);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
     // Apply system theme
