@@ -151,9 +151,11 @@ if [ -n "$COMPOSITOR_BIN" ]; then
     echo "[AxisOS] Launching Native Pure C wlroots axis-compositor..."
     RET=0
     if command -v stdbuf >/dev/null 2>&1; then
-        stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee "$LOG_FILE" || RET=${PIPESTATUS[0]}
+        stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee "$LOG_FILE"
+        RET=${PIPESTATUS[0]}
     else
-        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee "$LOG_FILE" || RET=${PIPESTATUS[0]}
+        "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee "$LOG_FILE"
+        RET=${PIPESTATUS[0]}
     fi
     if [ $RET -ne 0 ]; then
         echo "[AxisOS] Compositor exited ($RET). Retrying with pixman software rendering fallback..."
@@ -165,9 +167,11 @@ if [ -n "$COMPOSITOR_BIN" ]; then
         export GSK_RENDERER=cairo
         RET=0
         if command -v stdbuf >/dev/null 2>&1; then
-            stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee -a "$LOG_FILE" || RET=${PIPESTATUS[0]}
+            stdbuf -oL -eL "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | stdbuf -oL -eL tee -a "$LOG_FILE"
+            RET=${PIPESTATUS[0]}
         else
-            "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a "$LOG_FILE" || RET=${PIPESTATUS[0]}
+            "$COMPOSITOR_BIN" -s "$STARTUP_CMD" 2>&1 | tee -a "$LOG_FILE"
+            RET=${PIPESTATUS[0]}
         fi
         if [ $RET -ne 0 ]; then
             echo "[AxisOS] axis-compositor terminated ($RET). Restarting session..."

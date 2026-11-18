@@ -1149,11 +1149,6 @@ Environment=PATH=/usr/local/bin:/usr/bin:/bin
 Environment=XDG_SESSION_TYPE=wayland
 Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
 Environment=GDK_BACKEND=wayland
-Environment=WLR_RENDERER=pixman
-Environment=WLR_RENDERER_ALLOW_SOFTWARE=1
-Environment=WLR_NO_HARDWARE_CURSORS=1
-Environment=LIBGL_ALWAYS_SOFTWARE=1
-Environment=GSK_RENDERER=cairo
 Environment=LIBSEAT_BACKEND=logind
 Environment=XDG_SEAT=seat0
 Environment=XDG_VTNR=1
@@ -1166,9 +1161,9 @@ StandardInput=tty
 StandardOutput=journal+console
 StandardError=journal+console
 TTYPath=/dev/tty1
-TTYReset=yes
-TTYVHangup=yes
-TTYVTDisallocate=yes
+TTYReset=no
+TTYVHangup=no
+TTYVTDisallocate=no
 UtmpIdentifier=tty1
 
 [Install]

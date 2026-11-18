@@ -108,12 +108,23 @@
 
 #if defined(WLR_VERSION_NUM) && WLR_VERSION_NUM >= ((0 << 16) | (17 << 8) | 0)
 #define AXIS_WLR_017_PLUS 1
-#define wlr_xdg_surface_from_wlr_surface wlr_xdg_surface_try_from_wlr_surface
 #define axis_wlr_scene_output_commit(so) wlr_scene_output_commit((so), NULL)
 #else
 #define AXIS_WLR_017_PLUS 0
 #define axis_wlr_scene_output_commit(so) wlr_scene_output_commit((so))
 #endif
+
+static inline struct wlr_xdg_surface *axis_get_xdg_surface_from_wlr_surface(struct wlr_surface *surface) {
+	if (!surface) return NULL;
+#if AXIS_WLR_017_PLUS
+	return wlr_xdg_surface_try_from_wlr_surface(surface);
+#else
+	if (wlr_surface_is_xdg_surface(surface)) {
+		return wlr_xdg_surface_from_wlr_surface(surface);
+	}
+	return NULL;
+#endif
+}
 
 enum axis_cursor_mode {
 	AXIS_CURSOR_PASSTHROUGH,
@@ -295,13 +306,14 @@ static void focus_view(struct axis_view *view, struct wlr_surface *surface) {
 		return;
 	}
 	struct axis_server *server = view->server;
+	if (!server || !server->seat) return;
 	struct wlr_seat *seat = server->seat;
 	struct wlr_surface *prev_surface = seat->keyboard_state.focused_surface;
 	if (prev_surface == surface) {
 		return;
 	}
 	if (prev_surface) {
-		struct wlr_xdg_surface *previous = wlr_xdg_surface_from_wlr_surface(prev_surface);
+		struct wlr_xdg_surface *previous = axis_get_xdg_surface_from_wlr_surface(prev_surface);
 		if (previous && previous->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL && previous->toplevel) {
 			axis_wlr_xdg_toplevel_set_activated(previous, previous->toplevel, false);
 		}
@@ -346,8 +358,8 @@ static void focus_view(struct axis_view *view, struct wlr_surface *surface) {
 	}
 
 	struct wlr_keyboard *keyboard = wlr_seat_get_keyboard(seat);
-	if (keyboard != NULL) {
-		wlr_seat_keyboard_notify_enter(seat, view->xdg_surface->surface,
+	if (keyboard != NULL && surface != NULL) {
+		wlr_seat_keyboard_notify_enter(seat, surface,
 			keyboard->keycodes, keyboard->num_keycodes, &keyboard->modifiers);
 	}
 }
@@ -893,22 +905,28 @@ static void keyboard_handle_modifiers(struct wl_listener *listener, void *data) 
 
 static void keyboard_handle_key(struct wl_listener *listener, void *data) {
 	struct axis_keyboard *keyboard = wl_container_of(listener, keyboard, key);
+	if (!keyboard || !keyboard->server) return;
 	struct axis_server *server = keyboard->server;
+	if (!data) return;
 #if AXIS_WLR_016_PLUS
 	struct wlr_keyboard_key_event *event = data;
 #else
 	struct wlr_event_keyboard_key *event = data;
 #endif
 	struct wlr_seat *seat = server->seat;
+	if (!seat) return;
 
 #if AXIS_WLR_017_PLUS
-	struct wlr_keyboard *wlr_kb = wlr_keyboard_from_input_device(keyboard->device);
+	struct wlr_keyboard *wlr_kb = keyboard->device ? wlr_keyboard_from_input_device(keyboard->device) : NULL;
+#elif AXIS_WLR_016_PLUS
+	struct wlr_keyboard *wlr_kb = keyboard->device ? keyboard->device->keyboard : NULL;
 #else
-	struct wlr_keyboard *wlr_kb = keyboard->device->keyboard;
+	struct wlr_keyboard *wlr_kb = keyboard->device;
 #endif
+	if (!wlr_kb || !wlr_kb->xkb_state) return;
 
 	uint32_t keycode = event->keycode + 8;
-	const xkb_keysym_t *syms;
+	const xkb_keysym_t *syms = NULL;
 	int nsyms = xkb_state_key_get_syms(wlr_kb->xkb_state, keycode, &syms);
 
 	bool handled = false;
@@ -959,32 +977,55 @@ static void keyboard_handle_key(struct wl_listener *listener, void *data) {
 /* ========================================================================= */
 static struct axis_view *desktop_view_at(struct axis_server *server,
 		double lx, double ly, struct wlr_surface **surface, double *sx, double *sy) {
-#if AXIS_WLR_017_PLUS
-	struct wlr_scene_node *node = wlr_scene_node_at(&server->scene->tree.node, lx, ly, sx, sy);
-	if (node == NULL || node->type != WLR_SCENE_NODE_BUFFER) {
-		return NULL;
-	}
-	struct wlr_scene_buffer *scene_buffer = wlr_scene_buffer_from_node(node);
-	struct wlr_scene_surface *scene_surface = wlr_scene_surface_try_from_buffer(scene_buffer);
-	if (!scene_surface) {
-		return NULL;
-	}
-	*surface = scene_surface->surface;
-	while (node != NULL && node->data == NULL) {
-		node = node->parent ? &node->parent->node : NULL;
-	}
-	return node ? node->data : NULL;
+	if (!server || !server->scene) return NULL;
+
+	struct wlr_scene_node *node = wlr_scene_node_at(
+#if AXIS_WLR_016_PLUS
+		&server->scene->tree.node,
 #else
-	struct wlr_scene_node *node = wlr_scene_node_at(&server->scene->node, lx, ly, sx, sy);
-	if (node == NULL || node->type != WLR_SCENE_NODE_SURFACE) {
+		&server->scene->node,
+#endif
+		lx, ly, sx, sy);
+
+	if (node == NULL) {
 		return NULL;
 	}
-	*surface = wlr_scene_surface_from_node(node)->surface;
+
+#if AXIS_WLR_017_PLUS
+	if (node->type == WLR_SCENE_NODE_BUFFER) {
+		struct wlr_scene_buffer *scene_buffer = wlr_scene_buffer_from_node(node);
+		struct wlr_scene_surface *scene_surface = wlr_scene_surface_try_from_buffer(scene_buffer);
+		if (scene_surface && scene_surface->surface) {
+			*surface = scene_surface->surface;
+		}
+	}
+#elif AXIS_WLR_016_PLUS
+	if (node->type == WLR_SCENE_NODE_BUFFER) {
+		struct wlr_scene_buffer *scene_buffer = wlr_scene_buffer_from_node(node);
+		struct wlr_scene_surface *scene_surface = wlr_scene_surface_from_buffer(scene_buffer);
+		if (scene_surface && scene_surface->surface) {
+			*surface = scene_surface->surface;
+		}
+	} else if (node->type == WLR_SCENE_NODE_SURFACE) {
+		struct wlr_scene_surface *scene_surface = wlr_scene_surface_from_node(node);
+		if (scene_surface && scene_surface->surface) {
+			*surface = scene_surface->surface;
+		}
+	}
+#else
+	if (node->type == WLR_SCENE_NODE_SURFACE) {
+		*surface = wlr_scene_surface_from_node(node)->surface;
+	}
+#endif
+
 	while (node != NULL && node->data == NULL) {
+#if AXIS_WLR_016_PLUS
+		node = node->parent ? &node->parent->node : NULL;
+#else
 		node = node->parent;
+#endif
 	}
 	return node ? node->data : NULL;
-#endif
 }
 
 static void process_cursor_move(struct axis_server *server) {
@@ -1322,7 +1363,10 @@ static void xdg_toplevel_unmap(struct wl_listener *listener, void *data) {
 		view->server->grabbed_view = NULL;
 		view->server->cursor_mode = AXIS_CURSOR_PASSTHROUGH;
 	}
-	wl_list_remove(&view->link);
+	if (view->link.prev && view->link.next) {
+		wl_list_remove(&view->link);
+		view->link.prev = view->link.next = NULL;
+	}
 
 	struct wlr_seat *seat = view->server->seat;
 	if (seat && view->xdg_surface && seat->keyboard_state.focused_surface == view->xdg_surface->surface) {
@@ -1368,6 +1412,10 @@ static void xdg_toplevel_destroy(struct wl_listener *listener, void *data) {
 	if (view->server->grabbed_view == view) {
 		view->server->grabbed_view = NULL;
 		view->server->cursor_mode = AXIS_CURSOR_PASSTHROUGH;
+	}
+	if (view->link.prev && view->link.next) {
+		wl_list_remove(&view->link);
+		view->link.prev = view->link.next = NULL;
 	}
 	wl_list_remove(&view->map.link);
 	wl_list_remove(&view->unmap.link);
@@ -1523,10 +1571,16 @@ static void xdg_toplevel_surface_commit(struct wl_listener *listener, void *data
 static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 	struct axis_server *server = wl_container_of(listener, server, new_xdg_surface);
 	struct wlr_xdg_surface *xdg_surface = data;
+	if (!xdg_surface) return;
 
 	if (xdg_surface->role == WLR_XDG_SURFACE_ROLE_POPUP) {
-		struct wlr_xdg_surface *parent = wlr_xdg_surface_from_wlr_surface(
-			xdg_surface->popup->parent);
+		struct wlr_xdg_surface *parent = NULL;
+		if (xdg_surface->popup && xdg_surface->popup->parent) {
+			parent = axis_get_xdg_surface_from_wlr_surface(xdg_surface->popup->parent);
+		}
+		if (!parent || !parent->data) {
+			return;
+		}
 #if AXIS_WLR_016_PLUS
 		struct wlr_scene_tree *parent_tree = parent->data;
 		xdg_surface->data = wlr_scene_xdg_surface_create(
@@ -1538,7 +1592,9 @@ static void server_new_xdg_surface(struct wl_listener *listener, void *data) {
 #endif
 		return;
 	}
-	assert(xdg_surface->role == WLR_XDG_SURFACE_ROLE_TOPLEVEL);
+	if (xdg_surface->role != WLR_XDG_SURFACE_ROLE_TOPLEVEL) {
+		return;
+	}
 
 	struct axis_view *view = calloc(1, sizeof(struct axis_view));
 	view->server = server;

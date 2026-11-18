@@ -25,6 +25,7 @@ all: $(TARGET)
 
 %-protocol.h: protocols/%.xml
 	$(WAYLAND_SCANNER) server-header $< $@
+	@if [ "$*" = "tablet-unstable-v2" ]; then ln -sf tablet-unstable-v2-protocol.h tablet-v2-protocol.h; fi
 
 %-protocol.c: protocols/%.xml %-protocol.h
 	$(WAYLAND_SCANNER) private-code $< $@
@@ -43,6 +44,6 @@ install: $(TARGET)
 	install -m 755 $(TARGET) $(DESTDIR)/usr/local/bin/$(TARGET)
 
 clean:
-	rm -f $(TARGET) *.o $(GEN_SRC) $(GEN_HDR)
+	rm -f $(TARGET) *.o $(GEN_SRC) $(GEN_HDR) tablet-v2-protocol.h
 
 .PHONY: all install clean
