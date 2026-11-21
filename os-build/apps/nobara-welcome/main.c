@@ -35,51 +35,153 @@ static char *exec_cmd(const char *cmd) {
 }
 
 static const char *CSS_AXIS =
+    "* {"
+    "    outline: none;"
+    "}"
+    "window, .background {"
+    "    background-color: #141826;"
+    "    color: #F1F5F9;"
+    "    font-family: 'IBM Plex Sans', -apple-system, sans-serif;"
+    "}"
+    "headerbar {"
+    "    background: #1F2231;"
+    "    background-color: #1F2231;"
+    "    background-image: none;"
+    "    border-bottom: 1px solid #2E3349;"
+    "    box-shadow: none;"
+    "    min-height: 48px;"
+    "    padding: 4px 12px;"
+    "}"
+    "headerbar .title {"
+    "    font-weight: 700;"
+    "    font-size: 15px;"
+    "    color: #F1F5F9;"
+    "}"
+    "headerbar .subtitle {"
+    "    font-size: 11px;"
+    "    color: #94A3B8;"
+    "}"
+    "headerbar button {"
+    "    background-color: #262A3D;"
+    "    color: #F1F5F9;"
+    "    border: 1px solid #2E3349;"
+    "    border-radius: 8px;"
+    "    padding: 4px 10px;"
+    "}"
+    "headerbar button:hover {"
+    "    background-color: #2E3349;"
+    "    color: #7D95FF;"
+    "}"
+    "notebook {"
+    "    background-color: #141826;"
+    "    border: none;"
+    "}"
+    "notebook > header {"
+    "    background-color: #1F2231;"
+    "    border-bottom: 1px solid #2E3349;"
+    "    padding: 6px 12px 0 12px;"
+    "}"
+    "notebook > header > tabs > tab {"
+    "    background-color: transparent;"
+    "    background-image: none;"
+    "    color: #94A3B8;"
+    "    font-weight: 600;"
+    "    font-size: 13px;"
+    "    border: none;"
+    "    border-bottom: 3px solid transparent;"
+    "    padding: 10px 22px;"
+    "    margin: 0 4px;"
+    "    border-radius: 8px 8px 0 0;"
+    "    transition: all 150ms ease-in-out;"
+    "}"
+    "notebook > header > tabs > tab:hover {"
+    "    color: #F1F5F9;"
+    "    background-color: rgba(125, 149, 255, 0.08);"
+    "}"
+    "notebook > header > tabs > tab:checked {"
+    "    color: #7D95FF;"
+    "    font-weight: 700;"
+    "    border-bottom: 3px solid #7D95FF;"
+    "    background-color: rgba(125, 149, 255, 0.12);"
+    "}"
+    "notebook > header > tabs > tab label {"
+    "    color: inherit;"
+    "}"
+    "notebook > stack, notebook > stack > * {"
+    "    background-color: #141826;"
+    "}"
+    "scrolledwindow, viewport {"
+    "    background-color: #141826;"
+    "    border: none;"
+    "}"
     ".hero-card {"
-    "    background-color: @axis_surface_raised;"
-    "    border: 1px solid @axis_outline;"
+    "    background-color: #1F2231;"
+    "    border: 1px solid #2E3349;"
     "    border-radius: 16px;"
-    "    padding: 20px;"
-    "    margin: 8px 12px;"
+    "    padding: 22px 24px;"
+    "    margin: 10px 12px 6px 12px;"
+    "    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);"
     "}"
     ".card {"
-    "    background-color: @axis_surface_raised;"
-    "    border: 1px solid @axis_outline;"
+    "    background-color: #1F2231;"
+    "    border: 1px solid #2E3349;"
     "    border-radius: 16px;"
-    "    padding: 14px 18px;"
-    "    margin: 6px 12px;"
+    "    padding: 18px 24px;"
+    "    margin: 8px 12px;"
+    "    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);"
+    "}"
+    "label {"
+    "    color: #F1F5F9;"
+    "}"
+    ".text-muted {"
+    "    color: #94A3B8;"
+    "}"
+    ".status-box {"
+    "    background-color: #141826;"
+    "    border: 1px solid #2E3349;"
+    "    border-radius: 10px;"
+    "    padding: 12px 16px;"
+    "    color: #7D95FF;"
+    "    font-family: 'IBM Plex Mono', monospace;"
+    "    font-size: 12px;"
     "}"
     ".btn-primary {"
-    "    background: @axis_accent;"
-    "    background-color: @axis_accent;"
-    "    color: @axis_accent_btn_text;"
+    "    background: #7D95FF;"
+    "    background-color: #7D95FF;"
+    "    color: #101423;"
     "    font-weight: 700;"
+    "    font-size: 13px;"
     "    border-radius: 9999px;"
-    "    border: 1px solid @axis_accent;"
-    "    padding: 8px 18px;"
+    "    border: 1px solid #7D95FF;"
+    "    padding: 9px 24px;"
+    "    box-shadow: 0 2px 6px rgba(125, 149, 255, 0.3);"
     "}"
     ".btn-primary:hover {"
-    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
+    "    background: #93A8FF;"
+    "    background-color: #93A8FF;"
+    "    color: #101423;"
     "}"
     ".btn-secondary {"
-    "    background: @axis_surface;"
-    "    background-color: @axis_surface;"
-    "    color: @axis_text;"
-    "    border: 1px solid @axis_outline;"
+    "    background: #262A3D;"
+    "    background-color: #262A3D;"
+    "    color: #F1F5F9;"
+    "    border: 1px solid #2E3349;"
     "    border-radius: 9999px;"
-    "    padding: 8px 16px;"
+    "    padding: 9px 20px;"
     "    font-weight: 600;"
+    "    font-size: 13px;"
     "}"
     ".btn-secondary:hover {"
-    "    background-color: @axis_surface_raised;"
-    "    color: @axis_accent;"
+    "    background-color: #2E3349;"
+    "    border-color: #7D95FF;"
+    "    color: #7D95FF;"
     "}"
     ".badge-ok {"
-    "    color: @axis_success;"
+    "    color: #34D399;"
     "    font-weight: bold;"
     "}"
     ".badge-warn {"
-    "    color: @axis_accent;"
+    "    color: #FBBF24;"
     "    font-weight: bold;"
     "}";
 
@@ -138,19 +240,20 @@ static void load_axis_theme(void) {
     gtk_style_context_add_provider_for_screen(
         screen,
         GTK_STYLE_PROVIDER(extra_prov),
-        GTK_STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+        GTK_STYLE_PROVIDER_PRIORITY_USER
     );
     g_object_unref(extra_prov);
 }
 
 static GtkWidget *create_card(const char *title, const char *desc) {
-    GtkWidget *card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    GtkWidget *card = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     gtk_style_context_add_class(gtk_widget_get_style_context(card), "card");
 
     GtkWidget *lbl_t = gtk_label_new(title);
     gtk_label_set_xalign(GTK_LABEL(lbl_t), 0.0);
     PangoAttrList *attrs = pango_attr_list_new();
     pango_attr_list_insert(attrs, pango_attr_weight_new(PANGO_WEIGHT_BOLD));
+    pango_attr_list_insert(attrs, pango_attr_scale_new(1.15));
     gtk_label_set_attributes(GTK_LABEL(lbl_t), attrs);
     pango_attr_list_unref(attrs);
     gtk_box_pack_start(GTK_BOX(card), lbl_t, FALSE, FALSE, 0);
@@ -159,6 +262,7 @@ static GtkWidget *create_card(const char *title, const char *desc) {
         GtkWidget *lbl_d = gtk_label_new(desc);
         gtk_label_set_xalign(GTK_LABEL(lbl_d), 0.0);
         gtk_label_set_line_wrap(GTK_LABEL(lbl_d), TRUE);
+        gtk_style_context_add_class(gtk_widget_get_style_context(lbl_d), "text-muted");
         gtk_box_pack_start(GTK_BOX(card), lbl_d, FALSE, FALSE, 0);
     }
     return card;
@@ -248,17 +352,17 @@ static void on_install_lutris_cb(GtkWidget *widget, gpointer user_data) {
 }
 
 static void init_welcome_tab(AxisHardwareApp *app) {
-    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 16);
 
     // Hero
-    GtkWidget *hero = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    GtkWidget *hero = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
     gtk_style_context_add_class(gtk_widget_get_style_context(hero), "hero-card");
 
     GtkWidget *h_t = gtk_label_new("Welcome to AxisOS");
     gtk_label_set_xalign(GTK_LABEL(h_t), 0.0);
     PangoAttrList *attrs = pango_attr_list_new();
-    pango_attr_list_insert(attrs, pango_attr_scale_new(1.3));
+    pango_attr_list_insert(attrs, pango_attr_scale_new(1.35));
     pango_attr_list_insert(attrs, pango_attr_weight_new(PANGO_WEIGHT_BOLD));
     gtk_label_set_attributes(GTK_LABEL(h_t), attrs);
     pango_attr_list_unref(attrs);
@@ -266,6 +370,7 @@ static void init_welcome_tab(AxisHardwareApp *app) {
     GtkWidget *h_d = gtk_label_new("Engineered for high-performance PC gaming, content creation, and out-of-the-box hardware readiness.\nAll critical GPU drivers, Vulkan runtimes, and multimedia codecs are pre-configured.");
     gtk_label_set_xalign(GTK_LABEL(h_d), 0.0);
     gtk_label_set_line_wrap(GTK_LABEL(h_d), TRUE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(h_d), "text-muted");
 
     gtk_box_pack_start(GTK_BOX(hero), h_t, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(hero), h_d, FALSE, FALSE, 0);
@@ -278,15 +383,24 @@ static void init_welcome_tab(AxisHardwareApp *app) {
     GtkWidget *lbl_status = gtk_label_new(gpu_stat);
     g_free(gpu_stat);
     gtk_label_set_xalign(GTK_LABEL(lbl_status), 0.0);
-    gtk_box_pack_start(GTK_BOX(card_hw), lbl_status, FALSE, FALSE, 6);
+
+    GtkWidget *status_frame = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_style_context_add_class(gtk_widget_get_style_context(status_frame), "status-box");
+    gtk_box_pack_start(GTK_BOX(status_frame), lbl_status, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card_hw), status_frame, FALSE, FALSE, 6);
     gtk_box_pack_start(GTK_BOX(vbox), card_hw, FALSE, FALSE, 0);
 
-    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), vbox, gtk_label_new("Welcome"));
+    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled), vbox);
+
+    GtkWidget *tab_lbl = gtk_label_new("Welcome");
+    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), scrolled, tab_lbl);
 }
 
 static void init_drivers_tab(AxisHardwareApp *app) {
-    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 16);
 
     // NVIDIA Card
     GtkWidget *card_nv = create_card("NVIDIA GeForce Graphics Drivers",
@@ -315,12 +429,17 @@ static void init_drivers_tab(AxisHardwareApp *app) {
     gtk_box_pack_start(GTK_BOX(card_intel), btn_intel, FALSE, FALSE, 8);
     gtk_box_pack_start(GTK_BOX(vbox), card_intel, FALSE, FALSE, 0);
 
-    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), vbox, gtk_label_new("GPU Drivers"));
+    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled), vbox);
+
+    GtkWidget *tab_lbl = gtk_label_new("GPU Drivers");
+    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), scrolled, tab_lbl);
 }
 
 static void init_codecs_tab(AxisHardwareApp *app) {
-    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 16);
 
     GtkWidget *card_codec = create_card("Multimedia Codecs & Hardware Decoders",
         "Install comprehensive audio and video codecs (FFmpeg, GStreamer, H.264, HEVC, AV1, AAC, MP3).");
@@ -329,14 +448,19 @@ static void init_codecs_tab(AxisHardwareApp *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_codecs), "btn-primary");
     g_signal_connect(btn_codecs, "clicked", G_CALLBACK(on_install_codecs_cb), app);
     gtk_box_pack_start(GTK_BOX(card_codec), btn_codecs, FALSE, FALSE, 8);
-
     gtk_box_pack_start(GTK_BOX(vbox), card_codec, FALSE, FALSE, 0);
-    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), vbox, gtk_label_new("Codecs"));
+
+    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled), vbox);
+
+    GtkWidget *tab_lbl = gtk_label_new("Codecs");
+    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), scrolled, tab_lbl);
 }
 
 static void init_gaming_tab(AxisHardwareApp *app) {
-    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 12);
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 16);
 
     // Steam Card
     GtkWidget *card_steam = create_card("Valve Steam Gaming Platform",
@@ -360,7 +484,12 @@ static void init_gaming_tab(AxisHardwareApp *app) {
     gtk_box_pack_start(GTK_BOX(card_tools), hbox_t, FALSE, FALSE, 8);
     gtk_box_pack_start(GTK_BOX(vbox), card_tools, FALSE, FALSE, 0);
 
-    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), vbox, gtk_label_new("Gaming"));
+    GtkWidget *scrolled = gtk_scrolled_window_new(NULL, NULL);
+    gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(scrolled), GTK_POLICY_NEVER, GTK_POLICY_AUTOMATIC);
+    gtk_container_add(GTK_CONTAINER(scrolled), vbox);
+
+    GtkWidget *tab_lbl = gtk_label_new("Gaming");
+    gtk_notebook_append_page(GTK_NOTEBOOK(app->notebook), scrolled, tab_lbl);
 }
 
 static AxisHardwareApp *axis_hardware_app_create(void) {
@@ -377,7 +506,6 @@ static AxisHardwareApp *axis_hardware_app_create(void) {
     GtkWidget *hb = gtk_header_bar_new();
     gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
     gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "Axis Hardware & Codec Suite");
-    gtk_header_bar_set_subtitle(GTK_HEADER_BAR(hb), "Gaming Drivers, Codecs & System Optimization");
     gtk_window_set_titlebar(GTK_WINDOW(app->window), hb);
 
     app->notebook = gtk_notebook_new();

@@ -66,8 +66,11 @@ for app_dir in "$WORKSPACE_DIR"/os-build/apps/*; do
         if [ -x "$app_dir/$app_name" ]; then
             cp -f "$app_dir/$app_name" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
         fi
-        if [ -f "$app_dir/$app_name.desktop" ]; then
-            cp -f "$app_dir/$app_name.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/"
+        # Never stage legacy axis-installer or axis-settings desktop entries (use Calamares / System Settings)
+        if [ "$app_name" != "axis-installer" ] && [ "$app_name" != "axis-settings" ]; then
+            if [ -f "$app_dir/$app_name.desktop" ]; then
+                cp -f "$app_dir/$app_name.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/"
+            fi
         fi
     fi
 done
@@ -273,9 +276,11 @@ fi
 
 # Pre-stage Live Desktop shortcuts in /etc/skel/Desktop (Calamares Installer, System Settings, Terminal, Welcome)
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop"
-if [ -f "$WORKSPACE_DIR/os-build/configs/desktop/calamares.desktop" ]; then
-    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/calamares.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/"
-    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/calamares.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/"
+if [ -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/"
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/"
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/install-debian.desktop"
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/calamares.desktop"
 fi
 if [ -f "/usr/share/applications/systemsettings.desktop" ]; then
     cp -f "/usr/share/applications/systemsettings.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/" 2>/dev/null || true
@@ -286,7 +291,9 @@ for d_app in axis-terminal axis-welcome; do
     fi
 done
 chmod +x "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop"/*.desktop 2>/dev/null || true
-rm -f "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/axis-installer.desktop" \
+rm -f "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/calamares.desktop" \
+      "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/install-debian.desktop" \
+      "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/axis-installer.desktop" \
       "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/axis-settings.desktop" 2>/dev/null || true
 
 if [ -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" ]; then
@@ -517,6 +524,41 @@ if [ -f "$CAL_DIR/show.qml" ]; then
     sed -i 's/Welcome to Debian GNU\/Linux/Welcome to AxisOS Linux/g; s/Debian/AxisOS/g' "$CAL_DIR/show.qml" 2>/dev/null || true
 fi
 
+# Override Debian Calamares desktop launcher script to create single "Install AxisOS" launcher
+cat << 'CAL_ICON_EOF' > /usr/bin/add-calamares-desktop-icon
+#!/bin/sh
+DESKTOP=$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")
+mkdir -p "$DESKTOP"
+rm -f "$DESKTOP/install-debian.desktop" "$DESKTOP/calamares.desktop" "$DESKTOP/axis-installer.desktop" "$DESKTOP/axis-settings.desktop"
+if [ -f /usr/share/applications/install-axisos.desktop ]; then
+    cp -f /usr/share/applications/install-axisos.desktop "$DESKTOP/install-axisos.desktop"
+elif [ -f /usr/share/applications/install-debian.desktop ]; then
+    cp -f /usr/share/applications/install-debian.desktop "$DESKTOP/install-axisos.desktop"
+fi
+chmod +x "$DESKTOP/install-axisos.desktop"
+gio set --type=string "$DESKTOP/install-axisos.desktop" metadata::trusted true 2>/dev/null || true
+CAL_ICON_EOF
+chmod 0755 /usr/bin/add-calamares-desktop-icon 2>/dev/null || true
+
+# Override install-debian.desktop and calamares.desktop with Install AxisOS
+if [ -f /usr/share/applications/install-axisos.desktop ]; then
+    cp -f /usr/share/applications/install-axisos.desktop /usr/share/applications/install-debian.desktop 2>/dev/null || true
+    cp -f /usr/share/applications/install-axisos.desktop /usr/share/applications/calamares.desktop 2>/dev/null || true
+fi
+
+# Replace Debian installer icons with AxisOS branding
+if [ -f /usr/share/axisos/branding/axisos-icon-512.png ]; then
+    cp -f /usr/share/axisos/branding/axisos-icon-512.png /usr/share/pixmaps/install-debian.png 2>/dev/null || true
+    cp -f /usr/share/axisos/branding/axisos-icon-512.png /usr/share/pixmaps/calamares.png 2>/dev/null || true
+fi
+if [ -f /usr/share/icons/hicolor/scalable/apps/axisos.svg ]; then
+    cp -f /usr/share/icons/hicolor/scalable/apps/axisos.svg /usr/share/pixmaps/install-debian.svg 2>/dev/null || true
+    cp -f /usr/share/icons/hicolor/scalable/apps/axisos.svg /usr/share/pixmaps/calamares.svg 2>/dev/null || true
+fi
+
+# Remove legacy axis-installer and axis-settings from application menus
+rm -f /usr/share/applications/axis-installer.desktop /usr/share/applications/axis-settings.desktop 2>/dev/null || true
+
 # Brand all icon themes: replace KDE and Plasma logos with AxisOS logo
 for theme_dir in /usr/share/icons/breeze /usr/share/icons/breeze-dark /usr/share/icons/Papirus /usr/share/icons/Papirus-Dark /usr/share/icons/Papirus-Light /usr/share/icons/hicolor /usr/share/icons/ePapirus /usr/share/icons/Adwaita; do
     if [ -d "$theme_dir" ]; then
@@ -641,15 +683,15 @@ fi
 if [ -f /usr/share/applications/systemsettings.desktop ]; then
     cp -f /usr/share/applications/systemsettings.desktop /etc/skel/Desktop/ 2>/dev/null || true
 fi
-if [ -f /usr/share/applications/calamares.desktop ]; then
-    cp -f /usr/share/applications/calamares.desktop /etc/skel/Desktop/ 2>/dev/null || true
+if [ -f /usr/share/applications/install-axisos.desktop ]; then
+    cp -f /usr/share/applications/install-axisos.desktop /etc/skel/Desktop/ 2>/dev/null || true
 fi
-rm -f /etc/skel/Desktop/axis-installer.desktop /etc/skel/Desktop/axis-settings.desktop 2>/dev/null || true
+rm -f /etc/skel/Desktop/calamares.desktop /etc/skel/Desktop/install-debian.desktop /etc/skel/Desktop/axis-installer.desktop /etc/skel/Desktop/axis-settings.desktop 2>/dev/null || true
 if [ -d /etc/skel/Desktop ]; then
     cp -rf /etc/skel/Desktop/* /home/axis/Desktop/ 2>/dev/null || true
     chmod +x /home/axis/Desktop/*.desktop 2>/dev/null || true
 fi
-rm -f /home/axis/Desktop/axis-installer.desktop /home/axis/Desktop/axis-settings.desktop 2>/dev/null || true
+rm -f /home/axis/Desktop/calamares.desktop /home/axis/Desktop/install-debian.desktop /home/axis/Desktop/axis-installer.desktop /home/axis/Desktop/axis-settings.desktop 2>/dev/null || true
 rm -f /home/axis/.config/plasma-org.kde.plasma.desktop-appletsrc 2>/dev/null || true
 chown -R 1000:1000 /home/axis 2>/dev/null || true
 

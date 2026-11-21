@@ -157,7 +157,7 @@ static void on_launch_action(GtkButton *btn, gpointer user_data) {
         if (err) {
             g_warning("Failed to launch %s: %s", cmd, err->message);
             g_error_free(err);
-        } else if (g_strcmp0(cmd, "axis-installer") == 0) {
+        } else if (g_strcmp0(cmd, "install-axisos") == 0 || g_strcmp0(cmd, "axis-installer") == 0) {
             GtkWidget *toplevel = gtk_widget_get_toplevel(GTK_WIDGET(btn));
             if (GTK_IS_WINDOW(toplevel)) {
                 gtk_window_close(GTK_WINDOW(toplevel));
@@ -372,7 +372,7 @@ int main(int argc, char *argv[]) {
         "preferences-system",
         "System Settings",
         "Configure display, network, audio, Bluetooth, power, and themes.",
-        "axis-settings"
+        "systemsettings"
     );
     GtkWidget *card_soft = create_action_card(
         "system-software-install",
@@ -404,7 +404,7 @@ int main(int argc, char *argv[]) {
             "system-software-install",
             "Install AxisOS",
             "Launch the visual disk partitioner and installation wizard.",
-            "axis-installer"
+            "install-axisos"
         );
         gtk_grid_attach(GTK_GRID(grid), card_inst, 0, 0, 1, 1);
     } else {

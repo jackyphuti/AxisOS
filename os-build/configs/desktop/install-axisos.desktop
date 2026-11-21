@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Install AxisOS
+GenericName=Live System Installer
+Exec=/usr/local/bin/install-axisos
+Comment=Install AxisOS permanently to your drive
+Icon=axisos
+Terminal=false
+Categories=Qt;System;
+StartupWMClass=calamares
+StartupNotify=true
+Keywords=calamares;system;install;axisos;installer;
