@@ -2,7 +2,7 @@
 Description=AxisOS Game Mode Session (gamescope)
 After=live-config.service systemd-user-sessions.service user-runtime-dir@1000.service user@1000.service seatd.service systemd-logind.service
 Wants=user-runtime-dir@1000.service user@1000.service seatd.service systemd-logind.service
-Conflicts=axisos.service getty@tty1.service
+Conflicts=sddm.service axisos.service getty@tty1.service
 After=getty@tty1.service
 
 [Service]

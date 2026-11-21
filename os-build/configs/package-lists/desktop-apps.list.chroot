@@ -30,7 +30,7 @@ libvterm0
 
 # Desktop Portal, Polkit & Authentication Stack
 xdg-desktop-portal
-xdg-desktop-portal-wlr
+xdg-desktop-portal-kde
 libpam0g
 libpam-fprintd
 fprintd

@@ -22,20 +22,22 @@ int main(int argc, char *argv[]) {
     const char *target = argv[1];
 
     if (strcmp(target, "desktop") == 0) {
-        printf("[AxisOS Session] Switching session to: Desktop (LiquidNodes wlroots)\n");
+        printf("[AxisOS Session] Switching session to: Desktop (KDE Plasma Wayland)\n");
         system("systemctl disable axisos-gamemode.service 2>/dev/null || true");
-        system("systemctl enable axisos.service 2>/dev/null || true");
+        system("systemctl disable axisos.service 2>/dev/null || true");
+        system("systemctl enable sddm.service 2>/dev/null || true");
         if (access("/run/systemd/system", F_OK) == 0) {
             system("systemctl stop axisos-gamemode.service 2>/dev/null || true");
-            system("systemctl restart axisos.service 2>/dev/null || true");
+            system("systemctl restart sddm.service 2>/dev/null || true");
         }
         return 0;
     } else if (strcmp(target, "gamemode") == 0) {
         printf("[AxisOS Session] Switching session to: Game Mode (gamescope)\n");
+        system("systemctl disable sddm.service 2>/dev/null || true");
         system("systemctl disable axisos.service 2>/dev/null || true");
         system("systemctl enable axisos-gamemode.service 2>/dev/null || true");
         if (access("/run/systemd/system", F_OK) == 0) {
-            system("systemctl stop axisos.service 2>/dev/null || true");
+            system("systemctl stop sddm.service 2>/dev/null || true");
             system("systemctl restart axisos-gamemode.service 2>/dev/null || true");
         }
         return 0;
@@ -45,7 +47,7 @@ int main(int argc, char *argv[]) {
         if (ret == 0) {
             printf("  Active Session: Game Mode (gamescope)\n");
         } else {
-            printf("  Active Session: Desktop Shell (LiquidNodes)\n");
+            printf("  Active Session: Desktop Shell (KDE Plasma Wayland)\n");
         }
         return 0;
     } else {

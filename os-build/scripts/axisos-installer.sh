@@ -1121,54 +1121,27 @@ rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos.service 2>/dev/null 
 rm -f /mnt/etc/systemd/system/axisos.service 2>/dev/null || true
 rm -rf /mnt/etc/lightdm/lightdm.conf.d 2>/dev/null || true
 
-# Configure Native AxisOS Pure C Wayland Session & Display Manager
-mkdir -p /mnt/etc/systemd/system
-mkdir -p /mnt/usr/share/wayland-sessions
+# Configure SDDM Display Manager & KDE Plasma Wayland Session
+mkdir -p /mnt/etc/sddm.conf.d
 
 if [[ "$AUTOLOGIN" == "true" ]]; then
     touch /mnt/etc/axisos-autologin
+    cat << EOF > /mnt/etc/sddm.conf.d/autologin.conf
+[Autologin]
+User=${USERNAME}
+Session=plasmawayland
+Relogin=false
+EOF
 else
     rm -f /mnt/etc/axisos-autologin 2>/dev/null || true
+    rm -f /mnt/etc/sddm.conf.d/autologin.conf 2>/dev/null || true
 fi
 
-cat << EOF > /mnt/etc/systemd/system/axisos-session.service
-[Unit]
-Description=AxisOS Desktop Environment
-After=systemd-user-sessions.service user-runtime-dir@${TARGET_UID}.service user@${TARGET_UID}.service systemd-logind.service seatd.service
-Wants=user-runtime-dir@${TARGET_UID}.service user@${TARGET_UID}.service systemd-logind.service seatd.service
-Conflicts=getty@tty1.service
-After=getty@tty1.service
-
-[Service]
-Type=simple
-User=${USERNAME}
-Group=${USERNAME}
-PAMName=axisos-autologin
-WorkingDirectory=/home/${USERNAME}
-Environment=PATH=/usr/local/bin:/usr/bin:/bin
-Environment=XDG_SESSION_TYPE=wayland
-Environment=XDG_CURRENT_DESKTOP=AxisOS:LiquidNodes
-Environment=GDK_BACKEND=wayland
-Environment=LIBSEAT_BACKEND=logind
-Environment=XDG_SEAT=seat0
-Environment=XDG_VTNR=1
-Environment=XDG_RUNTIME_DIR=/run/user/${TARGET_UID}
-ExecStartPre=+/bin/sh -c 'mkdir -p /run/user/${TARGET_UID} && chown ${TARGET_UID}:${TARGET_GID} /run/user/${TARGET_UID} 2>/dev/null && chmod 0700 /run/user/${TARGET_UID} 2>/dev/null || true'
-ExecStart=/usr/local/bin/axisos-kiosk.sh
-Restart=always
-RestartSec=2
-StandardInput=tty
-StandardOutput=journal+console
-StandardError=journal+console
-TTYPath=/dev/tty1
-TTYReset=no
-TTYVHangup=no
-TTYVTDisallocate=no
-UtmpIdentifier=tty1
-
-[Install]
-WantedBy=graphical.target
-EOF
+# Remove obsolete session services
+rm -f /mnt/etc/systemd/system/axisos-session.service 2>/dev/null || true
+rm -f /mnt/etc/systemd/system/axisos.service 2>/dev/null || true
+rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos-session.service 2>/dev/null || true
+rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos.service 2>/dev/null || true
 
 # Update Polkit administrative rules so custom username is authorized
 mkdir -p /mnt/etc/polkit-1/rules.d
@@ -1204,25 +1177,21 @@ chroot /mnt systemctl mask NetworkManager-wait-online.service 2>/dev/null || tru
 chroot /mnt systemctl mask systemd-networkd-wait-online.service 2>/dev/null || true
 chroot /mnt systemctl enable seatd.service 2>/dev/null || true
 
-cat << 'EOF' > /mnt/usr/share/wayland-sessions/axisos-liquidnodes.desktop
-[Desktop Entry]
-Name=AxisOS Desktop
-Comment=AxisOS Pure C wlroots Wayland Compositor & One UI Dark Desktop
-Exec=/usr/local/bin/axisos-kiosk.sh
-Type=Application
-DesktopNames=AxisOS:LiquidNodes
-EOF
-ln -sfn /usr/share/wayland-sessions/axisos-liquidnodes.desktop /mnt/usr/share/wayland-sessions/axisos.desktop 2>/dev/null || true
-
 chroot /mnt systemctl set-default graphical.target 2>/dev/null || true
 chroot /mnt systemctl disable gdm3.service 2>/dev/null || true
-chroot /mnt systemctl enable axisos-session.service 2>/dev/null || true
+chroot /mnt systemctl disable lightdm.service 2>/dev/null || true
+chroot /mnt systemctl enable sddm.service 2>/dev/null || true
 
 # Clean user profile to ensure no live-session kiosk loop and deploy desktop applications
 mkdir -p "/mnt/home/${USERNAME}/Desktop"
+mkdir -p "/mnt/home/${USERNAME}/.config"
+if [ -d /mnt/etc/skel/.config ]; then
+    cp -rf /mnt/etc/skel/.config/* "/mnt/home/${USERNAME}/.config/" 2>/dev/null || true
+fi
 sed -i '/axisos-kiosk/d' "/mnt/home/${USERNAME}/.profile" 2>/dev/null || true
 if [ -d /mnt/etc/skel/Desktop ]; then
     cp -r /mnt/etc/skel/Desktop/* "/mnt/home/${USERNAME}/Desktop/" 2>/dev/null || true
+    chmod +x "/mnt/home/${USERNAME}/Desktop/"*.desktop 2>/dev/null || true
 fi
 
 # Ensure installer and live-welcome popups do not bother user on installed system

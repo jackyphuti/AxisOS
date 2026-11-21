@@ -28,7 +28,7 @@ fi
 # Clean previous build artifacts (preserve package cache for speed)
 if command -v lb >/dev/null 2>&1; then
     lb clean --binary || true
-    rm -f "$BUILD_DIR/.build/binary"* "$BUILD_DIR/.build/chroot_includes"* "$BUILD_DIR/.build/chroot_hooks"* 2>/dev/null || true
+    rm -f "$BUILD_DIR/.build/binary"* "$BUILD_DIR/.build/chroot_includes"* "$BUILD_DIR/.build/chroot_hooks"* "$BUILD_DIR/.build/chroot_package-lists"* "$BUILD_DIR/.build/chroot_install-packages"* 2>/dev/null || true
 fi
 
 # 1b. Compile 100% Pure C binaries natively within Debian Bookworm environment
@@ -192,10 +192,53 @@ if [ -f "$WORKSPACE_DIR/os-build/configs/systemd/zram-generator.conf" ]; then
     mkdir -p "$BUILD_DIR/config/includes.chroot/etc/systemd"
     cp -f "$WORKSPACE_DIR/os-build/configs/systemd/zram-generator.conf" "$BUILD_DIR/config/includes.chroot/etc/systemd/" 2>/dev/null || true
 fi
-if [ -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" ]; then
-    cp -f "$WORKSPACE_DIR/os-build/configs/cage-session/axisos.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
-    ln -sf /etc/systemd/system/axisos.service "$BUILD_DIR/config/includes.chroot/etc/systemd/system/graphical.target.wants/axisos.service" || true
+# Deploy SDDM display manager configuration
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/sddm.conf.d"
+if [ -d "$WORKSPACE_DIR/os-build/configs/sddm" ]; then
+    cp -rf "$WORKSPACE_DIR"/os-build/configs/sddm/*.conf "$BUILD_DIR/config/includes.chroot/etc/sddm.conf.d/" 2>/dev/null || true
+    if [ -f "$WORKSPACE_DIR/os-build/configs/sddm/sddm.conf" ]; then
+        cp -f "$WORKSPACE_DIR/os-build/configs/sddm/sddm.conf" "$BUILD_DIR/config/includes.chroot/etc/sddm.conf"
+    fi
+    mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/sddm/themes/breeze"
+    if [ -f "$WORKSPACE_DIR/os-build/configs/sddm/theme.conf.user" ]; then
+        cp -f "$WORKSPACE_DIR/os-build/configs/sddm/theme.conf.user" "$BUILD_DIR/config/includes.chroot/etc/sddm.conf.d/theme.conf.user"
+        cp -f "$WORKSPACE_DIR/os-build/configs/sddm/theme.conf.user" "$BUILD_DIR/config/includes.chroot/usr/share/sddm/themes/breeze/theme.conf.user"
+    fi
 fi
+
+# Deploy KDE Plasma One UI Dark configuration & color schemes
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/color-schemes"
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/xdg"
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/skel/.config"
+if [ -d "$WORKSPACE_DIR/os-build/configs/kde" ]; then
+    if [ -f "$WORKSPACE_DIR/os-build/configs/kde/AxisOSOneUIDark.colors" ]; then
+        cp -f "$WORKSPACE_DIR/os-build/configs/kde/AxisOSOneUIDark.colors" "$BUILD_DIR/config/includes.chroot/usr/share/color-schemes/"
+    fi
+    for kde_cfg in kdeglobals plasmarc plasma-org.kde.plasma.desktop-appletsrc kwinrc kcminputrc; do
+        if [ -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" ]; then
+            cp -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" "$BUILD_DIR/config/includes.chroot/etc/xdg/"
+            cp -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" "$BUILD_DIR/config/includes.chroot/etc/skel/.config/"
+        fi
+    done
+fi
+
+# Deploy AxisOS system & application icons
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/icons/hicolor/scalable/apps"
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/pixmaps"
+if [ -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" ]; then
+    cp -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" "$BUILD_DIR/config/includes.chroot/usr/share/icons/hicolor/scalable/apps/axisos.svg"
+    cp -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" "$BUILD_DIR/config/includes.chroot/usr/share/pixmaps/axisos.svg"
+fi
+
+# Pre-stage Live Desktop shortcuts in /etc/skel/Desktop
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop"
+for d_app in axis-installer axis-settings axis-terminal axis-welcome; do
+    if [ -f "$BUILD_DIR/config/includes.chroot/usr/share/applications/$d_app.desktop" ]; then
+        cp -f "$BUILD_DIR/config/includes.chroot/usr/share/applications/$d_app.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/"
+        chmod +x "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/$d_app.desktop" || true
+    fi
+done
+
 if [ -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
 fi
@@ -212,10 +255,12 @@ if [ -f "$WORKSPACE_DIR/os-build/configs/kernel/gaming-kernel.config" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/kernel/gaming-kernel.config" "$BUILD_DIR/config/includes.chroot/etc/axisos/kernel/"
 fi
 
-# Deploy GTK 3 Global Dark Theme settings
+# Deploy GTK 3 & GTK 4 Global Dark Theme settings
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/gtk-3.0"
+mkdir -p "$BUILD_DIR/config/includes.chroot/etc/gtk-4.0"
 if [ -f "$WORKSPACE_DIR/os-build/configs/gtk-3.0/settings.ini" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/gtk-3.0/settings.ini" "$BUILD_DIR/config/includes.chroot/etc/gtk-3.0/settings.ini"
+    cp -f "$WORKSPACE_DIR/os-build/configs/gtk-3.0/settings.ini" "$BUILD_DIR/config/includes.chroot/etc/gtk-4.0/settings.ini"
 fi
 
 # Polkit rules for hardware & desktop administrative privileges
@@ -287,15 +332,21 @@ echo "axis ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/axis
 chmod 0440 /etc/sudoers.d/axis
 
 # Ensure /home/axis skeleton and permissions
-mkdir -p /home/axis/.config/gtk-3.0 /home/axis/Desktop /home/axis/Downloads
-if [ -f /etc/gtk-3.0/settings.ini ]; then
-    cp -f /etc/gtk-3.0/settings.ini /home/axis/.config/gtk-3.0/settings.ini
+mkdir -p /home/axis/.config /home/axis/Desktop /home/axis/Downloads
+if [ -d /etc/skel/.config ]; then
+    cp -rf /etc/skel/.config/* /home/axis/.config/ 2>/dev/null || true
+fi
+if [ -d /etc/skel/Desktop ]; then
+    cp -rf /etc/skel/Desktop/* /home/axis/Desktop/ 2>/dev/null || true
+    chmod +x /home/axis/Desktop/*.desktop 2>/dev/null || true
 fi
 chown -R 1000:1000 /home/axis 2>/dev/null || true
 
-# Systemd target and service configuration
-systemctl enable axisos.service 2>/dev/null || true
+# Systemd target and display manager service configuration
+systemctl enable sddm.service 2>/dev/null || true
 systemctl enable seatd.service 2>/dev/null || true
+systemctl disable axisos.service 2>/dev/null || true
+systemctl mask axisos.service 2>/dev/null || true
 systemctl disable lightdm.service 2>/dev/null || true
 systemctl mask lightdm.service 2>/dev/null || true
 systemctl set-default graphical.target 2>/dev/null || true

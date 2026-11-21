@@ -1,0 +1,14 @@
+[Desktops]
+Number=4
+Rows=1
+
+[EdgeBarrier]
+CornerBarrier=false
+EdgeBarrier=0
+
+[TabBox]
+LayoutName=thumbnail_grid
+
+[Windows]
+BorderlessMaximizedWindows=false
+FocusPolicy=ClickToFocus

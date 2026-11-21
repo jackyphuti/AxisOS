@@ -65,7 +65,6 @@ alsa-utils
 pulseaudio-utils
 
 # Graphics, DRM/KMS, Mesa & Wayland Runtime Stack
-cage
 mesa-va-drivers
 mesa-vulkan-drivers
 libgl1-mesa-dri
@@ -141,21 +140,29 @@ linux-cpupower
 nvtop
 
 # ==============================================================================
-# AxisOS Container Isolation & Desktop Portal Stack
+# AxisOS KDE Plasma Desktop Environment & SDDM Display Manager Stack
 # ==============================================================================
+kde-plasma-desktop
+plasma-workspace-wayland
+kwin-wayland
+sddm
+sddm-theme-breeze
+plasma-nm
+plasma-pa
+powerdevil
+bluedevil
+kscreen
+dolphin
+kde-config-gtk-style
+breeze-icon-theme
+xdg-desktop-portal
+xdg-desktop-portal-kde
 jq
 flatpak
-xdg-desktop-portal
-xdg-desktop-portal-wlr
 
 # ==============================================================================
 # AxisOS Native Desktop & Multimedia Codec Stack
 # ==============================================================================
-waybar
-wofi
-fuzzel
-swaybg
-mako-notifier
 foot
 ffmpeg
 gstreamer1.0-plugins-good
