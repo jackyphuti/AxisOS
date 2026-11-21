@@ -1,15 +1,15 @@
 Package: axisos-desktop-suite
-Version: 2.1.0-202611212142
+Version: 2.1.0-202611212306
 Architecture: amd64
 Maintainer: Jacky Mpoka <jackympoka22@gmail.com>
 Depends: libgtk-3-0, libcairo2, libpango-1.0-0, libpangocairo-1.0-0, fonts-dejavu-core, fonts-cantarell, fonts-liberation, fonts-inter, libpam0g, libvterm0, libvte-2.91-0, libarchive13, libjson-c5, libudev1
-Breaks: axisos-desktop-suite (<< 2.1.0-202611212142)
-Replaces: axisos-desktop-suite (<< 2.1.0-202611212142)
-Filename: ./axisos-desktop-suite_2.1.0-202611212142_amd64.deb
-Size: 20306236
-MD5sum: f9c8a4847ff025137cbc8e97659f5c36
-SHA1: 2be60a19e77bed19532e7a9dbac712875515bc0f
-SHA256: 8d5afca28cd818689896683f417d5458db7db8d949644d66d1c461f787deb760
+Breaks: axisos-desktop-suite (<< 2.1.0-202611212306)
+Replaces: axisos-desktop-suite (<< 2.1.0-202611212306)
+Filename: ./axisos-desktop-suite_2.1.0-202611212306_amd64.deb
+Size: 20306748
+MD5sum: 348a69491c42f622a1e47636271905cb
+SHA1: 9a7e72d773b0d375ffdb86fc337ecf4082015de1
+SHA256: 6e41a970bc38777780d6f2ec4559fdbe850ed5e192e1d0d6ff90cbf470813cc8
 Section: x11
 Priority: optional
 Description: AxisOS LiquidNodes Pure C Desktop Environment, HUD & System Suite
