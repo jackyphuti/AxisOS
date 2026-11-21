@@ -78,6 +78,8 @@ libwayland-cursor0
 libwayland-egl1
 libinput10
 libxkbcommon0
+xwayland
+spice-vdagent
 
 # Web Browser & File Manager
 chromium
