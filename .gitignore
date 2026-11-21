@@ -45,6 +45,7 @@ os-build/scripts/axis-game-runner
 os-build/scripts/axis-game-runner.sh
 os-build/scripts/axis-switch-session
 os-build/scripts/axis-switch-session.sh
+os-build/scripts/run-qemu
 os-build/apps/nobara-welcome/axis-hardware-manager
 
 # Logs
