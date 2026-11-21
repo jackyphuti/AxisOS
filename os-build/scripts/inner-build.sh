@@ -103,6 +103,11 @@ if [ -f "$WORKSPACE_DIR/os-build/scripts/axisos-installer.sh" ]; then
     chmod +x "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-installer.sh"
     ln -sf axisos-installer.sh "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-install.sh" || true
 fi
+if [ -f "$WORKSPACE_DIR/os-build/scripts/install-axisos.sh" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/scripts/install-axisos.sh" "$BUILD_DIR/config/includes.chroot/usr/local/bin/install-axisos"
+    chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/local/bin/install-axisos"
+    ln -sf /usr/local/bin/install-axisos "$BUILD_DIR/config/includes.chroot/usr/local/bin/install-debian" || true
+fi
 
 # 5b. Copy AxisOS System Helper Daemons & Tools
 for helper in axis-game-boost axis-game-runner axis-switch-session axis-update-notifier axis-autotimezone gpu-autodetect axis-biometrics axis-fastboot-patch axis-captive-portal axis-rewind; do
@@ -251,20 +256,38 @@ fi
 
 # Deploy AxisOS system & application icons
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/icons/hicolor/scalable/apps"
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/icons/hicolor/scalable/places"
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/pixmaps"
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/axisos/branding"
 if [ -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" ]; then
     cp -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" "$BUILD_DIR/config/includes.chroot/usr/share/icons/hicolor/scalable/apps/axisos.svg"
+    cp -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" "$BUILD_DIR/config/includes.chroot/usr/share/icons/hicolor/scalable/places/start-here.svg"
+    cp -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" "$BUILD_DIR/config/includes.chroot/usr/share/icons/hicolor/scalable/places/start-here-kde.svg"
     cp -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" "$BUILD_DIR/config/includes.chroot/usr/share/pixmaps/axisos.svg"
+    cp -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" "$BUILD_DIR/config/includes.chroot/usr/share/pixmaps/klogo.svg" || true
+    cp -f "$WORKSPACE_DIR/data/branding/axisos-icon.svg" "$BUILD_DIR/config/includes.chroot/usr/share/pixmaps/distributor-logo.svg" || true
+fi
+if [ -d "$WORKSPACE_DIR/data/branding" ]; then
+    cp -rf "$WORKSPACE_DIR/data/branding"/* "$BUILD_DIR/config/includes.chroot/usr/share/axisos/branding/" 2>/dev/null || true
 fi
 
-# Pre-stage Live Desktop shortcuts in /etc/skel/Desktop
+# Pre-stage Live Desktop shortcuts in /etc/skel/Desktop (Calamares Installer, System Settings, Terminal, Welcome)
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop"
-for d_app in axis-installer axis-settings axis-terminal axis-welcome; do
+if [ -f "$WORKSPACE_DIR/os-build/configs/desktop/calamares.desktop" ]; then
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/calamares.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/"
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/calamares.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/"
+fi
+if [ -f "/usr/share/applications/systemsettings.desktop" ]; then
+    cp -f "/usr/share/applications/systemsettings.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/" 2>/dev/null || true
+fi
+for d_app in axis-terminal axis-welcome; do
     if [ -f "$BUILD_DIR/config/includes.chroot/usr/share/applications/$d_app.desktop" ]; then
         cp -f "$BUILD_DIR/config/includes.chroot/usr/share/applications/$d_app.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/"
-        chmod +x "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/$d_app.desktop" || true
     fi
 done
+chmod +x "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop"/*.desktop 2>/dev/null || true
+rm -f "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/axis-installer.desktop" \
+      "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/axis-settings.desktop" 2>/dev/null || true
 
 if [ -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
@@ -394,10 +417,25 @@ rm -f /etc/xdg/plasma-org.kde.plasma.desktop-appletsrc \
       /etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc \
       /home/axis/.config/plasma-org.kde.plasma.desktop-appletsrc 2>/dev/null || true
 
-# Configure Plasma default desktop layout script & look-and-feel defaults with AxisOS Obsidian Wave wallpaper
+# Configure Plasma default desktop layout script & look-and-feel defaults with AxisOS branding
 if [ -f /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js ]; then
     cat << 'LAYOUT_EOF' > /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js
-loadTemplate("org.kde.plasma.desktop.defaultPanel")
+var panel = new Panel;
+var panelScreen = panel.screen;
+panel.height = 2 * Math.floor(gridUnit * 2.5 / 2);
+
+var kickoff = panel.addWidget("org.kde.plasma.kickoff");
+kickoff.currentConfigGroup = ["Shortcuts"];
+kickoff.writeConfig("global", "Alt+F1");
+kickoff.currentConfigGroup = ["General"];
+kickoff.writeConfig("icon", "axisos");
+
+panel.addWidget("org.kde.plasma.pager");
+panel.addWidget("org.kde.plasma.icontasks");
+panel.addWidget("org.kde.plasma.marginsseparator");
+panel.addWidget("org.kde.plasma.systemtray");
+panel.addWidget("org.kde.plasma.digitalclock");
+panel.addWidget("org.kde.plasma.showdesktop");
 
 var desktopsArray = desktopsForActivity(currentActivity());
 for (var j = 0; j < desktopsArray.length; j++) {
@@ -409,6 +447,10 @@ for (var j = 0; j < desktopsArray.length; j++) {
 LAYOUT_EOF
 fi
 
+if [ -f /usr/share/plasma/layout-templates/org.kde.plasma.desktop.defaultPanel/contents/layout.js ]; then
+    sed -i '/addWidget("org.kde.plasma.kickoff")/a kickoff.currentConfigGroup = ["General"]; kickoff.writeConfig("icon", "axisos");' /usr/share/plasma/layout-templates/org.kde.plasma.desktop.defaultPanel/contents/layout.js 2>/dev/null || true
+fi
+
 for lnf_def in /usr/share/plasma/look-and-feel/org.kde.breezedark.desktop/contents/defaults /usr/share/plasma/look-and-feel/org.kde.breeze.desktop/contents/defaults; do
     if [ -f "$lnf_def" ]; then
         sed -i 's/^Image=.*/Image=AxisOS/' "$lnf_def" 2>/dev/null || true
@@ -416,6 +458,129 @@ for lnf_def in /usr/share/plasma/look-and-feel/org.kde.breezedark.desktop/conten
         sed -i 's/^Theme=breeze.*/Theme=Papirus-Dark/' "$lnf_def" 2>/dev/null || true
     fi
 done
+
+# Configure Calamares installer branding with AxisOS logos & One UI dark theme
+CAL_DIR="/etc/calamares/branding/debian"
+mkdir -p "$CAL_DIR"
+if [ -f /usr/share/axisos/branding/axisos-logo.png ]; then
+    cp -f /usr/share/axisos/branding/axisos-logo.png "$CAL_DIR/axisos-logo.png"
+    cp -f /usr/share/axisos/branding/axisos-logo.png "$CAL_DIR/debian-logo.png"
+fi
+if [ -f /usr/share/axisos/branding/axisos-icon-512.png ]; then
+    cp -f /usr/share/axisos/branding/axisos-icon-512.png "$CAL_DIR/axisos-icon.png"
+fi
+if [ -f /usr/share/axisos/branding/axisos-boot-1920x1080.png ]; then
+    cp -f /usr/share/axisos/branding/axisos-boot-1920x1080.png "$CAL_DIR/welcome.png"
+    cp -f /usr/share/axisos/branding/axisos-boot-1920x1080.png "$CAL_DIR/slide1.png"
+fi
+
+cat << 'CAL_DESC_EOF' > "$CAL_DIR/branding.desc"
+---
+componentName:   debian
+welcomeStyleCalamares: true
+welcomeExpandingLogo: true
+windowExpanding: normal
+windowSize: 850px,560px
+windowPlacement: center
+
+strings:
+    productName:         AxisOS Linux
+    shortProductName:    AxisOS
+    version:             2026.1 (Rolling)
+    shortVersion:        2026.1
+    versionedName:       AxisOS 2026.1
+    shortVersionedName:  AxisOS 2026
+    bootloaderEntryName: AxisOS
+    productUrl:          https://github.com/AxisOS-Linux
+    supportUrl:          https://github.com/AxisOS-Linux
+    knownIssuesUrl:      https://github.com/AxisOS-Linux
+    releaseNotesUrl:     https://github.com/AxisOS-Linux
+    donateUrl:           https://github.com/AxisOS-Linux
+
+images:
+    productLogo:         "axisos-logo.png"
+    productIcon:         "axisos-icon.png"
+    productWelcome:      "welcome.png"
+
+slideshow:               "show.qml"
+
+style:
+   sidebarBackground:    "#141826"
+   sidebarText:          "#FFFFFF"
+   sidebarTextSelect:    "#7D95FF"
+   sidebarTextCurrent:   "#7D95FF"
+
+slideshowAPI: 2
+CAL_DESC_EOF
+
+if [ -f "$CAL_DIR/show.qml" ]; then
+    sed -i 's/Welcome to Debian GNU\/Linux/Welcome to AxisOS Linux/g; s/Debian/AxisOS/g' "$CAL_DIR/show.qml" 2>/dev/null || true
+fi
+
+# Brand all icon themes: replace KDE and Plasma logos with AxisOS logo
+for theme_dir in /usr/share/icons/breeze /usr/share/icons/breeze-dark /usr/share/icons/Papirus /usr/share/icons/Papirus-Dark /usr/share/icons/Papirus-Light /usr/share/icons/hicolor /usr/share/icons/ePapirus /usr/share/icons/Adwaita; do
+    if [ -d "$theme_dir" ]; then
+        find "$theme_dir" -type f \( \
+            -name "start-here-kde*.svg" -o \
+            -name "start-here*.svg" -o \
+            -name "kde.svg" -o \
+            -name "kde-*.svg" -o \
+            -name "klogo*.svg" -o \
+            -name "plasma.svg" -o \
+            -name "plasma-*.svg" -o \
+            -name "distributor-logo*.svg" -o \
+            -name "about_kde.svg" \
+        \) -exec cp -f /usr/share/icons/hicolor/scalable/apps/axisos.svg {} + 2>/dev/null || true
+    fi
+done
+
+# Replace Plasma splash screen images with AxisOS branding
+SPLASH_IMAGES="/usr/share/plasma/look-and-feel/org.kde.breeze.desktop/contents/splash/images"
+if [ -d "$SPLASH_IMAGES" ] && [ -f /usr/share/axisos/branding/axisos-logo.svg ]; then
+    gzip -c /usr/share/axisos/branding/axisos-logo.svg > "$SPLASH_IMAGES/kde.svgz" 2>/dev/null || true
+    gzip -c /usr/share/axisos/branding/axisos-logo.svg > "$SPLASH_IMAGES/plasma.svgz" 2>/dev/null || true
+fi
+
+# Replace SDDM default logo with AxisOS logo
+if [ -d /usr/share/sddm/themes/breeze ] && [ -f /usr/share/axisos/branding/axisos-logo.svg ]; then
+    cp -f /usr/share/axisos/branding/axisos-logo.svg /usr/share/sddm/themes/breeze/default-logo.svg 2>/dev/null || true
+fi
+
+# System Information Branding (/etc/os-release & /usr/lib/os-release)
+cat << 'OS_REL_EOF' > /etc/os-release
+PRETTY_NAME="AxisOS Linux (One UI Dark)"
+NAME="AxisOS"
+ID=axisos
+ID_LIKE=debian
+VERSION="2026.1 (Rolling)"
+VERSION_ID="2026.1"
+VERSION_CODENAME=rolling
+HOME_URL="https://github.com/AxisOS-Linux"
+SUPPORT_URL="https://github.com/AxisOS-Linux"
+BUG_REPORT_URL="https://github.com/AxisOS-Linux"
+LOGO=axisos
+OS_REL_EOF
+cp -f /etc/os-release /usr/lib/os-release 2>/dev/null || true
+echo "AxisOS Linux \n \l" > /etc/issue
+echo "AxisOS Linux \n \l" > /etc/issue.net
+
+# ZRAM high-performance swap configuration
+if [ -f /etc/default/zramswap ]; then
+    sed -i 's/^#*ALGO=.*/ALGO=zstd/' /etc/default/zramswap 2>/dev/null || true
+    sed -i 's/^#*PERCENT=.*/PERCENT=50/' /etc/default/zramswap 2>/dev/null || true
+    sed -i 's/^#*PRIORITY=.*/PRIORITY=100/' /etc/default/zramswap 2>/dev/null || true
+fi
+
+# Development & Gaming System Resource Limits
+mkdir -p /etc/security/limits.d
+cat << 'LIMITS_EOF' > /etc/security/limits.d/99-axisos-gaming.conf
+* soft nofile 1048576
+* hard nofile 1048576
+* soft memlock unlimited
+* hard memlock unlimited
+* soft nice -20
+* hard nice -20
+LIMITS_EOF
 
 # Patch live-config 0085-sddm so it preserves AxisOS theme & autologin settings at boot
 if [ -f /lib/live/config/0085-sddm ]; then
@@ -473,10 +638,18 @@ mkdir -p /home/axis/.config /home/axis/Desktop /home/axis/Downloads
 if [ -d /etc/skel/.config ]; then
     cp -rf /etc/skel/.config/* /home/axis/.config/ 2>/dev/null || true
 fi
+if [ -f /usr/share/applications/systemsettings.desktop ]; then
+    cp -f /usr/share/applications/systemsettings.desktop /etc/skel/Desktop/ 2>/dev/null || true
+fi
+if [ -f /usr/share/applications/calamares.desktop ]; then
+    cp -f /usr/share/applications/calamares.desktop /etc/skel/Desktop/ 2>/dev/null || true
+fi
+rm -f /etc/skel/Desktop/axis-installer.desktop /etc/skel/Desktop/axis-settings.desktop 2>/dev/null || true
 if [ -d /etc/skel/Desktop ]; then
     cp -rf /etc/skel/Desktop/* /home/axis/Desktop/ 2>/dev/null || true
     chmod +x /home/axis/Desktop/*.desktop 2>/dev/null || true
 fi
+rm -f /home/axis/Desktop/axis-installer.desktop /home/axis/Desktop/axis-settings.desktop 2>/dev/null || true
 rm -f /home/axis/.config/plasma-org.kde.plasma.desktop-appletsrc 2>/dev/null || true
 chown -R 1000:1000 /home/axis 2>/dev/null || true
 
@@ -508,6 +681,12 @@ if [ -d "$BUILD_DIR/chroot/usr/local/bin" ]; then
     echo "--> Syncing staged files directly into existing chroot..."
     cp -rf "$BUILD_DIR/config/includes.chroot/"* "$BUILD_DIR/chroot/" 2>/dev/null || true
     chmod 755 "$BUILD_DIR/chroot/usr/local/bin/"* 2>/dev/null || true
+    if [ -f "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot" ]; then
+        cp -f "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot" "$BUILD_DIR/chroot/tmp/setup-axisos.sh"
+        chmod +x "$BUILD_DIR/chroot/tmp/setup-axisos.sh"
+        chroot "$BUILD_DIR/chroot" /tmp/setup-axisos.sh || true
+        rm -f "$BUILD_DIR/chroot/tmp/setup-axisos.sh"
+    fi
 fi
 
 # 11. Run live-build config & build

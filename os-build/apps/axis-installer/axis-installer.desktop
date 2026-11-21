@@ -9,3 +9,4 @@ Type=Application
 Categories=System;PackageManager;Settings;GTK;
 Keywords=Install;Setup;Drive;Partition;Live;Installer;
 StartupNotify=true
+NoDisplay=true

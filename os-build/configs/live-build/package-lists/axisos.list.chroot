@@ -122,7 +122,7 @@ neofetch
 librsvg2-bin
 
 # ==============================================================================
-# AxisOS Gaming Subsystem (Vulkan, GameMode, Overlays, Compatibility)
+# AxisOS Gaming Subsystem (Vulkan, GameMode, Overlays, Compatibility, Low Latency)
 # ==============================================================================
 vulkan-tools
 libvulkan1
@@ -138,6 +138,32 @@ vkbasalt
 cpufrequtils
 linux-cpupower
 nvtop
+zram-tools
+schedtool
+wine
+winetricks
+
+# ==============================================================================
+# AxisOS High-Performance Development & Toolchain Suite
+# ==============================================================================
+build-essential
+git
+gdb
+strace
+valgrind
+pkg-config
+cmake
+ninja-build
+clang
+lld
+llvm
+tmux
+tree
+ripgrep
+python3-pip
+python3-venv
+libssl-dev
+zlib1g-dev
 
 # ==============================================================================
 # AxisOS KDE Plasma Desktop Environment & SDDM Display Manager Stack
@@ -147,6 +173,8 @@ plasma-workspace-wayland
 kwin-wayland
 sddm
 sddm-theme-breeze
+systemsettings
+kinfocenter
 plasma-nm
 plasma-pa
 powerdevil
@@ -159,6 +187,15 @@ xdg-desktop-portal
 xdg-desktop-portal-kde
 jq
 flatpak
+
+# ==============================================================================
+# AxisOS Calamares System Installer Stack (Branded KDE Installer)
+# ==============================================================================
+calamares
+calamares-settings-debian
+qml-module-org-kde-kquickcontrolsaddons
+cryptsetup
+squashfs-tools
 
 # ==============================================================================
 # AxisOS Native Desktop & Multimedia Codec Stack

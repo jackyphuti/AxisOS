@@ -1,3 +1,5 @@
 [General]
 background=/usr/share/backgrounds/axisos/08-axisos-obsidian-wave.jpg
 type=image
+showlogo=visible
+logo=/usr/share/sddm/themes/breeze/default-logo.svg
