@@ -53,7 +53,8 @@ fi
 echo "[2/4] Setting up build workspace in $BUILD_DIR..."
 if [ -n "$SUDO_CMD" ]; then
     $SUDO_CMD mkdir -p "$BUILD_DIR"
-    $SUDO_CMD chown -R "$(id -u):$(id -g)" "$BUILD_DIR"
+    $SUDO_CMD chown "$(id -u):$(id -g)" "$BUILD_DIR"
+    $SUDO_CMD rm -f "$BUILD_DIR/Containerfile" 2>/dev/null || true
 else
     mkdir -p "$BUILD_DIR"
 fi

@@ -28,7 +28,15 @@ fi
 # Clean previous build artifacts (preserve package cache for speed)
 if command -v lb >/dev/null 2>&1; then
     lb clean --binary || true
-    rm -f "$BUILD_DIR/.build/binary"* "$BUILD_DIR/.build/chroot_includes"* "$BUILD_DIR/.build/chroot_hooks"* "$BUILD_DIR/.build/chroot_package-lists"* "$BUILD_DIR/.build/chroot_install-packages"* 2>/dev/null || true
+    rm -f "$BUILD_DIR/.build/binary"* "$BUILD_DIR/.build/chroot_includes"* "$BUILD_DIR/.build/chroot_hooks"* 2>/dev/null || true
+    if [ -x "$BUILD_DIR/chroot/usr/bin/plasmashell" ] && [ -x "$BUILD_DIR/chroot/usr/bin/sddm" ] && [ -x "$BUILD_DIR/chroot/usr/bin/Xwayland" ]; then
+        touch "$BUILD_DIR/.build/chroot_package-lists.install" \
+              "$BUILD_DIR/.build/chroot_package-lists.live" \
+              "$BUILD_DIR/.build/chroot_install-packages.install" \
+              "$BUILD_DIR/.build/chroot_install-packages.live" 2>/dev/null || true
+    else
+        rm -f "$BUILD_DIR/.build/chroot_package-lists"* "$BUILD_DIR/.build/chroot_install-packages"* 2>/dev/null || true
+    fi
 fi
 
 # 1b. Compile 100% Pure C binaries natively within Debian Bookworm environment
@@ -214,12 +222,31 @@ if [ -d "$WORKSPACE_DIR/os-build/configs/kde" ]; then
     if [ -f "$WORKSPACE_DIR/os-build/configs/kde/AxisOSOneUIDark.colors" ]; then
         cp -f "$WORKSPACE_DIR/os-build/configs/kde/AxisOSOneUIDark.colors" "$BUILD_DIR/config/includes.chroot/usr/share/color-schemes/"
     fi
-    for kde_cfg in kdeglobals plasmarc plasma-org.kde.plasma.desktop-appletsrc kwinrc kcminputrc; do
+    for kde_cfg in kdeglobals plasmarc kwinrc kcminputrc kscreenlockerrc baloofilerc powermanagementprofilesrc; do
         if [ -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" ]; then
             cp -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" "$BUILD_DIR/config/includes.chroot/etc/xdg/"
             cp -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" "$BUILD_DIR/config/includes.chroot/etc/skel/.config/"
         fi
     done
+fi
+rm -f "$BUILD_DIR/config/includes.chroot/etc/xdg/plasma-org.kde.plasma.desktop-appletsrc" \
+      "$BUILD_DIR/config/includes.chroot/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc" 2>/dev/null || true
+
+# Plasma wallpaper package "AxisOS" (used via plasmarc defaultWallpaperTheme=AxisOS)
+WP_SRC="$WORKSPACE_DIR/data/wallpapers/08-axisos-obsidian-wave.jpg"
+WP_PKG="$BUILD_DIR/config/includes.chroot/usr/share/wallpapers/AxisOS"
+if [ -f "$WP_SRC" ]; then
+    mkdir -p "$WP_PKG/contents/images"
+    for res in 1920x1080 2560x1440 3840x2160 1366x768 1280x720; do
+        cp -f "$WP_SRC" "$WP_PKG/contents/images/$res.jpg"
+    done
+    cat << 'WPEOF' > "$WP_PKG/metadata.desktop"
+[Desktop Entry]
+Name=AxisOS Obsidian Wave
+X-KDE-PluginInfo-Name=AxisOS
+X-KDE-PluginInfo-Author=AxisOS Team
+X-KDE-PluginInfo-License=CC-BY-SA-4.0
+WPEOF
 fi
 
 # Deploy AxisOS system & application icons
@@ -326,10 +353,120 @@ session     optional    pam_env.so readenv=1
 session     optional    pam_env.so readenv=1 envfile=/etc/default/locale
 PAM_EOF
 
+# Repair any non-root owned system files caused by host staging
+find /etc /usr /var /opt /srv /root -xdev -user 1000 -exec chown root:root {} + 2>/dev/null || true
+chown root:root / /etc /usr /var /var/lib /tmp /var/tmp /run 2>/dev/null || true
+chown root:shadow /etc/shadow /etc/gshadow 2>/dev/null || true
+chmod 0640 /etc/shadow /etc/gshadow 2>/dev/null || true
+chown root:root /etc/passwd /etc/group /etc/sudoers /etc/crontab 2>/dev/null || true
+chmod 0440 /etc/sudoers 2>/dev/null || true
+chmod 0644 /etc/passwd /etc/group /etc/crontab 2>/dev/null || true
+
+# Restore setuid bits on critical system binaries
+for suid_bin in /bin/su /bin/mount /bin/umount /usr/bin/passwd /usr/bin/chsh /usr/bin/chfn /usr/bin/gpasswd /usr/bin/newgrp /usr/bin/sudo /usr/bin/pkexec /usr/lib/polkit-1/polkit-agent-helper-1 /usr/lib/xorg/Xorg.wrap; do
+    if [ -f "$suid_bin" ]; then
+        chown root:root "$suid_bin" 2>/dev/null || true
+        chmod 4755 "$suid_bin" 2>/dev/null || true
+    fi
+done
+if [ -f /usr/lib/dbus-1.0/dbus-daemon-launch-helper ]; then
+    chown root:messagebus /usr/lib/dbus-1.0/dbus-daemon-launch-helper 2>/dev/null || true
+    chmod 4754 /usr/lib/dbus-1.0/dbus-daemon-launch-helper 2>/dev/null || true
+fi
+if [ -d /var/lib/sddm ]; then
+    chown -R sddm:sddm /var/lib/sddm 2>/dev/null || true
+fi
+
 # Passwordless sudo for axis user
 mkdir -p /etc/sudoers.d
 echo "axis ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/axis
+chown root:root /etc/sudoers.d /etc/sudoers.d/axis 2>/dev/null || true
 chmod 0440 /etc/sudoers.d/axis
+
+# Remove duplicate GNOME tray applets and heavy file indexer autostart
+rm -f /etc/xdg/autostart/nm-applet.desktop \
+      /etc/xdg/autostart/blueman.desktop \
+      /etc/xdg/autostart/polkit-gnome-authentication-agent-1.desktop \
+      /etc/xdg/autostart/baloo_file.desktop 2>/dev/null || true
+
+# Remove any incomplete desktop-appletsrc so Plasma layout.js builds the full panel & containment
+rm -f /etc/xdg/plasma-org.kde.plasma.desktop-appletsrc \
+      /etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc \
+      /home/axis/.config/plasma-org.kde.plasma.desktop-appletsrc 2>/dev/null || true
+
+# Configure Plasma default desktop layout script & look-and-feel defaults with AxisOS Obsidian Wave wallpaper
+if [ -f /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js ]; then
+    cat << 'LAYOUT_EOF' > /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js
+loadTemplate("org.kde.plasma.desktop.defaultPanel")
+
+var desktopsArray = desktopsForActivity(currentActivity());
+for (var j = 0; j < desktopsArray.length; j++) {
+    desktopsArray[j].wallpaperPlugin = 'org.kde.image';
+    desktopsArray[j].currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];
+    desktopsArray[j].writeConfig('Image', 'file:///usr/share/backgrounds/axisos/08-axisos-obsidian-wave.jpg');
+    desktopsArray[j].writeConfig('FillMode', '2');
+}
+LAYOUT_EOF
+fi
+
+for lnf_def in /usr/share/plasma/look-and-feel/org.kde.breezedark.desktop/contents/defaults /usr/share/plasma/look-and-feel/org.kde.breeze.desktop/contents/defaults; do
+    if [ -f "$lnf_def" ]; then
+        sed -i 's/^Image=.*/Image=AxisOS/' "$lnf_def" 2>/dev/null || true
+        sed -i 's/^ColorScheme=.*/ColorScheme=AxisOSOneUIDark/' "$lnf_def" 2>/dev/null || true
+        sed -i 's/^Theme=breeze.*/Theme=Papirus-Dark/' "$lnf_def" 2>/dev/null || true
+    fi
+done
+
+# Patch live-config 0085-sddm so it preserves AxisOS theme & autologin settings at boot
+if [ -f /lib/live/config/0085-sddm ]; then
+    cat << 'SDDM_LIVE_EOF' > /lib/live/config/0085-sddm
+#!/bin/sh
+. /lib/live/config.sh
+
+LIVE_USERNAME="axis"
+for _PARAMETER in ${LIVE_CONFIG_CMDLINE}; do
+    case "${_PARAMETER}" in
+        live-config.noautologin|noautologin|live-config.nox11autologin|nox11autologin)
+            exit 0
+            ;;
+        live-config.username=*|username=*)
+            LIVE_USERNAME="${_PARAMETER#*username=}"
+            ;;
+    esac
+done
+
+mkdir -p /etc/sddm.conf.d
+cat > /etc/sddm.conf << SDDM_CONF_EOF
+[Autologin]
+User=${LIVE_USERNAME}
+Session=plasma.desktop
+Relogin=false
+
+[Theme]
+Current=breeze
+CursorTheme=breeze_cursors
+Font=IBM Plex Sans,10,-1,5,50,0,0,0,0,0
+
+[General]
+InputMethod=
+Numlock=none
+SDDM_CONF_EOF
+cp -f /etc/sddm.conf /etc/sddm.conf.d/autologin.conf 2>/dev/null || true
+mkdir -p /var/lib/live/config
+touch /var/lib/live/config/xinit /var/lib/live/config/sddm
+SDDM_LIVE_EOF
+    chmod 0755 /lib/live/config/0085-sddm
+fi
+
+# Raise KDE Plasma systemd user unit startup timeouts so Live USB & VM boots never thrash
+for ufile in /usr/lib/systemd/user/plasma-*.service; do
+    if [ -f "$ufile" ]; then
+        sed -i 's/TimeoutSec=5sec/TimeoutSec=120sec/g; s/TimeoutSec=40sec/TimeoutSec=180sec/g' "$ufile" 2>/dev/null || true
+    fi
+done
+if [ -f /etc/systemd/user.conf ]; then
+    sed -i 's/^#*DefaultTimeoutStartSec=.*/DefaultTimeoutStartSec=120s/' /etc/systemd/user.conf 2>/dev/null || true
+fi
 
 # Ensure /home/axis skeleton and permissions
 mkdir -p /home/axis/.config /home/axis/Desktop /home/axis/Downloads
@@ -340,6 +477,7 @@ if [ -d /etc/skel/Desktop ]; then
     cp -rf /etc/skel/Desktop/* /home/axis/Desktop/ 2>/dev/null || true
     chmod +x /home/axis/Desktop/*.desktop 2>/dev/null || true
 fi
+rm -f /home/axis/.config/plasma-org.kde.plasma.desktop-appletsrc 2>/dev/null || true
 chown -R 1000:1000 /home/axis 2>/dev/null || true
 
 # Systemd target and display manager service configuration
@@ -361,6 +499,9 @@ chmod 1777 /tmp /var/tmp 2>/dev/null || true
 chmod 755 /run 2>/dev/null || true
 EOF
 chmod +x "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot"
+
+# Ensure all staged chroot includes are owned by root:root before live-build copies them
+chown -R 0:0 "$BUILD_DIR/config/includes.chroot" 2>/dev/null || true
 
 # Sync includes.chroot directly into chroot if chroot already exists
 if [ -d "$BUILD_DIR/chroot/usr/local/bin" ]; then

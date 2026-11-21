@@ -1121,7 +1121,7 @@ rm -f /mnt/etc/systemd/system/graphical.target.wants/axisos.service 2>/dev/null 
 rm -f /mnt/etc/systemd/system/axisos.service 2>/dev/null || true
 rm -rf /mnt/etc/lightdm/lightdm.conf.d 2>/dev/null || true
 
-# Configure SDDM Display Manager & KDE Plasma Wayland Session
+# Configure SDDM Display Manager & KDE Plasma Session
 mkdir -p /mnt/etc/sddm.conf.d
 
 if [[ "$AUTOLOGIN" == "true" ]]; then
@@ -1129,13 +1129,39 @@ if [[ "$AUTOLOGIN" == "true" ]]; then
     cat << EOF > /mnt/etc/sddm.conf.d/autologin.conf
 [Autologin]
 User=${USERNAME}
-Session=plasmawayland
+Session=plasma.desktop
 Relogin=false
+EOF
+    cat << EOF > /mnt/etc/sddm.conf
+[Autologin]
+User=${USERNAME}
+Session=plasma.desktop
+Relogin=false
+
+[Theme]
+Current=breeze
+CursorTheme=breeze_cursors
+Font=IBM Plex Sans,10,-1,5,50,0,0,0,0,0
+
+[General]
+InputMethod=
+Numlock=none
 EOF
 else
     rm -f /mnt/etc/axisos-autologin 2>/dev/null || true
     rm -f /mnt/etc/sddm.conf.d/autologin.conf 2>/dev/null || true
+    cat << 'EOF' > /mnt/etc/sddm.conf
+[Theme]
+Current=breeze
+CursorTheme=breeze_cursors
+Font=IBM Plex Sans,10,-1,5,50,0,0,0,0,0
+
+[General]
+InputMethod=
+Numlock=none
+EOF
 fi
+rm -f /mnt/lib/live/config/0085-sddm 2>/dev/null || true
 
 # Remove obsolete session services
 rm -f /mnt/etc/systemd/system/axisos-session.service 2>/dev/null || true

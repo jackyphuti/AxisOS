@@ -20,7 +20,9 @@ int main(int argc, char *argv[]) {
     }
 
     char cmd[1024];
-    const char *kvm = (access("/dev/kvm", W_OK) == 0) ? "-enable-kvm -cpu host" : "-cpu max";
+    const char *kvm = (access("/dev/kvm", W_OK) == 0)
+        ? "-enable-kvm -cpu host"
+        : "-accel tcg,thread=multi -cpu Skylake-Client";
 
     if (access(iso_path, F_OK) == 0) {
         printf("Booting from Live ISO (%s)...\n", iso_path);

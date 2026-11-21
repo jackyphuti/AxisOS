@@ -1,0 +1,11 @@
+[AC][DimDisplay]
+idleTime=3600000
+
+[AC][DPMSControl]
+idleTime=3600
+lockBeforeTurnOff=0
+
+[AC][HandleButtonEvents]
+lidAction=1
+powerButtonAction=16
+powerDownAction=16

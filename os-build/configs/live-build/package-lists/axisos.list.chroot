@@ -41,7 +41,6 @@ apt-listchanges
 
 # Networking & Connectivity Stack (Wi-Fi & Ethernet)
 network-manager
-network-manager-gnome
 wpasupplicant
 wireless-tools
 rfkill
@@ -53,7 +52,6 @@ ca-certificates
 # Bluetooth Stack & Utilities
 bluez
 bluez-tools
-blueman
 libspa-0.2-bluetooth
 
 # Audio Infrastructure (PipeWire, ALSA, WirePlumber)
