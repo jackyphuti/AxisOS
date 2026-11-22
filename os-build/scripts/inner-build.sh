@@ -279,8 +279,8 @@ mkdir -p "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop"
 if [ -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/"
     cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/"
-    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/install-debian.desktop"
-    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-axisos.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/calamares.desktop"
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/install-debian.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/install-debian.desktop"
+    cp -f "$WORKSPACE_DIR/os-build/configs/desktop/calamares.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/applications/calamares.desktop"
 fi
 if [ -f "/usr/share/applications/systemsettings.desktop" ]; then
     cp -f "/usr/share/applications/systemsettings.desktop" "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/" 2>/dev/null || true
@@ -540,10 +540,12 @@ gio set --type=string "$DESKTOP/install-axisos.desktop" metadata::trusted true 2
 CAL_ICON_EOF
 chmod 0755 /usr/bin/add-calamares-desktop-icon 2>/dev/null || true
 
-# Override install-debian.desktop and calamares.desktop with Install AxisOS
+# Override install-debian.desktop and calamares.desktop with Install AxisOS and hide redundant entries
 if [ -f /usr/share/applications/install-axisos.desktop ]; then
     cp -f /usr/share/applications/install-axisos.desktop /usr/share/applications/install-debian.desktop 2>/dev/null || true
+    echo "NoDisplay=true" >> /usr/share/applications/install-debian.desktop 2>/dev/null || true
     cp -f /usr/share/applications/install-axisos.desktop /usr/share/applications/calamares.desktop 2>/dev/null || true
+    echo "NoDisplay=true" >> /usr/share/applications/calamares.desktop 2>/dev/null || true
 fi
 
 # Replace Debian installer icons with AxisOS branding
@@ -714,6 +716,10 @@ if ! command -v unsquashfs >/dev/null 2>&1; then
     apt-get install -y --no-install-recommends squashfs-tools grub-efi-amd64-bin grub-pc-bin 2>/dev/null || true
 fi
 
+# Purge docs, man pages, non-English locales, and package caches to keep ISO strictly under 2 GiB
+rm -rf /usr/share/doc/* /usr/share/man/* /var/cache/apt/archives/* /var/lib/apt/lists/* 2>/dev/null || true
+find /usr/share/locale -maxdepth 1 -mindepth 1 ! -name 'en*' ! -name 'locale.alias' -exec rm -rf {} + 2>/dev/null || true
+
 # Clean up any runtime/temporary directories before squashing
 rm -rf /run/* /run/user /tmp/* /var/tmp/* /var/log/* 2>/dev/null || true
 mkdir -p /run/lock
@@ -765,11 +771,20 @@ if command -v lb >/dev/null 2>&1; then
         --memtest none \
         --verbose
 
-    # Strip any obsolete squashfs compression level that mksquashfs xz does not accept
+    # Strip any obsolete squashfs compression level and inject 1MB BCJ compression options
     sed -i '/LB_CHROOT_SQUASHFS_COMPRESSION_LEVEL/d' "$BUILD_DIR/config/chroot" 2>/dev/null || true
     sed -i '/LB_CHROOT_SQUASHFS_COMPRESSION_LEVEL/d' config/chroot 2>/dev/null || true
     sed -i '/LB_CHROOT_SQUASHFS_COMPRESSION_LEVEL/d' "$BUILD_DIR/config/binary" 2>/dev/null || true
     sed -i '/LB_CHROOT_SQUASHFS_COMPRESSION_LEVEL/d' config/binary 2>/dev/null || true
+    sed -i '/MKSQUASHFS_OPTIONS/d' "$BUILD_DIR/config/binary" 2>/dev/null || true
+    sed -i '/MKSQUASHFS_OPTIONS/d' config/binary 2>/dev/null || true
+    echo 'MKSQUASHFS_OPTIONS="-b 1048576 -Xbcj x86"' >> "$BUILD_DIR/config/binary" 2>/dev/null || true
+    echo 'MKSQUASHFS_OPTIONS="-b 1048576 -Xbcj x86"' >> config/binary 2>/dev/null || true
+    export MKSQUASHFS_OPTIONS="-b 1048576 -Xbcj x86"
+
+    # Reset binary stages to ensure fresh squashfs and ISO generation
+    rm -f "$BUILD_DIR/.build/binary_"* "$BUILD_DIR/.build/chroot_hooks" "$BUILD_DIR/.build/chroot_includes"* 2>/dev/null || true
+    rm -rf "$BUILD_DIR/binary" "$BUILD_DIR"/*.iso* 2>/dev/null || true
 
     lb build 2>&1 | tee "$BUILD_DIR/build.log"
     cp -f "$BUILD_DIR"/live-image-amd64.hybrid.iso "$WORKSPACE_DIR/axisos-live-amd64.iso" 2>/dev/null || true

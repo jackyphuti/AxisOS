@@ -38,211 +38,142 @@ static const char *CSS_AXIS =
     "* {"
     "    outline: none;"
     "}"
-    "window, .background {"
-    "    background-color: #141826;"
-    "    color: #F1F5F9;"
-    "    font-family: 'IBM Plex Sans', -apple-system, sans-serif;"
+    "window, window.background, .background,"
+    "notebook, notebook > stack, notebook > stack > *,"
+    "scrolledwindow, viewport, box, grid {"
+    "    background-color: #0f121d !important;"
+    "    background-image: none !important;"
+    "    color: #f1f5f9;"
+    "    font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;"
     "}"
-    "headerbar {"
-    "    background: #1F2231;"
-    "    background-color: #1F2231;"
-    "    background-image: none;"
-    "    border-bottom: 1px solid #2E3349;"
-    "    box-shadow: none;"
-    "    min-height: 48px;"
-    "    padding: 4px 12px;"
+    "viewport {"
+    "    border: none;"
     "}"
-    "headerbar .title {"
+    ".top-banner {"
+    "    background-color: #171b2c !important;"
+    "    border-bottom: 1px solid #282e46;"
+    "    padding: 14px 20px;"
+    "}"
+    ".top-title {"
     "    font-weight: 700;"
-    "    font-size: 15px;"
-    "    color: #F1F5F9;"
+    "    font-size: 16px;"
+    "    color: #ffffff;"
     "}"
-    "headerbar .subtitle {"
-    "    font-size: 11px;"
-    "    color: #94A3B8;"
-    "}"
-    "headerbar button {"
-    "    background-color: #262A3D;"
-    "    color: #F1F5F9;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 8px;"
-    "    padding: 4px 10px;"
-    "}"
-    "headerbar button:hover {"
-    "    background-color: #2E3349;"
-    "    color: #7D95FF;"
+    ".top-subtitle {"
+    "    font-size: 12px;"
+    "    color: #94a3b8;"
     "}"
     "notebook {"
-    "    background-color: #141826;"
     "    border: none;"
     "}"
     "notebook > header {"
-    "    background-color: #1F2231;"
-    "    border-bottom: 1px solid #2E3349;"
-    "    padding: 6px 12px 0 12px;"
+    "    background-color: #141724 !important;"
+    "    border-bottom: 1px solid #23283c;"
+    "    padding: 4px 16px 0 16px;"
     "}"
     "notebook > header > tabs > tab {"
-    "    background-color: transparent;"
-    "    background-image: none;"
-    "    color: #94A3B8;"
+    "    background-color: transparent !important;"
+    "    color: #94a3b8;"
     "    font-weight: 600;"
     "    font-size: 13px;"
     "    border: none;"
     "    border-bottom: 3px solid transparent;"
-    "    padding: 10px 22px;"
+    "    padding: 10px 20px;"
     "    margin: 0 4px;"
-    "    border-radius: 8px 8px 0 0;"
-    "    transition: all 150ms ease-in-out;"
+    "    border-radius: 6px 6px 0 0;"
     "}"
     "notebook > header > tabs > tab:hover {"
-    "    color: #F1F5F9;"
-    "    background-color: rgba(125, 149, 255, 0.08);"
+    "    color: #ffffff;"
+    "    background-color: rgba(96, 205, 255, 0.08) !important;"
     "}"
     "notebook > header > tabs > tab:checked {"
-    "    color: #7D95FF;"
+    "    color: #60cdff;"
     "    font-weight: 700;"
-    "    border-bottom: 3px solid #7D95FF;"
-    "    background-color: rgba(125, 149, 255, 0.12);"
+    "    border-bottom: 3px solid #60cdff;"
+    "    background-color: rgba(96, 205, 255, 0.12) !important;"
     "}"
     "notebook > header > tabs > tab label {"
     "    color: inherit;"
     "}"
-    "notebook > stack, notebook > stack > * {"
-    "    background-color: #141826;"
-    "}"
-    "scrolledwindow, viewport {"
-    "    background-color: #141826;"
-    "    border: none;"
-    "}"
     ".hero-card {"
-    "    background-color: #1F2231;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 16px;"
-    "    padding: 22px 24px;"
-    "    margin: 10px 12px 6px 12px;"
-    "    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);"
+    "    background-color: #1a1e30 !important;"
+    "    border: 1px solid #2a314d;"
+    "    border-radius: 12px;"
+    "    padding: 20px 24px;"
+    "    margin: 4px 0 12px 0;"
     "}"
     ".card {"
-    "    background-color: #1F2231;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 16px;"
-    "    padding: 18px 24px;"
-    "    margin: 8px 12px;"
-    "    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);"
+    "    background-color: #1a1e30 !important;"
+    "    border: 1px solid #2a314d;"
+    "    border-radius: 12px;"
+    "    padding: 18px 22px;"
+    "    margin: 6px 0;"
     "}"
     "label {"
-    "    color: #F1F5F9;"
+    "    color: #f1f5f9;"
     "}"
     ".text-muted {"
-    "    color: #94A3B8;"
+    "    color: #94a3b8;"
     "}"
     ".status-box {"
-    "    background-color: #141826;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 10px;"
+    "    background-color: #111420 !important;"
+    "    border: 1px solid #252b42;"
+    "    border-radius: 8px;"
     "    padding: 12px 16px;"
-    "    color: #7D95FF;"
-    "    font-family: 'IBM Plex Mono', monospace;"
+    "    color: #60cdff;"
+    "    font-family: 'IBM Plex Mono', 'Cascadia Code', monospace;"
     "    font-size: 12px;"
     "}"
     ".btn-primary {"
-    "    background: #7D95FF;"
-    "    background-color: #7D95FF;"
-    "    color: #101423;"
+    "    background: #60cdff !important;"
+    "    background-color: #60cdff !important;"
+    "    color: #0c1524 !important;"
     "    font-weight: 700;"
     "    font-size: 13px;"
-    "    border-radius: 9999px;"
-    "    border: 1px solid #7D95FF;"
-    "    padding: 9px 24px;"
-    "    box-shadow: 0 2px 6px rgba(125, 149, 255, 0.3);"
+    "    border-radius: 8px;"
+    "    border: 1px solid #60cdff;"
+    "    padding: 8px 20px;"
     "}"
     ".btn-primary:hover {"
-    "    background: #93A8FF;"
-    "    background-color: #93A8FF;"
-    "    color: #101423;"
+    "    background: #82d8ff !important;"
+    "    background-color: #82d8ff !important;"
+    "    color: #0c1524 !important;"
     "}"
     ".btn-secondary {"
-    "    background: #262A3D;"
-    "    background-color: #262A3D;"
-    "    color: #F1F5F9;"
-    "    border: 1px solid #2E3349;"
-    "    border-radius: 9999px;"
-    "    padding: 9px 20px;"
+    "    background: #252a3f !important;"
+    "    background-color: #252a3f !important;"
+    "    color: #f1f5f9 !important;"
+    "    border: 1px solid #333a56;"
+    "    border-radius: 8px;"
+    "    padding: 8px 18px;"
     "    font-weight: 600;"
     "    font-size: 13px;"
     "}"
     ".btn-secondary:hover {"
-    "    background-color: #2E3349;"
-    "    border-color: #7D95FF;"
-    "    color: #7D95FF;"
+    "    background-color: #2e3550 !important;"
+    "    border-color: #60cdff;"
+    "    color: #60cdff !important;"
     "}"
-    ".badge-ok {"
-    "    color: #34D399;"
-    "    font-weight: bold;"
+    "scrollbar slider {"
+    "    background-color: rgba(255, 255, 255, 0.2);"
+    "    border-radius: 4px;"
     "}"
-    ".badge-warn {"
-    "    color: #FBBF24;"
-    "    font-weight: bold;"
+    "scrollbar slider:hover {"
+    "    background-color: rgba(255, 255, 255, 0.4);"
     "}";
 
 static void load_axis_theme(void) {
     GdkScreen *screen = gdk_screen_get_default();
     if (!screen) return;
 
-    gboolean dark_mode = TRUE;
-    const char *home = g_get_home_dir();
-    if (home) {
-        char conf_path[512];
-        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
-        FILE *f = fopen(conf_path, "r");
-        if (f) {
-            char buf[128];
-            if (fgets(buf, sizeof(buf), f)) {
-                if (strstr(buf, "light") || strstr(buf, "Light")) {
-                    dark_mode = FALSE;
-                }
-            }
-            fclose(f);
-        }
-    }
-
-    const char *dark_paths[] = {
-        "data/theme/axis-dark.css",
-        "/usr/share/axisos/theme/axis-dark.css",
-        "/usr/local/share/axisos/theme/axis-dark.css",
-        NULL
-    };
-    const char *light_paths[] = {
-        "data/theme/axis-light.css",
-        "/usr/share/axisos/theme/axis-light.css",
-        "/usr/local/share/axisos/theme/axis-light.css",
-        NULL
-    };
-
-    const char **paths = dark_mode ? dark_paths : light_paths;
     GtkCssProvider *provider = gtk_css_provider_new();
-    for (int i = 0; paths[i] != NULL; ++i) {
-        if (access(paths[i], R_OK) == 0) {
-            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
-                gtk_style_context_add_provider_for_screen(
-                    screen,
-                    GTK_STYLE_PROVIDER(provider),
-                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
-                break;
-            }
-        }
-    }
-    g_object_unref(provider);
-
-    GtkCssProvider *extra_prov = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(extra_prov, CSS_AXIS, -1, NULL);
+    gtk_css_provider_load_from_data(provider, CSS_AXIS, -1, NULL);
     gtk_style_context_add_provider_for_screen(
         screen,
-        GTK_STYLE_PROVIDER(extra_prov),
-        GTK_STYLE_PROVIDER_PRIORITY_USER
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_USER + 100
     );
-    g_object_unref(extra_prov);
+    g_object_unref(provider);
 }
 
 static GtkWidget *create_card(const char *title, const char *desc) {
@@ -353,7 +284,7 @@ static void on_install_lutris_cb(GtkWidget *widget, gpointer user_data) {
 
 static void init_welcome_tab(AxisHardwareApp *app) {
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
 
     // Hero
     GtkWidget *hero = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
@@ -367,7 +298,7 @@ static void init_welcome_tab(AxisHardwareApp *app) {
     gtk_label_set_attributes(GTK_LABEL(h_t), attrs);
     pango_attr_list_unref(attrs);
 
-    GtkWidget *h_d = gtk_label_new("Engineered for high-performance PC gaming, content creation, and out-of-the-box hardware readiness.\nAll critical GPU drivers, Vulkan runtimes, and multimedia codecs are pre-configured.");
+    GtkWidget *h_d = gtk_label_new("Engineered for high-performance PC gaming, development, and out-of-the-box hardware readiness.\nAll critical GPU drivers, Vulkan runtimes, and multimedia codecs are pre-configured.");
     gtk_label_set_xalign(GTK_LABEL(h_d), 0.0);
     gtk_label_set_line_wrap(GTK_LABEL(h_d), TRUE);
     gtk_style_context_add_class(gtk_widget_get_style_context(h_d), "text-muted");
@@ -378,7 +309,7 @@ static void init_welcome_tab(AxisHardwareApp *app) {
 
     // Hardware Status card
     GtkWidget *card_hw = create_card("Hardware & Vulkan Status", "Hardware GPU acceleration and display modes are active.");
-    char *gpu_stat = exec_cmd("lspci -nnk | grep -E -A 2 -i 'vga|3d|display' || echo 'Standard Display Adapter'");
+    char *gpu_stat = exec_cmd("lspci -nnk 2>/dev/null | grep -E -A 2 -i 'vga|3d|display' || echo 'Standard Display Adapter'");
     g_strstrip(gpu_stat);
     GtkWidget *lbl_status = gtk_label_new(gpu_stat);
     g_free(gpu_stat);
@@ -400,7 +331,7 @@ static void init_welcome_tab(AxisHardwareApp *app) {
 
 static void init_drivers_tab(AxisHardwareApp *app) {
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
 
     // NVIDIA Card
     GtkWidget *card_nv = create_card("NVIDIA GeForce Graphics Drivers",
@@ -439,7 +370,7 @@ static void init_drivers_tab(AxisHardwareApp *app) {
 
 static void init_codecs_tab(AxisHardwareApp *app) {
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
 
     GtkWidget *card_codec = create_card("Multimedia Codecs & Hardware Decoders",
         "Install comprehensive audio and video codecs (FFmpeg, GStreamer, H.264, HEVC, AV1, AAC, MP3).");
@@ -460,7 +391,7 @@ static void init_codecs_tab(AxisHardwareApp *app) {
 
 static void init_gaming_tab(AxisHardwareApp *app) {
     GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-    gtk_container_set_border_width(GTK_CONTAINER(vbox), 16);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 20);
 
     // Steam Card
     GtkWidget *card_steam = create_card("Valve Steam Gaming Platform",
@@ -496,20 +427,35 @@ static AxisHardwareApp *axis_hardware_app_create(void) {
     AxisHardwareApp *app = g_new0(AxisHardwareApp, 1);
     app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(app->window), "Axis Hardware & Codec Suite");
-    gtk_window_set_default_size(GTK_WINDOW(app->window), 820, 580);
+    gtk_window_set_default_size(GTK_WINDOW(app->window), 840, 600);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
-    // Apply system theme
+    // Apply dark high-contrast theme
     load_axis_theme();
 
-    // Headerbar
-    GtkWidget *hb = gtk_header_bar_new();
-    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
-    gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "Axis Hardware & Codec Suite");
-    gtk_window_set_titlebar(GTK_WINDOW(app->window), hb);
+    // Main window vertical container
+    GtkWidget *root_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_add(GTK_CONTAINER(app->window), root_box);
 
+    // Modern Top Banner Header
+    GtkWidget *top_banner = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    gtk_style_context_add_class(gtk_widget_get_style_context(top_banner), "top-banner");
+
+    GtkWidget *title_lbl = gtk_label_new("Axis Hardware & Codec Suite");
+    gtk_widget_set_halign(title_lbl, GTK_ALIGN_START);
+    gtk_style_context_add_class(gtk_widget_get_style_context(title_lbl), "top-title");
+    gtk_box_pack_start(GTK_BOX(top_banner), title_lbl, FALSE, FALSE, 0);
+
+    GtkWidget *subtitle_lbl = gtk_label_new("Gaming Drivers, Codecs & System Optimization");
+    gtk_widget_set_halign(subtitle_lbl, GTK_ALIGN_START);
+    gtk_style_context_add_class(gtk_widget_get_style_context(subtitle_lbl), "top-subtitle");
+    gtk_box_pack_start(GTK_BOX(top_banner), subtitle_lbl, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(root_box), top_banner, FALSE, FALSE, 0);
+
+    // Notebook for tabs
     app->notebook = gtk_notebook_new();
-    gtk_container_add(GTK_CONTAINER(app->window), app->notebook);
+    gtk_box_pack_start(GTK_BOX(root_box), app->notebook, TRUE, TRUE, 0);
 
     init_welcome_tab(app);
     init_drivers_tab(app);

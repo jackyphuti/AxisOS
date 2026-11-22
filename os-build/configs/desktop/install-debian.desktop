@@ -10,4 +10,5 @@ Terminal=false
 Categories=Qt;System;
 StartupWMClass=calamares
 StartupNotify=true
+NoDisplay=true
 Keywords=calamares;system;install;axisos;installer;

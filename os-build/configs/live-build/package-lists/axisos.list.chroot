@@ -132,7 +132,6 @@ gamescope
 rtkit
 steam-devices
 lutris
-retroarch
 dkms
 vkbasalt
 cpufrequtils
@@ -150,13 +149,9 @@ build-essential
 git
 gdb
 strace
-valgrind
 pkg-config
 cmake
 ninja-build
-clang
-lld
-llvm
 tmux
 tree
 ripgrep

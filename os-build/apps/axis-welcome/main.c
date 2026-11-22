@@ -99,54 +99,39 @@ static void read_system_info(SystemInfo *info) {
 }
 
 static const char *CSS_WELCOME =
-    "@define-color axis_base #141826;"
-    "@define-color axis_surface #1F2231;"
-    "@define-color axis_surface_raised #262A3D;"
-    "@define-color axis_outline #2E3349;"
-    "@define-color axis_accent #7D95FF;"
-    "@define-color axis_accent_btn_text #0F1422;"
-    "@define-color axis_text #E2E8F0;"
-    "@define-color axis_text_muted #94A3B8;"
-    "window, headerbar, button, checkbutton {"
-    "    background-image: none;"
-    "    box-shadow: none;"
-    "}"
-    "window {"
-    "    background-color: @axis_base;"
-    "    color: @axis_text;"
-    "    font-family: 'IBM Plex Sans', sans-serif;"
-    "}"
-    "headerbar {"
-    "    background-color: @axis_surface;"
-    "    color: @axis_text;"
-    "    border-bottom: 1px solid @axis_outline;"
+    "* { outline: none; }"
+    "window, window.background, .background, box, grid, frame {"
+    "    background-color: #0f121d !important;"
+    "    background-image: none !important;"
+    "    color: #f1f5f9;"
+    "    font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;"
     "}"
     "frame, frame > border {"
-    "    background-color: @axis_surface;"
-    "    border: 1px solid @axis_outline;"
-    "    border-radius: 14px;"
+    "    background-color: #1a1e30 !important;"
+    "    border: 1px solid #2a314d;"
+    "    border-radius: 12px;"
     "}"
     "button.welcome-card {"
-    "    background-color: @axis_surface_raised;"
-    "    color: @axis_text;"
-    "    border: 1px solid @axis_outline;"
-    "    border-radius: 14px;"
+    "    background-color: #1a1e30 !important;"
+    "    color: #f1f5f9;"
+    "    border: 1px solid #2a314d;"
+    "    border-radius: 12px;"
     "}"
     "button.welcome-card:hover {"
-    "    background-color: alpha(@axis_accent, 0.14);"
-    "    border-color: @axis_accent;"
+    "    background-color: rgba(96, 205, 255, 0.14) !important;"
+    "    border-color: #60cdff;"
     "}"
     "button.btn-close {"
-    "    background-color: @axis_surface_raised;"
-    "    color: @axis_text;"
-    "    border: 1px solid @axis_outline;"
-    "    border-radius: 9999px;"
+    "    background-color: #252a3f !important;"
+    "    color: #f1f5f9;"
+    "    border: 1px solid #333a56;"
+    "    border-radius: 8px;"
     "    padding: 6px 20px;"
     "    font-weight: 600;"
     "}"
     "button.btn-close:hover {"
-    "    border-color: @axis_accent;"
-    "    color: @axis_accent;"
+    "    border-color: #60cdff;"
+    "    color: #60cdff !important;"
     "}";
 
 static void on_launch_action(GtkButton *btn, gpointer user_data) {
@@ -284,7 +269,7 @@ static void load_axis_theme(void) {
     gtk_style_context_add_provider_for_screen(
         screen,
         GTK_STYLE_PROVIDER(extra_prov),
-        GTK_STYLE_PROVIDER_PRIORITY_USER
+        GTK_STYLE_PROVIDER_PRIORITY_USER + 100
     );
     g_object_unref(extra_prov);
 }
@@ -329,14 +314,24 @@ int main(int argc, char *argv[]) {
     gtk_window_set_position(GTK_WINDOW(app.window), GTK_WIN_POS_CENTER);
     gtk_window_set_title(GTK_WINDOW(app.window), "Welcome to AxisOS");
 
-    GtkWidget *hb = gtk_header_bar_new();
-    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
-    gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "AxisOS Welcome Hub");
-    gtk_header_bar_set_subtitle(GTK_HEADER_BAR(hb), "Pure C High-Performance Operating System");
-    gtk_window_set_titlebar(GTK_WINDOW(app.window), hb);
+    GtkWidget *top_banner = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    GtkWidget *top_title = gtk_label_new("AxisOS Welcome Hub");
+    gtk_widget_set_halign(top_title, GTK_ALIGN_START);
+    PangoAttrList *b_attrs = pango_attr_list_new();
+    pango_attr_list_insert(b_attrs, pango_attr_weight_new(PANGO_WEIGHT_BOLD));
+    pango_attr_list_insert(b_attrs, pango_attr_scale_new(1.2));
+    gtk_label_set_attributes(GTK_LABEL(top_title), b_attrs);
+    pango_attr_list_unref(b_attrs);
+    gtk_box_pack_start(GTK_BOX(top_banner), top_title, FALSE, FALSE, 0);
+
+    GtkWidget *top_sub = gtk_label_new("Pure C High-Performance Operating System");
+    gtk_widget_set_halign(top_sub, GTK_ALIGN_START);
+    gtk_style_context_add_class(gtk_widget_get_style_context(top_sub), "text-muted");
+    gtk_box_pack_start(GTK_BOX(top_banner), top_sub, FALSE, FALSE, 0);
 
     GtkWidget *main_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
     gtk_container_set_border_width(GTK_CONTAINER(main_box), 20);
+    gtk_box_pack_start(GTK_BOX(main_box), top_banner, FALSE, FALSE, 0);
     gtk_container_add(GTK_CONTAINER(app.window), main_box);
 
     // Hero / Header Banner

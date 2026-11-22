@@ -427,7 +427,6 @@ static const char *WIN11_CSS =
 
 /* Forward Declarations */
 static void refresh_processes(Win11TaskManager *app);
-static void refresh_all_telemetry(Win11TaskManager *app);
 static void refresh_startup_apps(Win11TaskManager *app);
 static void refresh_details(Win11TaskManager *app);
 static void refresh_users(Win11TaskManager *app);
