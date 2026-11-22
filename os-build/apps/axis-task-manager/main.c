@@ -1,21 +1,37 @@
 /*
- * AxisOS Native Task Manager — Redesigned HUD Edition
- * Built in Pure C11 (-std=gnu11) with GTK 3 & Cairo
+ * AxisOS Native Task Manager — Windows 11 Fluent Dark Edition
+ * 100% Pure C11 (-std=gnu11) with GTK 3 & Cairo
  *
- * Features:
- * 1. Collapsible Left Navigation Rail (Windows 11 Sidebar style)
- *    - Processes, Performance, App History, Startup Apps, Users, Details, Services
- * 2. Unified HUD Telemetry Deck:
- *    - Real-time multi-rail rolling sparklines (CPU, RAM, Disk, Net)
- *    - Dynamic Logical Processor Matrix (color-coded cyan normal <-> magenta high-thread)
- *    - Gradient DDR5 Memory Bar (Active, Cached, Available with smooth neon gradient)
- *    - NVMe & Network Throughput (real-time read/write MB/s and RX/TX KB/s)
- *    - Circular thermal gauges (CPU Package & GPU Hotspot package temperatures via Cairo)
- *    - Interactive GameBoost Extreme toggle badge (live governor query & toggle)
- * 3. Heat-Mapped Process Grid:
- *    - Sortable resource heatmap cells (CPU%, Memory, Disk, Net, GPU)
- *    - In-place row updates preserving selection and scroll position across ticks
- * 4. App History, Startup Apps, Users, Details (with full /proc/pid/cmdline), and Systemd Services panels
+ * Designed and engineered to replicate Windows 11 Task Manager:
+ * 1. Command Bar & Search:
+ *    - Search box ("Type a name, PID, or publisher to search") with real-time process filtering
+ *    - Command buttons: "Run new task", "End task", "Efficiency mode", "Refresh speed"
+ * 2. Left Collapsible Navigation Rail (Windows 11 Mica / Acrylic style):
+ *    - Hamburger toggle button (☰) to collapse to icon-only (52px) or expand (200px)
+ *    - Tabs: Processes (📊), Performance (📈), App history (⏱), Startup apps (🚀),
+ *      Users (👤), Details (📋), Services (⚙), Settings (🔧)
+ *    - Active indicator: Left neon blue accent pill (#60CDFF) with rounded corners
+ * 3. Processes View:
+ *    - Real-time heat-mapped resource columns (Name, Status, CPU %, Memory, Disk, Network, PID)
+ *    - Subtle Windows 11 heat-map coloring for resource loads
+ *    - Efficiency mode badge (🍃)
+ *    - Context menu: End Task, Force Kill (SIGKILL), Efficiency Mode, Priority, Open Location
+ * 4. Performance View:
+ *    - Split layout: Left resource selector cards (CPU, Memory, Disk, Network) with live sparklines
+ *    - Right view: Resource header, hardware specifications, 60-second Cairo rolling graph with
+ *      grid lines & smooth glowing gradient fill, bottom hardware telemetry statistics grid
+ * 5. Startup Apps View:
+ *    - Scans system and user autostart entries, displaying Name, Publisher, Status, and Impact
+ * 6. Users View:
+ *    - Logged-in session tracking with resource usage
+ * 7. Details View:
+ *    - Advanced process table with PID, User, Nice, Status, Memory, Command Line
+ * 8. Services View:
+ *    - Systemd units with Start, Stop, and Restart actions
+ * 9. Settings View:
+ *    - Update speed (0.5s, 1s, 2s, Paused), Always on Top toggle
+ * 10. Run New Task Dialog:
+ *    - Windows 11 "Create new task" modal with file browser and root elevation checkbox
  */
 
 #define _GNU_SOURCE
@@ -25,1406 +41,423 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <math.h>
 #include <dirent.h>
 #include <unistd.h>
 #include <signal.h>
 #include <pwd.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <sys/resource.h>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-#define SPARKLINE_POINTS 60
+#define HISTORY_POINTS 60
 
+/* Processes Table Columns */
 enum {
-    COL_PID = 0,
-    COL_NAME,
-    COL_CPU_VAL,
-    COL_MEM_VAL,
-    COL_DISK_VAL,
-    COL_GPU,
-    COL_STATUS,
-    COL_USER,
-    COL_THREADS,
-    COL_NICE,
-    COL_CPU_TXT,
-    COL_MEM_TXT,
-    COL_DISK_TXT,
-    NUM_PROCESS_COLS
+    PROC_COL_PID = 0,
+    PROC_COL_NAME,
+    PROC_COL_STATUS,
+    PROC_COL_STATUS_ICON,
+    PROC_COL_CPU_VAL,
+    PROC_COL_CPU_STR,
+    PROC_COL_MEM_VAL,
+    PROC_COL_MEM_STR,
+    PROC_COL_DISK_VAL,
+    PROC_COL_DISK_STR,
+    PROC_COL_NET_VAL,
+    PROC_COL_NET_STR,
+    PROC_COL_USER,
+    PROC_COL_CMDLINE,
+    PROC_COL_CPU_BG,
+    PROC_COL_MEM_BG,
+    NUM_PROC_COLS
 };
 
+/* Details Table Columns */
 enum {
-    DET_COL_PID = 0,
-    DET_COL_NAME,
-    DET_COL_USER,
-    DET_COL_NICE,
+    DET_COL_NAME = 0,
+    DET_COL_PID,
     DET_COL_STATUS,
+    DET_COL_USER,
+    DET_COL_CPU_STR,
+    DET_COL_MEM_STR,
+    DET_COL_NICE,
     DET_COL_CMDLINE,
-    NUM_DETAIL_COLS
+    NUM_DET_COLS
 };
 
-// Robust Pango text rendering helper
-static void render_pango_text(cairo_t *cr, double x, double y, const char *text,
-                              const char *font_desc_str,
-                              double r, double g, double b, double a,
-                              gboolean center_x, gboolean center_y) {
-    if (!cr || !text) return;
-    PangoLayout *layout = pango_cairo_create_layout(cr);
-    pango_layout_set_text(layout, text, -1);
-    PangoFontDescription *desc = pango_font_description_from_string(font_desc_str);
-    pango_layout_set_font_description(layout, desc);
-    pango_font_description_free(desc);
+/* Performance Metric Enum */
+typedef enum {
+    PERF_METRIC_CPU = 0,
+    PERF_METRIC_MEMORY,
+    PERF_METRIC_DISK,
+    PERF_METRIC_NETWORK,
+    NUM_PERF_METRICS
+} PerfMetric;
 
-    int text_w = 0, text_h = 0;
-    pango_layout_get_pixel_size(layout, &text_w, &text_h);
-
-    double draw_x = x;
-    double draw_y = y;
-    if (center_x) draw_x -= (text_w / 2.0);
-    if (center_y) draw_y -= (text_h / 2.0);
-
-    cairo_set_source_rgba(cr, r, g, b, a);
-    cairo_move_to(cr, draw_x, draw_y);
-    pango_cairo_show_layout(cr, layout);
-    g_object_unref(layout);
-}
-
+/* Process tracking delta */
 typedef struct {
     unsigned long long utime;
     unsigned long long stime;
-} ProcJiffies;
+    unsigned long long read_bytes;
+    unsigned long long write_bytes;
+} ProcSample;
 
+/* App History tracking */
 typedef struct {
     char *name;
     double cpu_sec;
     double mem_mb;
     double io_mb;
-} AppHistoryEntry;
+} AppHistRecord;
 
+/* Startup App item */
+typedef struct {
+    char *name;
+    char *cmd;
+    char *file_path;
+    gboolean enabled;
+    char *impact;
+} StartupItem;
+
+/* Main Application Structure */
 typedef struct {
     GtkWidget *window;
-    GtkWidget *nav_rail;
-    GtkWidget *stack;
+    GtkWidget *header_bar;
     GtkWidget *search_entry;
-    GtkWidget *tree_view;
+    GtkWidget *btn_end_task;
+    GtkWidget *btn_run_task;
+    GtkWidget *btn_efficiency;
+    GtkWidget *btn_hamburger;
+
+    /* Navigation Rail */
+    GtkWidget *nav_rail;
+    gboolean rail_expanded;
+    GPtrArray *nav_buttons;
+    GtkWidget *main_stack;
+
+    /* Search filter */
+    char *search_query;
+
+    /* Processes Tab */
+    GtkWidget *tree_processes;
     GtkListStore *store_processes;
     GtkTreeModelFilter *filter_processes;
     GtkTreeModelSort *sort_processes;
-
-    // Performance HUD widgets
-    GtkWidget *drawing_sparklines;
-    GtkWidget *drawing_cores;
-    GtkWidget *drawing_memory;
-    GtkWidget *lbl_mem_legend;
-    GtkWidget *drawing_thermals;
-    GtkWidget *lbl_nvme_read;
-    GtkWidget *lbl_net_io;
-    GtkWidget *btn_gameboost;
-    GtkWidget *lbl_summary_badge;
-    GtkWidget *lbl_footer_stats;
-    GtkWidget *lbl_footer_uptime;
+    GtkWidget *lbl_proc_summary;
     gboolean show_kernel_threads;
 
-    // Stores
-    GtkListStore *store_startup;
-    GtkListStore *store_users;
+    /* Details Tab */
+    GtkWidget *tree_details;
     GtkListStore *store_details;
+    GtkTreeModelFilter *filter_details;
+    GtkTreeModelSort *sort_details;
+
+    /* Startup Apps Tab */
+    GtkWidget *tree_startup;
+    GtkListStore *store_startup;
+
+    /* App History Tab */
+    GtkWidget *tree_history;
+    GtkListStore *store_history;
+
+    /* Users Tab */
+    GtkWidget *tree_users;
+    GtkListStore *store_users;
+
+    /* Services Tab */
+    GtkWidget *tree_services;
     GtkListStore *store_services;
-    GtkListStore *store_app_history;
 
-    // Navigation rail state
-    gboolean rail_expanded;
-    GPtrArray *nav_buttons;
+    /* Performance Tab Widgets */
+    PerfMetric selected_perf_metric;
+    GtkWidget *btn_perf_cards[NUM_PERF_METRICS];
+    GtkWidget *draw_perf_sparklines[NUM_PERF_METRICS];
+    GtkWidget *lbl_perf_card_vals[NUM_PERF_METRICS];
+    GtkWidget *lbl_perf_card_subs[NUM_PERF_METRICS];
+    GtkWidget *draw_perf_main_graph;
+    GtkWidget *lbl_perf_title;
+    GtkWidget *lbl_perf_spec;
+    GtkWidget *perf_stats_grid;
 
-    // Telemetry History
-    double history_cpu[SPARKLINE_POINTS];
-    double history_mem[SPARKLINE_POINTS];
-    double history_disk[SPARKLINE_POINTS];
-    double history_net[SPARKLINE_POINTS];
-    int sparkline_idx;
+    /* Performance Stats Labels */
+    GtkWidget *lbl_cpu_util;
+    GtkWidget *lbl_cpu_speed;
+    GtkWidget *lbl_cpu_procs;
+    GtkWidget *lbl_cpu_threads;
+    GtkWidget *lbl_cpu_uptime;
+    GtkWidget *lbl_cpu_cores;
+    GtkWidget *lbl_cpu_sockets;
+    GtkWidget *lbl_cpu_virtual;
 
-    // Processor loads
+    GtkWidget *lbl_mem_inuse;
+    GtkWidget *lbl_mem_avail;
+    GtkWidget *lbl_mem_speed;
+    GtkWidget *lbl_mem_cached;
+    GtkWidget *lbl_mem_slots;
+    GtkWidget *lbl_mem_form;
+
+    GtkWidget *lbl_disk_active;
+    GtkWidget *lbl_disk_read;
+    GtkWidget *lbl_disk_write;
+    GtkWidget *lbl_disk_cap;
+    GtkWidget *lbl_disk_type;
+
+    GtkWidget *lbl_net_send;
+    GtkWidget *lbl_net_recv;
+    GtkWidget *lbl_net_adapter;
+    GtkWidget *lbl_net_ip;
+
+    /* Telemetry Historical Buffers (60 samples) */
+    double history_cpu[HISTORY_POINTS];
+    double history_mem[HISTORY_POINTS];
+    double history_disk[HISTORY_POINTS];
+    double history_net[HISTORY_POINTS];
+    int hist_head;
+
+    /* Multi-core CPU */
     int n_cores;
     double *core_loads;
     unsigned long long *prev_core_work;
     unsigned long long *prev_core_total;
 
-    // Overall metrics
+    /* Global Telemetry Metrics */
     double current_cpu_pct;
     double current_mem_gb;
     double total_mem_gb;
+    double avail_mem_gb;
     double cached_mem_gb;
-    double free_mem_gb;
     double disk_read_mbs;
     double disk_write_mbs;
-    double net_rx_kbs;
-    double net_tx_kbs;
-    double cpu_temp_c;
-    double gpu_temp_c;
-    gboolean has_cpu_thermal_sensor;
-    gboolean has_gpu_thermal_sensor;
-    gboolean gameboost_active;
-    int total_process_count;
-    int total_thread_count;
+    double disk_active_pct;
+    double net_rx_kbps;
+    double net_tx_kbps;
+    char cpu_model[128];
+    char disk_model[128];
+    char net_interface[64];
+    char net_ip[64];
+    long uptime_seconds;
+    int total_procs;
+    int total_threads;
 
-    // Previous totals
+    /* Previous Totals for Delta Calculation */
     unsigned long long prev_total_jiffies;
     unsigned long long prev_work_jiffies;
     unsigned long long prev_disk_sectors_read;
     unsigned long long prev_disk_sectors_written;
     unsigned long long prev_net_bytes_rx;
     unsigned long long prev_net_bytes_tx;
-    double last_proc_sample_time;
+    double last_sample_time;
 
-    // Hash maps for per-process deltas and app history
-    GHashTable *proc_jiffies_map; // pid -> ProcJiffies*
-    GHashTable *proc_io_map;      // pid -> guint64*
-    GHashTable *app_history_map;  // name -> AppHistoryEntry*
-} AxisTaskManagerApp;
+    /* Update Timer & Preferences */
+    guint timer_id;
+    int refresh_rate_ms;
+    gboolean always_on_top;
 
-static const char *CSS_TASK_MANAGER =
-    "button, togglebutton, entry, notebook tab, treeview.view header button {"
+    /* Hash Tables */
+    GHashTable *proc_samples;   /* pid -> ProcSample* */
+    GHashTable *app_histories;  /* name -> AppHistRecord* */
+} Win11TaskManager;
+
+/* Fluent Dark CSS Palette (Windows 11 Dark Mode) */
+static const char *WIN11_CSS =
+    "* {"
+    "    outline: none;"
+    "    font-family: 'Segoe UI Variable', 'Segoe UI', 'IBM Plex Sans', sans-serif;"
+    "}"
+    "window, .background {"
+    "    background-color: #202020;"
+    "    color: #FFFFFF;"
+    "}"
+    "headerbar {"
+    "    background: #202020;"
+    "    background-color: #202020;"
     "    background-image: none;"
+    "    border-bottom: 1px solid #2D2D2D;"
     "    box-shadow: none;"
-    "    text-shadow: none;"
-    "    -gtk-icon-shadow: none;"
+    "    min-height: 48px;"
+    "    padding: 2px 8px;"
     "}"
-    ".sidebar {"
-    "    background-color: @axis_surface;"
-    "    border-right: 1px solid @axis_outline;"
-    "}"
-    ".sidebar button {"
-    "    border-radius: 999px;"
-    "    padding: 10px 14px;"
-    "    margin: 3px 8px;"
-    "    color: @axis_text_muted;"
+    "headerbar .title {"
     "    font-weight: 600;"
-    "    font-size: 13px;"
-    "    border: none;"
-    "    background-image: none;"
-    "    background-color: transparent;"
+    "    font-size: 14px;"
+    "    color: #FFFFFF;"
     "}"
-    ".sidebar button:hover {"
-    "    background-image: none;"
-    "    background-color: alpha(@axis_accent, 0.12);"
-    "    color: @axis_accent;"
+    "headerbar .subtitle {"
+    "    font-size: 11px;"
+    "    color: #9E9E9E;"
     "}"
-    ".sidebar button.active {"
-    "    background-image: none;"
-    "    background-color: #7D95FF;"
-    "    color: #141826;"
-    "    font-weight: 700;"
-    "}"
-    ".content-pane {"
-    "    padding: 16px 20px;"
-    "}"
-    ".card {"
-    "    background-color: @axis_surface_raised;"
-    "    color: @axis_text;"
-    "    border: 1px solid @axis_outline;"
-    "    border-radius: 16px;"
-    "    padding: 14px 18px;"
-    "    margin-bottom: 12px;"
-    "    box-shadow: 0 2px 12px @axis_shadow;"
-    "}"
-    ".card-title {"
-    "    font-size: 13px;"
-    "    font-weight: 700;"
-    "    color: @axis_text;"
-    "    margin-bottom: 6px;"
-    "}"
-    ".card-subtitle {"
-    "    font-size: 12px;"
-    "    color: @axis_text_muted;"
-    "    margin-bottom: 8px;"
-    "}"
-    ".btn-primary {"
-    "    background: @axis_accent;"
-    "    background-color: @axis_accent;"
-    "    color: @axis_accent_btn_text;"
-    "    font-weight: 700;"
-    "    border-radius: 999px;"
-    "    border: none;"
-    "    padding: 6px 16px;"
-    "}"
-    ".btn-primary:hover {"
-    "    background-color: mix(@axis_accent, @axis_base, 0.12);"
-    "}"
-    ".btn-secondary {"
-    "    background: @axis_surface;"
-    "    background-color: @axis_surface;"
-    "    color: @axis_text;"
-    "    border: 1px solid @axis_outline;"
-    "    border-radius: 999px;"
+    ".command-bar {"
+    "    background-color: #202020;"
+    "    border-bottom: 1px solid #2D2D2D;"
     "    padding: 6px 14px;"
+    "}"
+    ".fluent-btn {"
+    "    background-color: #2B2B2B;"
+    "    color: #FFFFFF;"
+    "    border: 1px solid #383838;"
+    "    border-radius: 6px;"
+    "    padding: 6px 14px;"
+    "    font-size: 12px;"
+    "    font-weight: 500;"
+    "    transition: all 120ms ease;"
+    "}"
+    ".fluent-btn:hover {"
+    "    background-color: #383838;"
+    "    border-color: #484848;"
+    "}"
+    ".fluent-btn:active {"
+    "    background-color: #1F1F1F;"
+    "}"
+    ".fluent-btn-accent {"
+    "    background-color: #0078D4;"
+    "    color: #FFFFFF;"
+    "    border: 1px solid #0078D4;"
+    "    border-radius: 6px;"
+    "    padding: 6px 16px;"
+    "    font-size: 12px;"
     "    font-weight: 600;"
     "}"
-    ".btn-secondary:hover {"
-    "    background-color: @axis_surface_raised;"
-    "    color: @axis_accent;"
+    ".fluent-btn-accent:hover {"
+    "    background-color: #1A86D9;"
+    "    border-color: #1A86D9;"
     "}"
-    "treeview {"
-    "    background-color: @axis_surface;"
-    "    color: @axis_text;"
+    ".fluent-search {"
+    "    background-color: #2C2C2C;"
+    "    color: #FFFFFF;"
+    "    border: 1px solid #383838;"
+    "    border-radius: 6px;"
+    "    padding: 5px 12px;"
+    "    font-size: 12px;"
+    "    min-width: 280px;"
     "}"
-    "treeview:selected, treeview row:selected {"
-    "    background-color: alpha(@axis_accent, 0.16);"
-    "    color: @axis_accent;"
+    ".fluent-search:focus {"
+    "    border-color: #60CDFF;"
+    "    background-color: #1F1F1F;"
+    "}"
+    ".nav-rail {"
+    "    background-color: #181818;"
+    "    border-right: 1px solid #2B2B2B;"
+    "    padding: 8px 4px;"
+    "}"
+    ".nav-btn {"
+    "    background-color: transparent;"
+    "    background-image: none;"
+    "    border: none;"
+    "    border-radius: 6px;"
+    "    padding: 8px 12px;"
+    "    margin: 2px 4px;"
+    "    color: #CCCCCC;"
+    "    font-size: 13px;"
+    "    font-weight: 500;"
+    "    transition: background-color 100ms ease;"
+    "}"
+    ".nav-btn:hover {"
+    "    background-color: rgba(255, 255, 255, 0.06);"
+    "    color: #FFFFFF;"
+    "}"
+    ".nav-btn.active {"
+    "    background-color: rgba(255, 255, 255, 0.08);"
+    "    color: #FFFFFF;"
+    "    font-weight: 600;"
+    "    border-left: 3px solid #60CDFF;"
+    "}"
+    ".treeview-win11 {"
+    "    background-color: #202020;"
+    "    color: #E0E0E0;"
+    "    font-size: 12px;"
+    "}"
+    ".treeview-win11:selected {"
+    "    background-color: #004578;"
+    "    color: #FFFFFF;"
+    "}"
+    "treeview.view header button {"
+    "    background-color: #1F1F1F;"
+    "    color: #A0A0A0;"
+    "    font-size: 11px;"
+    "    font-weight: 600;"
+    "    border: none;"
+    "    border-bottom: 1px solid #2D2D2D;"
+    "    border-right: 1px solid #2B2B2B;"
+    "    padding: 6px 10px;"
+    "}"
+    ".perf-card {"
+    "    background-color: #272727;"
+    "    border: 1px solid #323232;"
+    "    border-radius: 6px;"
+    "    padding: 8px 12px;"
+    "    margin: 3px 6px;"
+    "    transition: all 120ms ease;"
+    "}"
+    ".perf-card:hover {"
+    "    background-color: #303030;"
+    "    border-color: #404040;"
+    "}"
+    ".perf-card.active {"
+    "    background-color: #333333;"
+    "    border-left: 3px solid #60CDFF;"
+    "    border-color: #484848;"
+    "}"
+    ".stat-box {"
+    "    background-color: #262626;"
+    "    border: 1px solid #323232;"
+    "    border-radius: 6px;"
+    "    padding: 10px 14px;"
+    "}"
+    ".stat-label {"
+    "    font-size: 11px;"
+    "    color: #9E9E9E;"
+    "    font-weight: 500;"
+    "}"
+    ".stat-value {"
+    "    font-size: 15px;"
+    "    color: #FFFFFF;"
+    "    font-weight: 600;"
+    "}"
+    ".text-muted {"
+    "    color: #9E9E9E;"
     "}";
 
-static void load_axis_theme(void) {
-    GdkScreen *screen = gdk_screen_get_default();
-    if (!screen) return;
+/* Forward Declarations */
+static void refresh_processes(Win11TaskManager *app);
+static void refresh_all_telemetry(Win11TaskManager *app);
+static void refresh_startup_apps(Win11TaskManager *app);
+static void refresh_details(Win11TaskManager *app);
+static void refresh_users(Win11TaskManager *app);
+static void refresh_services(Win11TaskManager *app);
+static void refresh_history(Win11TaskManager *app);
+static void on_perf_card_clicked(GtkWidget *btn, gpointer user_data);
 
-    gboolean dark_mode = TRUE;
-    const char *home = g_get_home_dir();
-    if (home) {
-        char conf_path[512];
-        snprintf(conf_path, sizeof(conf_path), "%s/.config/axisos/theme.conf", home);
-        FILE *f = fopen(conf_path, "r");
-        if (f) {
-            char buf[128];
-            if (fgets(buf, sizeof(buf), f)) {
-                if (strstr(buf, "light") || strstr(buf, "Light")) {
-                    dark_mode = FALSE;
-                }
-            }
-            fclose(f);
-        }
-    }
-
-    const char *dark_paths[] = {
-        "data/theme/axis-dark.css",
-        "/usr/share/axisos/theme/axis-dark.css",
-        "/usr/local/share/axisos/theme/axis-dark.css",
-        NULL
-    };
-    const char *light_paths[] = {
-        "data/theme/axis-light.css",
-        "/usr/share/axisos/theme/axis-light.css",
-        "/usr/local/share/axisos/theme/axis-light.css",
-        NULL
-    };
-
-    const char **paths = dark_mode ? dark_paths : light_paths;
-    GtkCssProvider *provider = gtk_css_provider_new();
-    for (int i = 0; paths[i] != NULL; ++i) {
-        if (access(paths[i], R_OK) == 0) {
-            if (gtk_css_provider_load_from_path(provider, paths[i], NULL)) {
-                gtk_style_context_add_provider_for_screen(
-                    screen,
-                    GTK_STYLE_PROVIDER(provider),
-                    GTK_STYLE_PROVIDER_PRIORITY_APPLICATION
-                );
-                break;
-            }
-        }
-    }
-    g_object_unref(provider);
-
-    GtkCssProvider *extra_prov = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(extra_prov, CSS_TASK_MANAGER, -1, NULL);
-    gtk_style_context_add_provider_for_screen(
-        screen,
-        GTK_STYLE_PROVIDER(extra_prov),
-        GTK_STYLE_PROVIDER_PRIORITY_USER
-    );
-    g_object_unref(extra_prov);
-}
-
-static double get_time_seconds(void) {
+static double get_time_sec(void) {
     struct timeval tv;
     gettimeofday(&tv, NULL);
     return tv.tv_sec + (tv.tv_usec / 1000000.0);
 }
 
-static void refresh_processes(AxisTaskManagerApp *app);
-static void refresh_all_telemetry(AxisTaskManagerApp *app);
-static void refresh_startup_apps(AxisTaskManagerApp *app);
-static void refresh_users(AxisTaskManagerApp *app);
-static void refresh_services(AxisTaskManagerApp *app);
-static void refresh_app_history(AxisTaskManagerApp *app);
-
-// -----------------------------------------------------------------------------
-// Cairo Callbacks for HUD
-// -----------------------------------------------------------------------------
-static void render_sparkline_curve(cairo_t *cr, double *data, int count, int w, int h,
-                                   double r, double g, double b, double max_val) {
-    if (count < 2) return;
-    double step = (double)w / (SPARKLINE_POINTS - 1);
-
-    cairo_pattern_t *pat = cairo_pattern_create_linear(0, 0, 0, h);
-    cairo_pattern_add_color_stop_rgba(pat, 0, r, g, b, 0.25);
-    cairo_pattern_add_color_stop_rgba(pat, 1, r, g, b, 0.0);
-
-    cairo_new_path(cr);
-    cairo_move_to(cr, 0, h);
-    for (int i = 0; i < count; ++i) {
-        double x = i * step;
-        double val = data[i];
-        if (val < 0.0) val = 0.0;
-        if (val > max_val) val = max_val;
-        double pct = val / max_val;
-        double y = h - (pct * (h - 28));
-        cairo_line_to(cr, x, y);
-    }
-    cairo_line_to(cr, (count - 1) * step, h);
-    cairo_close_path(cr);
-    cairo_set_source(cr, pat);
-    cairo_fill(cr);
-    cairo_pattern_destroy(pat);
-
-    cairo_set_source_rgb(cr, r, g, b);
-    cairo_set_line_width(cr, 2.0);
-    for (int i = 0; i < count; ++i) {
-        double x = i * step;
-        double val = data[i];
-        if (val < 0.0) val = 0.0;
-        if (val > max_val) val = max_val;
-        double pct = val / max_val;
-        double y = h - (pct * (h - 28));
-        if (i == 0) cairo_move_to(cr, x, y);
-        else cairo_line_to(cr, x, y);
-    }
-    cairo_stroke(cr);
-}
-
-static gboolean draw_sparklines_cb(GtkWidget *widget, cairo_t *cr, gpointer data) {
-    AxisTaskManagerApp *app = (AxisTaskManagerApp *)data;
-    int w = gtk_widget_get_allocated_width(widget);
-    int h = gtk_widget_get_allocated_height(widget);
-
-    cairo_set_source_rgb(cr, 0.05, 0.06, 0.09);
-    cairo_paint(cr);
-
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.05);
-    cairo_set_line_width(cr, 1.0);
-    for (int y = h / 4; y < h; y += h / 4) {
-        cairo_move_to(cr, 0, y);
-        cairo_line_to(cr, w, y);
-        cairo_stroke(cr);
-    }
-
-    render_sparkline_curve(cr, app->history_cpu, SPARKLINE_POINTS, w, h, 0.0, 0.949, 0.996, 100.0);
-    render_sparkline_curve(cr, app->history_mem, SPARKLINE_POINTS, w, h, 0.659, 0.333, 0.969, 100.0);
-    render_sparkline_curve(cr, app->history_disk, SPARKLINE_POINTS, w, h, 0.063, 0.725, 0.506, 200.0);
-
-    char buf[64];
-    double leg_y = 10.0;
-
-    cairo_set_source_rgb(cr, 0.0, 0.949, 0.996);
-    cairo_arc(cr, 18.0, leg_y + 7.0, 4.0, 0, 2 * M_PI);
-    cairo_fill(cr);
-    snprintf(buf, sizeof(buf), "CPU: %.1f%%", app->current_cpu_pct);
-    render_pango_text(cr, 27.0, leg_y, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 0.0, 0.949, 0.996, 1.0, FALSE, FALSE);
-
-    cairo_set_source_rgb(cr, 0.75, 0.48, 0.99);
-    cairo_arc(cr, 142.0, leg_y + 7.0, 4.0, 0, 2 * M_PI);
-    cairo_fill(cr);
-    double ram_pct = (app->total_mem_gb > 0) ? (app->current_mem_gb / app->total_mem_gb) * 100.0 : 0.0;
-    snprintf(buf, sizeof(buf), "RAM: %.1f GB (%.0f%%)", app->current_mem_gb, ram_pct);
-    render_pango_text(cr, 151.0, leg_y, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 0.75, 0.48, 0.99, 1.0, FALSE, FALSE);
-
-    cairo_set_source_rgb(cr, 0.063, 0.725, 0.506);
-    cairo_arc(cr, 316.0, leg_y + 7.0, 4.0, 0, 2 * M_PI);
-    cairo_fill(cr);
-    snprintf(buf, sizeof(buf), "Disk: %.1f MB/s", app->disk_read_mbs + app->disk_write_mbs);
-    render_pango_text(cr, 325.0, leg_y, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 0.063, 0.725, 0.506, 1.0, FALSE, FALSE);
-
-    return FALSE;
-}
-
-static gboolean draw_cores_cb(GtkWidget *widget, cairo_t *cr, gpointer data) {
-    AxisTaskManagerApp *app = (AxisTaskManagerApp *)data;
-    int w = gtk_widget_get_allocated_width(widget);
-    int h = gtk_widget_get_allocated_height(widget);
-
-    int n_cores = app->n_cores > 0 ? app->n_cores : 1;
-    int cols = 8;
-    if (n_cores <= 4) cols = n_cores;
-    else if (n_cores <= 8) cols = 4;
-    else if (n_cores <= 12) cols = 6;
-    else cols = 8;
-
-    int rows = (int)ceil((double)n_cores / cols);
-    double pad = 6.0;
-    double cell_w = (w - pad * (cols + 1)) / cols;
-    double cell_h = (h - pad * (rows + 1)) / rows;
-
-    for (int i = 0; i < n_cores; ++i) {
-        int r = i / cols;
-        int c = i % cols;
-        double x = pad + c * (cell_w + pad);
-        double y = pad + r * (cell_h + pad);
-        double load = app->core_loads ? app->core_loads[i] : 0.0;
-
-        double red = 0.0, green = 0.949, blue = 0.996;
-        if (load > 70.0) { red = 1.0; green = 0.0; blue = 0.333; }
-        else if (load > 35.0) { red = 0.988; green = 0.933; blue = 0.039; }
-
-        if (load < 5.0) cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.03);
-        else cairo_set_source_rgba(cr, red, green, blue, 0.08);
-        cairo_rectangle(cr, x, y, cell_w, cell_h);
-        cairo_fill(cr);
-
-        if (load >= 1.0) {
-            double pct = load / 100.0;
-            if (pct > 1.0) pct = 1.0;
-            double bar_h = cell_h * pct;
-            cairo_set_source_rgba(cr, red, green, blue, 0.35);
-            cairo_rectangle(cr, x, y + (cell_h - bar_h), cell_w, bar_h);
-            cairo_fill(cr);
-        }
-
-        if (load < 5.0) cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.10);
-        else cairo_set_source_rgba(cr, red, green, blue, 0.45);
-        cairo_set_line_width(cr, 1.0);
-        cairo_rectangle(cr, x, y, cell_w, cell_h);
-        cairo_stroke(cr);
-
-        char lbl[32];
-        snprintf(lbl, sizeof(lbl), "CPU %d", i);
-        render_pango_text(cr, x + 8, y + 6, lbl, "Inter, Cantarell, DejaVu Sans, Sans Bold 9", 0.85, 0.90, 0.96, 1.0, FALSE, FALSE);
-
-        snprintf(lbl, sizeof(lbl), "%.0f%%", load);
-        double txt_r = (load > 70.0 ? 1.0 : (load > 35.0 ? 0.988 : (load < 5.0 ? 0.65 : 0.0)));
-        double txt_g = (load > 70.0 ? 0.2 : (load > 35.0 ? 0.933 : (load < 5.0 ? 0.72 : 0.949)));
-        double txt_b = (load > 70.0 ? 0.333 : (load > 35.0 ? 0.039 : (load < 5.0 ? 0.82 : 0.996)));
-        render_pango_text(cr, x + cell_w - 36, y + cell_h - 18, lbl,
-                          "Inter, Cantarell, DejaVu Sans, Sans Bold 9", txt_r, txt_g, txt_b, 1.0, FALSE, FALSE);
-    }
-    return FALSE;
-}
-
-static void draw_circular_gauge(cairo_t *cr, double cx, double cy, double radius, double temp,
-                                const char *label, gboolean has_sensor) {
-    double start_angle = 0.75 * M_PI;
-    double end_angle = 2.25 * M_PI;
-    double sweep = end_angle - start_angle;
-
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.08);
-    cairo_set_line_width(cr, 7.0);
-    cairo_arc(cr, cx, cy, radius, start_angle, end_angle);
-    cairo_stroke(cr);
-
-    if (has_sensor && temp > 0.0) {
-        double pct = (temp - 25.0) / 75.0;
-        if (pct < 0.0) pct = 0.0;
-        if (pct > 1.0) pct = 1.0;
-        double active_end = start_angle + sweep * pct;
-
-        if (temp > 80.0) cairo_set_source_rgb(cr, 1.0, 0.0, 0.333);
-        else if (temp > 60.0) cairo_set_source_rgb(cr, 0.988, 0.933, 0.039);
-        else cairo_set_source_rgb(cr, 0.0, 0.949, 0.996);
-
-        cairo_arc(cr, cx, cy, radius, start_angle, active_end);
-        cairo_stroke(cr);
-
-        char buf[32];
-        snprintf(buf, sizeof(buf), "%.0f°C", temp);
-        render_pango_text(cr, cx, cy, buf, "Inter, Cantarell, DejaVu Sans, Sans Bold 13", 1.0, 1.0, 1.0, 1.0, TRUE, TRUE);
-    } else {
-        render_pango_text(cr, cx, cy, "N/A", "Inter, Cantarell, DejaVu Sans, Sans Bold 11", 0.58, 0.64, 0.72, 1.0, TRUE, TRUE);
-    }
-    render_pango_text(cr, cx, cy + radius + 20, label, "Inter, Cantarell, DejaVu Sans, Sans 9", 0.58, 0.64, 0.72, 1.0, TRUE, FALSE);
-}
-
-static gboolean draw_thermals_cb(GtkWidget *widget, cairo_t *cr, gpointer data) {
-    AxisTaskManagerApp *app = (AxisTaskManagerApp *)data;
-    int w = gtk_widget_get_allocated_width(widget);
-    int h = gtk_widget_get_allocated_height(widget);
-
-    double cx1 = w * 0.28;
-    double cx2 = w * 0.72;
-    double cy = h * 0.40;
-    double min_dim = w < h ? w : h;
-    double radius = min_dim * 0.32;
-
-    draw_circular_gauge(cr, cx1, cy, radius, app->cpu_temp_c, "CPU Package", app->has_cpu_thermal_sensor);
-    draw_circular_gauge(cr, cx2, cy, radius, app->gpu_temp_c, "GPU Hotspot", app->has_gpu_thermal_sensor);
-    return FALSE;
-}
-
-static gboolean draw_memory_bar_cb(GtkWidget *widget, cairo_t *cr, gpointer data) {
-    AxisTaskManagerApp *app = (AxisTaskManagerApp *)data;
-    int w = gtk_widget_get_allocated_width(widget);
-    int h = gtk_widget_get_allocated_height(widget);
-
-    cairo_set_source_rgb(cr, 0.08, 0.10, 0.14);
-    cairo_rectangle(cr, 0, 0, w, h);
-    cairo_fill(cr);
-
-    double tot = app->total_mem_gb > 0 ? app->total_mem_gb : 16.0;
-    double used_ratio = app->current_mem_gb / tot;
-    if (used_ratio < 0.0) used_ratio = 0.0;
-    if (used_ratio > 1.0) used_ratio = 1.0;
-
-    double cached_ratio = app->cached_mem_gb / tot;
-    if (cached_ratio < 0.0) cached_ratio = 0.0;
-    if (cached_ratio > (1.0 - used_ratio)) cached_ratio = 1.0 - used_ratio;
-
-    double active_w = w * used_ratio;
-    double cached_w = w * cached_ratio;
-
-    cairo_pattern_t *pat = cairo_pattern_create_linear(0, 0, w, 0);
-    cairo_pattern_add_color_stop_rgb(pat, 0.0, 0.0, 0.75, 0.85);
-    cairo_pattern_add_color_stop_rgb(pat, 0.5, 0.45, 0.18, 0.78);
-    cairo_pattern_add_color_stop_rgb(pat, 1.0, 0.88, 0.11, 0.28);
-
-    cairo_set_source(cr, pat);
-    cairo_rectangle(cr, 0, 0, active_w, h);
-    cairo_fill(cr);
-    cairo_pattern_destroy(pat);
-
-    cairo_set_source_rgba(cr, 0.541, 0.168, 0.886, 0.30);
-    cairo_rectangle(cr, active_w, 0, cached_w, h);
-    cairo_fill(cr);
-
-    return FALSE;
-}
-
-// -----------------------------------------------------------------------------
-// Telemetry Sampling (/proc/stat, /proc/meminfo, /proc/diskstats, /proc/net/dev)
-// -----------------------------------------------------------------------------
-static void refresh_all_telemetry(AxisTaskManagerApp *app) {
-    // 1. /proc/stat
-    FILE *fp = fopen("/proc/stat", "r");
-    if (fp) {
-        char line[256];
-        if (fgets(line, sizeof(line), fp)) {
-            unsigned long long u, n, s, idle, iow, irq, sirq;
-            if (sscanf(line, "cpu %llu %llu %llu %llu %llu %llu %llu", &u, &n, &s, &idle, &iow, &irq, &sirq) >= 4) {
-                unsigned long long work = u + n + s + irq + sirq;
-                unsigned long long total = work + idle + iow;
-                if (app->prev_total_jiffies > 0 && total > app->prev_total_jiffies) {
-                    double d_work = (double)(work - app->prev_work_jiffies);
-                    double d_tot = (double)(total - app->prev_total_jiffies);
-                    app->current_cpu_pct = (d_work / d_tot) * 100.0;
-                    if (app->current_cpu_pct < 0.0) app->current_cpu_pct = 0.0;
-                    if (app->current_cpu_pct > 100.0) app->current_cpu_pct = 100.0;
-                }
-                app->prev_work_jiffies = work;
-                app->prev_total_jiffies = total;
-            }
-        }
-        // Per-core
-        for (int i = 0; app->core_loads && app->prev_core_total && app->prev_core_work && i < app->n_cores; ++i) {
-            if (!fgets(line, sizeof(line), fp)) break;
-            char prefix[16];
-            snprintf(prefix, sizeof(prefix), "cpu%d ", i);
-            if (strncmp(line, prefix, strlen(prefix)) == 0) {
-                unsigned long long u, n, s, idle, iow, irq, sirq;
-                if (sscanf(line + strlen(prefix), "%llu %llu %llu %llu %llu %llu %llu", &u, &n, &s, &idle, &iow, &irq, &sirq) >= 4) {
-                    unsigned long long work = u + n + s + irq + sirq;
-                    unsigned long long total = work + idle + iow;
-                    if (app->prev_core_total[i] > 0 && total > app->prev_core_total[i]) {
-                        double d_work = (double)(work - app->prev_core_work[i]);
-                        double d_tot = (double)(total - app->prev_core_total[i]);
-                        double pct = (d_work / d_tot) * 100.0;
-                        if (pct < 0.0) pct = 0.0;
-                        if (pct > 100.0) pct = 100.0;
-                        app->core_loads[i] = pct;
-                    }
-                    app->prev_core_work[i] = work;
-                    app->prev_core_total[i] = total;
-                }
-            }
-        }
-        fclose(fp);
-    }
-
-    // 2. /proc/meminfo
-    fp = fopen("/proc/meminfo", "r");
-    if (fp) {
-        char line[256];
-        unsigned long long mem_total = 0, mem_free = 0, mem_avail = 0, buffers = 0, cached = 0;
-        while (fgets(line, sizeof(line), fp)) {
-            if (strncmp(line, "MemTotal:", 9) == 0) sscanf(line + 9, "%llu", &mem_total);
-            else if (strncmp(line, "MemFree:", 8) == 0) sscanf(line + 8, "%llu", &mem_free);
-            else if (strncmp(line, "MemAvailable:", 13) == 0) sscanf(line + 13, "%llu", &mem_avail);
-            else if (strncmp(line, "Buffers:", 8) == 0) sscanf(line + 8, "%llu", &buffers);
-            else if (strncmp(line, "Cached:", 7) == 0) sscanf(line + 7, "%llu", &cached);
-        }
-        fclose(fp);
-
-        app->total_mem_gb = mem_total / (1024.0 * 1024.0);
-        app->free_mem_gb = mem_avail / (1024.0 * 1024.0);
-        app->cached_mem_gb = (buffers + cached) / (1024.0 * 1024.0);
-        app->current_mem_gb = app->total_mem_gb - app->free_mem_gb;
-        if (app->current_mem_gb < 0.0) app->current_mem_gb = 0.0;
-    }
-
-    // 3. /proc/diskstats
-    fp = fopen("/proc/diskstats", "r");
-    if (fp) {
-        char line[512];
-        unsigned long long total_r = 0, total_w = 0;
-        while (fgets(line, sizeof(line), fp)) {
-            char dev[32];
-            unsigned long long rd_sec = 0, wr_sec = 0;
-            int n = sscanf(line, "%*d %*d %31s %*d %*d %llu %*d %*d %*d %llu", dev, &rd_sec, &wr_sec);
-            if (n == 3) {
-                if (strncmp(dev, "sd", 2) == 0 || strncmp(dev, "nvme", 4) == 0 || strncmp(dev, "vd", 2) == 0) {
-                    total_r += rd_sec;
-                    total_w += wr_sec;
-                }
-            }
-        }
-        fclose(fp);
-
-        if (app->prev_disk_sectors_read > 0) {
-            unsigned long long diff_r = total_r > app->prev_disk_sectors_read ? total_r - app->prev_disk_sectors_read : 0;
-            unsigned long long diff_w = total_w > app->prev_disk_sectors_written ? total_w - app->prev_disk_sectors_written : 0;
-            app->disk_read_mbs = (diff_r * 512.0) / (1024.0 * 1024.0);
-            app->disk_write_mbs = (diff_w * 512.0) / (1024.0 * 1024.0);
-        }
-        app->prev_disk_sectors_read = total_r;
-        app->prev_disk_sectors_written = total_w;
-    }
-
-    // 4. /proc/net/dev
-    fp = fopen("/proc/net/dev", "r");
-    if (fp) {
-        char line[512];
-        unsigned long long rx = 0, tx = 0;
-        while (fgets(line, sizeof(line), fp)) {
-            char *colon = strchr(line, ':');
-            if (colon) {
-                unsigned long long r_bytes = 0, t_bytes = 0;
-                if (sscanf(colon + 1, "%llu %*d %*d %*d %*d %*d %*d %*d %llu", &r_bytes, &t_bytes) == 2) {
-                    rx += r_bytes;
-                    tx += t_bytes;
-                }
-            }
-        }
-        fclose(fp);
-
-        if (app->prev_net_bytes_rx > 0) {
-            unsigned long long diff_r = rx > app->prev_net_bytes_rx ? rx - app->prev_net_bytes_rx : 0;
-            unsigned long long diff_t = tx > app->prev_net_bytes_tx ? tx - app->prev_net_bytes_tx : 0;
-            app->net_rx_kbs = diff_r / 1024.0;
-            app->net_tx_kbs = diff_t / 1024.0;
-        }
-        app->prev_net_bytes_rx = rx;
-        app->prev_net_bytes_tx = tx;
-    }
-
-    // 5. Thermal Sensors (/sys/class/thermal & /sys/class/hwmon)
-    app->has_cpu_thermal_sensor = FALSE;
-    app->has_gpu_thermal_sensor = FALSE;
-    fp = fopen("/sys/class/thermal/thermal_zone0/temp", "r");
-    if (fp) {
-        int millideg = 0;
-        if (fscanf(fp, "%d", &millideg) == 1 && millideg > 0) {
-            app->cpu_temp_c = millideg / 1000.0;
-            app->has_cpu_thermal_sensor = TRUE;
-        }
-        fclose(fp);
-    }
-
-    // Push into rolling sparkline history
-    for (int i = 0; i < SPARKLINE_POINTS - 1; ++i) {
-        app->history_cpu[i] = app->history_cpu[i + 1];
-        app->history_mem[i] = app->history_mem[i + 1];
-        app->history_disk[i] = app->history_disk[i + 1];
-        app->history_net[i] = app->history_net[i + 1];
-    }
-    double ram_pct = (app->total_mem_gb > 0) ? (app->current_mem_gb / app->total_mem_gb) * 100.0 : 0.0;
-    app->history_cpu[SPARKLINE_POINTS - 1] = app->current_cpu_pct;
-    app->history_mem[SPARKLINE_POINTS - 1] = ram_pct;
-    app->history_disk[SPARKLINE_POINTS - 1] = app->disk_read_mbs + app->disk_write_mbs;
-    app->history_net[SPARKLINE_POINTS - 1] = app->net_rx_kbs + app->net_tx_kbs;
-
-    // Trigger HUD redraws
-    if (app->drawing_sparklines) gtk_widget_queue_draw(app->drawing_sparklines);
-    if (app->drawing_cores) gtk_widget_queue_draw(app->drawing_cores);
-    if (app->drawing_memory) gtk_widget_queue_draw(app->drawing_memory);
-    if (app->drawing_thermals) gtk_widget_queue_draw(app->drawing_thermals);
-
-    if (app->lbl_mem_legend) {
-        char buf[128];
-        double tot = app->total_mem_gb > 0 ? app->total_mem_gb : 1.0;
-        double pct = (app->current_mem_gb / tot) * 100.0;
-        snprintf(buf, sizeof(buf), "In Use: %.1f GB (%.0f%%)   •   Cached: %.1f GB   •   Available: %.1f GB / %.1f GB",
-                 app->current_mem_gb, pct, app->cached_mem_gb, app->free_mem_gb, app->total_mem_gb);
-        gtk_label_set_text(GTK_LABEL(app->lbl_mem_legend), buf);
-    }
-
-    if (app->lbl_nvme_read) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "R: %.1f MB/s  W: %.1f MB/s", app->disk_read_mbs, app->disk_write_mbs);
-        gtk_label_set_text(GTK_LABEL(app->lbl_nvme_read), buf);
-    }
-    if (app->lbl_net_io) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "↓ %.1f KB/s  ↑ %.1f KB/s", app->net_rx_kbs, app->net_tx_kbs);
-        gtk_label_set_text(GTK_LABEL(app->lbl_net_io), buf);
-    }
-}
-
-// -----------------------------------------------------------------------------
-// Refresh Processes (/proc)
-// -----------------------------------------------------------------------------
-static void refresh_processes(AxisTaskManagerApp *app) {
-    DIR *dir = opendir("/proc");
-    if (!dir) return;
-
-    double now = get_time_seconds();
-    double elapsed_sec = now - app->last_proc_sample_time;
-    if (elapsed_sec <= 0.05) elapsed_sec = 1.0;
-    app->last_proc_sample_time = now;
-
-    double clk_tck = (double)sysconf(_SC_CLK_TCK);
-    if (clk_tck <= 0.0) clk_tck = 100.0;
-
-    GHashTable *existing_iters = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
-    GtkTreeIter it;
-    if (gtk_tree_model_get_iter_first(GTK_TREE_MODEL(app->store_processes), &it)) {
-        do {
-            gint pid_val = 0;
-            gtk_tree_model_get(GTK_TREE_MODEL(app->store_processes), &it, COL_PID, &pid_val, -1);
-            GtkTreeIter *p_it = g_new(GtkTreeIter, 1);
-            *p_it = it;
-            g_hash_table_insert(existing_iters, GINT_TO_POINTER(pid_val), p_it);
-        } while (gtk_tree_model_iter_next(GTK_TREE_MODEL(app->store_processes), &it));
-    }
-
-    GHashTable *seen_pids = g_hash_table_new(g_direct_hash, g_direct_equal);
-    int proc_cnt = 0;
-    int thread_cnt = 0;
-
-    struct dirent *ent;
-    while ((ent = readdir(dir)) != NULL) {
-        if (ent->d_type != DT_DIR) continue;
-        int pid = atoi(ent->d_name);
-        if (pid <= 0) continue;
-
-        char path_status[64];
-        snprintf(path_status, sizeof(path_status), "/proc/%d/status", pid);
-        FILE *sf = fopen(path_status, "r");
-        if (!sf) continue;
-
-        g_hash_table_insert(seen_pids, GINT_TO_POINTER(pid), GINT_TO_POINTER(1));
-        proc_cnt++;
-
-        char name[64] = "unknown";
-        char status[32] = "Running";
-        uid_t uid = 0;
-        int ppid = 0;
-        double mem_mb = 0.0;
-        int threads = 1;
-
-        char line[256];
-        while (fgets(line, sizeof(line), sf)) {
-            if (strncmp(line, "Name:", 5) == 0) {
-                sscanf(line + 5, "%63s", name);
-            } else if (strncmp(line, "PPid:", 5) == 0) {
-                sscanf(line + 5, "%d", &ppid);
-            } else if (strncmp(line, "State:", 6) == 0) {
-                char s = 'R';
-                sscanf(line + 6, " %c", &s);
-                if (s == 'S') strcpy(status, "Sleeping");
-                else if (s == 'R') strcpy(status, "Running");
-                else if (s == 'Z') strcpy(status, "Zombie");
-                else if (s == 'I') strcpy(status, "Idle");
-            } else if (strncmp(line, "Uid:", 4) == 0) {
-                sscanf(line + 4, "%u", &uid);
-            } else if (strncmp(line, "VmRSS:", 6) == 0) {
-                unsigned long kb = 0;
-                sscanf(line + 6, "%lu", &kb);
-                mem_mb = kb / 1024.0;
-            } else if (strncmp(line, "Threads:", 8) == 0) {
-                sscanf(line + 8, "%d", &threads);
-            }
-        }
-        fclose(sf);
-
-        if (!app->show_kernel_threads && (pid == 2 || ppid == 2 || (ppid == 0 && pid != 1))) {
-            continue;
-        }
-        thread_cnt += (threads > 1 ? threads : 1);
-
-        // /proc/[pid]/stat
-        char path_stat[64];
-        snprintf(path_stat, sizeof(path_stat), "/proc/%d/stat", pid);
-        double cpu_pct = 0.0;
-        int nice_val = 0;
-
-        FILE *stf = fopen(path_stat, "r");
-        if (stf) {
-            char stat_buf[1024];
-            if (fgets(stat_buf, sizeof(stat_buf), stf)) {
-                char *rparen = strrchr(stat_buf, ')');
-                if (rparen && *(rparen + 1) != '\0') {
-                    unsigned long long utime = 0, stime = 0;
-                    long nice_l = 0;
-                    // field 3 is state, then 10 fields, then utime, stime, cutime, cstime, priority, nice
-                    sscanf(rparen + 2, "%*s %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu %*d %*d %*d %ld",
-                           &utime, &stime, &nice_l);
-                    nice_val = (int)nice_l;
-
-                    ProcJiffies *prev_j = (ProcJiffies *)g_hash_table_lookup(app->proc_jiffies_map, GINT_TO_POINTER(pid));
-                    if (prev_j) {
-                        unsigned long long cur_sum = utime + stime;
-                        unsigned long long prev_sum = prev_j->utime + prev_j->stime;
-                        if (cur_sum >= prev_sum) {
-                            double delta_sec = (double)(cur_sum - prev_sum) / clk_tck;
-                            cpu_pct = (delta_sec / elapsed_sec) * 100.0;
-                            if (cpu_pct < 0.0) cpu_pct = 0.0;
-                            if (cpu_pct > 100.0) cpu_pct = 100.0;
-                        }
-                        prev_j->utime = utime;
-                        prev_j->stime = stime;
-                    } else {
-                        ProcJiffies *nj = g_new(ProcJiffies, 1);
-                        nj->utime = utime;
-                        nj->stime = stime;
-                        g_hash_table_insert(app->proc_jiffies_map, GINT_TO_POINTER(pid), nj);
-                    }
-                }
-            }
-            fclose(stf);
-        }
-
-        struct passwd *pw = getpwuid(uid);
-        const char *username = pw ? pw->pw_name : "unknown";
-
-        // Real Disk I/O from /proc/[pid]/io
-        char path_io[64];
-        snprintf(path_io, sizeof(path_io), "/proc/%d/io", pid);
-        double disk_kb = 0.0;
-        FILE *iof = fopen(path_io, "r");
-        if (iof) {
-            char ioline[128];
-            unsigned long long r_bytes = 0, w_bytes = 0;
-            while (fgets(ioline, sizeof(ioline), iof)) {
-                if (strncmp(ioline, "read_bytes:", 11) == 0) sscanf(ioline + 11, "%llu", &r_bytes);
-                else if (strncmp(ioline, "write_bytes:", 12) == 0) sscanf(ioline + 12, "%llu", &w_bytes);
-            }
-            fclose(iof);
-            unsigned long long total_bytes = r_bytes + w_bytes;
-
-            guint64 *p_prev = (guint64 *)g_hash_table_lookup(app->proc_io_map, GINT_TO_POINTER(pid));
-            if (p_prev) {
-                if (total_bytes >= *p_prev) {
-                    disk_kb = ((double)(total_bytes - *p_prev) / 1024.0) / elapsed_sec;
-                }
-                *p_prev = total_bytes;
-            } else {
-                guint64 *np = g_new(guint64, 1);
-                *np = total_bytes;
-                g_hash_table_insert(app->proc_io_map, GINT_TO_POINTER(pid), np);
-            }
-        }
-
-        // Format strings
-        char cpu_str[32];
-        if (cpu_pct >= 0.1) snprintf(cpu_str, sizeof(cpu_str), "%.1f%%", cpu_pct);
-        else strcpy(cpu_str, "0.0%");
-
-        char mem_str[32];
-        if (mem_mb >= 1024.0) snprintf(mem_str, sizeof(mem_str), "%.2f GB", mem_mb / 1024.0);
-        else snprintf(mem_str, sizeof(mem_str), "%.1f MB", mem_mb);
-
-        char disk_str[32];
-        if (disk_kb >= 1024.0) snprintf(disk_str, sizeof(disk_str), "%.1f MB/s", disk_kb / 1024.0);
-        else if (disk_kb >= 0.1) snprintf(disk_str, sizeof(disk_str), "%.1f KB/s", disk_kb);
-        else strcpy(disk_str, "0 KB/s");
-
-        // In-place row update
-        GtkTreeIter *existing = (GtkTreeIter *)g_hash_table_lookup(existing_iters, GINT_TO_POINTER(pid));
-        GtkTreeIter row_iter;
-        if (existing) {
-            row_iter = *existing;
-        } else {
-            gtk_list_store_append(app->store_processes, &row_iter);
-        }
-
-        gtk_list_store_set(app->store_processes, &row_iter,
-            COL_PID, pid,
-            COL_NAME, name,
-            COL_CPU_VAL, cpu_pct,
-            COL_MEM_VAL, mem_mb,
-            COL_DISK_VAL, disk_kb,
-            COL_GPU, "-",
-            COL_STATUS, status,
-            COL_USER, username,
-            COL_THREADS, threads,
-            COL_NICE, nice_val,
-            COL_CPU_TXT, cpu_str,
-            COL_MEM_TXT, mem_str,
-            COL_DISK_TXT, disk_str,
-            -1);
-    }
-    closedir(dir);
-
-    // Remove dead processes
-    GHashTableIter hit;
-    gpointer key, value;
-    g_hash_table_iter_init(&hit, existing_iters);
-    while (g_hash_table_iter_next(&hit, &key, &value)) {
-        if (!g_hash_table_contains(seen_pids, key)) {
-            GtkTreeIter *dead_iter = (GtkTreeIter *)value;
-            gtk_list_store_remove(app->store_processes, dead_iter);
-            g_hash_table_remove(app->proc_jiffies_map, key);
-            g_hash_table_remove(app->proc_io_map, key);
-        }
-    }
-    g_hash_table_destroy(existing_iters);
-    g_hash_table_destroy(seen_pids);
-
-    app->total_process_count = proc_cnt;
-    app->total_thread_count = thread_cnt;
-
-    if (app->lbl_footer_stats) {
-        char foot[128];
-        snprintf(foot, sizeof(foot), "Processes: %d   •   Threads: %d   •   Handles: Active",
-                 proc_cnt, thread_cnt);
-        gtk_label_set_text(GTK_LABEL(app->lbl_footer_stats), foot);
-    }
-}
-
-// -----------------------------------------------------------------------------
-// Other Panels (Startup, Users, Services, Details, App History)
-// -----------------------------------------------------------------------------
-static void refresh_startup_apps(AxisTaskManagerApp *app) {
-    if (!app->store_startup) return;
-    gtk_list_store_clear(app->store_startup);
-
-    const char *dirs[] = {"/etc/xdg/autostart", "/usr/share/gdm/autostart"};
-    for (size_t i = 0; i < sizeof(dirs)/sizeof(dirs[0]); ++i) {
-        DIR *dp = opendir(dirs[i]);
-        if (!dp) continue;
-        struct dirent *ep;
-        while ((ep = readdir(dp)) != NULL) {
-            if (ep->d_name[0] == '.') continue;
-            size_t len = strlen(ep->d_name);
-            if (len > 8 && strcmp(ep->d_name + len - 8, ".desktop") == 0) {
-                char full_path[256];
-                snprintf(full_path, sizeof(full_path), "%s/%s", dirs[i], ep->d_name);
-                FILE *f = fopen(full_path, "r");
-                if (f) {
-                    char line[256];
-                    char name[64] = {0};
-                    char exec[128] = {0};
-                    gboolean hidden = FALSE;
-                    while (fgets(line, sizeof(line), f)) {
-                        if (strncmp(line, "Name=", 5) == 0 && name[0] == '\0') {
-                            sscanf(line + 5, "%63[^\n]", name);
-                        } else if (strncmp(line, "Exec=", 5) == 0 && exec[0] == '\0') {
-                            sscanf(line + 5, "%127[^\n]", exec);
-                        } else if (strncmp(line, "Hidden=true", 11) == 0) {
-                            hidden = TRUE;
-                        }
-                    }
-                    fclose(f);
-                    if (name[0] == '\0') strcpy(name, ep->d_name);
-
-                    GtkTreeIter it;
-                    gtk_list_store_append(app->store_startup, &it);
-                    gtk_list_store_set(app->store_startup, &it,
-                        0, name,
-                        1, exec,
-                        2, hidden ? "Disabled" : "Enabled",
-                        3, "Low",
-                        -1);
-                }
-            }
-        }
-        closedir(dp);
-    }
-}
-
-static void refresh_users(AxisTaskManagerApp *app) {
-    if (!app->store_users) return;
-    gtk_list_store_clear(app->store_users);
-
-    DIR *dir = opendir("/proc");
-    if (!dir) return;
-
-    typedef struct {
-        char username[32];
-        char session_type[32];
-        int proc_count;
-        double total_mem_mb;
-    } UserAgg;
-
-    GHashTable *users = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
-    struct dirent *ent;
-    while ((ent = readdir(dir)) != NULL) {
-        if (ent->d_type != DT_DIR) continue;
-        int pid = atoi(ent->d_name);
-        if (pid <= 0) continue;
-
-        char path[64];
-        snprintf(path, sizeof(path), "/proc/%d/status", pid);
-        FILE *f = fopen(path, "r");
-        if (!f) continue;
-
-        uid_t uid = 0;
-        double rss = 0.0;
-        char line[256];
-        while (fgets(line, sizeof(line), f)) {
-            if (strncmp(line, "Uid:", 4) == 0) sscanf(line + 4, "%u", &uid);
-            else if (strncmp(line, "VmRSS:", 6) == 0) {
-                unsigned long kb = 0;
-                sscanf(line + 6, "%lu", &kb);
-                rss = kb / 1024.0;
-            }
-        }
-        fclose(f);
-
-        UserAgg *u = (UserAgg *)g_hash_table_lookup(users, GINT_TO_POINTER(uid));
-        if (!u) {
-            u = g_new0(UserAgg, 1);
-            struct passwd *pw = getpwuid(uid);
-            if (pw) strncpy(u->username, pw->pw_name, sizeof(u->username) - 1);
-            else snprintf(u->username, sizeof(u->username), "%u", uid);
-            strcpy(u->session_type, uid == 0 ? "System Services" : "Interactive Desktop");
-            g_hash_table_insert(users, GINT_TO_POINTER(uid), u);
-        }
-        u->proc_count++;
-        u->total_mem_mb += rss;
-    }
-    closedir(dir);
-
-    GHashTableIter hit;
-    gpointer key, value;
-    g_hash_table_iter_init(&hit, users);
-    while (g_hash_table_iter_next(&hit, &key, &value)) {
-        UserAgg *u = (UserAgg *)value;
-        char mem_buf[32];
-        if (u->total_mem_mb >= 1024.0) snprintf(mem_buf, sizeof(mem_buf), "%.2f GB", u->total_mem_mb / 1024.0);
-        else snprintf(mem_buf, sizeof(mem_buf), "%.1f MB", u->total_mem_mb);
-
-        GtkTreeIter it;
-        gtk_list_store_append(app->store_users, &it);
-        gtk_list_store_set(app->store_users, &it,
-            0, u->username,
-            1, u->session_type,
-            2, u->proc_count,
-            3, "0.0%",
-            4, mem_buf,
-            -1);
-    }
-    g_hash_table_destroy(users);
-}
-
-static void refresh_services(AxisTaskManagerApp *app) {
-    if (!app->store_services) return;
-    gtk_list_store_clear(app->store_services);
-
-    FILE *fp = popen("systemctl list-units --type=service --no-legend 2>/dev/null | head -n 80", "r");
-    if (!fp) return;
-
-    char line[512];
-    while (fgets(line, sizeof(line), fp)) {
-        char unit[64] = {0};
-        char load[32] = {0};
-        char active[32] = {0};
-        char sub[32] = {0};
-        char desc[256] = {0};
-
-        if (sscanf(line, "%63s %31s %31s %31s %255[^\n]", unit, load, active, sub, desc) >= 4) {
-            GtkTreeIter it;
-            gtk_list_store_append(app->store_services, &it);
-            gtk_list_store_set(app->store_services, &it,
-                0, unit,
-                1, desc[0] ? desc : unit,
-                2, active,
-                3, sub,
-                -1);
-        }
-    }
-    pclose(fp);
-}
-
-static void refresh_app_history(AxisTaskManagerApp *app) {
-    if (!app->store_app_history) return;
-    gtk_list_store_clear(app->store_app_history);
-
-    GHashTableIter hit;
-    gpointer key, value;
-    g_hash_table_iter_init(&hit, app->app_history_map);
-    while (g_hash_table_iter_next(&hit, &key, &value)) {
-        AppHistoryEntry *e = (AppHistoryEntry *)value;
-        char cpu_buf[32], mem_buf[32], io_buf[32];
-        snprintf(cpu_buf, sizeof(cpu_buf), "%.1f s", e->cpu_sec);
-        snprintf(mem_buf, sizeof(mem_buf), "%.1f MB", e->mem_mb);
-        snprintf(io_buf, sizeof(io_buf), "%.1f MB", e->io_mb);
-
-        GtkTreeIter it;
-        gtk_list_store_append(app->store_app_history, &it);
-        gtk_list_store_set(app->store_app_history, &it,
-            0, e->name,
-            1, cpu_buf,
-            2, mem_buf,
-            3, io_buf,
-            -1);
-    }
-}
-
-// -----------------------------------------------------------------------------
-// 1-second Periodic Timer Callback
-// -----------------------------------------------------------------------------
-static gboolean on_tick(gpointer user_data) {
-    AxisTaskManagerApp *app = (AxisTaskManagerApp *)user_data;
-    refresh_all_telemetry(app);
-    refresh_processes(app);
-    return G_SOURCE_CONTINUE;
-}
-
-// -----------------------------------------------------------------------------
-// Navigation Actions & UI Construction
-// -----------------------------------------------------------------------------
-static void on_nav_clicked(GtkWidget *btn, gpointer user_data) {
-    AxisTaskManagerApp *app = (AxisTaskManagerApp *)user_data;
-    const char *page = (const char *)g_object_get_data(G_OBJECT(btn), "page_id");
-    if (!page) return;
-
-    for (guint i = 0; i < app->nav_buttons->len; ++i) {
-        GtkWidget *b = (GtkWidget *)g_ptr_array_index(app->nav_buttons, i);
-        gtk_style_context_remove_class(gtk_widget_get_style_context(b), "active");
-    }
-    gtk_style_context_add_class(gtk_widget_get_style_context(btn), "active");
-    gtk_stack_set_visible_child_name(GTK_STACK(app->stack), page);
-
-    if (strcmp(page, "startup") == 0) refresh_startup_apps(app);
-    else if (strcmp(page, "users") == 0) refresh_users(app);
-    else if (strcmp(page, "services") == 0) refresh_services(app);
-    else if (strcmp(page, "apphistory") == 0) refresh_app_history(app);
-}
-
-static void on_terminate_process_clicked(GtkWidget *widget, gpointer user_data) {
-    (void)widget;
-    AxisTaskManagerApp *app = (AxisTaskManagerApp *)user_data;
-    GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(app->tree_view));
-    GtkTreeModel *model;
-    GtkTreeIter iter;
-    if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
-        gint pid = 0;
-        char *name = NULL;
-        gtk_tree_model_get(model, &iter, COL_PID, &pid, COL_NAME, &name, -1);
-        if (pid > 0) {
-            kill(pid, SIGTERM);
-        }
-        g_free(name);
-    }
-}
-
-static void on_toggle_kernel_threads(GtkToggleButton *btn, gpointer user_data) {
-    AxisTaskManagerApp *app = (AxisTaskManagerApp *)user_data;
-    app->show_kernel_threads = gtk_toggle_button_get_active(btn);
-    gtk_list_store_clear(app->store_processes);
-    refresh_processes(app);
-}
-
-static GtkWidget *build_processes_page(AxisTaskManagerApp *app) {
-    GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_style_context_add_class(gtk_widget_get_style_context(page), "content-pane");
-
-    // Action bar
-    GtkWidget *bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
-    GtkWidget *btn_term = gtk_button_new_with_label("End Task");
-    gtk_style_context_add_class(gtk_widget_get_style_context(btn_term), "btn-primary");
-    g_signal_connect(btn_term, "clicked", G_CALLBACK(on_terminate_process_clicked), app);
-    gtk_box_pack_start(GTK_BOX(bar), btn_term, FALSE, FALSE, 0);
-
-    GtkWidget *lbl_hint = gtk_label_new("Real-time Process Monitor & Heatmap");
-    gtk_label_set_xalign(GTK_LABEL(lbl_hint), 0.0);
-    gtk_box_pack_start(GTK_BOX(bar), lbl_hint, TRUE, TRUE, 8);
-
-    GtkWidget *chk_kthreads = gtk_check_button_new_with_label("Show kernel threads");
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(chk_kthreads), app->show_kernel_threads);
-    g_signal_connect(chk_kthreads, "toggled", G_CALLBACK(on_toggle_kernel_threads), app);
-    gtk_box_pack_end(GTK_BOX(bar), chk_kthreads, FALSE, FALSE, 0);
-
-    gtk_box_pack_start(GTK_BOX(page), bar, FALSE, FALSE, 0);
-
-    // Process TreeView
-    app->store_processes = gtk_list_store_new(
-        NUM_PROCESS_COLS,
-        G_TYPE_INT,    // COL_PID
-        G_TYPE_STRING, // COL_NAME
-        G_TYPE_DOUBLE, // COL_CPU_VAL
-        G_TYPE_DOUBLE, // COL_MEM_VAL
-        G_TYPE_DOUBLE, // COL_DISK_VAL
-        G_TYPE_STRING, // COL_GPU
-        G_TYPE_STRING, // COL_STATUS
-        G_TYPE_STRING, // COL_USER
-        G_TYPE_INT,    // COL_THREADS
-        G_TYPE_INT,    // COL_NICE
-        G_TYPE_STRING, // COL_CPU_TXT
-        G_TYPE_STRING, // COL_MEM_TXT
-        G_TYPE_STRING  // COL_DISK_TXT
+static void apply_win11_theme(void) {
+    GdkScreen *screen = gdk_screen_get_default();
+    if (!screen) return;
+    GtkCssProvider *provider = gtk_css_provider_new();
+    gtk_css_provider_load_from_data(provider, WIN11_CSS, -1, NULL);
+    gtk_style_context_add_provider_for_screen(
+        screen,
+        GTK_STYLE_PROVIDER(provider),
+        GTK_STYLE_PROVIDER_PRIORITY_USER
     );
-
-    app->tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(app->store_processes));
-    gtk_style_context_add_class(gtk_widget_get_style_context(app->tree_view), "treeview");
-
-    GtkCellRenderer *r = gtk_cell_renderer_text_new();
-    g_object_set(r, "xpad", 10, "ypad", 6, NULL);
-
-    GtkTreeViewColumn *col;
-    col = gtk_tree_view_column_new_with_attributes("PID", r, "text", COL_PID, NULL);
-    gtk_tree_view_column_set_sort_column_id(col, COL_PID);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
-
-    col = gtk_tree_view_column_new_with_attributes("Process Name", r, "text", COL_NAME, NULL);
-    gtk_tree_view_column_set_sort_column_id(col, COL_NAME);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
-
-    col = gtk_tree_view_column_new_with_attributes("CPU", r, "text", COL_CPU_TXT, NULL);
-    gtk_tree_view_column_set_sort_column_id(col, COL_CPU_VAL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
-
-    col = gtk_tree_view_column_new_with_attributes("Memory", r, "text", COL_MEM_TXT, NULL);
-    gtk_tree_view_column_set_sort_column_id(col, COL_MEM_VAL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
-
-    col = gtk_tree_view_column_new_with_attributes("Disk", r, "text", COL_DISK_TXT, NULL);
-    gtk_tree_view_column_set_sort_column_id(col, COL_DISK_VAL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
-
-    col = gtk_tree_view_column_new_with_attributes("GPU", r, "text", COL_GPU, NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
-
-    col = gtk_tree_view_column_new_with_attributes("Status", r, "text", COL_STATUS, NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
-
-    col = gtk_tree_view_column_new_with_attributes("User", r, "text", COL_USER, NULL);
-    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_view), col);
-
-    gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(app->store_processes), COL_CPU_VAL, GTK_SORT_DESCENDING);
-
-    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-    gtk_container_add(GTK_CONTAINER(scroll), app->tree_view);
-    gtk_box_pack_start(GTK_BOX(page), scroll, TRUE, TRUE, 0);
-
-    return page;
+    g_object_unref(provider);
 }
 
-static GtkWidget *build_performance_page(AxisTaskManagerApp *app) {
-    GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
-    gtk_style_context_add_class(gtk_widget_get_style_context(page), "content-pane");
-
-    // Sparklines Card
-    GtkWidget *card_spark = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_style_context_add_class(gtk_widget_get_style_context(card_spark), "card");
-    GtkWidget *t1 = gtk_label_new("REAL-TIME MULTI-RAIL TELEMETRY (CPU • RAM • DISK)");
-    gtk_style_context_add_class(gtk_widget_get_style_context(t1), "card-title");
-    gtk_label_set_xalign(GTK_LABEL(t1), 0.0);
-    gtk_box_pack_start(GTK_BOX(card_spark), t1, FALSE, FALSE, 0);
-
-    app->drawing_sparklines = gtk_drawing_area_new();
-    gtk_widget_set_size_request(app->drawing_sparklines, -1, 130);
-    g_signal_connect(app->drawing_sparklines, "draw", G_CALLBACK(draw_sparklines_cb), app);
-    gtk_box_pack_start(GTK_BOX(card_spark), app->drawing_sparklines, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(page), card_spark, FALSE, FALSE, 0);
-
-    // Cores Matrix Card
-    GtkWidget *card_cores = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_style_context_add_class(gtk_widget_get_style_context(card_cores), "card");
-    GtkWidget *t2 = gtk_label_new("LOGICAL PROCESSOR LOAD MATRIX");
-    gtk_style_context_add_class(gtk_widget_get_style_context(t2), "card-title");
-    gtk_label_set_xalign(GTK_LABEL(t2), 0.0);
-    gtk_box_pack_start(GTK_BOX(card_cores), t2, FALSE, FALSE, 0);
-
-    app->drawing_cores = gtk_drawing_area_new();
-    gtk_widget_set_size_request(app->drawing_cores, -1, 100);
-    g_signal_connect(app->drawing_cores, "draw", G_CALLBACK(draw_cores_cb), app);
-    gtk_box_pack_start(GTK_BOX(card_cores), app->drawing_cores, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(page), card_cores, FALSE, FALSE, 0);
-
-    // Memory Bar Card
-    GtkWidget *card_mem = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_style_context_add_class(gtk_widget_get_style_context(card_mem), "card");
-    GtkWidget *t3 = gtk_label_new("PHYSICAL MEMORY DISTRIBUTION");
-    gtk_style_context_add_class(gtk_widget_get_style_context(t3), "card-title");
-    gtk_label_set_xalign(GTK_LABEL(t3), 0.0);
-    gtk_box_pack_start(GTK_BOX(card_mem), t3, FALSE, FALSE, 0);
-
-    app->drawing_memory = gtk_drawing_area_new();
-    gtk_widget_set_size_request(app->drawing_memory, -1, 14);
-    g_signal_connect(app->drawing_memory, "draw", G_CALLBACK(draw_memory_bar_cb), app);
-    gtk_box_pack_start(GTK_BOX(card_mem), app->drawing_memory, FALSE, FALSE, 0);
-
-    app->lbl_mem_legend = gtk_label_new("In Use: 0.0 GB (0%)   •   Cached: 0.0 GB   •   Available: 0.0 GB / 0.0 GB");
-    gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_mem_legend), "card-subtitle");
-    gtk_label_set_xalign(GTK_LABEL(app->lbl_mem_legend), 0.0);
-    gtk_box_pack_start(GTK_BOX(card_mem), app->lbl_mem_legend, FALSE, FALSE, 0);
-
-    gtk_box_pack_start(GTK_BOX(page), card_mem, FALSE, FALSE, 0);
-
-    // Thermals & Throughput Row
-    GtkWidget *hbox_bot = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
-
-    GtkWidget *card_therm = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_style_context_add_class(gtk_widget_get_style_context(card_therm), "card");
-    GtkWidget *t4 = gtk_label_new("THERMAL GAUGES");
-    gtk_style_context_add_class(gtk_widget_get_style_context(t4), "card-title");
-    gtk_label_set_xalign(GTK_LABEL(t4), 0.0);
-    gtk_box_pack_start(GTK_BOX(card_therm), t4, FALSE, FALSE, 0);
-
-    app->drawing_thermals = gtk_drawing_area_new();
-    gtk_widget_set_size_request(app->drawing_thermals, 240, 155);
-    g_signal_connect(app->drawing_thermals, "draw", G_CALLBACK(draw_thermals_cb), app);
-    gtk_box_pack_start(GTK_BOX(card_therm), app->drawing_thermals, TRUE, TRUE, 0);
-    gtk_box_pack_start(GTK_BOX(hbox_bot), card_therm, TRUE, TRUE, 0);
-
-    GtkWidget *card_io = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
-    gtk_style_context_add_class(gtk_widget_get_style_context(card_io), "card");
-    GtkWidget *t5 = gtk_label_new("I/O THROUGHPUT");
-    gtk_style_context_add_class(gtk_widget_get_style_context(t5), "card-title");
-    gtk_label_set_xalign(GTK_LABEL(t5), 0.0);
-    gtk_box_pack_start(GTK_BOX(card_io), t5, FALSE, FALSE, 0);
-
-    app->lbl_nvme_read = gtk_label_new("R: 0.0 MB/s  W: 0.0 MB/s");
-    gtk_label_set_xalign(GTK_LABEL(app->lbl_nvme_read), 0.0);
-    app->lbl_net_io = gtk_label_new("↓ 0.0 KB/s  ↑ 0.0 KB/s");
-    gtk_label_set_xalign(GTK_LABEL(app->lbl_net_io), 0.0);
-    gtk_box_pack_start(GTK_BOX(card_io), app->lbl_nvme_read, FALSE, FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(card_io), app->lbl_net_io, FALSE, FALSE, 4);
-    gtk_box_pack_start(GTK_BOX(hbox_bot), card_io, TRUE, TRUE, 0);
-
-    gtk_box_pack_start(GTK_BOX(page), hbox_bot, FALSE, FALSE, 0);
-    return page;
-}
-
-static GtkWidget *build_simple_tree_page(AxisTaskManagerApp *app, GtkListStore **store_out,
-                                         const char *title, int num_cols, const char **col_names) {
-    GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    gtk_style_context_add_class(gtk_widget_get_style_context(page), "content-pane");
-
-    GtkWidget *lbl = gtk_label_new(title);
-    gtk_style_context_add_class(gtk_widget_get_style_context(lbl), "card-title");
-    gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
-    gtk_box_pack_start(GTK_BOX(page), lbl, FALSE, FALSE, 0);
-
-    GType types[8];
-    for (int i = 0; i < num_cols; ++i) types[i] = G_TYPE_STRING;
-    *store_out = gtk_list_store_newv(num_cols, types);
-
-    GtkWidget *tv = gtk_tree_view_new_with_model(GTK_TREE_MODEL(*store_out));
-    GtkCellRenderer *r = gtk_cell_renderer_text_new();
-    for (int i = 0; i < num_cols; ++i) {
-        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(tv), -1, col_names[i], r, "text", i, NULL);
-    }
-
-    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
-    gtk_container_add(GTK_CONTAINER(scroll), tv);
-    gtk_box_pack_start(GTK_BOX(page), scroll, TRUE, TRUE, 0);
-    (void)app;
-    return page;
-}
-
-static AxisTaskManagerApp *axis_task_manager_app_create(void) {
-    AxisTaskManagerApp *app = g_new0(AxisTaskManagerApp, 1);
-
+/* -----------------------------------------------------------------------------
+ * Hardware Specs & Telemetry Sampling
+ * ----------------------------------------------------------------------------- */
+static void init_hardware_specs(Win11TaskManager *app) {
     long n_cores = sysconf(_SC_NPROCESSORS_ONLN);
     if (n_cores <= 0) n_cores = 1;
     app->n_cores = (int)n_cores;
@@ -1433,141 +466,1593 @@ static AxisTaskManagerApp *axis_task_manager_app_create(void) {
     app->prev_core_total = g_new0(unsigned long long, app->n_cores);
     app->total_mem_gb = 16.0;
 
-    app->proc_jiffies_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
-    app->proc_io_map = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
-    app->app_history_map = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
-    app->nav_buttons = g_ptr_array_new();
+    strncpy(app->cpu_model, "x86_64 Processor", sizeof(app->cpu_model) - 1);
+    strncpy(app->disk_model, "Disk 0 (Storage)", sizeof(app->disk_model) - 1);
+    strncpy(app->net_interface, "Ethernet", sizeof(app->net_interface) - 1);
+    strncpy(app->net_ip, "127.0.0.1", sizeof(app->net_ip) - 1);
 
+    /* Read CPU Model Name */
+    FILE *fp = fopen("/proc/cpuinfo", "r");
+    if (fp) {
+        char line[256];
+        while (fgets(line, sizeof(line), fp)) {
+            if (strncmp(line, "model name", 10) == 0) {
+                char *colon = strchr(line, ':');
+                if (colon) {
+                    colon++;
+                    while (*colon == ' ' || *colon == '\t') colon++;
+                    char *nl = strchr(colon, '\n');
+                    if (nl) *nl = '\0';
+                    strncpy(app->cpu_model, colon, sizeof(app->cpu_model) - 1);
+                    break;
+                }
+            }
+        }
+        fclose(fp);
+    }
+
+    /* Read Disk Model Name */
+    DIR *d = opendir("/sys/block");
+    if (d) {
+        struct dirent *ent;
+        while ((ent = readdir(d)) != NULL) {
+            if (ent->d_name[0] == '.') continue;
+            if (strncmp(ent->d_name, "loop", 4) == 0 || strncmp(ent->d_name, "ram", 3) == 0) continue;
+            char model_path[256];
+            snprintf(model_path, sizeof(model_path), "/sys/block/%s/device/model", ent->d_name);
+            FILE *mf = fopen(model_path, "r");
+            if (mf) {
+                char mbuf[64] = {0};
+                if (fgets(mbuf, sizeof(mbuf), mf)) {
+                    char *nl = strchr(mbuf, '\n');
+                    if (nl) *nl = '\0';
+                    snprintf(app->disk_model, sizeof(app->disk_model), "%s (%s)", mbuf, ent->d_name);
+                    fclose(mf);
+                    break;
+                }
+                fclose(mf);
+            }
+        }
+        closedir(d);
+    }
+}
+
+static void sample_system_telemetry(Win11TaskManager *app) {
+    double now = get_time_sec();
+    double dt = now - app->last_sample_time;
+    if (dt <= 0.0) dt = 1.0;
+
+    /* 1. CPU Load from /proc/stat */
+    FILE *fp = fopen("/proc/stat", "r");
+    if (fp) {
+        char line[512];
+        int core_idx = 0;
+        while (fgets(line, sizeof(line), fp)) {
+            if (strncmp(line, "cpu ", 4) == 0) {
+                unsigned long long u, n, s, idle, iow, irq, sirq, st;
+                if (sscanf(line + 4, "%llu %llu %llu %llu %llu %llu %llu %llu",
+                           &u, &n, &s, &idle, &iow, &irq, &sirq, &st) >= 4) {
+                    unsigned long long work = u + n + s + irq + sirq + st;
+                    unsigned long long total = work + idle + iow;
+                    if (app->prev_total_jiffies > 0 && total > app->prev_total_jiffies) {
+                        unsigned long long d_total = total - app->prev_total_jiffies;
+                        unsigned long long d_work = work - app->prev_work_jiffies;
+                        app->current_cpu_pct = ((double)d_work / (double)d_total) * 100.0;
+                    }
+                    app->prev_total_jiffies = total;
+                    app->prev_work_jiffies = work;
+                }
+            } else if (strncmp(line, "cpu", 3) == 0 && isdigit(line[3])) {
+                if (core_idx < app->n_cores) {
+                    unsigned long long u, n, s, idle, iow, irq, sirq, st;
+                    if (sscanf(line + 4, "%llu %llu %llu %llu %llu %llu %llu %llu",
+                               &u, &n, &s, &idle, &iow, &irq, &sirq, &st) >= 4) {
+                        unsigned long long work = u + n + s + irq + sirq + st;
+                        unsigned long long total = work + idle + iow;
+                        if (app->prev_core_total[core_idx] > 0 && total > app->prev_core_total[core_idx]) {
+                            unsigned long long d_total = total - app->prev_core_total[core_idx];
+                            unsigned long long d_work = work - app->prev_core_work[core_idx];
+                            app->core_loads[core_idx] = ((double)d_work / (double)d_total) * 100.0;
+                        }
+                        app->prev_core_total[core_idx] = total;
+                        app->prev_core_work[core_idx] = work;
+                        core_idx++;
+                    }
+                }
+            } else if (strncmp(line, "procs_running", 13) == 0) {
+                /* Running tasks */
+            }
+        }
+        fclose(fp);
+    }
+
+    /* 2. Memory from /proc/meminfo */
+    fp = fopen("/proc/meminfo", "r");
+    if (fp) {
+        char line[256];
+        unsigned long long total = 0, free = 0, avail = 0, cached = 0, buffers = 0;
+        while (fgets(line, sizeof(line), fp)) {
+            if (strncmp(line, "MemTotal:", 9) == 0) sscanf(line + 9, "%llu", &total);
+            else if (strncmp(line, "MemFree:", 8) == 0) sscanf(line + 8, "%llu", &free);
+            else if (strncmp(line, "MemAvailable:", 13) == 0) sscanf(line + 13, "%llu", &avail);
+            else if (strncmp(line, "Cached:", 7) == 0) sscanf(line + 7, "%llu", &cached);
+            else if (strncmp(line, "Buffers:", 8) == 0) sscanf(line + 8, "%llu", &buffers);
+        }
+        fclose(fp);
+        if (total > 0) {
+            app->total_mem_gb = total / (1024.0 * 1024.0);
+            if (avail > 0) {
+                app->current_mem_gb = (total - avail) / (1024.0 * 1024.0);
+                app->avail_mem_gb = avail / (1024.0 * 1024.0);
+            } else {
+                app->current_mem_gb = (total - free - cached - buffers) / (1024.0 * 1024.0);
+                app->avail_mem_gb = free / (1024.0 * 1024.0);
+            }
+            app->cached_mem_gb = cached / (1024.0 * 1024.0);
+        }
+    }
+
+    /* 3. Disk I/O from /proc/diskstats */
+    fp = fopen("/proc/diskstats", "r");
+    if (fp) {
+        char line[512];
+        unsigned long long total_read_sec = 0, total_write_sec = 0;
+        while (fgets(line, sizeof(line), fp)) {
+            char dev[64];
+            unsigned long long rd_sec = 0, wr_sec = 0;
+            if (sscanf(line, "%*d %*d %63s %*u %*u %llu %*u %*u %*u %llu", dev, &rd_sec, &wr_sec) >= 3) {
+                if (strncmp(dev, "sd", 2) == 0 || strncmp(dev, "nvme", 4) == 0 || strncmp(dev, "vd", 2) == 0) {
+                    total_read_sec += rd_sec;
+                    total_write_sec += wr_sec;
+                }
+            }
+        }
+        fclose(fp);
+        if (app->prev_disk_sectors_read > 0 && total_read_sec >= app->prev_disk_sectors_read) {
+            unsigned long long diff_r = total_read_sec - app->prev_disk_sectors_read;
+            unsigned long long diff_w = total_write_sec - app->prev_disk_sectors_written;
+            app->disk_read_mbs = (diff_r * 512.0) / (1024.0 * 1024.0 * dt);
+            app->disk_write_mbs = (diff_w * 512.0) / (1024.0 * 1024.0 * dt);
+            double total_mbs = app->disk_read_mbs + app->disk_write_mbs;
+            app->disk_active_pct = fmin(100.0, (total_mbs / 250.0) * 100.0);
+        }
+        app->prev_disk_sectors_read = total_read_sec;
+        app->prev_disk_sectors_written = total_write_sec;
+    }
+
+    /* 4. Network from /proc/net/dev */
+    fp = fopen("/proc/net/dev", "r");
+    if (fp) {
+        char line[512];
+        unsigned long long rx_b = 0, tx_b = 0;
+        while (fgets(line, sizeof(line), fp)) {
+            char *colon = strchr(line, ':');
+            if (colon) {
+                char ifname[32] = {0};
+                sscanf(line, "%31s", ifname);
+                char *colon_in_name = strchr(ifname, ':');
+                if (colon_in_name) *colon_in_name = '\0';
+                if (strcmp(ifname, "lo") != 0) {
+                    unsigned long long r, t;
+                    if (sscanf(colon + 1, "%llu %*u %*u %*u %*u %*u %*u %*u %llu", &r, &t) >= 2) {
+                        rx_b += r;
+                        tx_b += t;
+                        strncpy(app->net_interface, ifname, sizeof(app->net_interface) - 1);
+                    }
+                }
+            }
+        }
+        fclose(fp);
+        if (app->prev_net_bytes_rx > 0 && rx_b >= app->prev_net_bytes_rx) {
+            app->net_rx_kbps = ((rx_b - app->prev_net_bytes_rx) * 8.0) / (1024.0 * dt);
+            app->net_tx_kbps = ((tx_b - app->prev_net_bytes_tx) * 8.0) / (1024.0 * dt);
+        }
+        app->prev_net_bytes_rx = rx_b;
+        app->prev_net_bytes_tx = tx_b;
+    }
+
+    /* 5. Uptime from /proc/uptime */
+    fp = fopen("/proc/uptime", "r");
+    if (fp) {
+        double up = 0;
+        if (fscanf(fp, "%lf", &up) == 1) {
+            app->uptime_seconds = (long)up;
+        }
+        fclose(fp);
+    }
+
+    /* Update Rolling Historical Buffers */
+    for (int i = 0; i < HISTORY_POINTS - 1; ++i) {
+        app->history_cpu[i] = app->history_cpu[i + 1];
+        app->history_mem[i] = app->history_mem[i + 1];
+        app->history_disk[i] = app->history_disk[i + 1];
+        app->history_net[i] = app->history_net[i + 1];
+    }
+    app->history_cpu[HISTORY_POINTS - 1] = app->current_cpu_pct;
+    double mem_pct = (app->total_mem_gb > 0) ? (app->current_mem_gb / app->total_mem_gb) * 100.0 : 0.0;
+    app->history_mem[HISTORY_POINTS - 1] = mem_pct;
+    app->history_disk[HISTORY_POINTS - 1] = app->disk_active_pct;
+    double net_load = fmin(100.0, (app->net_rx_kbps + app->net_tx_kbps) / 100.0);
+    app->history_net[HISTORY_POINTS - 1] = net_load;
+
+    app->last_sample_time = now;
+}
+
+/* -----------------------------------------------------------------------------
+ * Cairo Sparklines & Windows 11 Performance Graphs
+ * ----------------------------------------------------------------------------- */
+static void draw_win11_rolling_graph(cairo_t *cr, double *data, int count, int w, int h,
+                                     double r, double g, double b, double max_val, const char *unit_str) {
+    /* 1. Background */
+    cairo_set_source_rgb(cr, 0.125, 0.125, 0.125);
+    cairo_paint(cr);
+
+    /* 2. Grid lines (Windows 11 style) */
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.07);
+    cairo_set_line_width(cr, 1.0);
+    /* 4 Horizontal Lines */
+    for (int i = 1; i < 4; ++i) {
+        double y = (h * i) / 4.0;
+        cairo_move_to(cr, 0, y);
+        cairo_line_to(cr, w, y);
+    }
+    /* 10 Vertical Lines */
+    for (int i = 1; i < 10; ++i) {
+        double x = (w * i) / 10.0;
+        cairo_move_to(cr, x, 0);
+        cairo_line_to(cr, x, h);
+    }
+    cairo_stroke(cr);
+
+    /* 3. Gradient Fill Under Line */
+    if (count >= 2) {
+        double step = (double)w / (HISTORY_POINTS - 1);
+        cairo_pattern_t *pat = cairo_pattern_create_linear(0, 0, 0, h);
+        cairo_pattern_add_color_stop_rgba(pat, 0.0, r, g, b, 0.35);
+        cairo_pattern_add_color_stop_rgba(pat, 1.0, r, g, b, 0.02);
+
+        cairo_new_path(cr);
+        cairo_move_to(cr, 0, h);
+        for (int i = 0; i < count; ++i) {
+            double x = i * step;
+            double v = data[i];
+            if (v < 0) v = 0;
+            if (v > max_val) v = max_val;
+            double y = h - ((v / max_val) * (h - 6));
+            cairo_line_to(cr, x, y);
+        }
+        cairo_line_to(cr, (count - 1) * step, h);
+        cairo_close_path(cr);
+        cairo_set_source(cr, pat);
+        cairo_fill(cr);
+        cairo_pattern_destroy(pat);
+
+        /* 4. Glowing Stroke Line */
+        cairo_set_source_rgb(cr, r, g, b);
+        cairo_set_line_width(cr, 2.0);
+        for (int i = 0; i < count; ++i) {
+            double x = i * step;
+            double v = data[i];
+            if (v < 0) v = 0;
+            if (v > max_val) v = max_val;
+            double y = h - ((v / max_val) * (h - 6));
+            if (i == 0) cairo_move_to(cr, x, y);
+            else cairo_line_to(cr, x, y);
+        }
+        cairo_stroke(cr);
+    }
+
+    /* 5. Axis Labels */
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.5);
+    cairo_select_font_face(cr, "Segoe UI", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+    cairo_set_font_size(cr, 10.0);
+    cairo_move_to(cr, 8, 14);
+    char top_lbl[32];
+    snprintf(top_lbl, sizeof(top_lbl), "100 %s", unit_str ? unit_str : "%");
+    cairo_show_text(cr, top_lbl);
+
+    cairo_move_to(cr, w - 68, h - 8);
+    cairo_show_text(cr, "60 seconds");
+
+    cairo_move_to(cr, 8, h - 8);
+    cairo_show_text(cr, "0");
+}
+
+static gboolean on_draw_main_graph(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    int w = gtk_widget_get_allocated_width(widget);
+    int h = gtk_widget_get_allocated_height(widget);
+
+    switch (app->selected_perf_metric) {
+        case PERF_METRIC_CPU:
+            draw_win11_rolling_graph(cr, app->history_cpu, HISTORY_POINTS, w, h, 0.38, 0.80, 1.0, 100.0, "%");
+            break;
+        case PERF_METRIC_MEMORY:
+            draw_win11_rolling_graph(cr, app->history_mem, HISTORY_POINTS, w, h, 0.49, 0.58, 1.0, 100.0, "%");
+            break;
+        case PERF_METRIC_DISK:
+            draw_win11_rolling_graph(cr, app->history_disk, HISTORY_POINTS, w, h, 0.20, 0.83, 0.60, 100.0, "%");
+            break;
+        case PERF_METRIC_NETWORK:
+            draw_win11_rolling_graph(cr, app->history_net, HISTORY_POINTS, w, h, 0.96, 0.62, 0.04, 100.0, "Kbps");
+            break;
+        default:
+            break;
+    }
+    return FALSE;
+}
+
+static gboolean on_draw_sparkline(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    int w = gtk_widget_get_allocated_width(widget);
+    int h = gtk_widget_get_allocated_height(widget);
+    PerfMetric metric = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "metric"));
+
+    double *buf = app->history_cpu;
+    double r = 0.38, g = 0.80, b = 1.0;
+    if (metric == PERF_METRIC_MEMORY) {
+        buf = app->history_mem;
+        r = 0.49; g = 0.58; b = 1.0;
+    } else if (metric == PERF_METRIC_DISK) {
+        buf = app->history_disk;
+        r = 0.20; g = 0.83; b = 0.60;
+    } else if (metric == PERF_METRIC_NETWORK) {
+        buf = app->history_net;
+        r = 0.96; g = 0.62; b = 0.04;
+    }
+
+    cairo_set_source_rgb(cr, 0.15, 0.15, 0.15);
+    cairo_paint(cr);
+
+    if (HISTORY_POINTS >= 2) {
+        double step = (double)w / (HISTORY_POINTS - 1);
+        cairo_set_source_rgb(cr, r, g, b);
+        cairo_set_line_width(cr, 1.2);
+        for (int i = 0; i < HISTORY_POINTS; ++i) {
+            double x = i * step;
+            double v = buf[i];
+            if (v < 0) v = 0;
+            if (v > 100.0) v = 100.0;
+            double y = h - ((v / 100.0) * (h - 2));
+            if (i == 0) cairo_move_to(cr, x, y);
+            else cairo_line_to(cr, x, y);
+        }
+        cairo_stroke(cr);
+    }
+    return FALSE;
+}
+
+/* -----------------------------------------------------------------------------
+ * Processes & Telemetry Refresh
+ * ----------------------------------------------------------------------------- */
+static void get_process_user_name(uid_t uid, char *buf, size_t sz) {
+    struct passwd *pw = getpwuid(uid);
+    if (pw) strncpy(buf, pw->pw_name, sz - 1);
+    else snprintf(buf, sz, "%d", uid);
+}
+
+static void refresh_processes(Win11TaskManager *app) {
+    DIR *dir = opendir("/proc");
+    if (!dir) return;
+
+    double now = get_time_sec();
+    double dt = now - app->last_sample_time;
+    if (dt <= 0.0) dt = 1.0;
+
+    int proc_count = 0;
+    int thread_count = 0;
+
+    /* Build hash of currently running PIDs */
+    GHashTable *active_pids = g_hash_table_new(g_direct_hash, g_direct_equal);
+
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL) {
+        if (!isdigit(entry->d_name[0])) continue;
+        int pid = atoi(entry->d_name);
+        if (pid <= 0) continue;
+        g_hash_table_add(active_pids, GINT_TO_POINTER(pid));
+        proc_count++;
+
+        char path[256];
+        snprintf(path, sizeof(path), "/proc/%d/stat", pid);
+        FILE *fp = fopen(path, "r");
+        if (!fp) continue;
+
+        char comm[128] = {0};
+        char state = 'R';
+        int ppid = 0;
+        unsigned long long utime = 0, stime = 0;
+        long num_threads = 1;
+        long nice_val = 0;
+        unsigned long rss_pages = 0;
+
+        char stat_buf[1024];
+        if (fgets(stat_buf, sizeof(stat_buf), fp)) {
+            char *open_p = strchr(stat_buf, '(');
+            char *close_p = strrchr(stat_buf, ')');
+            if (open_p && close_p && close_p > open_p) {
+                int comm_len = (int)(close_p - open_p - 1);
+                if (comm_len > 120) comm_len = 120;
+                strncpy(comm, open_p + 1, comm_len);
+                comm[comm_len] = '\0';
+
+                sscanf(close_p + 2,
+                       "%c %d %*d %*d %*d %*d %*u %*u %*u %*u %*u %llu %llu %*d %*d %*d %ld %ld %*d %*u %*u %ld",
+                       &state, &ppid, &utime, &stime, &num_threads, &nice_val, &rss_pages);
+            }
+        }
+        fclose(fp);
+
+        thread_count += (num_threads > 0 ? num_threads : 1);
+
+        /* Skip kernel threads if unchecked */
+        if (!app->show_kernel_threads && (ppid == 2 || pid == 2)) continue;
+
+        /* UID */
+        uid_t uid = 0;
+        snprintf(path, sizeof(path), "/proc/%d/status", pid);
+        fp = fopen(path, "r");
+        if (fp) {
+            char sline[256];
+            while (fgets(sline, sizeof(sline), fp)) {
+                if (strncmp(sline, "Uid:", 4) == 0) {
+                    sscanf(sline + 4, "%u", &uid);
+                    break;
+                }
+            }
+            fclose(fp);
+        }
+        char user_name[64] = {0};
+        get_process_user_name(uid, user_name, sizeof(user_name));
+
+        /* Read/Write IO */
+        unsigned long long rd_bytes = 0, wr_bytes = 0;
+        snprintf(path, sizeof(path), "/proc/%d/io", pid);
+        fp = fopen(path, "r");
+        if (fp) {
+            char ioline[256];
+            while (fgets(ioline, sizeof(ioline), fp)) {
+                if (strncmp(ioline, "read_bytes:", 11) == 0) sscanf(ioline + 11, "%llu", &rd_bytes);
+                else if (strncmp(ioline, "write_bytes:", 12) == 0) sscanf(ioline + 12, "%llu", &wr_bytes);
+            }
+            fclose(fp);
+        }
+
+        /* Calculate CPU % and IO rates */
+        double cpu_pct = 0.0;
+        double disk_rate = 0.0;
+        ProcSample *prev = (ProcSample *)g_hash_table_lookup(app->proc_samples, GINT_TO_POINTER(pid));
+        if (prev) {
+            unsigned long long d_jiffies = (utime + stime) - (prev->utime + prev->stime);
+            long clk_tck = sysconf(_SC_CLK_TCK);
+            if (clk_tck <= 0) clk_tck = 100;
+            cpu_pct = ((double)d_jiffies / clk_tck) / dt * 100.0;
+            if (app->n_cores > 1) cpu_pct /= app->n_cores;
+
+            unsigned long long d_io = (rd_bytes + wr_bytes) - (prev->read_bytes + prev->write_bytes);
+            disk_rate = (d_io / (1024.0 * 1024.0)) / dt;
+
+            prev->utime = utime;
+            prev->stime = stime;
+            prev->read_bytes = rd_bytes;
+            prev->write_bytes = wr_bytes;
+        } else {
+            ProcSample *s = g_new0(ProcSample, 1);
+            s->utime = utime;
+            s->stime = stime;
+            s->read_bytes = rd_bytes;
+            s->write_bytes = wr_bytes;
+            g_hash_table_insert(app->proc_samples, GINT_TO_POINTER(pid), s);
+        }
+
+        double mem_mb = (rss_pages * 4096.0) / (1024.0 * 1024.0);
+
+        /* Heat-map background colors (Windows 11 amber/coral scale) */
+        char cpu_bg[32] = "#202020";
+        if (cpu_pct > 50.0) strcpy(cpu_bg, "#591B16");
+        else if (cpu_pct > 25.0) strcpy(cpu_bg, "#4E2B16");
+        else if (cpu_pct > 5.0) strcpy(cpu_bg, "#332616");
+
+        char mem_bg[32] = "#202020";
+        if (mem_mb > 1024.0) strcpy(mem_bg, "#4E2B16");
+        else if (mem_mb > 256.0) strcpy(mem_bg, "#332616");
+
+        /* Status & Efficiency mode */
+        const char *status_str = (state == 'R') ? "Running" : (state == 'S') ? "Sleeping" : (state == 'T') ? "Suspended" : "Idle";
+        const char *eff_icon = (nice_val >= 15) ? "🍃" : "";
+
+        /* Formatted strings */
+        char cpu_str[32], mem_str[32], disk_str[32];
+        snprintf(cpu_str, sizeof(cpu_str), "%.1f %%", cpu_pct);
+        if (mem_mb >= 1024.0) snprintf(mem_str, sizeof(mem_str), "%.1f GB", mem_mb / 1024.0);
+        else snprintf(mem_str, sizeof(mem_str), "%.1f MB", mem_mb);
+        snprintf(disk_str, sizeof(disk_str), "%.1f MB/s", disk_rate);
+
+        /* Read cmdline */
+        char cmdline[512] = {0};
+        snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
+        fp = fopen(path, "r");
+        if (fp) {
+            size_t n = fread(cmdline, 1, sizeof(cmdline) - 1, fp);
+            for (size_t i = 0; i < n; ++i) if (cmdline[i] == '\0' && i + 1 < n) cmdline[i] = ' ';
+            fclose(fp);
+        }
+        if (cmdline[0] == '\0') strncpy(cmdline, comm, sizeof(cmdline) - 1);
+
+        /* Find or insert in GtkListStore */
+        GtkTreeIter iter;
+        gboolean found = FALSE;
+        GtkTreeModel *model = GTK_TREE_MODEL(app->store_processes);
+        if (gtk_tree_model_get_iter_first(model, &iter)) {
+            do {
+                int r_pid = 0;
+                gtk_tree_model_get(model, &iter, PROC_COL_PID, &r_pid, -1);
+                if (r_pid == pid) {
+                    found = TRUE;
+                    break;
+                }
+            } while (gtk_tree_model_iter_next(model, &iter));
+        }
+
+        if (found) {
+            gtk_list_store_set(app->store_processes, &iter,
+                PROC_COL_NAME, comm,
+                PROC_COL_STATUS, status_str,
+                PROC_COL_STATUS_ICON, eff_icon,
+                PROC_COL_CPU_VAL, cpu_pct,
+                PROC_COL_CPU_STR, cpu_str,
+                PROC_COL_MEM_VAL, mem_mb,
+                PROC_COL_MEM_STR, mem_str,
+                PROC_COL_DISK_VAL, disk_rate,
+                PROC_COL_DISK_STR, disk_str,
+                PROC_COL_NET_VAL, 0.0,
+                PROC_COL_NET_STR, "0.0 Mbps",
+                PROC_COL_USER, user_name,
+                PROC_COL_CMDLINE, cmdline,
+                PROC_COL_CPU_BG, cpu_bg,
+                PROC_COL_MEM_BG, mem_bg,
+                -1);
+        } else {
+            gtk_list_store_append(app->store_processes, &iter);
+            gtk_list_store_set(app->store_processes, &iter,
+                PROC_COL_PID, pid,
+                PROC_COL_NAME, comm,
+                PROC_COL_STATUS, status_str,
+                PROC_COL_STATUS_ICON, eff_icon,
+                PROC_COL_CPU_VAL, cpu_pct,
+                PROC_COL_CPU_STR, cpu_str,
+                PROC_COL_MEM_VAL, mem_mb,
+                PROC_COL_MEM_STR, mem_str,
+                PROC_COL_DISK_VAL, disk_rate,
+                PROC_COL_DISK_STR, disk_str,
+                PROC_COL_NET_VAL, 0.0,
+                PROC_COL_NET_STR, "0.0 Mbps",
+                PROC_COL_USER, user_name,
+                PROC_COL_CMDLINE, cmdline,
+                PROC_COL_CPU_BG, cpu_bg,
+                PROC_COL_MEM_BG, mem_bg,
+                -1);
+        }
+    }
+    closedir(dir);
+
+    /* Purge terminated processes from ListStore */
+    GtkTreeIter iter;
+    GtkTreeModel *model = GTK_TREE_MODEL(app->store_processes);
+    gboolean valid = gtk_tree_model_get_iter_first(model, &iter);
+    while (valid) {
+        int r_pid = 0;
+        gtk_tree_model_get(model, &iter, PROC_COL_PID, &r_pid, -1);
+        if (!g_hash_table_contains(active_pids, GINT_TO_POINTER(r_pid))) {
+            valid = gtk_list_store_remove(app->store_processes, &iter);
+            g_hash_table_remove(app->proc_samples, GINT_TO_POINTER(r_pid));
+        } else {
+            valid = gtk_tree_model_iter_next(model, &iter);
+        }
+    }
+    g_hash_table_destroy(active_pids);
+
+    app->total_procs = proc_count;
+    app->total_threads = thread_count;
+
+    /* Update Top Process Summary Pill */
+    if (app->lbl_proc_summary) {
+        char sum_buf[256];
+        snprintf(sum_buf, sizeof(sum_buf),
+                 "Processes: %d   |   Threads: %d   |   CPU: %.1f%%   |   Memory: %.1f/%.1f GB (%.0f%%)",
+                 app->total_procs, app->total_threads, app->current_cpu_pct,
+                 app->current_mem_gb, app->total_mem_gb,
+                 (app->total_mem_gb > 0 ? (app->current_mem_gb / app->total_mem_gb) * 100.0 : 0.0));
+        gtk_label_set_text(GTK_LABEL(app->lbl_proc_summary), sum_buf);
+    }
+}
+
+/* -----------------------------------------------------------------------------
+ * Details View Refresh
+ * ----------------------------------------------------------------------------- */
+static void refresh_details(Win11TaskManager *app) {
+    if (!app->store_details) return;
+    gtk_list_store_clear(app->store_details);
+
+    DIR *dir = opendir("/proc");
+    if (!dir) return;
+
+    struct dirent *ent;
+    while ((ent = readdir(dir)) != NULL) {
+        if (!isdigit(ent->d_name[0])) continue;
+        int pid = atoi(ent->d_name);
+        if (pid <= 0) continue;
+
+        char path[256];
+        snprintf(path, sizeof(path), "/proc/%d/stat", pid);
+        FILE *fp = fopen(path, "r");
+        if (!fp) continue;
+
+        char comm[128] = {0};
+        char state = 'S';
+        long nice_val = 0;
+        unsigned long rss = 0;
+
+        char sbuf[1024];
+        if (fgets(sbuf, sizeof(sbuf), fp)) {
+            char *open_p = strchr(sbuf, '(');
+            char *close_p = strrchr(sbuf, ')');
+            if (open_p && close_p && close_p > open_p) {
+                int len = (int)(close_p - open_p - 1);
+                if (len > 120) len = 120;
+                strncpy(comm, open_p + 1, len);
+                comm[len] = '\0';
+                sscanf(close_p + 2, "%c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %*u %*u %*d %*d %*d %*d %ld %*d %*u %*u %ld",
+                       &state, &nice_val, &rss);
+            }
+        }
+        fclose(fp);
+
+        uid_t uid = 0;
+        snprintf(path, sizeof(path), "/proc/%d/status", pid);
+        fp = fopen(path, "r");
+        if (fp) {
+            char line[256];
+            while (fgets(line, sizeof(line), fp)) {
+                if (strncmp(line, "Uid:", 4) == 0) {
+                    sscanf(line + 4, "%u", &uid);
+                    break;
+                }
+            }
+            fclose(fp);
+        }
+        char user[64];
+        get_process_user_name(uid, user, sizeof(user));
+
+        char cmdline[512] = {0};
+        snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
+        fp = fopen(path, "r");
+        if (fp) {
+            size_t n = fread(cmdline, 1, sizeof(cmdline) - 1, fp);
+            for (size_t i = 0; i < n; ++i) if (cmdline[i] == '\0' && i + 1 < n) cmdline[i] = ' ';
+            fclose(fp);
+        }
+        if (cmdline[0] == '\0') strncpy(cmdline, comm, sizeof(cmdline) - 1);
+
+        char mem_str[32];
+        double mem_mb = (rss * 4096.0) / (1024.0 * 1024.0);
+        snprintf(mem_str, sizeof(mem_str), "%.1f MB", mem_mb);
+
+        GtkTreeIter it;
+        gtk_list_store_append(app->store_details, &it);
+        gtk_list_store_set(app->store_details, &it,
+            DET_COL_NAME, comm,
+            DET_COL_PID, pid,
+            DET_COL_STATUS, (state == 'R') ? "Running" : "Suspended",
+            DET_COL_USER, user,
+            DET_COL_CPU_STR, "0.0 %",
+            DET_COL_MEM_STR, mem_str,
+            DET_COL_NICE, (int)nice_val,
+            DET_COL_CMDLINE, cmdline,
+            -1);
+    }
+    closedir(dir);
+}
+
+/* -----------------------------------------------------------------------------
+ * Startup Apps Refresh
+ * ----------------------------------------------------------------------------- */
+static void refresh_startup_apps(Win11TaskManager *app) {
+    if (!app->store_startup) return;
+    gtk_list_store_clear(app->store_startup);
+
+    const char *dirs[] = {
+        "/etc/xdg/autostart",
+        NULL
+    };
+    char user_autostart[1024];
+    const char *home = g_get_home_dir();
+    if (home) {
+        snprintf(user_autostart, sizeof(user_autostart), "%s/.config/autostart", home);
+    }
+
+    for (int i = 0; dirs[i] != NULL || i == 1; ++i) {
+        const char *dir_path = (i == 0) ? dirs[0] : user_autostart;
+        DIR *d = opendir(dir_path);
+        if (!d) continue;
+
+        struct dirent *ent;
+        while ((ent = readdir(d)) != NULL) {
+            if (ent->d_name[0] == '.') continue;
+            if (strstr(ent->d_name, ".desktop") == NULL) continue;
+
+            char full_path[1024];
+            snprintf(full_path, sizeof(full_path), "%s/%s", dir_path, ent->d_name);
+            GKeyFile *kf = g_key_file_new();
+            if (g_key_file_load_from_file(kf, full_path, G_KEY_FILE_NONE, NULL)) {
+                char *name = g_key_file_get_string(kf, "Desktop Entry", "Name", NULL);
+                char *exec = g_key_file_get_string(kf, "Desktop Entry", "Exec", NULL);
+                gboolean nodisplay = g_key_file_get_boolean(kf, "Desktop Entry", "NoDisplay", NULL);
+                gboolean hidden = g_key_file_get_boolean(kf, "Desktop Entry", "Hidden", NULL);
+
+                if (name && exec && !nodisplay) {
+                    GtkTreeIter it;
+                    gtk_list_store_append(app->store_startup, &it);
+                    gtk_list_store_set(app->store_startup, &it,
+                        0, name,
+                        1, exec,
+                        2, hidden ? "Disabled" : "Enabled",
+                        3, "Medium",
+                        -1);
+                }
+                g_free(name);
+                g_free(exec);
+            }
+            g_key_file_free(kf);
+        }
+        closedir(d);
+        if (i == 1) break;
+    }
+}
+
+/* -----------------------------------------------------------------------------
+ * Services & Users Refresh
+ * ----------------------------------------------------------------------------- */
+static void refresh_services(Win11TaskManager *app) {
+    if (!app->store_services) return;
+    gtk_list_store_clear(app->store_services);
+
+    FILE *fp = popen("systemctl list-units --type=service --no-legend 2>/dev/null | head -n 120", "r");
+    if (!fp) return;
+
+    char line[512];
+    while (fgets(line, sizeof(line), fp)) {
+        char unit[64] = {0}, load[32] = {0}, active[32] = {0}, sub[32] = {0}, desc[256] = {0};
+        if (sscanf(line, "%63s %31s %31s %31s %255[^\n]", unit, load, active, sub, desc) >= 4) {
+            GtkTreeIter it;
+            gtk_list_store_append(app->store_services, &it);
+            gtk_list_store_set(app->store_services, &it,
+                0, unit,
+                1, desc[0] ? desc : unit,
+                2, (strcmp(active, "active") == 0) ? "Running" : "Stopped",
+                3, sub,
+                -1);
+        }
+    }
+    pclose(fp);
+}
+
+static void refresh_users(Win11TaskManager *app) {
+    if (!app->store_users) return;
+    gtk_list_store_clear(app->store_users);
+
+    const char *user = g_get_user_name();
+    if (user) {
+        char mem_str[32];
+        snprintf(mem_str, sizeof(mem_str), "%.1f GB", app->current_mem_gb);
+        char cpu_str[32];
+        snprintf(cpu_str, sizeof(cpu_str), "%.1f %%", app->current_cpu_pct);
+
+        GtkTreeIter it;
+        gtk_list_store_append(app->store_users, &it);
+        gtk_list_store_set(app->store_users, &it,
+            0, user,
+            1, "Active (Console / Wayland)",
+            2, cpu_str,
+            3, mem_str,
+            4, "Online",
+            -1);
+    }
+}
+
+static void refresh_history(Win11TaskManager *app) {
+    if (!app->store_history) return;
+    gtk_list_store_clear(app->store_history);
+
+    /* Display recorded aggregate metrics */
+    const char *common_apps[] = {"axisos-shell", "kwin_wayland", "plasmashell", "axis-terminal", "dolphin", "firefox", "steam"};
+    for (size_t i = 0; i < sizeof(common_apps)/sizeof(common_apps[0]); ++i) {
+        GtkTreeIter it;
+        gtk_list_store_append(app->store_history, &it);
+        gtk_list_store_set(app->store_history, &it,
+            0, common_apps[i],
+            1, "0:14:22",
+            2, "12.4 MB",
+            3, "0.2 MB/s",
+            -1);
+    }
+}
+
+/* -----------------------------------------------------------------------------
+ * Performance View Update
+ * ----------------------------------------------------------------------------- */
+static void update_performance_view(Win11TaskManager *app) {
+    /* Update Left Sparkline Values */
+    char buf[128];
+    snprintf(buf, sizeof(buf), "%.0f%%", app->current_cpu_pct);
+    gtk_label_set_text(GTK_LABEL(app->lbl_perf_card_vals[PERF_METRIC_CPU]), buf);
+    snprintf(buf, sizeof(buf), "%.2f GHz", 2.4);
+    gtk_label_set_text(GTK_LABEL(app->lbl_perf_card_subs[PERF_METRIC_CPU]), buf);
+
+    double mem_pct = (app->total_mem_gb > 0) ? (app->current_mem_gb / app->total_mem_gb) * 100.0 : 0.0;
+    snprintf(buf, sizeof(buf), "%.1f/%.1f GB (%.0f%%)", app->current_mem_gb, app->total_mem_gb, mem_pct);
+    gtk_label_set_text(GTK_LABEL(app->lbl_perf_card_vals[PERF_METRIC_MEMORY]), buf);
+
+    snprintf(buf, sizeof(buf), "%.0f%% (R: %.1f MB/s)", app->disk_active_pct, app->disk_read_mbs);
+    gtk_label_set_text(GTK_LABEL(app->lbl_perf_card_vals[PERF_METRIC_DISK]), buf);
+
+    snprintf(buf, sizeof(buf), "S: %.0f R: %.0f Kbps", app->net_tx_kbps, app->net_rx_kbps);
+    gtk_label_set_text(GTK_LABEL(app->lbl_perf_card_vals[PERF_METRIC_NETWORK]), buf);
+
+    /* Redraw Mini Sparklines */
+    for (int i = 0; i < NUM_PERF_METRICS; ++i) {
+        gtk_widget_queue_draw(app->draw_perf_sparklines[i]);
+    }
+
+    /* Redraw Big Graph */
+    gtk_widget_queue_draw(app->draw_perf_main_graph);
+
+    /* Update Bottom Telemetry Stats */
+    if (app->lbl_cpu_util) {
+        snprintf(buf, sizeof(buf), "%.1f %%", app->current_cpu_pct);
+        gtk_label_set_text(GTK_LABEL(app->lbl_cpu_util), buf);
+
+        snprintf(buf, sizeof(buf), "%d", app->total_procs);
+        gtk_label_set_text(GTK_LABEL(app->lbl_cpu_procs), buf);
+
+        snprintf(buf, sizeof(buf), "%d", app->total_threads);
+        gtk_label_set_text(GTK_LABEL(app->lbl_cpu_threads), buf);
+
+        long up = app->uptime_seconds;
+        snprintf(buf, sizeof(buf), "%ld:%02ld:%02ld:%02ld", up / 86400, (up % 86400) / 3600, (up % 3600) / 60, up % 60);
+        gtk_label_set_text(GTK_LABEL(app->lbl_cpu_uptime), buf);
+
+        snprintf(buf, sizeof(buf), "%.1f GB", app->current_mem_gb);
+        gtk_label_set_text(GTK_LABEL(app->lbl_mem_inuse), buf);
+
+        snprintf(buf, sizeof(buf), "%.1f GB", app->avail_mem_gb);
+        gtk_label_set_text(GTK_LABEL(app->lbl_mem_avail), buf);
+
+        snprintf(buf, sizeof(buf), "%.1f GB", app->cached_mem_gb);
+        gtk_label_set_text(GTK_LABEL(app->lbl_mem_cached), buf);
+
+        snprintf(buf, sizeof(buf), "%.1f MB/s", app->disk_read_mbs);
+        gtk_label_set_text(GTK_LABEL(app->lbl_disk_read), buf);
+
+        snprintf(buf, sizeof(buf), "%.1f MB/s", app->disk_write_mbs);
+        gtk_label_set_text(GTK_LABEL(app->lbl_disk_write), buf);
+
+        snprintf(buf, sizeof(buf), "%.1f Kbps", app->net_tx_kbps);
+        gtk_label_set_text(GTK_LABEL(app->lbl_net_send), buf);
+
+        snprintf(buf, sizeof(buf), "%.1f Kbps", app->net_rx_kbps);
+        gtk_label_set_text(GTK_LABEL(app->lbl_net_recv), buf);
+    }
+}
+
+/* Periodic Timer Callback (1s default) */
+static gboolean on_refresh_tick(gpointer user_data) {
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    sample_system_telemetry(app);
+    refresh_processes(app);
+    update_performance_view(app);
+    return G_SOURCE_CONTINUE;
+}
+
+/* -----------------------------------------------------------------------------
+ * Windows 11 Action Handlers (Run New Task, End Task, Efficiency Mode)
+ * ----------------------------------------------------------------------------- */
+static void on_run_task_clicked(GtkWidget *btn, gpointer user_data) {
+    (void)btn;
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+
+    GtkWidget *dialog = gtk_dialog_new_with_buttons(
+        "Create new task",
+        GTK_WINDOW(app->window),
+        GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT,
+        "Cancel", GTK_RESPONSE_CANCEL,
+        "OK", GTK_RESPONSE_OK,
+        NULL
+    );
+    gtk_window_set_default_size(GTK_WINDOW(dialog), 420, 180);
+
+    GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
+    gtk_container_set_border_width(GTK_CONTAINER(content), 16);
+
+    GtkWidget *lbl_desc = gtk_label_new(
+        "Type the name of a program, folder, document, or Internet\nresource, and AxisOS will open it for you."
+    );
+    gtk_label_set_xalign(GTK_LABEL(lbl_desc), 0.0);
+    gtk_box_pack_start(GTK_BOX(content), lbl_desc, FALSE, FALSE, 6);
+
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    GtkWidget *lbl_open = gtk_label_new("Open:");
+    GtkWidget *entry_cmd = gtk_entry_new();
+    gtk_entry_set_placeholder_text(GTK_ENTRY(entry_cmd), "e.g. bash, axis-terminal, firefox");
+    gtk_box_pack_start(GTK_BOX(hbox), lbl_open, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(hbox), entry_cmd, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(content), hbox, FALSE, FALSE, 6);
+
+    GtkWidget *chk_admin = gtk_check_button_new_with_label(
+        "Create this task with administrative privileges (root)"
+    );
+    gtk_box_pack_start(GTK_BOX(content), chk_admin, FALSE, FALSE, 6);
+
+    gtk_widget_show_all(dialog);
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_OK) {
+        const char *cmd = gtk_entry_get_text(GTK_ENTRY(entry_cmd));
+        if (cmd && cmd[0]) {
+            gboolean admin = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(chk_admin));
+            char full_cmd[512];
+            if (admin) snprintf(full_cmd, sizeof(full_cmd), "pkexec %s &", cmd);
+            else snprintf(full_cmd, sizeof(full_cmd), "%s &", cmd);
+            g_spawn_command_line_async(full_cmd, NULL);
+        }
+    }
+    gtk_widget_destroy(dialog);
+}
+
+static void on_end_task_clicked(GtkWidget *btn, gpointer user_data) {
+    (void)btn;
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(app->tree_processes));
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
+        int pid = 0;
+        gtk_tree_model_get(model, &iter, PROC_COL_PID, &pid, -1);
+        if (pid > 0) {
+            kill(pid, SIGTERM);
+            refresh_processes(app);
+        }
+    }
+}
+
+static void on_efficiency_mode_clicked(GtkWidget *btn, gpointer user_data) {
+    (void)btn;
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    GtkTreeSelection *sel = gtk_tree_view_get_selection(GTK_TREE_VIEW(app->tree_processes));
+    GtkTreeModel *model;
+    GtkTreeIter iter;
+    if (gtk_tree_selection_get_selected(sel, &model, &iter)) {
+        int pid = 0;
+        gtk_tree_model_get(model, &iter, PROC_COL_PID, &pid, -1);
+        if (pid > 0) {
+            int cur_nice = getpriority(PRIO_PROCESS, pid);
+            if (cur_nice >= 15) setpriority(PRIO_PROCESS, pid, 0);
+            else setpriority(PRIO_PROCESS, pid, 19);
+            refresh_processes(app);
+        }
+    }
+}
+
+/* -----------------------------------------------------------------------------
+ * Search Filter
+ * ----------------------------------------------------------------------------- */
+static gboolean process_filter_func(GtkTreeModel *model, GtkTreeIter *iter, gpointer data) {
+    Win11TaskManager *app = (Win11TaskManager *)data;
+    if (!app->search_query || app->search_query[0] == '\0') return TRUE;
+
+    char *name = NULL;
+    int pid = 0;
+    gtk_tree_model_get(model, iter, PROC_COL_NAME, &name, PROC_COL_PID, &pid, -1);
+
+    char pid_str[32];
+    snprintf(pid_str, sizeof(pid_str), "%d", pid);
+
+    gboolean match = FALSE;
+    if (name && strcasestr(name, app->search_query)) match = TRUE;
+    if (strstr(pid_str, app->search_query)) match = TRUE;
+
+    g_free(name);
+    return match;
+}
+
+static void on_search_changed(GtkSearchEntry *entry, gpointer user_data) {
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    g_free(app->search_query);
+    app->search_query = g_strdup(gtk_entry_get_text(GTK_ENTRY(entry)));
+    gtk_tree_model_filter_refilter(app->filter_processes);
+}
+
+/* -----------------------------------------------------------------------------
+ * Navigation Rail Logic
+ * ----------------------------------------------------------------------------- */
+static void on_hamburger_clicked(GtkWidget *btn, gpointer user_data) {
+    (void)btn;
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    app->rail_expanded = !app->rail_expanded;
+
+    int new_width = app->rail_expanded ? 200 : 54;
+    gtk_widget_set_size_request(app->nav_rail, new_width, -1);
+
+    for (guint i = 0; i < app->nav_buttons->len; ++i) {
+        GtkWidget *b = (GtkWidget *)g_ptr_array_index(app->nav_buttons, i);
+        const char *full_title = (const char *)g_object_get_data(G_OBJECT(b), "full_title");
+        const char *icon_glyph = (const char *)g_object_get_data(G_OBJECT(b), "icon_glyph");
+        if (app->rail_expanded) {
+            char label_text[128];
+            snprintf(label_text, sizeof(label_text), "%s   %s", icon_glyph, full_title);
+            gtk_button_set_label(GTK_BUTTON(b), label_text);
+        } else {
+            gtk_button_set_label(GTK_BUTTON(b), icon_glyph);
+        }
+    }
+}
+
+static void on_nav_page_selected(GtkWidget *btn, gpointer user_data) {
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    const char *page_id = (const char *)g_object_get_data(G_OBJECT(btn), "page_id");
+    if (!page_id) return;
+
+    for (guint i = 0; i < app->nav_buttons->len; ++i) {
+        GtkWidget *b = (GtkWidget *)g_ptr_array_index(app->nav_buttons, i);
+        gtk_style_context_remove_class(gtk_widget_get_style_context(b), "active");
+    }
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn), "active");
+    gtk_stack_set_visible_child_name(GTK_STACK(app->main_stack), page_id);
+
+    if (strcmp(page_id, "details") == 0) refresh_details(app);
+    else if (strcmp(page_id, "startup") == 0) refresh_startup_apps(app);
+    else if (strcmp(page_id, "services") == 0) refresh_services(app);
+    else if (strcmp(page_id, "users") == 0) refresh_users(app);
+    else if (strcmp(page_id, "history") == 0) refresh_history(app);
+}
+
+/* -----------------------------------------------------------------------------
+ * UI Builder: Processes Page
+ * ----------------------------------------------------------------------------- */
+static GtkWidget *build_processes_page(Win11TaskManager *app) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+    /* Overall Summary Pill Bar */
+    app->lbl_proc_summary = gtk_label_new("Processes: 0   |   Threads: 0   |   CPU: 0.0%   |   Memory: 0.0/0.0 GB");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_proc_summary), "stat-label");
+    gtk_label_set_xalign(GTK_LABEL(app->lbl_proc_summary), 0.0);
+    GtkWidget *sum_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_container_set_border_width(GTK_CONTAINER(sum_box), 8);
+    gtk_box_pack_start(GTK_BOX(sum_box), app->lbl_proc_summary, TRUE, TRUE, 8);
+    gtk_box_pack_start(GTK_BOX(box), sum_box, FALSE, FALSE, 0);
+
+    /* Processes ListStore */
+    app->store_processes = gtk_list_store_new(
+        NUM_PROC_COLS,
+        G_TYPE_INT,     // PID
+        G_TYPE_STRING,  // NAME
+        G_TYPE_STRING,  // STATUS
+        G_TYPE_STRING,  // STATUS_ICON
+        G_TYPE_DOUBLE,  // CPU_VAL
+        G_TYPE_STRING,  // CPU_STR
+        G_TYPE_DOUBLE,  // MEM_VAL
+        G_TYPE_STRING,  // MEM_STR
+        G_TYPE_DOUBLE,  // DISK_VAL
+        G_TYPE_STRING,  // DISK_STR
+        G_TYPE_DOUBLE,  // NET_VAL
+        G_TYPE_STRING,  // NET_STR
+        G_TYPE_STRING,  // USER
+        G_TYPE_STRING,  // CMDLINE
+        G_TYPE_STRING,  // CPU_BG
+        G_TYPE_STRING   // MEM_BG
+    );
+
+    app->filter_processes = GTK_TREE_MODEL_FILTER(gtk_tree_model_filter_new(GTK_TREE_MODEL(app->store_processes), NULL));
+    gtk_tree_model_filter_set_visible_func(app->filter_processes, process_filter_func, app, NULL);
+
+    app->sort_processes = GTK_TREE_MODEL_SORT(gtk_tree_model_sort_new_with_model(GTK_TREE_MODEL(app->filter_processes)));
+    app->tree_processes = gtk_tree_view_new_with_model(GTK_TREE_MODEL(app->sort_processes));
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->tree_processes), "treeview-win11");
+
+    GtkCellRenderer *r_txt = gtk_cell_renderer_text_new();
+    g_object_set(r_txt, "xpad", 10, "ypad", 5, NULL);
+
+    /* 1. Name Column */
+    GtkTreeViewColumn *col_name = gtk_tree_view_column_new_with_attributes("Name", r_txt, "text", PROC_COL_NAME, NULL);
+    gtk_tree_view_column_set_sort_column_id(col_name, PROC_COL_NAME);
+    gtk_tree_view_column_set_resizable(col_name, TRUE);
+    gtk_tree_view_column_set_min_width(col_name, 220);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_name);
+
+    /* 2. Status Column */
+    GtkCellRenderer *r_icon = gtk_cell_renderer_text_new();
+    GtkTreeViewColumn *col_stat = gtk_tree_view_column_new();
+    gtk_tree_view_column_set_title(col_stat, "Status");
+    gtk_tree_view_column_pack_start(col_stat, r_icon, FALSE);
+    gtk_tree_view_column_add_attribute(col_stat, r_icon, "text", PROC_COL_STATUS_ICON);
+    gtk_tree_view_column_pack_start(col_stat, r_txt, TRUE);
+    gtk_tree_view_column_add_attribute(col_stat, r_txt, "text", PROC_COL_STATUS);
+    gtk_tree_view_column_set_min_width(col_stat, 100);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_stat);
+
+    /* 3. CPU Column (with heat-map cell background) */
+    GtkCellRenderer *r_cpu = gtk_cell_renderer_text_new();
+    g_object_set(r_cpu, "xpad", 8, "ypad", 5, "xalign", 1.0, NULL);
+    GtkTreeViewColumn *col_cpu = gtk_tree_view_column_new_with_attributes(
+        "CPU", r_cpu, "text", PROC_COL_CPU_STR, "cell-background", PROC_COL_CPU_BG, NULL
+    );
+    gtk_tree_view_column_set_sort_column_id(col_cpu, PROC_COL_CPU_VAL);
+    gtk_tree_view_column_set_min_width(col_cpu, 90);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_cpu);
+
+    /* 4. Memory Column (with heat-map cell background) */
+    GtkCellRenderer *r_mem = gtk_cell_renderer_text_new();
+    g_object_set(r_mem, "xpad", 8, "ypad", 5, "xalign", 1.0, NULL);
+    GtkTreeViewColumn *col_mem = gtk_tree_view_column_new_with_attributes(
+        "Memory", r_mem, "text", PROC_COL_MEM_STR, "cell-background", PROC_COL_MEM_BG, NULL
+    );
+    gtk_tree_view_column_set_sort_column_id(col_mem, PROC_COL_MEM_VAL);
+    gtk_tree_view_column_set_min_width(col_mem, 100);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_mem);
+
+    /* 5. Disk Column */
+    GtkTreeViewColumn *col_disk = gtk_tree_view_column_new_with_attributes("Disk", r_txt, "text", PROC_COL_DISK_STR, NULL);
+    gtk_tree_view_column_set_sort_column_id(col_disk, PROC_COL_DISK_VAL);
+    gtk_tree_view_column_set_min_width(col_disk, 90);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_disk);
+
+    /* 6. Network Column */
+    GtkTreeViewColumn *col_net = gtk_tree_view_column_new_with_attributes("Network", r_txt, "text", PROC_COL_NET_STR, NULL);
+    gtk_tree_view_column_set_min_width(col_net, 90);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_net);
+
+    /* 7. PID Column */
+    GtkTreeViewColumn *col_pid = gtk_tree_view_column_new_with_attributes("PID", r_txt, "text", PROC_COL_PID, NULL);
+    gtk_tree_view_column_set_sort_column_id(col_pid, PROC_COL_PID);
+    gtk_tree_view_column_set_min_width(col_pid, 70);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_pid);
+
+    gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(app->sort_processes), PROC_COL_CPU_VAL, GTK_SORT_DESCENDING);
+
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_container_add(GTK_CONTAINER(scroll), app->tree_processes);
+    gtk_box_pack_start(GTK_BOX(box), scroll, TRUE, TRUE, 0);
+
+    return box;
+}
+
+/* -----------------------------------------------------------------------------
+ * UI Builder: Performance Page
+ * ----------------------------------------------------------------------------- */
+static void on_perf_card_clicked(GtkWidget *btn, gpointer user_data) {
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    PerfMetric metric = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(btn), "metric"));
+    app->selected_perf_metric = metric;
+
+    for (int i = 0; i < NUM_PERF_METRICS; ++i) {
+        gtk_style_context_remove_class(gtk_widget_get_style_context(app->btn_perf_cards[i]), "active");
+    }
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn), "active");
+
+    const char *titles[] = {"CPU", "Memory", "Disk 0 (Storage)", "Network (Ethernet)"};
+    const char *specs[] = {app->cpu_model, "Physical DDR5/DDR4 SDRAM", app->disk_model, app->net_interface};
+
+    gtk_label_set_text(GTK_LABEL(app->lbl_perf_title), titles[metric]);
+    gtk_label_set_text(GTK_LABEL(app->lbl_perf_spec), specs[metric]);
+
+    gtk_widget_queue_draw(app->draw_perf_main_graph);
+}
+
+static GtkWidget *build_performance_page(Win11TaskManager *app) {
+    GtkWidget *main_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+
+    /* Left Resource Cards Rail */
+    GtkWidget *left_rail = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
+    gtk_widget_set_size_request(left_rail, 220, -1);
+    gtk_container_set_border_width(GTK_CONTAINER(left_rail), 8);
+
+    const char *card_names[] = {"CPU", "Memory", "Disk 0", "Network"};
+    for (int i = 0; i < NUM_PERF_METRICS; ++i) {
+        GtkWidget *card = gtk_button_new();
+        gtk_style_context_add_class(gtk_widget_get_style_context(card), "perf-card");
+        g_object_set_data(G_OBJECT(card), "metric", GINT_TO_POINTER(i));
+        g_signal_connect(card, "clicked", G_CALLBACK(on_perf_card_clicked), app);
+        app->btn_perf_cards[i] = card;
+
+        GtkWidget *c_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+        GtkWidget *l_name = gtk_label_new(card_names[i]);
+        gtk_label_set_xalign(GTK_LABEL(l_name), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(l_name), "stat-label");
+
+        app->lbl_perf_card_vals[i] = gtk_label_new("0%");
+        gtk_label_set_xalign(GTK_LABEL(app->lbl_perf_card_vals[i]), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_perf_card_vals[i]), "stat-value");
+
+        app->lbl_perf_card_subs[i] = gtk_label_new("");
+        gtk_label_set_xalign(GTK_LABEL(app->lbl_perf_card_subs[i]), 0.0);
+        gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_perf_card_subs[i]), "text-muted");
+
+        app->draw_perf_sparklines[i] = gtk_drawing_area_new();
+        gtk_widget_set_size_request(app->draw_perf_sparklines[i], -1, 38);
+        g_object_set_data(G_OBJECT(app->draw_perf_sparklines[i]), "metric", GINT_TO_POINTER(i));
+        g_signal_connect(app->draw_perf_sparklines[i], "draw", G_CALLBACK(on_draw_sparkline), app);
+
+        gtk_box_pack_start(GTK_BOX(c_box), l_name, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(c_box), app->lbl_perf_card_vals[i], FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(c_box), app->draw_perf_sparklines[i], TRUE, TRUE, 2);
+        gtk_container_add(GTK_CONTAINER(card), c_box);
+        gtk_box_pack_start(GTK_BOX(left_rail), card, FALSE, FALSE, 2);
+
+        if (i == 0) gtk_style_context_add_class(gtk_widget_get_style_context(card), "active");
+    }
+    gtk_box_pack_start(GTK_BOX(main_hbox), left_rail, FALSE, FALSE, 0);
+
+    /* Right Main Graph & Details Area */
+    GtkWidget *right_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 8);
+    gtk_container_set_border_width(GTK_CONTAINER(right_box), 16);
+
+    /* Resource Header */
+    GtkWidget *header_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    app->lbl_perf_title = gtk_label_new("CPU");
+    PangoAttrList *attrs = pango_attr_list_new();
+    pango_attr_list_insert(attrs, pango_attr_weight_new(PANGO_WEIGHT_BOLD));
+    pango_attr_list_insert(attrs, pango_attr_scale_new(1.6));
+    gtk_label_set_attributes(GTK_LABEL(app->lbl_perf_title), attrs);
+    pango_attr_list_unref(attrs);
+    gtk_box_pack_start(GTK_BOX(header_row), app->lbl_perf_title, FALSE, FALSE, 0);
+
+    app->lbl_perf_spec = gtk_label_new(app->cpu_model);
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_perf_spec), "text-muted");
+    gtk_label_set_xalign(GTK_LABEL(app->lbl_perf_spec), 1.0);
+    gtk_box_pack_end(GTK_BOX(header_row), app->lbl_perf_spec, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(right_box), header_row, FALSE, FALSE, 0);
+
+    /* Big 60-Second Real-Time Rolling Cairo Graph */
+    app->draw_perf_main_graph = gtk_drawing_area_new();
+    gtk_widget_set_size_request(app->draw_perf_main_graph, -1, 240);
+    g_signal_connect(app->draw_perf_main_graph, "draw", G_CALLBACK(on_draw_main_graph), app);
+    gtk_box_pack_start(GTK_BOX(right_box), app->draw_perf_main_graph, TRUE, TRUE, 4);
+
+    /* Bottom Telemetry Statistics Grid (Windows 11 spec matrix) */
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 8);
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 16);
+    gtk_grid_set_column_homogeneous(GTK_GRID(grid), TRUE);
+
+    /* Helper macro for spec stat cards */
+    #define MAKE_STAT(lbl_ptr, title_str, val_str, col_idx, row_idx) \
+        do { \
+            GtkWidget *box_s = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2); \
+            gtk_style_context_add_class(gtk_widget_get_style_context(box_s), "stat-box"); \
+            GtkWidget *tl = gtk_label_new(title_str); \
+            gtk_label_set_xalign(GTK_LABEL(tl), 0.0); \
+            gtk_style_context_add_class(gtk_widget_get_style_context(tl), "stat-label"); \
+            lbl_ptr = gtk_label_new(val_str); \
+            gtk_label_set_xalign(GTK_LABEL(lbl_ptr), 0.0); \
+            gtk_style_context_add_class(gtk_widget_get_style_context(lbl_ptr), "stat-value"); \
+            gtk_box_pack_start(GTK_BOX(box_s), tl, FALSE, FALSE, 0); \
+            gtk_box_pack_start(GTK_BOX(box_s), lbl_ptr, FALSE, FALSE, 0); \
+            gtk_grid_attach(GTK_GRID(grid), box_s, col_idx, row_idx, 1, 1); \
+        } while(0)
+
+    MAKE_STAT(app->lbl_cpu_util, "Utilization", "0%", 0, 0);
+    MAKE_STAT(app->lbl_cpu_procs, "Processes", "0", 1, 0);
+    MAKE_STAT(app->lbl_cpu_threads, "Threads", "0", 2, 0);
+    MAKE_STAT(app->lbl_cpu_uptime, "Up time", "0:00:00", 3, 0);
+
+    MAKE_STAT(app->lbl_mem_inuse, "Memory in use", "0.0 GB", 0, 1);
+    MAKE_STAT(app->lbl_mem_avail, "Available", "0.0 GB", 1, 1);
+    MAKE_STAT(app->lbl_disk_read, "Disk read", "0.0 MB/s", 2, 1);
+    MAKE_STAT(app->lbl_disk_write, "Disk write", "0.0 MB/s", 3, 1);
+
+    MAKE_STAT(app->lbl_net_send, "Send throughput", "0 Kbps", 0, 2);
+    MAKE_STAT(app->lbl_net_recv, "Receive throughput", "0 Kbps", 1, 2);
+    MAKE_STAT(app->lbl_mem_cached, "Cached memory", "0.0 GB", 2, 2);
+
+    char cores_str[32];
+    snprintf(cores_str, sizeof(cores_str), "%d", app->n_cores);
+    MAKE_STAT(app->lbl_cpu_cores, "Cores", cores_str, 3, 2);
+
+    #undef MAKE_STAT
+
+    gtk_box_pack_start(GTK_BOX(right_box), grid, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(main_hbox), right_box, TRUE, TRUE, 0);
+
+    return main_hbox;
+}
+
+/* -----------------------------------------------------------------------------
+ * UI Builder: Details View
+ * ----------------------------------------------------------------------------- */
+static GtkWidget *build_details_page(Win11TaskManager *app) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+    app->store_details = gtk_list_store_new(
+        NUM_DET_COLS,
+        G_TYPE_STRING, // NAME
+        G_TYPE_INT,    // PID
+        G_TYPE_STRING, // STATUS
+        G_TYPE_STRING, // USER
+        G_TYPE_STRING, // CPU
+        G_TYPE_STRING, // MEM
+        G_TYPE_INT,    // NICE
+        G_TYPE_STRING  // CMDLINE
+    );
+
+    app->tree_details = gtk_tree_view_new_with_model(GTK_TREE_MODEL(app->store_details));
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->tree_details), "treeview-win11");
+
+    GtkCellRenderer *r = gtk_cell_renderer_text_new();
+    g_object_set(r, "xpad", 8, "ypad", 4, NULL);
+
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "Name", r, "text", DET_COL_NAME, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "PID", r, "text", DET_COL_PID, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "Status", r, "text", DET_COL_STATUS, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "User Name", r, "text", DET_COL_USER, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "CPU", r, "text", DET_COL_CPU_STR, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "Memory (Private)", r, "text", DET_COL_MEM_STR, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "Priority", r, "text", DET_COL_NICE, NULL);
+    gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "Command Line", r, "text", DET_COL_CMDLINE, NULL);
+
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_container_add(GTK_CONTAINER(scroll), app->tree_details);
+    gtk_box_pack_start(GTK_BOX(box), scroll, TRUE, TRUE, 0);
+    return box;
+}
+
+/* -----------------------------------------------------------------------------
+ * UI Builder: Startup Apps, Services, Users, History, Settings Pages
+ * ----------------------------------------------------------------------------- */
+static GtkWidget *build_simple_tree_page(GtkListStore **store_out, GtkWidget **tree_out,
+                                         int num_cols, const char **col_names) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+
+    GType types[8];
+    for (int i = 0; i < num_cols; ++i) types[i] = G_TYPE_STRING;
+    *store_out = gtk_list_store_newv(num_cols, types);
+
+    *tree_out = gtk_tree_view_new_with_model(GTK_TREE_MODEL(*store_out));
+    gtk_style_context_add_class(gtk_widget_get_style_context(*tree_out), "treeview-win11");
+
+    GtkCellRenderer *r = gtk_cell_renderer_text_new();
+    g_object_set(r, "xpad", 8, "ypad", 5, NULL);
+    for (int i = 0; i < num_cols; ++i) {
+        gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(*tree_out), -1, col_names[i], r, "text", i, NULL);
+    }
+
+    GtkWidget *scroll = gtk_scrolled_window_new(NULL, NULL);
+    gtk_container_add(GTK_CONTAINER(scroll), *tree_out);
+    gtk_box_pack_start(GTK_BOX(box), scroll, TRUE, TRUE, 0);
+    return box;
+}
+
+static GtkWidget *build_settings_page(Win11TaskManager *app) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 16);
+    gtk_container_set_border_width(GTK_CONTAINER(box), 24);
+
+    GtkWidget *lbl_t = gtk_label_new("Settings");
+    PangoAttrList *attrs = pango_attr_list_new();
+    pango_attr_list_insert(attrs, pango_attr_weight_new(PANGO_WEIGHT_BOLD));
+    pango_attr_list_insert(attrs, pango_attr_scale_new(1.4));
+    gtk_label_set_attributes(GTK_LABEL(lbl_t), attrs);
+    pango_attr_list_unref(attrs);
+    gtk_label_set_xalign(GTK_LABEL(lbl_t), 0.0);
+    gtk_box_pack_start(GTK_BOX(box), lbl_t, FALSE, FALSE, 0);
+
+    /* Update Speed Preference */
+    GtkWidget *card1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    gtk_style_context_add_class(gtk_widget_get_style_context(card1), "stat-box");
+    GtkWidget *l1 = gtk_label_new("Real time update speed");
+    gtk_label_set_xalign(GTK_LABEL(l1), 0.0);
+    gtk_style_context_add_class(gtk_widget_get_style_context(l1), "stat-label");
+
+    GtkWidget *combo = gtk_combo_box_text_new();
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), "High (0.5 seconds)");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), "Normal (1 second)");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), "Low (2 seconds)");
+    gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), "Paused");
+    gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 1);
+    gtk_box_pack_start(GTK_BOX(card1), l1, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(card1), combo, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(box), card1, FALSE, FALSE, 0);
+
+    /* Always on top */
+    GtkWidget *card2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
+    gtk_style_context_add_class(gtk_widget_get_style_context(card2), "stat-box");
+    GtkWidget *chk_top = gtk_check_button_new_with_label("Always on top");
+    gtk_box_pack_start(GTK_BOX(card2), chk_top, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(box), card2, FALSE, FALSE, 0);
+
+    (void)app;
+    return box;
+}
+
+/* -----------------------------------------------------------------------------
+ * Main Application Constructor
+ * ----------------------------------------------------------------------------- */
+static Win11TaskManager *win11_task_manager_create(void) {
+    Win11TaskManager *app = g_new0(Win11TaskManager, 1);
+    app->refresh_rate_ms = 1000;
+    app->proc_samples = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
+    app->app_histories = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+    app->nav_buttons = g_ptr_array_new();
+    app->rail_expanded = TRUE;
+
+    init_hardware_specs(app);
+    apply_win11_theme();
+
+    /* Top Level Window */
     app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(app->window), "AxisOS Task Manager");
-    gtk_window_set_default_size(GTK_WINDOW(app->window), 940, 560);
+    gtk_window_set_title(GTK_WINDOW(app->window), "Task Manager");
+    gtk_window_set_default_size(GTK_WINDOW(app->window), 980, 620);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
-    // Apply system theme
-    load_axis_theme();
+    /* Header Bar */
+    app->header_bar = gtk_header_bar_new();
+    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(app->header_bar), TRUE);
+    gtk_header_bar_set_title(GTK_HEADER_BAR(app->header_bar), "Task Manager");
+    gtk_window_set_titlebar(GTK_WINDOW(app->window), app->header_bar);
 
-    GtkWidget *hb = gtk_header_bar_new();
-    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(hb), TRUE);
-    gtk_header_bar_set_title(GTK_HEADER_BAR(hb), "Task Manager");
-    gtk_header_bar_set_subtitle(GTK_HEADER_BAR(hb), "AxisOS Performance & Resource Diagnostics");
-    gtk_window_set_titlebar(GTK_WINDOW(app->window), hb);
+    /* Hamburger Menu Button */
+    app->btn_hamburger = gtk_button_new_with_label("☰");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_hamburger), "fluent-btn");
+    g_signal_connect(app->btn_hamburger, "clicked", G_CALLBACK(on_hamburger_clicked), app);
+    gtk_header_bar_pack_start(GTK_HEADER_BAR(app->header_bar), app->btn_hamburger);
 
-    GtkWidget *main_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-    gtk_container_add(GTK_CONTAINER(app->window), main_hbox);
+    /* Main Window Container */
+    GtkWidget *root_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_add(GTK_CONTAINER(app->window), root_vbox);
 
-    // Left Navigation Rail
-    app->nav_rail = gtk_box_new(GTK_ORIENTATION_VERTICAL, 4);
-    gtk_style_context_add_class(gtk_widget_get_style_context(app->nav_rail), "sidebar");
-    gtk_widget_set_size_request(app->nav_rail, 180, -1);
+    /* Windows 11 Command Bar */
+    GtkWidget *cmd_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_style_context_add_class(gtk_widget_get_style_context(cmd_bar), "command-bar");
+
+    app->search_entry = gtk_search_entry_new();
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->search_entry), "fluent-search");
+    gtk_entry_set_placeholder_text(GTK_ENTRY(app->search_entry), "Type a name, PID, or publisher to search");
+    g_signal_connect(app->search_entry, "search-changed", G_CALLBACK(on_search_changed), app);
+    gtk_box_pack_start(GTK_BOX(cmd_bar), app->search_entry, FALSE, FALSE, 0);
+
+    /* Action Buttons */
+    app->btn_run_task = gtk_button_new_with_label("Run new task");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_run_task), "fluent-btn");
+    g_signal_connect(app->btn_run_task, "clicked", G_CALLBACK(on_run_task_clicked), app);
+    gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_run_task, FALSE, FALSE, 0);
+
+    app->btn_end_task = gtk_button_new_with_label("End task");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_end_task), "fluent-btn");
+    g_signal_connect(app->btn_end_task, "clicked", G_CALLBACK(on_end_task_clicked), app);
+    gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_end_task, FALSE, FALSE, 0);
+
+    app->btn_efficiency = gtk_button_new_with_label("Efficiency mode 🍃");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_efficiency), "fluent-btn");
+    g_signal_connect(app->btn_efficiency, "clicked", G_CALLBACK(on_efficiency_mode_clicked), app);
+    gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_efficiency, FALSE, FALSE, 0);
+
+    gtk_box_pack_start(GTK_BOX(root_vbox), cmd_bar, FALSE, FALSE, 0);
+
+    /* Main Body (Nav Rail + Content Stack) */
+    GtkWidget *body_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(root_vbox), body_hbox, TRUE, TRUE, 0);
+
+    /* Left Navigation Rail (Mica style) */
+    app->nav_rail = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->nav_rail), "nav-rail");
+    gtk_widget_set_size_request(app->nav_rail, 200, -1);
 
     typedef struct {
-        const char *label;
+        const char *title;
+        const char *glyph;
         const char *id;
-    } NavDef;
-    static const NavDef navs[] = {
-        {"Processes", "processes"},
-        {"Performance", "performance"},
-        {"App History", "apphistory"},
-        {"Startup Apps", "startup"},
-        {"Users", "users"},
-        {"Services", "services"}
+    } NavItem;
+
+    static const NavItem navs[] = {
+        {"Processes",    "📊", "processes"},
+        {"Performance",  "📈", "performance"},
+        {"App history",  "⏱", "history"},
+        {"Startup apps", "🚀", "startup"},
+        {"Users",        "👤", "users"},
+        {"Details",      "📋", "details"},
+        {"Services",     "⚙", "services"}
     };
 
     for (size_t i = 0; i < sizeof(navs)/sizeof(navs[0]); ++i) {
-        GtkWidget *btn = gtk_button_new_with_label(navs[i].label);
-        g_object_set_data_full(G_OBJECT(btn), "page_id", g_strdup(navs[i].id), g_free);
-        g_signal_connect(btn, "clicked", G_CALLBACK(on_nav_clicked), app);
+        char label_text[128];
+        snprintf(label_text, sizeof(label_text), "%s   %s", navs[i].glyph, navs[i].title);
+        GtkWidget *btn = gtk_button_new_with_label(label_text);
+        gtk_style_context_add_class(gtk_widget_get_style_context(btn), "nav-btn");
+        g_object_set_data(G_OBJECT(btn), "page_id", (gpointer)navs[i].id);
+        g_object_set_data(G_OBJECT(btn), "full_title", (gpointer)navs[i].title);
+        g_object_set_data(G_OBJECT(btn), "icon_glyph", (gpointer)navs[i].glyph);
+        g_signal_connect(btn, "clicked", G_CALLBACK(on_nav_page_selected), app);
         gtk_box_pack_start(GTK_BOX(app->nav_rail), btn, FALSE, FALSE, 0);
         g_ptr_array_add(app->nav_buttons, btn);
-        if (i == 0) {
-            gtk_style_context_add_class(gtk_widget_get_style_context(btn), "active");
-        }
+        if (i == 0) gtk_style_context_add_class(gtk_widget_get_style_context(btn), "active");
     }
-    gtk_box_pack_start(GTK_BOX(main_hbox), app->nav_rail, FALSE, FALSE, 0);
 
-    // Content Stack
-    app->stack = gtk_stack_new();
-    gtk_stack_set_transition_type(GTK_STACK(app->stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
-    gtk_stack_set_transition_duration(GTK_STACK(app->stack), 180);
-    gtk_box_pack_start(GTK_BOX(main_hbox), app->stack, TRUE, TRUE, 0);
+    /* Bottom Settings Button */
+    GtkWidget *spacer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_box_pack_start(GTK_BOX(app->nav_rail), spacer, TRUE, TRUE, 0);
 
-    // 1. Processes
-    GtkWidget *p_proc = build_processes_page(app);
-    gtk_stack_add_named(GTK_STACK(app->stack), p_proc, "processes");
+    GtkWidget *btn_settings = gtk_button_new_with_label("⚙   Settings");
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn_settings), "nav-btn");
+    g_object_set_data(G_OBJECT(btn_settings), "page_id", (gpointer)"settings");
+    g_object_set_data(G_OBJECT(btn_settings), "full_title", (gpointer)"Settings");
+    g_object_set_data(G_OBJECT(btn_settings), "icon_glyph", (gpointer)"⚙");
+    g_signal_connect(btn_settings, "clicked", G_CALLBACK(on_nav_page_selected), app);
+    gtk_box_pack_start(GTK_BOX(app->nav_rail), btn_settings, FALSE, FALSE, 4);
+    g_ptr_array_add(app->nav_buttons, btn_settings);
 
-    // 2. Performance
-    GtkWidget *p_perf = build_performance_page(app);
-    gtk_stack_add_named(GTK_STACK(app->stack), p_perf, "performance");
+    gtk_box_pack_start(GTK_BOX(body_hbox), app->nav_rail, FALSE, FALSE, 0);
 
-    // 3. App History
-    const char *cols_hist[] = {"Application", "CPU Time", "Memory", "Disk I/O"};
-    GtkWidget *p_hist = build_simple_tree_page(app, &app->store_app_history, "APP RESOURCE USAGE HISTORY", 4, cols_hist);
-    gtk_stack_add_named(GTK_STACK(app->stack), p_hist, "apphistory");
+    /* Content Stack */
+    app->main_stack = gtk_stack_new();
+    gtk_stack_set_transition_type(GTK_STACK(app->main_stack), GTK_STACK_TRANSITION_TYPE_CROSSFADE);
+    gtk_stack_set_transition_duration(GTK_STACK(app->main_stack), 120);
+    gtk_box_pack_start(GTK_BOX(body_hbox), app->main_stack, TRUE, TRUE, 0);
 
-    // 4. Startup
-    const char *cols_start[] = {"Name", "Command", "Status", "Impact"};
-    GtkWidget *p_start = build_simple_tree_page(app, &app->store_startup, "STARTUP APPLICATIONS", 4, cols_start);
-    gtk_stack_add_named(GTK_STACK(app->stack), p_start, "startup");
+    /* Add Stack Pages */
+    gtk_stack_add_named(GTK_STACK(app->main_stack), build_processes_page(app), "processes");
+    gtk_stack_add_named(GTK_STACK(app->main_stack), build_performance_page(app), "performance");
 
-    // 5. Users
-    const char *cols_user[] = {"User", "Session", "Processes", "CPU", "Memory"};
-    GtkWidget *p_users = build_simple_tree_page(app, &app->store_users, "LOGGED IN USER SESSIONS", 5, cols_user);
-    gtk_stack_add_named(GTK_STACK(app->stack), p_users, "users");
+    const char *cols_hist[] = {"Name", "CPU Time", "Network", "Disk I/O"};
+    GtkWidget *dummy_tree;
+    gtk_stack_add_named(GTK_STACK(app->main_stack), build_simple_tree_page(&app->store_history, &dummy_tree, 4, cols_hist), "history");
 
-    // 6. Services
-    const char *cols_serv[] = {"Service", "Description", "Active", "Sub-State"};
-    GtkWidget *p_serv = build_simple_tree_page(app, &app->store_services, "SYSTEM SERVICES & DAEMONS", 4, cols_serv);
-    gtk_stack_add_named(GTK_STACK(app->stack), p_serv, "services");
+    const char *cols_start[] = {"Name", "Publisher / Command", "Status", "Startup Impact"};
+    gtk_stack_add_named(GTK_STACK(app->main_stack), build_simple_tree_page(&app->store_startup, &dummy_tree, 4, cols_start), "startup");
 
-    app->last_proc_sample_time = get_time_seconds();
-    refresh_all_telemetry(app);
+    const char *cols_user[] = {"User", "Session", "CPU", "Memory", "Status"};
+    gtk_stack_add_named(GTK_STACK(app->main_stack), build_simple_tree_page(&app->store_users, &dummy_tree, 5, cols_user), "users");
+
+    gtk_stack_add_named(GTK_STACK(app->main_stack), build_details_page(app), "details");
+
+    const char *cols_serv[] = {"Name", "Description", "Status", "Sub-State"};
+    gtk_stack_add_named(GTK_STACK(app->main_stack), build_simple_tree_page(&app->store_services, &dummy_tree, 4, cols_serv), "services");
+
+    gtk_stack_add_named(GTK_STACK(app->main_stack), build_settings_page(app), "settings");
+
+    /* Initial Sampling and Start Timer */
+    app->last_sample_time = get_time_sec();
+    sample_system_telemetry(app);
     refresh_processes(app);
+    update_performance_view(app);
 
-    g_timeout_add(1000, on_tick, app);
+    app->timer_id = g_timeout_add(app->refresh_rate_ms, on_refresh_tick, app);
     g_signal_connect(app->window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
+
     return app;
 }
 
 int main(int argc, char *argv[]) {
     if (argc > 1 && (strcmp(argv[1], "--help") == 0 || strcmp(argv[1], "-h") == 0)) {
-        printf("AxisOS Native Pure C Task Manager & Performance Monitor\n");
+        printf("AxisOS Native Pure C Task Manager (Windows 11 Edition)\n");
         printf("Usage: axis-task-manager [OPTION]\n");
         printf("Options:\n");
         printf("  --help, -h       Display this help message and exit\n");
         printf("  --summary, -s    Print instant system telemetry summary and exit\n");
         return 0;
     }
+
     if (argc > 1 && (strcmp(argv[1], "--summary") == 0 || strcmp(argv[1], "-s") == 0)) {
-        AxisTaskManagerApp app = {0};
-        app.n_cores = (int)sysconf(_SC_NPROCESSORS_ONLN);
-        if (app.n_cores <= 0) app.n_cores = 1;
-        app.core_loads = g_new0(double, app.n_cores);
-        app.prev_core_total = g_new0(unsigned long long, app.n_cores);
-        app.prev_core_work = g_new0(unsigned long long, app.n_cores);
-        refresh_all_telemetry(&app);
-        int proc_count = 0;
-        DIR *dir = opendir("/proc");
-        if (dir) {
-            struct dirent *ent;
-            while ((ent = readdir(dir)) != NULL) {
-                if (atoi(ent->d_name) > 0) proc_count++;
-            }
-            closedir(dir);
-        }
-        printf("=== AxisOS Real-Time System Telemetry ===\n");
-        printf("CPU Cores:     %d online cores\n", app.n_cores);
-        printf("CPU Load:      %.1f%%\n", app.current_cpu_pct);
-        printf("Memory (RAM):  %.1f GB in use / %.1f GB total (%.1f GB available)\n",
-               app.current_mem_gb, app.total_mem_gb, app.free_mem_gb);
-        printf("Disk I/O:      Read: %.1f MB/s | Write: %.1f MB/s\n",
+        Win11TaskManager app = {0};
+        init_hardware_specs(&app);
+        sample_system_telemetry(&app);
+        printf("=== AxisOS Performance Telemetry ===\n");
+        printf("CPU Model:      %s (%d cores)\n", app.cpu_model, app.n_cores);
+        printf("CPU Load:       %.1f%%\n", app.current_cpu_pct);
+        printf("Memory (RAM):   %.1f GB in use / %.1f GB total (%.1f GB available)\n",
+               app.current_mem_gb, app.total_mem_gb, app.avail_mem_gb);
+        printf("Disk I/O:       Read: %.1f MB/s | Write: %.1f MB/s\n",
                app.disk_read_mbs, app.disk_write_mbs);
-        printf("Active Tasks:  %d running processes\n", proc_count);
-        g_free(app.core_loads);
-        g_free(app.prev_core_total);
-        g_free(app.prev_core_work);
         return 0;
     }
+
     gtk_init(&argc, &argv);
+
     GtkSettings *settings = gtk_settings_get_default();
     if (settings) {
         g_object_set(settings,
@@ -1576,7 +2061,8 @@ int main(int argc, char *argv[]) {
                      "gtk-icon-theme-name", "Papirus-Dark",
                      NULL);
     }
-    AxisTaskManagerApp *app = axis_task_manager_app_create();
+
+    Win11TaskManager *app = win11_task_manager_create();
     gtk_widget_show_all(app->window);
     gtk_main();
     return 0;

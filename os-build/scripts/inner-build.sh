@@ -707,6 +707,13 @@ systemctl set-default graphical.target 2>/dev/null || true
 # Ensure all binaries in /usr/local/bin are executable
 chmod 755 /usr/local/bin/* 2>/dev/null || true
 
+# Ensure squashfs-tools and installer dependencies exist for Calamares unpackfs
+if ! command -v unsquashfs >/dev/null 2>&1; then
+    echo "nameserver 1.1.1.1" > /etc/resolv.conf 2>/dev/null || true
+    apt-get update 2>/dev/null || true
+    apt-get install -y --no-install-recommends squashfs-tools grub-efi-amd64-bin grub-pc-bin 2>/dev/null || true
+fi
+
 # Clean up any runtime/temporary directories before squashing
 rm -rf /run/* /run/user /tmp/* /var/tmp/* /var/log/* 2>/dev/null || true
 mkdir -p /run/lock
@@ -721,6 +728,16 @@ chown -R 0:0 "$BUILD_DIR/config/includes.chroot" 2>/dev/null || true
 # Sync includes.chroot directly into chroot if chroot already exists
 if [ -d "$BUILD_DIR/chroot/usr/local/bin" ]; then
     echo "--> Syncing staged files directly into existing chroot..."
+    if [ -f /etc/resolv.conf ]; then
+        cp -f /etc/resolv.conf "$BUILD_DIR/chroot/etc/resolv.conf" 2>/dev/null || true
+    else
+        echo "nameserver 1.1.1.1" > "$BUILD_DIR/chroot/etc/resolv.conf" 2>/dev/null || true
+    fi
+    if [ ! -x "$BUILD_DIR/chroot/usr/bin/unsquashfs" ]; then
+        echo "--> Installing squashfs-tools inside chroot..."
+        chroot "$BUILD_DIR/chroot" apt-get update 2>/dev/null || true
+        chroot "$BUILD_DIR/chroot" apt-get install -y --no-install-recommends squashfs-tools grub-efi-amd64-bin grub-pc-bin 2>/dev/null || true
+    fi
     cp -rf "$BUILD_DIR/config/includes.chroot/"* "$BUILD_DIR/chroot/" 2>/dev/null || true
     chmod 755 "$BUILD_DIR/chroot/usr/local/bin/"* 2>/dev/null || true
     if [ -f "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot" ]; then
