@@ -764,7 +764,47 @@ systemctl disable axisos.service 2>/dev/null || true
 systemctl mask axisos.service 2>/dev/null || true
 systemctl disable lightdm.service 2>/dev/null || true
 systemctl mask lightdm.service 2>/dev/null || true
+systemctl disable NetworkManager-wait-online.service systemd-networkd-wait-online.service 2>/dev/null || true
 systemctl set-default graphical.target 2>/dev/null || true
+
+# OS Speed Tuning: TCP BBR, ZRAM compressed swap, NVMe/SSD I/O schedulers, CPU governor & fast boot/shutdown
+mkdir -p /etc/modules-load.d /etc/udev/rules.d /etc/systemd/system.conf.d /etc/systemd/journald.conf.d
+echo "tcp_bbr" > /etc/modules-load.d/axisos-bbr.conf
+cat << 'UDEV_IO_EOF' > /etc/udev/rules.d/60-axisos-ioscheduler.rules
+ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{queue/scheduler}="none", ATTR{queue/read_ahead_kb}="256", ATTR{queue/rq_affinity}="2"
+ACTION=="add|change", KERNEL=="sd[a-z]|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline", ATTR{queue/read_ahead_kb}="256", ATTR{queue/rq_affinity}="2"
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq", ATTR{queue/read_ahead_kb}="512"
+UDEV_IO_EOF
+cat << 'ZRAM_EOF' > /etc/default/zramswap
+ALGO=zstd
+PERCENT=50
+PRIORITY=100
+ZRAM_EOF
+systemctl enable zramswap.service 2>/dev/null || true
+cat << 'PERF_SVC_EOF' > /etc/systemd/system/axisos-performance.service
+[Unit]
+Description=AxisOS Low-Latency CPU Governor & Memory Performance Tuner
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -f "$g" ] && (echo schedutil > "$g" 2>/dev/null || echo performance > "$g" 2>/dev/null || true); done; for e in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do [ -f "$e" ] && (echo balance_performance > "$e" 2>/dev/null || echo performance > "$e" 2>/dev/null || true); done; [ -f /sys/kernel/mm/transparent_hugepage/enabled ] && echo madvise > /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+PERF_SVC_EOF
+systemctl enable axisos-performance.service 2>/dev/null || true
+cat << 'SYS_FAST_EOF' > /etc/systemd/system.conf.d/99-axisos-fast.conf
+[Manager]
+DefaultTimeoutStartSec=15s
+DefaultTimeoutStopSec=8s
+SYS_FAST_EOF
+cat << 'JRN_FAST_EOF' > /etc/systemd/journald.conf.d/99-axisos-journal.conf
+[Journal]
+SystemMaxUse=64M
+RuntimeMaxUse=32M
+JRN_FAST_EOF
 
 # Ensure all binaries in /usr/local/bin are executable
 chmod 755 /usr/local/bin/* 2>/dev/null || true
