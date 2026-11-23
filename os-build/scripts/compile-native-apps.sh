@@ -55,11 +55,11 @@ echo "--> [5/12] Compiling axis-oobe..."
     $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0) -lm -o axis-oobe
 )
 
-# 6. Compile nobara-welcome (GTK 3 Welcome Hub)
+# 6. Compile nobara-welcome (GTK 3 + Cairo Hardware & Codecs Suite)
 echo "--> [6/12] Compiling nobara-welcome..."
 (
     cd "$ROOT_DIR/os-build/apps/nobara-welcome"
-    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0) -o nobara-welcome
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 cairo) -lm -o nobara-welcome
     ln -sf nobara-welcome axis-hardware-manager 2>/dev/null || true
 )
 

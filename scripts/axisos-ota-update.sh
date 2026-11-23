@@ -224,6 +224,7 @@ STATE_EOF
         "os-build/scripts/axis-fastboot-patch" \
         "os-build/scripts/axis-captive-portal" \
         "os-build/scripts/axis-rewind" \
+        "os-build/scripts/axis-gpu-setup.sh" \
         "os-build/updater/axis-update" \
         "pkg-mgr/bin/axis" \
         "pkg-mgr/bin/axis_repo_builder" \
