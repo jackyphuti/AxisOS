@@ -431,12 +431,33 @@ chmod 0440 /etc/sudoers 2>/dev/null || true
 chmod 0644 /etc/passwd /etc/group /etc/crontab 2>/dev/null || true
 
 # Restore setuid bits on critical system binaries
-for suid_bin in /bin/su /bin/mount /bin/umount /usr/bin/passwd /usr/bin/chsh /usr/bin/chfn /usr/bin/gpasswd /usr/bin/newgrp /usr/bin/sudo /usr/bin/pkexec /usr/lib/polkit-1/polkit-agent-helper-1 /usr/lib/xorg/Xorg.wrap; do
+for suid_bin in /bin/su /bin/mount /bin/umount /usr/bin/passwd /usr/bin/chsh /usr/bin/chfn /usr/bin/gpasswd /usr/bin/newgrp /usr/bin/sudo /usr/bin/pkexec /usr/bin/fusermount3 /usr/lib/polkit-1/polkit-agent-helper-1 /usr/lib/xorg/Xorg.wrap; do
     if [ -f "$suid_bin" ]; then
         chown root:root "$suid_bin" 2>/dev/null || true
         chmod 4755 "$suid_bin" 2>/dev/null || true
     fi
 done
+# Restore setgid shadow bits on unix_chkpwd / chage / expiry (CRITICAL for KDE lockscreen kscreenlocker_greet!)
+for sgid_shadow_bin in /usr/sbin/unix_chkpwd /sbin/unix_chkpwd /usr/bin/chage /usr/bin/expiry; do
+    if [ -f "$sgid_shadow_bin" ]; then
+        chown root:shadow "$sgid_shadow_bin" 2>/dev/null || true
+        chmod 2755 "$sgid_shadow_bin" 2>/dev/null || true
+    fi
+done
+if [ -f /usr/bin/crontab ] && getent group crontab >/dev/null 2>&1; then
+    chown root:crontab /usr/bin/crontab 2>/dev/null || true
+    chmod 2755 /usr/bin/crontab 2>/dev/null || true
+fi
+if [ ! -f /etc/pam.d/kde ]; then
+    cat << 'PAM_KDE_EOF' > /etc/pam.d/kde
+#%PAM-1.0
+@include common-auth
+@include common-account
+@include common-password
+@include common-session
+PAM_KDE_EOF
+    chmod 0644 /etc/pam.d/kde
+fi
 if [ -f /usr/lib/dbus-1.0/dbus-daemon-launch-helper ]; then
     chown root:messagebus /usr/lib/dbus-1.0/dbus-daemon-launch-helper 2>/dev/null || true
     chmod 4754 /usr/lib/dbus-1.0/dbus-daemon-launch-helper 2>/dev/null || true

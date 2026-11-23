@@ -288,12 +288,38 @@ POLKIT_EOF
     chown root:root /etc/polkit-1 /etc/polkit-1/rules.d /etc/polkit-1/rules.d/10-axisos-admin.rules 2>/dev/null || true
     chmod 0755 /etc/polkit-1 /etc/polkit-1/rules.d 2>/dev/null || true
     chmod 0644 /etc/polkit-1/rules.d/10-axisos-admin.rules 2>/dev/null || true
-    for suid_bin in /usr/bin/sudo /usr/bin/pkexec /usr/lib/polkit-1/polkit-agent-helper-1; do
+    for suid_bin in /bin/su /bin/mount /bin/umount /usr/bin/passwd /usr/bin/chsh /usr/bin/chfn /usr/bin/gpasswd /usr/bin/newgrp /usr/bin/sudo /usr/bin/pkexec /usr/bin/fusermount3 /usr/lib/polkit-1/polkit-agent-helper-1; do
         if [ -f "$suid_bin" ]; then
             chown root:root "$suid_bin" 2>/dev/null || true
             chmod 4755 "$suid_bin" 2>/dev/null || true
         fi
     done
+
+    # Fix KDE Plasma lockscreen ("Unlocking failed"): unix_chkpwd MUST be setgid shadow (2755 root:shadow)
+    # so non-root kscreenlocker_greet can verify passwords against /etc/shadow via pam_unix.so
+    chown root:shadow /etc/shadow /etc/gshadow 2>/dev/null || true
+    chmod 0640 /etc/shadow /etc/gshadow 2>/dev/null || true
+    for sgid_shadow_bin in /usr/sbin/unix_chkpwd /sbin/unix_chkpwd /usr/bin/chage /usr/bin/expiry; do
+        if [ -f "$sgid_shadow_bin" ]; then
+            chown root:shadow "$sgid_shadow_bin" 2>/dev/null || true
+            chmod 2755 "$sgid_shadow_bin" 2>/dev/null || true
+        fi
+    done
+    if [ -f /usr/bin/crontab ] && getent group crontab >/dev/null 2>&1; then
+        chown root:crontab /usr/bin/crontab 2>/dev/null || true
+        chmod 2755 /usr/bin/crontab 2>/dev/null || true
+    fi
+    if [ ! -f /etc/pam.d/kde ]; then
+        cat << 'PAM_KDE_EOF' > /etc/pam.d/kde
+#%PAM-1.0
+@include common-auth
+@include common-account
+@include common-password
+@include common-session
+PAM_KDE_EOF
+        chmod 0644 /etc/pam.d/kde
+    fi
+    loginctl unlock-sessions 2>/dev/null || true
     for user_home in /home/*; do
         [ -d "$user_home" ] || continue
         local uname_di
