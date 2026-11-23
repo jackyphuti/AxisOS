@@ -1,10 +1,8 @@
 [Compositing]
 AnimationSpeed=2
 Backend=OpenGL
-GLCore=true
 HiddenPreviews=5
 LatencyPolicy=Low
-OpenGLIsUnsafe=false
 WindowsBlockCompositing=true
 
 [Desktops]

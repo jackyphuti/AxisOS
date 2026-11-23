@@ -111,6 +111,11 @@ if [ -f "$WORKSPACE_DIR/os-build/scripts/install-axisos.sh" ]; then
     chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/local/bin/install-axisos"
     ln -sf /usr/local/bin/install-axisos "$BUILD_DIR/config/includes.chroot/usr/local/bin/install-debian" || true
 fi
+if [ -f "$WORKSPACE_DIR/scripts/axisos-ota-update.sh" ]; then
+    cp -f "$WORKSPACE_DIR/scripts/axisos-ota-update.sh" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-ota-update"
+    chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-ota-update"
+    ln -sf /usr/local/bin/axisos-ota-update "$BUILD_DIR/config/includes.chroot/usr/local/bin/axisos-update" || true
+fi
 
 # 5b. Copy AxisOS System Helper Daemons & Tools
 for helper in axis-game-boost axis-game-runner axis-switch-session axis-update-notifier axis-autotimezone gpu-autodetect axis-biometrics axis-fastboot-patch axis-captive-portal axis-rewind; do
@@ -325,6 +330,11 @@ rm -f "$BUILD_DIR/config/includes.chroot/etc/skel/Desktop/calamares.desktop" \
 if [ -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" ]; then
     cp -f "$WORKSPACE_DIR/os-build/configs/systemd/axisos-gamemode.service" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
 fi
+for ota_unit in axisos-ota.service axisos-ota.timer; do
+    if [ -f "$WORKSPACE_DIR/os-build/configs/systemd/$ota_unit" ]; then
+        cp -f "$WORKSPACE_DIR/os-build/configs/systemd/$ota_unit" "$BUILD_DIR/config/includes.chroot/etc/systemd/system/"
+    fi
+done
 
 # Deploy Sysctl Gaming Performance Drop-in
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/sysctl.d"
@@ -719,9 +729,14 @@ rm -f /home/axis/Desktop/calamares.desktop /home/axis/Desktop/install-debian.des
 rm -f /home/axis/.config/plasma-org.kde.plasma.desktop-appletsrc 2>/dev/null || true
 chown -R 1000:1000 /home/axis 2>/dev/null || true
 
-# Systemd target and display manager service configuration
+# Remove non-Plasma sessions that SDDM would select alphabetically first and freeze login
+rm -f /usr/share/wayland-sessions/axisos-gamemode.desktop \
+      /usr/share/wayland-sessions/liquidnodes.desktop 2>/dev/null || true
+
+# Systemd target, display manager, and bi-monthly OTA update timer configuration
 systemctl enable sddm.service 2>/dev/null || true
-systemctl enable seatd.service 2>/dev/null || true
+systemctl enable axisos-ota.timer 2>/dev/null || true
+systemctl disable seatd.service 2>/dev/null || true
 systemctl disable axisos.service 2>/dev/null || true
 systemctl mask axisos.service 2>/dev/null || true
 systemctl disable lightdm.service 2>/dev/null || true

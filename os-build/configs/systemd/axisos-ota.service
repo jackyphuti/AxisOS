@@ -1,0 +1,10 @@
+[Unit]
+Description=AxisOS Bi-Monthly Over-The-Air System Update
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/axisos-ota-update --auto
+Nice=10
+IOSchedulingClass=idle
