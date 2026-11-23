@@ -13,8 +13,7 @@ live-tools
 firmware-linux-free
 
 # Universal Hardware Firmware & Wireless Drivers (Intel, AMD, Realtek, Atheros, Broadcom)
-firmware-linux
-firmware-linux-nonfree
+firmware-linux-free
 firmware-misc-nonfree
 firmware-amd-graphics
 firmware-iwlwifi
@@ -143,8 +142,6 @@ linux-cpupower
 nvtop
 zram-tools
 schedtool
-wine
-winetricks
 
 # ==============================================================================
 # AxisOS High-Performance Development & Toolchain Suite

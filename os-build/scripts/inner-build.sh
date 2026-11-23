@@ -869,7 +869,12 @@ if ! command -v steam >/dev/null 2>&1; then
     apt-get install -y --no-install-recommends steam-installer mesa-vulkan-drivers:i386 libgl1-mesa-dri:i386 libglx-mesa0:i386 2>/dev/null || true
 fi
 
-# Purge docs, man pages, non-English locales, and package caches to keep ISO strictly under 2 GiB
+# Purge oversized non-desktop firmware, MIDI soundfonts, wine (Steam Proton handles Windows games), docs, man pages & caches to fit single-file < 2.0 GiB GitHub ISO limit
+apt-mark manual code steam-installer mesa-vulkan-drivers:i386 libgl1-mesa-dri:i386 libglx-mesa0:i386 firmware-misc-nonfree firmware-amd-graphics firmware-iwlwifi firmware-realtek firmware-atheros firmware-brcm80211 firmware-intel-sound firmware-sof-signed lutris gamemode mangohud gamescope 2>/dev/null || true
+apt-get purge -y fluid-soundfont-gm wine wine64 wine32 libwine winetricks firmware-netronome firmware-qcom-soc firmware-nvidia-tesla-gsp firmware-nvidia-tesla-535-gsp firmware-nvidia-gsp firmware-cavium firmware-myricom firmware-qlogic firmware-bnx2x firmware-linux-nonfree firmware-linux 2>/dev/null || true
+apt-get autoremove -y --purge 2>/dev/null || true
+find /usr/share/code/locales -maxdepth 1 -type f ! -name 'en-US.pak' -delete 2>/dev/null || true
+rm -f /usr/share/code/LICENSES.chromium.html 2>/dev/null || true
 rm -rf /usr/share/doc/* /usr/share/man/* /var/cache/apt/archives/* /var/lib/apt/lists/* 2>/dev/null || true
 find /usr/share/locale -maxdepth 1 -mindepth 1 ! -name 'en*' ! -name 'locale.alias' -exec rm -rf {} + 2>/dev/null || true
 
