@@ -5,13 +5,13 @@ Codename: axis
 Architectures: amd64
 Components: main
 Description: AxisOS Remote OTA Updates Repository
-Date: Mon, 23 Nov 2026 20:26:41 +0000
+Date: Mon, 23 Nov 2026 21:24:38 +0000
 MD5Sum:
- 211098817f1018d82447ed44f41375df 950 Packages
- 171227031ec3f9567801abf378701d65 577 Packages.gz
+ 4586e69db0fde88284a0575eee7cde8d 950 Packages
+ c129775edf2196a110d0245cbe226c51 578 Packages.gz
 SHA1:
- a68da7b7d9c03cf9bc96b16ea2835f92c0b1fcc4 950 Packages
- 8a8e1168a0c4220da39cd332008afabdbc78683c 577 Packages.gz
+ b518367de3c818518795e4acb4f58770978e1dc5 950 Packages
+ 1db97cff0db296a540d340ff490f0adca2cae961 578 Packages.gz
 SHA256:
- 96778c7f8c6ddfb387c7420d069d0286c9dd4c7c8e0b93dc037fd4129476a497 950 Packages
- 37dfa36509d0beff7ed855035f54cffb7bd3dbbdff9fb990c0f126d58cfb3c87 577 Packages.gz
+ 7e119d2ec67a10ff49fd36f0671c9006fa3a2c82644cf750904f0794e7314b2d 950 Packages
+ 5f912ab343281f99038764c7cd66343064ef9d1730cb1ee4b5e5e985993e5898 578 Packages.gz
