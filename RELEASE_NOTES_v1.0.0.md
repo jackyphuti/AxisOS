@@ -1,33 +1,31 @@
-# AxisOS v1.0.0 — Official First Release (KDE Plasma & Pure C Edition)
+# AxisOS v1.0.0 — Official First Release (AxisOS Obsidian KDE Plasma & Pure C Edition)
 
 Welcome to the official **v1.0.0 First Release** of **AxisOS Linux**, an ultra-high performance operating system engineered for PC gaming, software development, and everyday desktop computing.
 
 ### 🌟 Highlights & Features
 
-- **Desktop Experience**:
-  - Powered by **KDE Plasma Wayland** with SDDM display manager and auto-login for live sessions.
-  - Bespoke **One UI Dark** theme design tokens (`#141826` base, `#1F2231` cards, `#7D95FF` accent).
-  - AxisOS system branding across Kickoff application launcher, desktop, and Papirus-Dark icons.
+- **Signature AxisOS Obsidian Desktop Experience (KDE Plasma 5.27)**:
+  - Custom **AxisOS Obsidian** Global Theme (`org.axisos.obsidian.desktop`) & frosted glass Plasma Desktop Theme (`AxisOS-Obsidian`) with translucent deep obsidian surfaces (`#0B0F1A`) and glowing electric cyan (`#38BDF8`) 1px glass rims.
+  - **Dual-Zone Desktop Layout**:
+    - **Floating Top Command HUD Bar**: AxisOS launcher, global app menu, workspace switcher pills, centered date & time pill, live CPU & RAM telemetry gauges, media controls, system tray, quick search, and power controls.
+    - **Centered Floating Glass Capsule Dock**: Auto-tucks cleanly behind maximized windows (`windowscover`) with pinned AxisOS applications and Trash.
+  - **KWin & Breeze Polish**: Frosted blur (`BlurStrength=12`), Magic Lamp & Scale animations, Top-Left Hot Corner Overview, centered borderless-separator titlebars with deep obsidian ambient shadows, floating centered Spotlight KRunner (`Alt+Space`), instant splash-free login, and `Ctrl+Shift+Esc` bound directly to the Windows 11-style Task Manager.
   - High-resolution wallpaper: *08-axisos-obsidian-wave*.
 
-- **System Installation**:
-  - Branded **Calamares** live installer with automated disk partitioning, LUKS encryption, Btrfs subvolume layouts, and UEFI/BIOS support.
-  - Fully integrated `squashfs-tools` / `unsquashfs` live unpack engine.
+- **100% Offline System Installation (Calamares)**:
+  - Branded **Calamares** live installer with full offline support for **both UEFI (with EFI fallback) and Legacy BIOS**, LUKS full-disk encryption (`cryptsetup-initramfs` + `keyutils`), Btrfs/ext4 partitioning, and dual-boot `os-prober`.
+  - Pre-installed `squashfs-tools` (`unsquashfs`), `grub2-common` (`grub-install`, `update-grub`), `grub-efi-amd64-bin`, and `grub-pc-bin` for reliable offline installation without requiring external package downloads.
+  - Automated post-install cleanup removing live autologin overrides, live-only packages, and installer shortcuts.
 
 - **Windows 11 Redesigned Task Manager (`axis-task-manager`)**:
-  - 100% Pure C11 GTK 3 & Cairo architecture.
-  - Live search bar with instant process filtering.
-  - Command bar with *Run new task* (with administrative elevation support), *End task*, and *Efficiency mode (🍃)*.
-  - Collapsible Mica-style navigation rail (54px compact icon rail <-> 200px labeled rail).
-  - Real-time heat-mapped resource columns (CPU, Memory, Disk, Network).
-  - 60-Second Real-Time Rolling Cairo Performance graphs with hardware telemetry (CPU, RAM, NVMe/SATA, Ethernet/Wi-Fi).
-  - Dedicated views for Startup apps, Services, Users, App history, Details, and Settings.
+  - 100% Pure C11 GTK 3 & Cairo architecture (`Ctrl+Shift+Esc`).
+  - Live search bar, elevated *Run new task* dialog, *End task*, *Efficiency mode*, collapsible Mica navigation rail, heat-mapped resource columns, and 60-second real-time rolling Cairo performance graphs.
 
 - **Hardware & Gaming Readiness**:
   - **Axis Hardware & Codec Suite** (`nobara-welcome` / `axis-hardware-manager`) with One UI Dark styling, automatic GPU detection (NVIDIA, AMD, Intel), Vulkan runtime verification, and multimedia codecs.
-  - System performance optimizations for low-latency kernel scheduling, elevated open-file limits, ZRAM zstd compressed memory swap, and sysctl gaming profiles.
+  - Gaming & developer optimizations: low-latency KWin compositing, GameMode, MangoHud, Gamescope, Wine/Lutris, ZRAM, and GCC/CMake/Ninja/GDB/Git toolchain.
 
 ### 💿 Verification
 
 - **ISO Checksum (SHA-256)**:
-  `cf79151c5082c2cabc15a9f71ee4972a1a677e64ffc00bbbdbfe2b9f425d27ea  axisos-live-amd64.iso`
+  `928619721d93488c9dcdd422f43979242517602264351c4d5cee4a29b266a786  axisos-live-amd64.iso`

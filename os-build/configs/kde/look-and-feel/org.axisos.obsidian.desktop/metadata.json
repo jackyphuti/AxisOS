@@ -1,0 +1,20 @@
+{
+    "KPackageStructure": "Plasma/LookAndFeel",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "jackympoka22@gmail.com",
+                "Name": "AxisOS Design Team"
+            }
+        ],
+        "Description": "Signature AxisOS Obsidian Dual-Zone Command HUD & Floating Glass Dock Global Theme",
+        "Id": "org.axisos.obsidian.desktop",
+        "License": "GPLv3",
+        "Name": "AxisOS Obsidian",
+        "ServiceTypes": [
+            "Plasma/LookAndFeel"
+        ],
+        "Version": "1.0.0",
+        "Website": "https://github.com/jackyphuti/AxisOS"
+    }
+}

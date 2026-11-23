@@ -1,0 +1,21 @@
+[CompactMode]
+PreviewSize=48
+
+[DetailsMode]
+PreviewSize=24
+
+[General]
+RememberOpenedTabs=false
+ShowFullPath=true
+ShowToolTips=true
+
+[IconsMode]
+IconSize=64
+PreviewSize=80
+
+[KFileDialog Settings]
+Places Icons Auto-resize=false
+Places Icons Static Size=22
+
+[PreviewSettings]
+Plugins=appimagethumbnail,audiothumbnail,comicbookthumbnail,djvuthumbnail,ebookthumbnail,exrthumbnail,directorythumbnail,fontthumbnail,imagethumbnail,jpegthumbnail,kraorathumbnail,windowsexethumbnail,windowsimagethumbnail,opendocumentthumbnail,svgthumbnail,textthumbnail,ffmpegthumbs

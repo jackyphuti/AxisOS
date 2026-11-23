@@ -1,0 +1,24 @@
+[axis-task-manager.desktop]
+_k_friendly_name=AxisOS Task Manager
+_launch=Ctrl+Shift+Esc,none,Launch AxisOS Task Manager
+
+[axis-terminal.desktop]
+_k_friendly_name=Axis Terminal
+_launch=Meta+Return,none,Launch Axis Terminal
+
+[org.kde.dolphin.desktop]
+_k_friendly_name=Dolphin
+_launch=Meta+E,Meta+E,Dolphin
+
+[org.kde.krunner.desktop]
+_k_friendly_name=KRunner
+_launch=Alt+Space\tAlt+F2\tSearch,Alt+Space\tAlt+F2\tSearch,KRunner
+
+[kwin]
+Overview=Meta+W,Meta+W,Toggle Overview
+Switch to Next Desktop=Ctrl+Meta+Right,none,Switch to Next Desktop
+Switch to Previous Desktop=Ctrl+Meta+Left,none,Switch to Previous Desktop
+Window Quick Tile Left=Meta+Left,Meta+Left,Quick Tile Window to the Left
+Window Quick Tile Right=Meta+Right,Meta+Right,Quick Tile Window to the Right
+Window Maximize=Meta+Up,Meta+PgUp,Maximize Window
+Window Minimize=Meta+Down,Meta+PgDown,Minimize Window

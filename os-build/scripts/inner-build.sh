@@ -222,20 +222,46 @@ if [ -d "$WORKSPACE_DIR/os-build/configs/sddm" ]; then
     fi
 fi
 
-# Deploy KDE Plasma One UI Dark configuration & color schemes
+# Deploy AxisOS Obsidian KDE Plasma configuration, color schemes, desktop theme & Global Theme
 mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/color-schemes"
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/plasma/desktoptheme"
+mkdir -p "$BUILD_DIR/config/includes.chroot/usr/share/plasma/look-and-feel"
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/xdg"
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/skel/.config"
 if [ -d "$WORKSPACE_DIR/os-build/configs/kde" ]; then
-    if [ -f "$WORKSPACE_DIR/os-build/configs/kde/AxisOSOneUIDark.colors" ]; then
-        cp -f "$WORKSPACE_DIR/os-build/configs/kde/AxisOSOneUIDark.colors" "$BUILD_DIR/config/includes.chroot/usr/share/color-schemes/"
-    fi
-    for kde_cfg in kdeglobals plasmarc kwinrc kcminputrc kscreenlockerrc baloofilerc powermanagementprofilesrc; do
+    cp -f "$WORKSPACE_DIR"/os-build/configs/kde/*.colors "$BUILD_DIR/config/includes.chroot/usr/share/color-schemes/" 2>/dev/null || true
+    for kde_cfg in kdeglobals plasmarc kwinrc breezerc krunnerrc ksplashrc dolphinrc kglobalshortcutsrc kcminputrc kscreenlockerrc baloofilerc powermanagementprofilesrc; do
         if [ -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" ]; then
             cp -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" "$BUILD_DIR/config/includes.chroot/etc/xdg/"
             cp -f "$WORKSPACE_DIR/os-build/configs/kde/$kde_cfg" "$BUILD_DIR/config/includes.chroot/etc/skel/.config/"
         fi
     done
+    if [ -d "$WORKSPACE_DIR/os-build/configs/kde/plasma-theme/AxisOS-Obsidian" ]; then
+        cp -rf "$WORKSPACE_DIR/os-build/configs/kde/plasma-theme/AxisOS-Obsidian" "$BUILD_DIR/config/includes.chroot/usr/share/plasma/desktoptheme/"
+    fi
+    if [ -d "$WORKSPACE_DIR/os-build/configs/kde/look-and-feel/org.axisos.obsidian.desktop" ]; then
+        cp -rf "$WORKSPACE_DIR/os-build/configs/kde/look-and-feel/org.axisos.obsidian.desktop" "$BUILD_DIR/config/includes.chroot/usr/share/plasma/look-and-feel/"
+    fi
+fi
+
+# Deploy AxisOS Offline Calamares Installer Configurations & Scripts
+if [ -d "$WORKSPACE_DIR/os-build/configs/calamares" ]; then
+    mkdir -p "$BUILD_DIR/config/includes.chroot/etc/calamares/modules"
+    mkdir -p "$BUILD_DIR/config/includes.chroot/usr/sbin"
+    mkdir -p "$BUILD_DIR/config/includes.chroot/etc/default"
+    cp -f "$WORKSPACE_DIR/os-build/configs/calamares/settings.conf" "$BUILD_DIR/config/includes.chroot/etc/calamares/settings.conf"
+    cp -f "$WORKSPACE_DIR"/os-build/configs/calamares/modules/*.conf "$BUILD_DIR/config/includes.chroot/etc/calamares/modules/" 2>/dev/null || true
+    if [ -f "$WORKSPACE_DIR/os-build/configs/calamares/bootloader-config" ]; then
+        cp -f "$WORKSPACE_DIR/os-build/configs/calamares/bootloader-config" "$BUILD_DIR/config/includes.chroot/usr/sbin/bootloader-config"
+        chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/sbin/bootloader-config"
+    fi
+    if [ -f "$WORKSPACE_DIR/os-build/configs/calamares/sources-final" ]; then
+        cp -f "$WORKSPACE_DIR/os-build/configs/calamares/sources-final" "$BUILD_DIR/config/includes.chroot/usr/sbin/sources-final"
+        chmod 0755 "$BUILD_DIR/config/includes.chroot/usr/sbin/sources-final"
+    fi
+    if [ -f "$WORKSPACE_DIR/os-build/configs/calamares/default-grub" ]; then
+        cp -f "$WORKSPACE_DIR/os-build/configs/calamares/default-grub" "$BUILD_DIR/config/includes.chroot/etc/default/grub"
+    fi
 fi
 rm -f "$BUILD_DIR/config/includes.chroot/etc/xdg/plasma-org.kde.plasma.desktop-appletsrc" \
       "$BUILD_DIR/config/includes.chroot/etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc" 2>/dev/null || true
@@ -424,34 +450,25 @@ rm -f /etc/xdg/plasma-org.kde.plasma.desktop-appletsrc \
       /etc/skel/.config/plasma-org.kde.plasma.desktop-appletsrc \
       /home/axis/.config/plasma-org.kde.plasma.desktop-appletsrc 2>/dev/null || true
 
-# Configure Plasma default desktop layout script & look-and-feel defaults with AxisOS branding
-if [ -f /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js ]; then
-    cat << 'LAYOUT_EOF' > /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js
-var panel = new Panel;
-var panelScreen = panel.screen;
-panel.height = 2 * Math.floor(gridUnit * 2.5 / 2);
+# Configure AxisOS Obsidian Signature Plasma Desktop Layout (Top Floating Command-HUD + Bottom Centered Floating Glass Dock)
+if [ -f /usr/share/plasma/look-and-feel/org.axisos.obsidian.desktop/contents/layouts/org.kde.plasma.desktop-layout.js ] && [ -d /usr/share/plasma/shells/org.kde.plasma.desktop/contents ]; then
+    cp -f /usr/share/plasma/look-and-feel/org.axisos.obsidian.desktop/contents/layouts/org.kde.plasma.desktop-layout.js \
+          /usr/share/plasma/shells/org.kde.plasma.desktop/contents/layout.js
+fi
 
-var kickoff = panel.addWidget("org.kde.plasma.kickoff");
-kickoff.currentConfigGroup = ["Shortcuts"];
-kickoff.writeConfig("global", "Alt+F1");
-kickoff.currentConfigGroup = ["General"];
-kickoff.writeConfig("icon", "axisos");
-
-panel.addWidget("org.kde.plasma.pager");
-panel.addWidget("org.kde.plasma.icontasks");
-panel.addWidget("org.kde.plasma.marginsseparator");
-panel.addWidget("org.kde.plasma.systemtray");
-panel.addWidget("org.kde.plasma.digitalclock");
-panel.addWidget("org.kde.plasma.showdesktop");
-
-var desktopsArray = desktopsForActivity(currentActivity());
-for (var j = 0; j < desktopsArray.length; j++) {
-    desktopsArray[j].wallpaperPlugin = 'org.kde.image';
-    desktopsArray[j].currentConfigGroup = ['Wallpaper', 'org.kde.image', 'General'];
-    desktopsArray[j].writeConfig('Image', 'file:///usr/share/backgrounds/axisos/08-axisos-obsidian-wave.jpg');
-    desktopsArray[j].writeConfig('FillMode', '2');
-}
-LAYOUT_EOF
+# Generate AxisOS-Obsidian Frosted Glass & Electric Cyan Rim Plasma SVGs from verified Plasma 5.27 FrameSvg base
+AXIS_PLASMA_THEME="/usr/share/plasma/desktoptheme/AxisOS-Obsidian"
+if [ -d "$AXIS_PLASMA_THEME" ] && [ -d /usr/share/plasma/desktoptheme/default/translucent ]; then
+    mkdir -p "$AXIS_PLASMA_THEME/translucent/widgets" "$AXIS_PLASMA_THEME/translucent/dialogs"
+    for svg_rel in widgets/panel-background.svgz dialogs/background.svgz widgets/tooltip.svgz; do
+        src_svg="/usr/share/plasma/desktoptheme/default/translucent/$svg_rel"
+        dst_svg="$AXIS_PLASMA_THEME/translucent/$svg_rel"
+        if [ -f "$src_svg" ]; then
+            zcat "$src_svg" \
+                | sed 's/opacity:0\.85;fill:currentColor/opacity:0.72;fill:currentColor/g; s/style="opacity:0\.5"/style="opacity:0.38;fill:#38bdf8"/g' \
+                | gzip -9 > "$dst_svg" 2>/dev/null || cp -f "$src_svg" "$dst_svg"
+        fi
+    done
 fi
 
 if [ -f /usr/share/plasma/layout-templates/org.kde.plasma.desktop.defaultPanel/contents/layout.js ]; then
@@ -461,10 +478,15 @@ fi
 for lnf_def in /usr/share/plasma/look-and-feel/org.kde.breezedark.desktop/contents/defaults /usr/share/plasma/look-and-feel/org.kde.breeze.desktop/contents/defaults; do
     if [ -f "$lnf_def" ]; then
         sed -i 's/^Image=.*/Image=AxisOS/' "$lnf_def" 2>/dev/null || true
-        sed -i 's/^ColorScheme=.*/ColorScheme=AxisOSOneUIDark/' "$lnf_def" 2>/dev/null || true
+        sed -i 's/^ColorScheme=.*/ColorScheme=AxisOSObsidian/' "$lnf_def" 2>/dev/null || true
         sed -i 's/^Theme=breeze.*/Theme=Papirus-Dark/' "$lnf_def" 2>/dev/null || true
+        sed -i 's/^name=default/name=AxisOS-Obsidian/' "$lnf_def" 2>/dev/null || true
+        sed -i 's/^Theme=org\.kde\.Breeze/Theme=None/' "$lnf_def" 2>/dev/null || true
     fi
 done
+
+# Ensure Calamares offline installer helper scripts are executable
+chmod 0755 /usr/sbin/bootloader-config /usr/sbin/sources-final 2>/dev/null || true
 
 # Configure Calamares installer branding with AxisOS logos & One UI dark theme
 CAL_DIR="/etc/calamares/branding/debian"
@@ -512,10 +534,10 @@ images:
 slideshow:               "show.qml"
 
 style:
-   sidebarBackground:    "#141826"
-   sidebarText:          "#FFFFFF"
-   sidebarTextSelect:    "#7D95FF"
-   sidebarTextCurrent:   "#7D95FF"
+   sidebarBackground:    "#0B0F1A"
+   sidebarText:          "#F1F5F9"
+   sidebarTextSelect:    "#38BDF8"
+   sidebarTextCurrent:   "#38BDF8"
 
 slideshowAPI: 2
 CAL_DESC_EOF
@@ -709,11 +731,11 @@ systemctl set-default graphical.target 2>/dev/null || true
 # Ensure all binaries in /usr/local/bin are executable
 chmod 755 /usr/local/bin/* 2>/dev/null || true
 
-# Ensure squashfs-tools and installer dependencies exist for Calamares unpackfs
-if ! command -v unsquashfs >/dev/null 2>&1; then
+# Ensure squashfs-tools and offline GRUB/LUKS installer dependencies exist for Calamares
+if ! command -v unsquashfs >/dev/null 2>&1 || ! command -v grub-install >/dev/null 2>&1; then
     echo "nameserver 1.1.1.1" > /etc/resolv.conf 2>/dev/null || true
     apt-get update 2>/dev/null || true
-    apt-get install -y --no-install-recommends squashfs-tools grub-efi-amd64-bin grub-pc-bin 2>/dev/null || true
+    apt-get install -y --no-install-recommends squashfs-tools grub2-common grub-efi-amd64-bin grub-pc-bin os-prober cryptsetup-initramfs keyutils efibootmgr 2>/dev/null || true
 fi
 
 # Purge docs, man pages, non-English locales, and package caches to keep ISO strictly under 2 GiB
@@ -739,10 +761,10 @@ if [ -d "$BUILD_DIR/chroot/usr/local/bin" ]; then
     else
         echo "nameserver 1.1.1.1" > "$BUILD_DIR/chroot/etc/resolv.conf" 2>/dev/null || true
     fi
-    if [ ! -x "$BUILD_DIR/chroot/usr/bin/unsquashfs" ]; then
-        echo "--> Installing squashfs-tools inside chroot..."
+    if [ ! -x "$BUILD_DIR/chroot/usr/bin/unsquashfs" ] || [ ! -x "$BUILD_DIR/chroot/usr/sbin/grub-install" ]; then
+        echo "--> Installing squashfs-tools and offline GRUB/LUKS packages inside chroot..."
         chroot "$BUILD_DIR/chroot" apt-get update 2>/dev/null || true
-        chroot "$BUILD_DIR/chroot" apt-get install -y --no-install-recommends squashfs-tools grub-efi-amd64-bin grub-pc-bin 2>/dev/null || true
+        chroot "$BUILD_DIR/chroot" apt-get install -y --no-install-recommends squashfs-tools grub2-common grub-efi-amd64-bin grub-pc-bin os-prober cryptsetup-initramfs keyutils efibootmgr 2>/dev/null || true
     fi
     cp -rf "$BUILD_DIR/config/includes.chroot/"* "$BUILD_DIR/chroot/" 2>/dev/null || true
     chmod 755 "$BUILD_DIR/chroot/usr/local/bin/"* 2>/dev/null || true

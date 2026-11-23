@@ -1,0 +1,14 @@
+[Wallpaper]
+defaultWallpaperTheme=AxisOS
+defaultFileSuffix=.jpg
+defaultWidth=1920
+defaultHeight=1080
+
+[ContrastEffect]
+enabled=true
+contrast=0.22
+intensity=0.82
+saturation=1.45
+
+[AdaptiveTransparency]
+enabled=true

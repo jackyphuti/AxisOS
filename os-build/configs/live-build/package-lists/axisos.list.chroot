@@ -101,10 +101,13 @@ android-sdk-platform-tools-common
 libimobiledevice-utils
 usbmuxd
 
-# GRUB & EFI Bootloader Suite
+# GRUB & EFI Bootloader Suite (Offline UEFI + Legacy BIOS Dual Support)
+grub2-common
+grub-efi-amd64-bin
 grub-efi-amd64-signed
 grub-pc-bin
 efibootmgr
+os-prober
 isolinux
 syslinux
 syslinux-common
@@ -190,6 +193,8 @@ calamares
 calamares-settings-debian
 qml-module-org-kde-kquickcontrolsaddons
 cryptsetup
+cryptsetup-initramfs
+keyutils
 squashfs-tools
 
 # ==============================================================================

@@ -1,0 +1,26 @@
+#!/bin/sh
+# AxisOS Final APT Sources Configuration
+CHROOT=$(mount | grep proc | grep calamares | awk '{print $3}' | sed -e "s#/proc##g" | head -n1)
+RELEASE="bookworm"
+
+if [ -z "$CHROOT" ] || [ ! -d "$CHROOT" ]; then
+    exit 0
+fi
+
+cat << EOF > "$CHROOT/etc/apt/sources.list"
+# AxisOS / Debian Bookworm Official Repositories
+deb http://deb.debian.org/debian $RELEASE main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian $RELEASE main contrib non-free non-free-firmware
+
+deb http://deb.debian.org/debian $RELEASE-updates main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian $RELEASE-updates main contrib non-free non-free-firmware
+
+deb http://security.debian.org/debian-security/ $RELEASE-security main contrib non-free non-free-firmware
+deb-src http://security.debian.org/debian-security/ $RELEASE-security main contrib non-free non-free-firmware
+
+deb http://deb.debian.org/debian $RELEASE-backports main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian $RELEASE-backports main contrib non-free non-free-firmware
+EOF
+
+rm -f "$CHROOT/etc/apt/sources.list.d/debian-live-media.list" 2>/dev/null || true
+exit 0

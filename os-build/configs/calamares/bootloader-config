@@ -1,0 +1,36 @@
+#!/bin/bash
+# AxisOS Offline Bootloader Pre-Configuration (UEFI + Legacy BIOS + LUKS)
+set -u
+
+CHROOT=$(mount | grep proc | grep calamares | awk '{print $3}' | sed -e "s#/proc##g" | head -n1)
+if [ -z "$CHROOT" ] || [ ! -d "$CHROOT" ]; then
+    echo "AxisOS bootloader-config: target chroot not detected, skipping."
+    exit 0
+fi
+
+# Configure secure initramfs permissions if LUKS root encryption is active
+if mount | grep -q "^/dev/mapper/luks.* on $CHROOT "; then
+    mkdir -p "$CHROOT/etc/initramfs-tools/conf.d"
+    echo "UMASK=0077" > "$CHROOT/etc/initramfs-tools/conf.d/initramfs-permissions"
+fi
+
+# Ensure /etc/default/grub exists with AxisOS branding & OS prober enabled
+mkdir -p "$CHROOT/etc/default"
+if [ ! -f "$CHROOT/etc/default/grub" ]; then
+    cat << 'GRUB_EOF' > "$CHROOT/etc/default/grub"
+GRUB_DEFAULT=0
+GRUB_TIMEOUT=5
+GRUB_DISTRIBUTOR="AxisOS"
+GRUB_CMDLINE_LINUX_DEFAULT="quiet splash"
+GRUB_CMDLINE_LINUX=""
+GRUB_DISABLE_OS_PROBER=false
+GRUB_EOF
+else
+    sed -i 's/^GRUB_DISTRIBUTOR=.*/GRUB_DISTRIBUTOR="AxisOS"/' "$CHROOT/etc/default/grub" || true
+    sed -i 's/^#GRUB_DISABLE_OS_PROBER=false/GRUB_DISABLE_OS_PROBER=false/' "$CHROOT/etc/default/grub" || true
+fi
+
+# GRUB binaries (grub2-common, grub-efi-amd64-bin, grub-pc-bin, efibootmgr, os-prober)
+# are pre-installed in the AxisOS live image for 100% offline UEFI and Legacy BIOS installs.
+echo "AxisOS bootloader-config completed cleanly (offline dual UEFI/BIOS ready)."
+exit 0

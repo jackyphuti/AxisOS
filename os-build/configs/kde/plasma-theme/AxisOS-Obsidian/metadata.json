@@ -1,0 +1,18 @@
+{
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "jackympoka22@gmail.com",
+                "Name": "AxisOS Design Team"
+            }
+        ],
+        "Category": "Plasma Theme",
+        "Description": "Signature AxisOS Frosted Obsidian Glass & Electric Cyan Plasma Theme",
+        "Id": "AxisOS-Obsidian",
+        "License": "GPLv3",
+        "Name": "AxisOS Obsidian",
+        "Version": "1.0.0",
+        "Website": "https://github.com/jackyphuti/AxisOS"
+    },
+    "X-Plasma-API": "5.0"
+}
