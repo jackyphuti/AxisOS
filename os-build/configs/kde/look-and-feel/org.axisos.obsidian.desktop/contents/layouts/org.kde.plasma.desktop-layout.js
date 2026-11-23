@@ -99,6 +99,8 @@ icontasks.writeConfig("launchers", [
     "applications:axis-welcome.desktop",
     "applications:org.kde.dolphin.desktop",
     "applications:chromium.desktop",
+    "applications:code.desktop",
+    "applications:steam.desktop",
     "applications:axis-terminal.desktop",
     "applications:axis-task-manager.desktop",
     "applications:nobara-welcome.desktop",

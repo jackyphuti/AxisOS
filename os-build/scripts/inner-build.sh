@@ -809,6 +809,26 @@ if ! command -v unsquashfs >/dev/null 2>&1 || ! command -v grub-install >/dev/nu
     apt-get install -y --no-install-recommends squashfs-tools grub2-common grub-efi-amd64-bin grub-pc-bin os-prober cryptsetup-initramfs keyutils efibootmgr 2>/dev/null || true
 fi
 
+# Pre-install Visual Studio Code (official Microsoft APT repo) and Steam (Debian non-free + i386 Vulkan/Mesa)
+export DEBIAN_FRONTEND=noninteractive
+echo "nameserver 1.1.1.1" > /etc/resolv.conf 2>/dev/null || true
+if ! command -v code >/dev/null 2>&1; then
+    apt-get update 2>/dev/null || true
+    apt-get install -y --no-install-recommends curl gpg ca-certificates apt-transport-https 2>/dev/null || true
+    install -d -m 0755 /etc/apt/keyrings
+    if curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor --yes -o /etc/apt/keyrings/packages.microsoft.gpg 2>/dev/null; then
+        chmod 0644 /etc/apt/keyrings/packages.microsoft.gpg
+        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+        apt-get update 2>/dev/null || true
+        apt-get install -y --no-install-recommends code 2>/dev/null || true
+    fi
+fi
+if ! command -v steam >/dev/null 2>&1; then
+    dpkg --add-architecture i386 2>/dev/null || true
+    apt-get update 2>/dev/null || true
+    apt-get install -y --no-install-recommends steam-installer mesa-vulkan-drivers:i386 libgl1-mesa-dri:i386 libglx-mesa0:i386 2>/dev/null || true
+fi
+
 # Purge docs, man pages, non-English locales, and package caches to keep ISO strictly under 2 GiB
 rm -rf /usr/share/doc/* /usr/share/man/* /var/cache/apt/archives/* /var/lib/apt/lists/* 2>/dev/null || true
 find /usr/share/locale -maxdepth 1 -mindepth 1 ! -name 'en*' ! -name 'locale.alias' -exec rm -rf {} + 2>/dev/null || true
