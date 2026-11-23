@@ -62,6 +62,7 @@
 /* Processes Table Columns */
 enum {
     PROC_COL_PID = 0,
+    PROC_COL_APP_ICON,
     PROC_COL_NAME,
     PROC_COL_STATUS,
     PROC_COL_STATUS_ICON,
@@ -76,7 +77,9 @@ enum {
     PROC_COL_USER,
     PROC_COL_CMDLINE,
     PROC_COL_CPU_BG,
+    PROC_COL_CPU_FG,
     PROC_COL_MEM_BG,
+    PROC_COL_MEM_FG,
     NUM_PROC_COLS
 };
 
@@ -266,163 +269,217 @@ typedef struct {
     GHashTable *app_histories;  /* name -> AppHistRecord* */
 } Win11TaskManager;
 
-/* Fluent Dark CSS Palette (Windows 11 Dark Mode) */
+/* High-Contrast AxisOS Obsidian + Windows 11 Fluent Dark CSS Palette */
 static const char *WIN11_CSS =
     "* {"
     "    outline: none;"
-    "    font-family: 'Segoe UI Variable', 'Segoe UI', 'IBM Plex Sans', sans-serif;"
+    "    font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;"
     "}"
-    "window, .background {"
-    "    background-color: #202020;"
-    "    color: #FFFFFF;"
+    "window, window.background, .background, dialog, box, grid, stack, scrolledwindow, viewport {"
+    "    background-color: #111624 !important;"
+    "    background-image: none !important;"
+    "    color: #F1F5F9 !important;"
     "}"
-    "headerbar {"
-    "    background: #202020;"
-    "    background-color: #202020;"
-    "    background-image: none;"
-    "    border-bottom: 1px solid #2D2D2D;"
-    "    box-shadow: none;"
-    "    min-height: 48px;"
-    "    padding: 2px 8px;"
-    "}"
-    "headerbar .title {"
-    "    font-weight: 600;"
-    "    font-size: 14px;"
-    "    color: #FFFFFF;"
-    "}"
-    "headerbar .subtitle {"
-    "    font-size: 11px;"
-    "    color: #9E9E9E;"
+    "label {"
+    "    color: #F1F5F9;"
     "}"
     ".command-bar {"
-    "    background-color: #202020;"
-    "    border-bottom: 1px solid #2D2D2D;"
-    "    padding: 6px 14px;"
+    "    background-color: #161C2E !important;"
+    "    border-bottom: 1px solid #26314D;"
+    "    padding: 8px 14px;"
     "}"
-    ".fluent-btn {"
-    "    background-color: #2B2B2B;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid #383838;"
-    "    border-radius: 6px;"
-    "    padding: 6px 14px;"
+    ".cmd-title {"
+    "    font-size: 14px;"
+    "    font-weight: 700;"
+    "    color: #FFFFFF !important;"
+    "    margin-right: 10px;"
+    "}"
+    "button, .fluent-btn {"
+    "    background-color: #1E2740 !important;"
+    "    background-image: none !important;"
+    "    color: #F1F5F9 !important;"
+    "    border: 1px solid #303E61;"
+    "    border-radius: 7px;"
+    "    padding: 6px 13px;"
     "    font-size: 12px;"
-    "    font-weight: 500;"
-    "    transition: all 120ms ease;"
+    "    font-weight: 600;"
+    "    box-shadow: none;"
     "}"
-    ".fluent-btn:hover {"
-    "    background-color: #383838;"
-    "    border-color: #484848;"
+    "button label, .fluent-btn label {"
+    "    color: #F1F5F9 !important;"
     "}"
-    ".fluent-btn:active {"
-    "    background-color: #1F1F1F;"
+    "button:hover, .fluent-btn:hover {"
+    "    background-color: #283454 !important;"
+    "    border-color: #38BDF8;"
+    "}"
+    "button:active, .fluent-btn:active {"
+    "    background-color: #151C2E !important;"
+    "}"
+    ".fluent-btn-danger:hover {"
+    "    background-color: #5C1D24 !important;"
+    "    border-color: #F87171;"
     "}"
     ".fluent-btn-accent {"
-    "    background-color: #0078D4;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid #0078D4;"
-    "    border-radius: 6px;"
-    "    padding: 6px 16px;"
-    "    font-size: 12px;"
-    "    font-weight: 600;"
+    "    background-color: #0284C7 !important;"
+    "    color: #FFFFFF !important;"
+    "    border: 1px solid #38BDF8;"
     "}"
     ".fluent-btn-accent:hover {"
-    "    background-color: #1A86D9;"
-    "    border-color: #1A86D9;"
+    "    background-color: #0EA5E9 !important;"
     "}"
-    ".fluent-search {"
-    "    background-color: #2C2C2C;"
-    "    color: #FFFFFF;"
-    "    border: 1px solid #383838;"
-    "    border-radius: 6px;"
-    "    padding: 5px 12px;"
+    "entry, .fluent-search {"
+    "    background-color: #0D121F !important;"
+    "    background-image: none !important;"
+    "    color: #F8FAFC !important;"
+    "    caret-color: #38BDF8;"
+    "    border: 1px solid #303E61;"
+    "    border-radius: 7px;"
+    "    padding: 6px 12px;"
     "    font-size: 12px;"
-    "    min-width: 280px;"
+    "    min-width: 260px;"
+    "    box-shadow: none;"
     "}"
-    ".fluent-search:focus {"
-    "    border-color: #60CDFF;"
-    "    background-color: #1F1F1F;"
+    "entry:focus, .fluent-search:focus {"
+    "    border-color: #38BDF8;"
+    "    background-color: #0A0E19 !important;"
+    "}"
+    "entry selection {"
+    "    background-color: #0284C7;"
+    "    color: #FFFFFF;"
     "}"
     ".nav-rail {"
-    "    background-color: #181818;"
-    "    border-right: 1px solid #2B2B2B;"
-    "    padding: 8px 4px;"
+    "    background-color: #0E1320 !important;"
+    "    border-right: 1px solid #232D47;"
+    "    padding: 8px 6px;"
     "}"
-    ".nav-btn {"
-    "    background-color: transparent;"
-    "    background-image: none;"
-    "    border: none;"
-    "    border-radius: 6px;"
-    "    padding: 8px 12px;"
-    "    margin: 2px 4px;"
-    "    color: #CCCCCC;"
+    "button.nav-btn {"
+    "    background-color: transparent !important;"
+    "    background-image: none !important;"
+    "    border: 1px solid transparent;"
+    "    border-left: 3px solid transparent;"
+    "    border-radius: 7px;"
+    "    padding: 8px 10px;"
+    "    margin: 2px 2px;"
+    "    color: #CBD5E1 !important;"
     "    font-size: 13px;"
     "    font-weight: 500;"
-    "    transition: background-color 100ms ease;"
+    "    box-shadow: none;"
     "}"
-    ".nav-btn:hover {"
-    "    background-color: rgba(255, 255, 255, 0.06);"
-    "    color: #FFFFFF;"
+    "button.nav-btn label {"
+    "    color: #CBD5E1 !important;"
     "}"
-    ".nav-btn.active {"
-    "    background-color: rgba(255, 255, 255, 0.08);"
-    "    color: #FFFFFF;"
-    "    font-weight: 600;"
-    "    border-left: 3px solid #60CDFF;"
+    "button.nav-btn:hover {"
+    "    background-color: #1A233A !important;"
+    "    border-color: transparent;"
+    "    border-left: 3px solid transparent;"
     "}"
-    ".treeview-win11 {"
-    "    background-color: #202020;"
-    "    color: #E0E0E0;"
+    "button.nav-btn:hover label {"
+    "    color: #FFFFFF !important;"
+    "}"
+    "button.nav-btn.active {"
+    "    background-color: #1D2844 !important;"
+    "    border-color: transparent;"
+    "    border-left: 3px solid #38BDF8;"
+    "    font-weight: 700;"
+    "}"
+    "button.nav-btn.active label {"
+    "    color: #FFFFFF !important;"
+    "}"
+    "treeview.view, .treeview-win11 {"
+    "    background-color: #141A2B !important;"
+    "    background-image: none !important;"
+    "    color: #F1F5F9 !important;"
     "    font-size: 12px;"
+    "    border: none;"
     "}"
-    ".treeview-win11:selected {"
-    "    background-color: #004578;"
-    "    color: #FFFFFF;"
+    "treeview.view:selected, treeview.view:selected:focus, .treeview-win11:selected {"
+    "    background-color: #0F3D5E !important;"
+    "    color: #FFFFFF !important;"
     "}"
     "treeview.view header button {"
-    "    background-color: #1F1F1F;"
-    "    color: #A0A0A0;"
+    "    background-color: #1A2238 !important;"
+    "    background-image: none !important;"
+    "    color: #CBD5E1 !important;"
     "    font-size: 11px;"
-    "    font-weight: 600;"
+    "    font-weight: 700;"
     "    border: none;"
-    "    border-bottom: 1px solid #2D2D2D;"
-    "    border-right: 1px solid #2B2B2B;"
-    "    padding: 6px 10px;"
+    "    border-bottom: 1px solid #2A3654;"
+    "    border-right: 1px solid #232D47;"
+    "    border-radius: 0;"
+    "    padding: 7px 10px;"
+    "    box-shadow: none;"
     "}"
-    ".perf-card {"
-    "    background-color: #272727;"
-    "    border: 1px solid #323232;"
-    "    border-radius: 6px;"
+    "treeview.view header button label {"
+    "    color: #CBD5E1 !important;"
+    "}"
+    "treeview.view header button:hover {"
+    "    background-color: #232E4A !important;"
+    "}"
+    "button.perf-card {"
+    "    background-color: #171E32 !important;"
+    "    background-image: none !important;"
+    "    border: 1px solid #26314D;"
+    "    border-left: 3px solid transparent;"
+    "    border-radius: 8px;"
     "    padding: 8px 12px;"
-    "    margin: 3px 6px;"
-    "    transition: all 120ms ease;"
+    "    margin: 3px 4px;"
     "}"
-    ".perf-card:hover {"
-    "    background-color: #303030;"
-    "    border-color: #404040;"
+    "button.perf-card:hover {"
+    "    background-color: #1E2842 !important;"
+    "    border-color: #364569;"
     "}"
-    ".perf-card.active {"
-    "    background-color: #333333;"
-    "    border-left: 3px solid #60CDFF;"
-    "    border-color: #484848;"
+    "button.perf-card.active {"
+    "    background-color: #1F2A46 !important;"
+    "    border: 1px solid #364569;"
+    "    border-left: 3px solid #38BDF8;"
     "}"
     ".stat-box {"
-    "    background-color: #262626;"
-    "    border: 1px solid #323232;"
-    "    border-radius: 6px;"
+    "    background-color: #171E32 !important;"
+    "    border: 1px solid #26314D;"
+    "    border-radius: 8px;"
     "    padding: 10px 14px;"
+    "}"
+    ".summary-bar {"
+    "    background-color: #141A2B !important;"
+    "    border-bottom: 1px solid #232D47;"
     "}"
     ".stat-label {"
     "    font-size: 11px;"
-    "    color: #9E9E9E;"
-    "    font-weight: 500;"
+    "    color: #94A3B8 !important;"
+    "    font-weight: 600;"
     "}"
     ".stat-value {"
     "    font-size: 15px;"
-    "    color: #FFFFFF;"
-    "    font-weight: 600;"
+    "    color: #FFFFFF !important;"
+    "    font-weight: 700;"
     "}"
     ".text-muted {"
-    "    color: #9E9E9E;"
+    "    color: #94A3B8 !important;"
+    "}"
+    "combobox button, combobox box, menu, menuitem, popover {"
+    "    background-color: #1A2238 !important;"
+    "    background-image: none !important;"
+    "    color: #F1F5F9 !important;"
+    "    border-color: #303E61;"
+    "}"
+    "menuitem:hover {"
+    "    background-color: #0F3D5E !important;"
+    "    color: #FFFFFF !important;"
+    "}"
+    "checkbutton, checkbutton label {"
+    "    color: #F1F5F9 !important;"
+    "}"
+    "scrollbar trough {"
+    "    background-color: #0E1320;"
+    "}"
+    "scrollbar slider {"
+    "    background-color: #334155;"
+    "    border-radius: 6px;"
+    "    min-width: 8px;"
+    "    min-height: 8px;"
+    "}"
+    "scrollbar slider:hover {"
+    "    background-color: #475569;"
     "}";
 
 /* Forward Declarations */
@@ -448,7 +505,7 @@ static void apply_win11_theme(void) {
     gtk_style_context_add_provider_for_screen(
         screen,
         GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_USER
+        GTK_STYLE_PROVIDER_PRIORITY_USER + 100
     );
     g_object_unref(provider);
 }
@@ -682,12 +739,12 @@ static void sample_system_telemetry(Win11TaskManager *app) {
  * ----------------------------------------------------------------------------- */
 static void draw_win11_rolling_graph(cairo_t *cr, double *data, int count, int w, int h,
                                      double r, double g, double b, double max_val, const char *unit_str) {
-    /* 1. Background */
-    cairo_set_source_rgb(cr, 0.125, 0.125, 0.125);
+    /* 1. Deep Obsidian Background & Crisp Frame */
+    cairo_set_source_rgb(cr, 0.055, 0.075, 0.125);
     cairo_paint(cr);
 
-    /* 2. Grid lines (Windows 11 style) */
-    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.07);
+    /* 2. Grid lines (Windows 11 / Obsidian style) */
+    cairo_set_source_rgba(cr, 0.22, 0.74, 0.97, 0.12);
     cairo_set_line_width(cr, 1.0);
     /* 4 Horizontal Lines */
     for (int i = 1; i < 4; ++i) {
@@ -701,6 +758,12 @@ static void draw_win11_rolling_graph(cairo_t *cr, double *data, int count, int w
         cairo_move_to(cr, x, 0);
         cairo_line_to(cr, x, h);
     }
+    cairo_stroke(cr);
+
+    /* Crisp Outer Graph Frame */
+    cairo_set_source_rgba(cr, 0.22, 0.30, 0.48, 0.8);
+    cairo_set_line_width(cr, 1.0);
+    cairo_rectangle(cr, 0.5, 0.5, w - 1.0, h - 1.0);
     cairo_stroke(cr);
 
     /* 3. Gradient Fill Under Line */
@@ -800,8 +863,13 @@ static gboolean on_draw_sparkline(GtkWidget *widget, cairo_t *cr, gpointer user_
         r = 0.96; g = 0.62; b = 0.04;
     }
 
-    cairo_set_source_rgb(cr, 0.15, 0.15, 0.15);
+    cairo_set_source_rgb(cr, 0.055, 0.075, 0.125);
     cairo_paint(cr);
+
+    cairo_set_source_rgba(cr, 0.22, 0.30, 0.48, 0.65);
+    cairo_set_line_width(cr, 1.0);
+    cairo_rectangle(cr, 0.5, 0.5, w - 1.0, h - 1.0);
+    cairo_stroke(cr);
 
     if (HISTORY_POINTS >= 2) {
         double step = (double)w / (HISTORY_POINTS - 1);
@@ -819,6 +887,34 @@ static gboolean on_draw_sparkline(GtkWidget *widget, cairo_t *cr, gpointer user_
         cairo_stroke(cr);
     }
     return FALSE;
+}
+
+static const char *get_process_icon_name(const char *comm) {
+    if (!comm || !comm[0]) return "system-run";
+    if (strcasestr(comm, "term") || strcasestr(comm, "bash") || strcasestr(comm, "zsh") ||
+        strcasestr(comm, "sh") || strcasestr(comm, "foot") || strcasestr(comm, "konsole"))
+        return "utilities-terminal";
+    if (strcasestr(comm, "chrom") || strcasestr(comm, "firefox") || strcasestr(comm, "browser"))
+        return "web-browser";
+    if (strcasestr(comm, "dolphin") || strcasestr(comm, "thunar") || strcasestr(comm, "files"))
+        return "system-file-manager";
+    if (strcasestr(comm, "pipewire") || strcasestr(comm, "wireplumber") || strcasestr(comm, "pulse") || strcasestr(comm, "audio"))
+        return "audio-card";
+    if (strcasestr(comm, "network") || strcasestr(comm, "wpa") || strcasestr(comm, "ssh") || strcasestr(comm, "avahi") || strcasestr(comm, "dns"))
+        return "network-wired";
+    if (strcasestr(comm, "plasma") || strcasestr(comm, "kwin") || strcasestr(comm, "sddm") || strcasestr(comm, "xorg") || strcasestr(comm, "wayland"))
+        return "preferences-desktop-display";
+    if (strcasestr(comm, "steam") || strcasestr(comm, "lutris") || strcasestr(comm, "wine") || strcasestr(comm, "game") || strcasestr(comm, "mango"))
+        return "preferences-desktop-gaming";
+    if (strcasestr(comm, "task-manager") || strcasestr(comm, "htop") || strcasestr(comm, "monitor"))
+        return "utilities-system-monitor";
+    if (strcasestr(comm, "settings"))
+        return "preferences-system";
+    if (strcasestr(comm, "systemd") || strcasestr(comm, "dbus") || strcasestr(comm, "udev") ||
+        strcasestr(comm, "polkit") || strcasestr(comm, "cron") || strcasestr(comm, "kworker") ||
+        strcasestr(comm, "daemon") || strcasestr(comm, "journal"))
+        return "preferences-system-services";
+    return "system-run";
 }
 
 /* -----------------------------------------------------------------------------
@@ -947,18 +1043,21 @@ static void refresh_processes(Win11TaskManager *app) {
         double mem_mb = (rss_pages * 4096.0) / (1024.0 * 1024.0);
 
         /* Heat-map background colors (Windows 11 amber/coral scale) */
-        char cpu_bg[32] = "#202020";
-        if (cpu_pct > 50.0) strcpy(cpu_bg, "#591B16");
-        else if (cpu_pct > 25.0) strcpy(cpu_bg, "#4E2B16");
-        else if (cpu_pct > 5.0) strcpy(cpu_bg, "#332616");
+        char cpu_bg[32] = "#141A2B";
+        char cpu_fg[32] = "#F1F5F9";
+        if (cpu_pct > 50.0) { strcpy(cpu_bg, "#6B1D1D"); strcpy(cpu_fg, "#FECACA"); }
+        else if (cpu_pct > 25.0) { strcpy(cpu_bg, "#5C2D12"); strcpy(cpu_fg, "#FED7AA"); }
+        else if (cpu_pct > 5.0) { strcpy(cpu_bg, "#3D2E14"); strcpy(cpu_fg, "#FDE68A"); }
 
-        char mem_bg[32] = "#202020";
-        if (mem_mb > 1024.0) strcpy(mem_bg, "#4E2B16");
-        else if (mem_mb > 256.0) strcpy(mem_bg, "#332616");
+        char mem_bg[32] = "#141A2B";
+        char mem_fg[32] = "#F1F5F9";
+        if (mem_mb > 1024.0) { strcpy(mem_bg, "#5C2D12"); strcpy(mem_fg, "#FED7AA"); }
+        else if (mem_mb > 256.0) { strcpy(mem_bg, "#3D2E14"); strcpy(mem_fg, "#FDE68A"); }
 
-        /* Status & Efficiency mode */
-        const char *status_str = (state == 'R') ? "Running" : (state == 'S') ? "Sleeping" : (state == 'T') ? "Suspended" : "Idle";
-        const char *eff_icon = (nice_val >= 15) ? "🍃" : "";
+        /* Status & Efficiency mode (real theme icons) */
+        const char *app_icon = get_process_icon_name(comm);
+        const char *status_str = (nice_val >= 15) ? "Efficiency" : (state == 'R') ? "Running" : (state == 'S') ? "Sleeping" : (state == 'T') ? "Suspended" : "Idle";
+        const char *eff_icon = (nice_val >= 15) ? "battery" : "";
 
         /* Formatted strings */
         char cpu_str[32], mem_str[32], disk_str[32];
@@ -995,6 +1094,7 @@ static void refresh_processes(Win11TaskManager *app) {
 
         if (found) {
             gtk_list_store_set(app->store_processes, &iter,
+                PROC_COL_APP_ICON, app_icon,
                 PROC_COL_NAME, comm,
                 PROC_COL_STATUS, status_str,
                 PROC_COL_STATUS_ICON, eff_icon,
@@ -1009,12 +1109,15 @@ static void refresh_processes(Win11TaskManager *app) {
                 PROC_COL_USER, user_name,
                 PROC_COL_CMDLINE, cmdline,
                 PROC_COL_CPU_BG, cpu_bg,
+                PROC_COL_CPU_FG, cpu_fg,
                 PROC_COL_MEM_BG, mem_bg,
+                PROC_COL_MEM_FG, mem_fg,
                 -1);
         } else {
             gtk_list_store_append(app->store_processes, &iter);
             gtk_list_store_set(app->store_processes, &iter,
                 PROC_COL_PID, pid,
+                PROC_COL_APP_ICON, app_icon,
                 PROC_COL_NAME, comm,
                 PROC_COL_STATUS, status_str,
                 PROC_COL_STATUS_ICON, eff_icon,
@@ -1029,7 +1132,9 @@ static void refresh_processes(Win11TaskManager *app) {
                 PROC_COL_USER, user_name,
                 PROC_COL_CMDLINE, cmdline,
                 PROC_COL_CPU_BG, cpu_bg,
+                PROC_COL_CPU_FG, cpu_fg,
                 PROC_COL_MEM_BG, mem_bg,
+                PROC_COL_MEM_FG, mem_fg,
                 -1);
         }
     }
@@ -1477,19 +1582,15 @@ static void on_hamburger_clicked(GtkWidget *btn, gpointer user_data) {
     Win11TaskManager *app = (Win11TaskManager *)user_data;
     app->rail_expanded = !app->rail_expanded;
 
-    int new_width = app->rail_expanded ? 200 : 54;
+    int new_width = app->rail_expanded ? 204 : 56;
     gtk_widget_set_size_request(app->nav_rail, new_width, -1);
 
     for (guint i = 0; i < app->nav_buttons->len; ++i) {
         GtkWidget *b = (GtkWidget *)g_ptr_array_index(app->nav_buttons, i);
-        const char *full_title = (const char *)g_object_get_data(G_OBJECT(b), "full_title");
-        const char *icon_glyph = (const char *)g_object_get_data(G_OBJECT(b), "icon_glyph");
-        if (app->rail_expanded) {
-            char label_text[128];
-            snprintf(label_text, sizeof(label_text), "%s   %s", icon_glyph, full_title);
-            gtk_button_set_label(GTK_BUTTON(b), label_text);
-        } else {
-            gtk_button_set_label(GTK_BUTTON(b), icon_glyph);
+        GtkWidget *lbl = (GtkWidget *)g_object_get_data(G_OBJECT(b), "nav_label");
+        if (lbl) {
+            if (app->rail_expanded) gtk_widget_show(lbl);
+            else gtk_widget_hide(lbl);
         }
     }
 }
@@ -1524,6 +1625,7 @@ static GtkWidget *build_processes_page(Win11TaskManager *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->lbl_proc_summary), "stat-label");
     gtk_label_set_xalign(GTK_LABEL(app->lbl_proc_summary), 0.0);
     GtkWidget *sum_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_style_context_add_class(gtk_widget_get_style_context(sum_box), "summary-bar");
     gtk_container_set_border_width(GTK_CONTAINER(sum_box), 8);
     gtk_box_pack_start(GTK_BOX(sum_box), app->lbl_proc_summary, TRUE, TRUE, 8);
     gtk_box_pack_start(GTK_BOX(box), sum_box, FALSE, FALSE, 0);
@@ -1532,6 +1634,7 @@ static GtkWidget *build_processes_page(Win11TaskManager *app) {
     app->store_processes = gtk_list_store_new(
         NUM_PROC_COLS,
         G_TYPE_INT,     // PID
+        G_TYPE_STRING,  // APP_ICON
         G_TYPE_STRING,  // NAME
         G_TYPE_STRING,  // STATUS
         G_TYPE_STRING,  // STATUS_ICON
@@ -1546,7 +1649,9 @@ static GtkWidget *build_processes_page(Win11TaskManager *app) {
         G_TYPE_STRING,  // USER
         G_TYPE_STRING,  // CMDLINE
         G_TYPE_STRING,  // CPU_BG
-        G_TYPE_STRING   // MEM_BG
+        G_TYPE_STRING,  // CPU_FG
+        G_TYPE_STRING,  // MEM_BG
+        G_TYPE_STRING   // MEM_FG
     );
 
     app->filter_processes = GTK_TREE_MODEL_FILTER(gtk_tree_model_filter_new(GTK_TREE_MODEL(app->store_processes), NULL));
@@ -1557,41 +1662,53 @@ static GtkWidget *build_processes_page(Win11TaskManager *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->tree_processes), "treeview-win11");
 
     GtkCellRenderer *r_txt = gtk_cell_renderer_text_new();
-    g_object_set(r_txt, "xpad", 10, "ypad", 5, NULL);
+    g_object_set(r_txt, "xpad", 8, "ypad", 5, "foreground", "#F1F5F9", NULL);
 
-    /* 1. Name Column */
-    GtkTreeViewColumn *col_name = gtk_tree_view_column_new_with_attributes("Name", r_txt, "text", PROC_COL_NAME, NULL);
+    /* 1. Name Column with Real Theme App Icon */
+    GtkCellRenderer *r_app_icon = gtk_cell_renderer_pixbuf_new();
+    g_object_set(r_app_icon, "xpad", 6, "stock-size", GTK_ICON_SIZE_MENU, NULL);
+    GtkTreeViewColumn *col_name = gtk_tree_view_column_new();
+    gtk_tree_view_column_set_title(col_name, "Name");
+    gtk_tree_view_column_pack_start(col_name, r_app_icon, FALSE);
+    gtk_tree_view_column_add_attribute(col_name, r_app_icon, "icon-name", PROC_COL_APP_ICON);
+    gtk_tree_view_column_pack_start(col_name, r_txt, TRUE);
+    gtk_tree_view_column_add_attribute(col_name, r_txt, "text", PROC_COL_NAME);
     gtk_tree_view_column_set_sort_column_id(col_name, PROC_COL_NAME);
     gtk_tree_view_column_set_resizable(col_name, TRUE);
-    gtk_tree_view_column_set_min_width(col_name, 220);
+    gtk_tree_view_column_set_min_width(col_name, 230);
     gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_name);
 
-    /* 2. Status Column */
-    GtkCellRenderer *r_icon = gtk_cell_renderer_text_new();
+    /* 2. Status Column with Real Efficiency Icon */
+    GtkCellRenderer *r_stat_icon = gtk_cell_renderer_pixbuf_new();
+    g_object_set(r_stat_icon, "xpad", 4, "stock-size", GTK_ICON_SIZE_MENU, NULL);
     GtkTreeViewColumn *col_stat = gtk_tree_view_column_new();
     gtk_tree_view_column_set_title(col_stat, "Status");
-    gtk_tree_view_column_pack_start(col_stat, r_icon, FALSE);
-    gtk_tree_view_column_add_attribute(col_stat, r_icon, "text", PROC_COL_STATUS_ICON);
+    gtk_tree_view_column_pack_start(col_stat, r_stat_icon, FALSE);
+    gtk_tree_view_column_add_attribute(col_stat, r_stat_icon, "icon-name", PROC_COL_STATUS_ICON);
     gtk_tree_view_column_pack_start(col_stat, r_txt, TRUE);
     gtk_tree_view_column_add_attribute(col_stat, r_txt, "text", PROC_COL_STATUS);
-    gtk_tree_view_column_set_min_width(col_stat, 100);
+    gtk_tree_view_column_set_min_width(col_stat, 105);
     gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_stat);
 
-    /* 3. CPU Column (with heat-map cell background) */
+    /* 3. CPU Column (with high-contrast heat-map BG + FG) */
     GtkCellRenderer *r_cpu = gtk_cell_renderer_text_new();
     g_object_set(r_cpu, "xpad", 8, "ypad", 5, "xalign", 1.0, NULL);
     GtkTreeViewColumn *col_cpu = gtk_tree_view_column_new_with_attributes(
-        "CPU", r_cpu, "text", PROC_COL_CPU_STR, "cell-background", PROC_COL_CPU_BG, NULL
+        "CPU", r_cpu, "text", PROC_COL_CPU_STR,
+        "cell-background", PROC_COL_CPU_BG,
+        "foreground", PROC_COL_CPU_FG, NULL
     );
     gtk_tree_view_column_set_sort_column_id(col_cpu, PROC_COL_CPU_VAL);
     gtk_tree_view_column_set_min_width(col_cpu, 90);
     gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_cpu);
 
-    /* 4. Memory Column (with heat-map cell background) */
+    /* 4. Memory Column (with high-contrast heat-map BG + FG) */
     GtkCellRenderer *r_mem = gtk_cell_renderer_text_new();
     g_object_set(r_mem, "xpad", 8, "ypad", 5, "xalign", 1.0, NULL);
     GtkTreeViewColumn *col_mem = gtk_tree_view_column_new_with_attributes(
-        "Memory", r_mem, "text", PROC_COL_MEM_STR, "cell-background", PROC_COL_MEM_BG, NULL
+        "Memory", r_mem, "text", PROC_COL_MEM_STR,
+        "cell-background", PROC_COL_MEM_BG,
+        "foreground", PROC_COL_MEM_FG, NULL
     );
     gtk_tree_view_column_set_sort_column_id(col_mem, PROC_COL_MEM_VAL);
     gtk_tree_view_column_set_min_width(col_mem, 100);
@@ -1654,6 +1771,7 @@ static GtkWidget *build_performance_page(Win11TaskManager *app) {
     gtk_container_set_border_width(GTK_CONTAINER(left_rail), 8);
 
     const char *card_names[] = {"CPU", "Memory", "Disk 0", "Network"};
+    const char *card_icons[] = {"cpu", "media-memory", "drive-harddisk", "network-wired"};
     for (int i = 0; i < NUM_PERF_METRICS; ++i) {
         GtkWidget *card = gtk_button_new();
         gtk_style_context_add_class(gtk_widget_get_style_context(card), "perf-card");
@@ -1661,10 +1779,14 @@ static GtkWidget *build_performance_page(Win11TaskManager *app) {
         g_signal_connect(card, "clicked", G_CALLBACK(on_perf_card_clicked), app);
         app->btn_perf_cards[i] = card;
 
-        GtkWidget *c_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
+        GtkWidget *c_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
+        GtkWidget *hdr_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+        GtkWidget *c_icon = gtk_image_new_from_icon_name(card_icons[i], GTK_ICON_SIZE_MENU);
         GtkWidget *l_name = gtk_label_new(card_names[i]);
         gtk_label_set_xalign(GTK_LABEL(l_name), 0.0);
         gtk_style_context_add_class(gtk_widget_get_style_context(l_name), "stat-label");
+        gtk_box_pack_start(GTK_BOX(hdr_row), c_icon, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(hdr_row), l_name, TRUE, TRUE, 0);
 
         app->lbl_perf_card_vals[i] = gtk_label_new("0%");
         gtk_label_set_xalign(GTK_LABEL(app->lbl_perf_card_vals[i]), 0.0);
@@ -1679,7 +1801,7 @@ static GtkWidget *build_performance_page(Win11TaskManager *app) {
         g_object_set_data(G_OBJECT(app->draw_perf_sparklines[i]), "metric", GINT_TO_POINTER(i));
         g_signal_connect(app->draw_perf_sparklines[i], "draw", G_CALLBACK(on_draw_sparkline), app);
 
-        gtk_box_pack_start(GTK_BOX(c_box), l_name, FALSE, FALSE, 0);
+        gtk_box_pack_start(GTK_BOX(c_box), hdr_row, FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(c_box), app->lbl_perf_card_vals[i], FALSE, FALSE, 0);
         gtk_box_pack_start(GTK_BOX(c_box), app->draw_perf_sparklines[i], TRUE, TRUE, 2);
         gtk_container_add(GTK_CONTAINER(card), c_box);
@@ -1785,7 +1907,7 @@ static GtkWidget *build_details_page(Win11TaskManager *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->tree_details), "treeview-win11");
 
     GtkCellRenderer *r = gtk_cell_renderer_text_new();
-    g_object_set(r, "xpad", 8, "ypad", 4, NULL);
+    g_object_set(r, "xpad", 8, "ypad", 4, "foreground", "#F1F5F9", NULL);
 
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "Name", r, "text", DET_COL_NAME, NULL);
     gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(app->tree_details), -1, "PID", r, "text", DET_COL_PID, NULL);
@@ -1817,7 +1939,7 @@ static GtkWidget *build_simple_tree_page(GtkListStore **store_out, GtkWidget **t
     gtk_style_context_add_class(gtk_widget_get_style_context(*tree_out), "treeview-win11");
 
     GtkCellRenderer *r = gtk_cell_renderer_text_new();
-    g_object_set(r, "xpad", 8, "ypad", 5, NULL);
+    g_object_set(r, "xpad", 8, "ypad", 5, "foreground", "#F1F5F9", NULL);
     for (int i = 0; i < num_cols; ++i) {
         gtk_tree_view_insert_column_with_attributes(GTK_TREE_VIEW(*tree_out), -1, col_names[i], r, "text", i, NULL);
     }
@@ -1826,6 +1948,29 @@ static GtkWidget *build_simple_tree_page(GtkListStore **store_out, GtkWidget **t
     gtk_container_add(GTK_CONTAINER(scroll), *tree_out);
     gtk_box_pack_start(GTK_BOX(box), scroll, TRUE, TRUE, 0);
     return box;
+}
+
+static void on_speed_changed(GtkComboBox *combo, gpointer user_data) {
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    int idx = gtk_combo_box_get_active(combo);
+    if (app->timer_id > 0) {
+        g_source_remove(app->timer_id);
+        app->timer_id = 0;
+    }
+    if (idx == 0) app->refresh_rate_ms = 500;
+    else if (idx == 1) app->refresh_rate_ms = 1000;
+    else if (idx == 2) app->refresh_rate_ms = 2000;
+    else app->refresh_rate_ms = 0;
+
+    if (app->refresh_rate_ms > 0) {
+        app->timer_id = g_timeout_add(app->refresh_rate_ms, on_refresh_tick, app);
+    }
+}
+
+static void on_always_on_top_toggled(GtkToggleButton *btn, gpointer user_data) {
+    Win11TaskManager *app = (Win11TaskManager *)user_data;
+    app->always_on_top = gtk_toggle_button_get_active(btn);
+    gtk_window_set_keep_above(GTK_WINDOW(app->window), app->always_on_top);
 }
 
 static GtkWidget *build_settings_page(Win11TaskManager *app) {
@@ -1854,6 +1999,7 @@ static GtkWidget *build_settings_page(Win11TaskManager *app) {
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), "Low (2 seconds)");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(combo), "Paused");
     gtk_combo_box_set_active(GTK_COMBO_BOX(combo), 1);
+    g_signal_connect(combo, "changed", G_CALLBACK(on_speed_changed), app);
     gtk_box_pack_start(GTK_BOX(card1), l1, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(card1), combo, FALSE, FALSE, 4);
     gtk_box_pack_start(GTK_BOX(box), card1, FALSE, FALSE, 0);
@@ -1862,11 +2008,27 @@ static GtkWidget *build_settings_page(Win11TaskManager *app) {
     GtkWidget *card2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
     gtk_style_context_add_class(gtk_widget_get_style_context(card2), "stat-box");
     GtkWidget *chk_top = gtk_check_button_new_with_label("Always on top");
+    g_signal_connect(chk_top, "toggled", G_CALLBACK(on_always_on_top_toggled), app);
     gtk_box_pack_start(GTK_BOX(card2), chk_top, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(box), card2, FALSE, FALSE, 0);
 
-    (void)app;
     return box;
+}
+
+/* Helper: Create a Fluent Button with Real Theme Icon + Label */
+static GtkWidget *create_icon_button(const char *icon_name, const char *label_text, GtkIconSize icon_size) {
+    GtkWidget *btn = gtk_button_new();
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 7);
+    GtkWidget *img = gtk_image_new_from_icon_name(icon_name, icon_size);
+    gtk_box_pack_start(GTK_BOX(hbox), img, FALSE, FALSE, 0);
+    if (label_text && label_text[0]) {
+        GtkWidget *lbl = gtk_label_new(label_text);
+        gtk_label_set_xalign(GTK_LABEL(lbl), 0.0);
+        gtk_box_pack_start(GTK_BOX(hbox), lbl, FALSE, FALSE, 0);
+        g_object_set_data(G_OBJECT(btn), "nav_label", lbl);
+    }
+    gtk_container_add(GTK_CONTAINER(btn), hbox);
+    return btn;
 }
 
 /* -----------------------------------------------------------------------------
@@ -1883,50 +2045,53 @@ static Win11TaskManager *win11_task_manager_create(void) {
     init_hardware_specs(app);
     apply_win11_theme();
 
-    /* Top Level Window */
+    /* Top Level Window (Native KWin titlebar — zero CSD conflict) */
     app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(app->window), "Task Manager");
-    gtk_window_set_default_size(GTK_WINDOW(app->window), 980, 620);
+    gtk_window_set_title(GTK_WINDOW(app->window), "AxisOS Task Manager");
+    gtk_window_set_icon_name(GTK_WINDOW(app->window), "utilities-system-monitor");
+    gtk_window_set_default_size(GTK_WINDOW(app->window), 1020, 650);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
-
-    /* Header Bar */
-    app->header_bar = gtk_header_bar_new();
-    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(app->header_bar), TRUE);
-    gtk_header_bar_set_title(GTK_HEADER_BAR(app->header_bar), "Task Manager");
-    gtk_window_set_titlebar(GTK_WINDOW(app->window), app->header_bar);
-
-    /* Hamburger Menu Button */
-    app->btn_hamburger = gtk_button_new_with_label("☰");
-    gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_hamburger), "fluent-btn");
-    g_signal_connect(app->btn_hamburger, "clicked", G_CALLBACK(on_hamburger_clicked), app);
-    gtk_header_bar_pack_start(GTK_HEADER_BAR(app->header_bar), app->btn_hamburger);
 
     /* Main Window Container */
     GtkWidget *root_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(app->window), root_vbox);
 
-    /* Windows 11 Command Bar */
+    /* Windows 11 Top Command Bar with Real Icons */
     GtkWidget *cmd_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_style_context_add_class(gtk_widget_get_style_context(cmd_bar), "command-bar");
+
+    app->btn_hamburger = create_icon_button("open-menu", NULL, GTK_ICON_SIZE_BUTTON);
+    gtk_widget_set_tooltip_text(app->btn_hamburger, "Toggle navigation panel");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_hamburger), "fluent-btn");
+    g_signal_connect(app->btn_hamburger, "clicked", G_CALLBACK(on_hamburger_clicked), app);
+    gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_hamburger, FALSE, FALSE, 0);
+
+    GtkWidget *cmd_icon = gtk_image_new_from_icon_name("utilities-system-monitor", GTK_ICON_SIZE_LARGE_TOOLBAR);
+    gtk_box_pack_start(GTK_BOX(cmd_bar), cmd_icon, FALSE, FALSE, 2);
+
+    GtkWidget *cmd_title = gtk_label_new("Task Manager");
+    gtk_style_context_add_class(gtk_widget_get_style_context(cmd_title), "cmd-title");
+    gtk_box_pack_start(GTK_BOX(cmd_bar), cmd_title, FALSE, FALSE, 0);
 
     app->search_entry = gtk_search_entry_new();
     gtk_style_context_add_class(gtk_widget_get_style_context(app->search_entry), "fluent-search");
     gtk_entry_set_placeholder_text(GTK_ENTRY(app->search_entry), "Type a name, PID, or publisher to search");
     g_signal_connect(app->search_entry, "search-changed", G_CALLBACK(on_search_changed), app);
-    gtk_box_pack_start(GTK_BOX(cmd_bar), app->search_entry, FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(cmd_bar), app->search_entry, TRUE, TRUE, 4);
 
-    /* Action Buttons */
-    app->btn_run_task = gtk_button_new_with_label("Run new task");
+    /* Action Buttons with Real Papirus-Dark Icons */
+    app->btn_run_task = create_icon_button("list-add", "Run new task", GTK_ICON_SIZE_MENU);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_run_task), "fluent-btn");
     g_signal_connect(app->btn_run_task, "clicked", G_CALLBACK(on_run_task_clicked), app);
     gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_run_task, FALSE, FALSE, 0);
 
-    app->btn_end_task = gtk_button_new_with_label("End task");
+    app->btn_end_task = create_icon_button("process-stop", "End task", GTK_ICON_SIZE_MENU);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_end_task), "fluent-btn");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_end_task), "fluent-btn-danger");
     g_signal_connect(app->btn_end_task, "clicked", G_CALLBACK(on_end_task_clicked), app);
     gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_end_task, FALSE, FALSE, 0);
 
-    app->btn_efficiency = gtk_button_new_with_label("Efficiency mode 🍃");
+    app->btn_efficiency = create_icon_button("preferences-system-power-management", "Efficiency mode", GTK_ICON_SIZE_MENU);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_efficiency), "fluent-btn");
     g_signal_connect(app->btn_efficiency, "clicked", G_CALLBACK(on_efficiency_mode_clicked), app);
     gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_efficiency, FALSE, FALSE, 0);
@@ -1937,35 +2102,32 @@ static Win11TaskManager *win11_task_manager_create(void) {
     GtkWidget *body_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(root_vbox), body_hbox, TRUE, TRUE, 0);
 
-    /* Left Navigation Rail (Mica style) */
+    /* Left Navigation Rail (Mica style with Real Theme Icons) */
     app->nav_rail = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->nav_rail), "nav-rail");
-    gtk_widget_set_size_request(app->nav_rail, 200, -1);
+    gtk_widget_set_size_request(app->nav_rail, 204, -1);
 
     typedef struct {
         const char *title;
-        const char *glyph;
+        const char *icon_name;
         const char *id;
     } NavItem;
 
     static const NavItem navs[] = {
-        {"Processes",    "📊", "processes"},
-        {"Performance",  "📈", "performance"},
-        {"App history",  "⏱", "history"},
-        {"Startup apps", "🚀", "startup"},
-        {"Users",        "👤", "users"},
-        {"Details",      "📋", "details"},
-        {"Services",     "⚙", "services"}
+        {"Processes",    "preferences-system-windows",   "processes"},
+        {"Performance",  "utilities-system-monitor",     "performance"},
+        {"App history",  "document-open-recent",         "history"},
+        {"Startup apps", "system-run",                   "startup"},
+        {"Users",        "system-users",                 "users"},
+        {"Details",      "view-list-details",            "details"},
+        {"Services",     "preferences-system-services",  "services"}
     };
 
     for (size_t i = 0; i < sizeof(navs)/sizeof(navs[0]); ++i) {
-        char label_text[128];
-        snprintf(label_text, sizeof(label_text), "%s   %s", navs[i].glyph, navs[i].title);
-        GtkWidget *btn = gtk_button_new_with_label(label_text);
+        GtkWidget *btn = create_icon_button(navs[i].icon_name, navs[i].title, GTK_ICON_SIZE_LARGE_TOOLBAR);
         gtk_style_context_add_class(gtk_widget_get_style_context(btn), "nav-btn");
+        gtk_widget_set_tooltip_text(btn, navs[i].title);
         g_object_set_data(G_OBJECT(btn), "page_id", (gpointer)navs[i].id);
-        g_object_set_data(G_OBJECT(btn), "full_title", (gpointer)navs[i].title);
-        g_object_set_data(G_OBJECT(btn), "icon_glyph", (gpointer)navs[i].glyph);
         g_signal_connect(btn, "clicked", G_CALLBACK(on_nav_page_selected), app);
         gtk_box_pack_start(GTK_BOX(app->nav_rail), btn, FALSE, FALSE, 0);
         g_ptr_array_add(app->nav_buttons, btn);
@@ -1976,11 +2138,10 @@ static Win11TaskManager *win11_task_manager_create(void) {
     GtkWidget *spacer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start(GTK_BOX(app->nav_rail), spacer, TRUE, TRUE, 0);
 
-    GtkWidget *btn_settings = gtk_button_new_with_label("⚙   Settings");
+    GtkWidget *btn_settings = create_icon_button("preferences-system", "Settings", GTK_ICON_SIZE_LARGE_TOOLBAR);
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_settings), "nav-btn");
+    gtk_widget_set_tooltip_text(btn_settings, "Settings");
     g_object_set_data(G_OBJECT(btn_settings), "page_id", (gpointer)"settings");
-    g_object_set_data(G_OBJECT(btn_settings), "full_title", (gpointer)"Settings");
-    g_object_set_data(G_OBJECT(btn_settings), "icon_glyph", (gpointer)"⚙");
     g_signal_connect(btn_settings, "clicked", G_CALLBACK(on_nav_page_selected), app);
     gtk_box_pack_start(GTK_BOX(app->nav_rail), btn_settings, FALSE, FALSE, 4);
     g_ptr_array_add(app->nav_buttons, btn_settings);
