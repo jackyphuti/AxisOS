@@ -152,8 +152,8 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
     GtkAllocation alloc;
     gtk_widget_get_allocation(widget, &alloc);
 
-    // AxisOS One UI Dark background #141826
-    cairo_set_source_rgb(cr, 20.0 / 255.0, 24.0 / 255.0, 38.0 / 255.0);
+    // AxisOS Obsidian Dark background #0E1320
+    cairo_set_source_rgb(cr, 14.0 / 255.0, 19.0 / 255.0, 32.0 / 255.0);
     cairo_paint(cr);
 
     if (!tab || !tab->vts) return FALSE;
@@ -415,6 +415,15 @@ static TerminalTab *create_new_tab(TerminalApp *app) {
 
         setenv("TERM", "xterm-256color", 1);
         setenv("COLORTERM", "truecolor", 1);
+        setenv("AXIS_TERMINAL", "1", 1);
+
+        /* Print AxisOS Logo & Live System Details on every new terminal session */
+        if (access("/usr/local/bin/axis-fetch", X_OK) == 0) {
+            int rc = system("/usr/local/bin/axis-fetch 2>/dev/null");
+            (void)rc;
+            setenv("AXIS_FETCH_SHOWN", "1", 1);
+        }
+
         execlp(sh, sh, "-l", NULL);
         _exit(1);
     }
@@ -584,23 +593,29 @@ int main(int argc, char *argv[]) {
     TerminalApp app = {0};
 
     app.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_default_size(GTK_WINDOW(app.window), 860, 520);
+    gtk_window_set_default_size(GTK_WINDOW(app.window), 940, 580);
+    gtk_window_set_position(GTK_WINDOW(app.window), GTK_WIN_POS_CENTER);
     gtk_window_set_title(GTK_WINDOW(app.window), "AxisOS Terminal");
+    gtk_window_set_icon_name(GTK_WINDOW(app.window), "utilities-terminal");
 
-    app.header_bar = gtk_header_bar_new();
-    gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(app.header_bar), TRUE);
-    gtk_header_bar_set_title(GTK_HEADER_BAR(app.header_bar), "AxisOS Terminal");
-    gtk_header_bar_set_subtitle(GTK_HEADER_BAR(app.header_bar), "Pure C11 / libvterm");
-    gtk_window_set_titlebar(GTK_WINDOW(app.window), app.header_bar);
+    GtkWidget *root_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+    gtk_container_add(GTK_CONTAINER(app.window), root_box);
 
-    GtkWidget *new_tab_btn = gtk_button_new_from_icon_name("tab-new-symbolic", GTK_ICON_SIZE_BUTTON);
+    /* Sleek Internal Toolbar (KWin handles native titlebar cleanly) */
+    GtkWidget *top_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_container_set_border_width(GTK_CONTAINER(top_bar), 4);
+    GtkWidget *new_tab_btn = gtk_button_new_from_icon_name("list-add", GTK_ICON_SIZE_MENU);
     gtk_widget_set_tooltip_text(new_tab_btn, "New Tab (Ctrl+Shift+T)");
     g_signal_connect(new_tab_btn, "clicked", G_CALLBACK(on_new_tab_btn_clicked), &app);
-    gtk_header_bar_pack_start(GTK_HEADER_BAR(app.header_bar), new_tab_btn);
+    gtk_box_pack_start(GTK_BOX(top_bar), new_tab_btn, FALSE, FALSE, 4);
+
+    GtkWidget *bar_lbl = gtk_label_new("AxisOS Terminal  •  Obsidian Pure C11");
+    gtk_box_pack_start(GTK_BOX(top_bar), bar_lbl, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(root_box), top_bar, FALSE, FALSE, 0);
 
     app.notebook = gtk_notebook_new();
     gtk_notebook_set_scrollable(GTK_NOTEBOOK(app.notebook), TRUE);
-    gtk_container_add(GTK_CONTAINER(app.window), app.notebook);
+    gtk_box_pack_start(GTK_BOX(root_box), app.notebook, TRUE, TRUE, 0);
 
     g_signal_connect(app.window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(app.window, "key-press-event", G_CALLBACK(on_window_key_press), &app);

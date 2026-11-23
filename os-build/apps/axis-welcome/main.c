@@ -99,30 +99,30 @@ static void read_system_info(SystemInfo *info) {
 }
 
 static const char *CSS_WELCOME =
-    "* { outline: none; }"
+    "* { outline-style: none; }"
     "window, window.background, .background, box, grid, frame {"
-    "    background-color: #0f121d !important;"
-    "    background-image: none !important;"
+    "    background-color: #0f121d;"
+    "    background-image: none;"
     "    color: #f1f5f9;"
     "    font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;"
     "}"
     "frame, frame > border {"
-    "    background-color: #1a1e30 !important;"
+    "    background-color: #1a1e30;"
     "    border: 1px solid #2a314d;"
     "    border-radius: 12px;"
     "}"
     "button.welcome-card {"
-    "    background-color: #1a1e30 !important;"
+    "    background-color: #1a1e30;"
     "    color: #f1f5f9;"
     "    border: 1px solid #2a314d;"
     "    border-radius: 12px;"
     "}"
     "button.welcome-card:hover {"
-    "    background-color: rgba(96, 205, 255, 0.14) !important;"
+    "    background-color: rgba(96, 205, 255, 0.14);"
     "    border-color: #60cdff;"
     "}"
     "button.btn-close {"
-    "    background-color: #252a3f !important;"
+    "    background-color: #252a3f;"
     "    color: #f1f5f9;"
     "    border: 1px solid #333a56;"
     "    border-radius: 8px;"
@@ -131,7 +131,7 @@ static const char *CSS_WELCOME =
     "}"
     "button.btn-close:hover {"
     "    border-color: #60cdff;"
-    "    color: #60cdff !important;"
+    "    color: #60cdff;"
     "}";
 
 static void on_launch_action(GtkButton *btn, gpointer user_data) {
@@ -269,7 +269,7 @@ static void load_axis_theme(void) {
     gtk_style_context_add_provider_for_screen(
         screen,
         GTK_STYLE_PROVIDER(extra_prov),
-        GTK_STYLE_PROVIDER_PRIORITY_USER + 100
+        GTK_STYLE_PROVIDER_PRIORITY_USER
     );
     g_object_unref(extra_prov);
 }

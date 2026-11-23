@@ -128,8 +128,8 @@ chown -R sddm:sddm /var/lib/sddm 2>/dev/null || true
 # Ensure SDDM theme uses AxisOS obsidian wave wallpaper & logo
 mkdir -p /usr/share/sddm/themes/breeze
 if [ -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" ]; then
-    cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /usr/share/sddm/themes/breeze/theme.conf.user
-    cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /etc/sddm.conf.d/theme.conf.user
+    cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /usr/share/sddm/themes/breeze/theme.conf.use
+    cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /etc/sddm.conf.d/theme.conf.use
 fi
 
 # 4. Sync AxisOS Obsidian KDE Plasma Theme, Global Theme, Colors & Layout
@@ -227,6 +227,26 @@ for app_bin in \
 done
 ln -sf /usr/local/bin/nobara-welcome /usr/local/bin/axis-hardware-manager 2>/dev/null || true
 
+# Configure automatic AxisOS Logo + System Details banner on every interactive terminal
+cat << 'FETCH_EOF' > /etc/profile.d/axisos-fetch.sh
+if [ -t 1 ] && [ -x /usr/local/bin/axis-fetch ] && [ -z "${AXIS_FETCH_SHOWN:-}" ]; then
+    export AXIS_FETCH_SHOWN=1
+    /usr/local/bin/axis-fetch
+fi
+FETCH_EOF
+chmod 0644 /etc/profile.d/axisos-fetch.sh
+
+if [ -f /etc/bash.bashrc ] && ! grep -q "axisos-fetch.sh" /etc/bash.bashrc 2>/dev/null; then
+    cat << 'BASHRC_EOF' >> /etc/bash.bashrc
+
+# AxisOS Terminal System Details & Logo Greeting
+if [ -t 1 ] && [ -x /usr/local/bin/axis-fetch ] && [ -z "${AXIS_FETCH_SHOWN:-}" ]; then
+    export AXIS_FETCH_SHOWN=1
+    /usr/local/bin/axis-fetch
+fi
+BASHRC_EOF
+fi
+
 if [ -f "$SRC_DIR/os-build/configs/sysctl/99-axisos-gaming.conf" ]; then
     mkdir -p /etc/sysctl.d
     cp -f "$SRC_DIR/os-build/configs/sysctl/99-axisos-gaming.conf" /etc/sysctl.d/
@@ -252,7 +272,7 @@ Nice=10
 IOSchedulingClass=idle
 SVC_EOF
 
-cat << 'TMR_EOF' > /etc/systemd/system/axisos-ota.timer
+cat << 'TMR_EOF' > /etc/systemd/system/axisos-ota.time
 [Unit]
 Description=Run AxisOS Over-The-Air System Update Every 2 Months
 

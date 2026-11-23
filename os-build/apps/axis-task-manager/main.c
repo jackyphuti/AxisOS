@@ -62,10 +62,10 @@
 /* Processes Table Columns */
 enum {
     PROC_COL_PID = 0,
-    PROC_COL_APP_ICON,
+    PROC_COL_APP_PIXBUF,
     PROC_COL_NAME,
     PROC_COL_STATUS,
-    PROC_COL_STATUS_ICON,
+    PROC_COL_STATUS_PIXBUF,
     PROC_COL_CPU_VAL,
     PROC_COL_CPU_STR,
     PROC_COL_MEM_VAL,
@@ -264,222 +264,225 @@ typedef struct {
     int refresh_rate_ms;
     gboolean always_on_top;
 
-    /* Hash Tables */
+    /* Hash Tables & Icon Cache */
     GHashTable *proc_samples;   /* pid -> ProcSample* */
     GHashTable *app_histories;  /* name -> AppHistRecord* */
+    GHashTable *icon_cache;     /* key -> GdkPixbuf* */
 } Win11TaskManager;
 
-/* High-Contrast AxisOS Obsidian + Windows 11 Fluent Dark CSS Palette */
+/* Authentic Windows 11 Dark Fluent CSS (100% Strict Valid GTK 3 CSS — NO !important!) */
 static const char *WIN11_CSS =
     "* {"
-    "    outline: none;"
+    "    outline-style: none;"
     "    font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;"
     "}"
     "window, window.background, .background, dialog, box, grid, stack, scrolledwindow, viewport {"
-    "    background-color: #111624 !important;"
-    "    background-image: none !important;"
-    "    color: #F1F5F9 !important;"
+    "    background-color: #202020;"
+    "    background-image: none;"
+    "    color: #F3F3F3;"
     "}"
     "label {"
-    "    color: #F1F5F9;"
+    "    color: #F3F3F3;"
     "}"
     ".command-bar {"
-    "    background-color: #161C2E !important;"
-    "    border-bottom: 1px solid #26314D;"
+    "    background-color: #1C1C1C;"
+    "    border-bottom: 1px solid #2F2F2F;"
     "    padding: 8px 14px;"
     "}"
     ".cmd-title {"
     "    font-size: 14px;"
     "    font-weight: 700;"
-    "    color: #FFFFFF !important;"
+    "    color: #FFFFFF;"
     "    margin-right: 10px;"
     "}"
     "button, .fluent-btn {"
-    "    background-color: #1E2740 !important;"
-    "    background-image: none !important;"
-    "    color: #F1F5F9 !important;"
-    "    border: 1px solid #303E61;"
-    "    border-radius: 7px;"
+    "    background-color: #2D2D2D;"
+    "    background-image: none;"
+    "    color: #F3F3F3;"
+    "    border: 1px solid #3D3D3D;"
+    "    border-radius: 6px;"
     "    padding: 6px 13px;"
     "    font-size: 12px;"
     "    font-weight: 600;"
     "    box-shadow: none;"
     "}"
     "button label, .fluent-btn label {"
-    "    color: #F1F5F9 !important;"
+    "    color: #F3F3F3;"
     "}"
     "button:hover, .fluent-btn:hover {"
-    "    background-color: #283454 !important;"
-    "    border-color: #38BDF8;"
+    "    background-color: #383838;"
+    "    border-color: #525252;"
     "}"
     "button:active, .fluent-btn:active {"
-    "    background-color: #151C2E !important;"
+    "    background-color: #242424;"
     "}"
-    ".fluent-btn-danger:hover {"
-    "    background-color: #5C1D24 !important;"
-    "    border-color: #F87171;"
+    "button.fluent-btn-danger:hover {"
+    "    background-color: #5E2025;"
+    "    border-color: #E0525E;"
     "}"
-    ".fluent-btn-accent {"
-    "    background-color: #0284C7 !important;"
-    "    color: #FFFFFF !important;"
-    "    border: 1px solid #38BDF8;"
+    "button.fluent-btn-accent {"
+    "    background-color: #0078D4;"
+    "    color: #FFFFFF;"
+    "    border: 1px solid #2899F5;"
     "}"
-    ".fluent-btn-accent:hover {"
-    "    background-color: #0EA5E9 !important;"
+    "button.fluent-btn-accent:hover {"
+    "    background-color: #1A86D9;"
     "}"
     "entry, .fluent-search {"
-    "    background-color: #0D121F !important;"
-    "    background-image: none !important;"
-    "    color: #F8FAFC !important;"
-    "    caret-color: #38BDF8;"
-    "    border: 1px solid #303E61;"
-    "    border-radius: 7px;"
+    "    background-color: #2B2B2B;"
+    "    background-image: none;"
+    "    color: #FFFFFF;"
+    "    caret-color: #60CDFF;"
+    "    border: 1px solid #3E3E3E;"
+    "    border-bottom: 2px solid #555555;"
+    "    border-radius: 6px;"
     "    padding: 6px 12px;"
     "    font-size: 12px;"
     "    min-width: 260px;"
     "    box-shadow: none;"
     "}"
     "entry:focus, .fluent-search:focus {"
-    "    border-color: #38BDF8;"
-    "    background-color: #0A0E19 !important;"
+    "    border-color: #3E3E3E;"
+    "    border-bottom: 2px solid #60CDFF;"
+    "    background-color: #1F1F1F;"
     "}"
     "entry selection {"
-    "    background-color: #0284C7;"
+    "    background-color: #0078D4;"
     "    color: #FFFFFF;"
     "}"
     ".nav-rail {"
-    "    background-color: #0E1320 !important;"
-    "    border-right: 1px solid #232D47;"
+    "    background-color: #1C1C1C;"
+    "    border-right: 1px solid #2D2D2D;"
     "    padding: 8px 6px;"
     "}"
     "button.nav-btn {"
-    "    background-color: transparent !important;"
-    "    background-image: none !important;"
+    "    background-color: transparent;"
+    "    background-image: none;"
     "    border: 1px solid transparent;"
     "    border-left: 3px solid transparent;"
-    "    border-radius: 7px;"
+    "    border-radius: 6px;"
     "    padding: 8px 10px;"
     "    margin: 2px 2px;"
-    "    color: #CBD5E1 !important;"
+    "    color: #D4D4D4;"
     "    font-size: 13px;"
     "    font-weight: 500;"
     "    box-shadow: none;"
     "}"
     "button.nav-btn label {"
-    "    color: #CBD5E1 !important;"
+    "    color: #D4D4D4;"
     "}"
     "button.nav-btn:hover {"
-    "    background-color: #1A233A !important;"
+    "    background-color: #2B2B2B;"
     "    border-color: transparent;"
     "    border-left: 3px solid transparent;"
     "}"
     "button.nav-btn:hover label {"
-    "    color: #FFFFFF !important;"
+    "    color: #FFFFFF;"
     "}"
     "button.nav-btn.active {"
-    "    background-color: #1D2844 !important;"
+    "    background-color: #2D2D2D;"
     "    border-color: transparent;"
-    "    border-left: 3px solid #38BDF8;"
+    "    border-left: 3px solid #60CDFF;"
     "    font-weight: 700;"
     "}"
     "button.nav-btn.active label {"
-    "    color: #FFFFFF !important;"
+    "    color: #FFFFFF;"
     "}"
     "treeview.view, .treeview-win11 {"
-    "    background-color: #141A2B !important;"
-    "    background-image: none !important;"
-    "    color: #F1F5F9 !important;"
+    "    background-color: #202020;"
+    "    background-image: none;"
+    "    color: #F3F3F3;"
     "    font-size: 12px;"
     "    border: none;"
     "}"
     "treeview.view:selected, treeview.view:selected:focus, .treeview-win11:selected {"
-    "    background-color: #0F3D5E !important;"
-    "    color: #FFFFFF !important;"
+    "    background-color: #004B82;"
+    "    color: #FFFFFF;"
     "}"
     "treeview.view header button {"
-    "    background-color: #1A2238 !important;"
-    "    background-image: none !important;"
-    "    color: #CBD5E1 !important;"
+    "    background-color: #252525;"
+    "    background-image: none;"
+    "    color: #C8C8C8;"
     "    font-size: 11px;"
     "    font-weight: 700;"
     "    border: none;"
-    "    border-bottom: 1px solid #2A3654;"
-    "    border-right: 1px solid #232D47;"
-    "    border-radius: 0;"
+    "    border-bottom: 1px solid #353535;"
+    "    border-right: 1px solid #2F2F2F;"
+    "    border-radius: 0px;"
     "    padding: 7px 10px;"
     "    box-shadow: none;"
     "}"
     "treeview.view header button label {"
-    "    color: #CBD5E1 !important;"
+    "    color: #C8C8C8;"
     "}"
     "treeview.view header button:hover {"
-    "    background-color: #232E4A !important;"
+    "    background-color: #303030;"
     "}"
     "button.perf-card {"
-    "    background-color: #171E32 !important;"
-    "    background-image: none !important;"
-    "    border: 1px solid #26314D;"
+    "    background-color: #262626;"
+    "    background-image: none;"
+    "    border: 1px solid #343434;"
     "    border-left: 3px solid transparent;"
-    "    border-radius: 8px;"
+    "    border-radius: 7px;"
     "    padding: 8px 12px;"
     "    margin: 3px 4px;"
     "}"
     "button.perf-card:hover {"
-    "    background-color: #1E2842 !important;"
-    "    border-color: #364569;"
+    "    background-color: #2F2F2F;"
+    "    border-color: #454545;"
     "}"
     "button.perf-card.active {"
-    "    background-color: #1F2A46 !important;"
-    "    border: 1px solid #364569;"
-    "    border-left: 3px solid #38BDF8;"
+    "    background-color: #323232;"
+    "    border: 1px solid #484848;"
+    "    border-left: 3px solid #60CDFF;"
     "}"
     ".stat-box {"
-    "    background-color: #171E32 !important;"
-    "    border: 1px solid #26314D;"
-    "    border-radius: 8px;"
+    "    background-color: #272727;"
+    "    border: 1px solid #363636;"
+    "    border-radius: 7px;"
     "    padding: 10px 14px;"
     "}"
     ".summary-bar {"
-    "    background-color: #141A2B !important;"
-    "    border-bottom: 1px solid #232D47;"
+    "    background-color: #232323;"
+    "    border-bottom: 1px solid #323232;"
     "}"
     ".stat-label {"
     "    font-size: 11px;"
-    "    color: #94A3B8 !important;"
+    "    color: #A6A6A6;"
     "    font-weight: 600;"
     "}"
     ".stat-value {"
     "    font-size: 15px;"
-    "    color: #FFFFFF !important;"
+    "    color: #FFFFFF;"
     "    font-weight: 700;"
     "}"
     ".text-muted {"
-    "    color: #94A3B8 !important;"
+    "    color: #A6A6A6;"
     "}"
     "combobox button, combobox box, menu, menuitem, popover {"
-    "    background-color: #1A2238 !important;"
-    "    background-image: none !important;"
-    "    color: #F1F5F9 !important;"
-    "    border-color: #303E61;"
+    "    background-color: #2B2B2B;"
+    "    background-image: none;"
+    "    color: #F3F3F3;"
+    "    border-color: #3D3D3D;"
     "}"
     "menuitem:hover {"
-    "    background-color: #0F3D5E !important;"
-    "    color: #FFFFFF !important;"
+    "    background-color: #004B82;"
+    "    color: #FFFFFF;"
     "}"
     "checkbutton, checkbutton label {"
-    "    color: #F1F5F9 !important;"
+    "    color: #F3F3F3;"
     "}"
     "scrollbar trough {"
-    "    background-color: #0E1320;"
+    "    background-color: #1C1C1C;"
     "}"
     "scrollbar slider {"
-    "    background-color: #334155;"
+    "    background-color: #4A4A4A;"
     "    border-radius: 6px;"
     "    min-width: 8px;"
     "    min-height: 8px;"
     "}"
     "scrollbar slider:hover {"
-    "    background-color: #475569;"
+    "    background-color: #666666;"
     "}";
 
 /* Forward Declarations */
@@ -501,13 +504,428 @@ static void apply_win11_theme(void) {
     GdkScreen *screen = gdk_screen_get_default();
     if (!screen) return;
     GtkCssProvider *provider = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(provider, WIN11_CSS, -1, NULL);
+    GError *err = NULL;
+    if (!gtk_css_provider_load_from_data(provider, WIN11_CSS, -1, &err)) {
+        if (err) {
+            fprintf(stderr, "[axis-task-manager] CSS parse error: %s\n", err->message);
+            g_error_free(err);
+        }
+    }
     gtk_style_context_add_provider_for_screen(
         screen,
         GTK_STYLE_PROVIDER(provider),
-        GTK_STYLE_PROVIDER_PRIORITY_USER + 100
+        GTK_STYLE_PROVIDER_PRIORITY_USER
     );
     g_object_unref(provider);
+}
+
+/* -----------------------------------------------------------------------------
+ * Pure C Cairo Realistic 3D-Shaded Icon Renderer (Glossy Metallic Vector Art)
+ * ----------------------------------------------------------------------------- */
+static void cairo_rounded_rect(cairo_t *cr, double x, double y, double w, double h, double r) {
+    cairo_new_sub_path(cr);
+    cairo_arc(cr, x + w - r, y + r, r, -M_PI / 2.0, 0);
+    cairo_arc(cr, x + w - r, y + h - r, r, 0, M_PI / 2.0);
+    cairo_arc(cr, x + r, y + h - r, r, M_PI / 2.0, M_PI);
+    cairo_arc(cr, x + r, y + r, r, M_PI, 3.0 * M_PI / 2.0);
+    cairo_close_path(cr);
+}
+
+static GdkPixbuf *render_realistic_icon_pixbuf(const char *kind, int size) {
+    cairo_surface_t *surf = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size, size);
+    cairo_t *cr = cairo_create(surf);
+    cairo_scale(cr, (double)size / 24.0, (double)size / 24.0);
+    cairo_set_antialias(cr, CAIRO_ANTIALIAS_BEST);
+
+    if (strcmp(kind, "cpu") == 0) {
+        /* Realistic Gold Pins */
+        cairo_set_source_rgb(cr, 0.92, 0.75, 0.28);
+        cairo_set_line_width(cr, 1.3);
+        for (int i = 0; i < 4; ++i) {
+            double p = 6.5 + i * 3.6;
+            cairo_move_to(cr, p, 1.5); cairo_line_to(cr, p, 4.5);
+            cairo_move_to(cr, p, 19.5); cairo_line_to(cr, p, 22.5);
+            cairo_move_to(cr, 1.5, p); cairo_line_to(cr, 4.5, p);
+            cairo_move_to(cr, 19.5, p); cairo_line_to(cr, 22.5, p);
+        }
+        cairo_stroke(cr);
+        /* PCB Substrate */
+        cairo_rounded_rect(cr, 4.0, 4.0, 16.0, 16.0, 2.5);
+        cairo_set_source_rgb(cr, 0.08, 0.34, 0.25);
+        cairo_fill_preserve(cr);
+        cairo_set_source_rgb(cr, 0.16, 0.55, 0.40);
+        cairo_set_line_width(cr, 0.8);
+        cairo_stroke(cr);
+        /* Brushed Metallic IHS Heat Spreader */
+        cairo_pattern_t *ihs = cairo_pattern_create_linear(6, 6, 18, 18);
+        cairo_pattern_add_color_stop_rgb(ihs, 0.0, 0.86, 0.89, 0.94);
+        cairo_pattern_add_color_stop_rgb(ihs, 0.5, 0.62, 0.67, 0.74);
+        cairo_pattern_add_color_stop_rgb(ihs, 1.0, 0.42, 0.46, 0.53);
+        cairo_rounded_rect(cr, 6.2, 6.2, 11.6, 11.6, 1.8);
+        cairo_set_source(cr, ihs);
+        cairo_fill(cr);
+        cairo_pattern_destroy(ihs);
+        /* Glowing Cyan Silicon Die Core */
+        cairo_pattern_t *core = cairo_pattern_create_radial(11.5, 11.5, 0.5, 12.0, 12.0, 4.2);
+        cairo_pattern_add_color_stop_rgb(core, 0.0, 0.55, 0.92, 1.0);
+        cairo_pattern_add_color_stop_rgb(core, 1.0, 0.06, 0.48, 0.82);
+        cairo_rounded_rect(cr, 9.0, 9.0, 6.0, 6.0, 1.2);
+        cairo_set_source(cr, core);
+        cairo_fill(cr);
+        cairo_pattern_destroy(core);
+    } else if (strcmp(kind, "memory") == 0) {
+        /* RAM DIMM PCB */
+        cairo_pattern_t *pcb = cairo_pattern_create_linear(2, 6, 2, 18);
+        cairo_pattern_add_color_stop_rgb(pcb, 0.0, 0.16, 0.52, 0.34);
+        cairo_pattern_add_color_stop_rgb(pcb, 1.0, 0.08, 0.32, 0.20);
+        cairo_rounded_rect(cr, 2.0, 6.5, 20.0, 10.5, 1.8);
+        cairo_set_source(cr, pcb);
+        cairo_fill(cr);
+        cairo_pattern_destroy(pcb);
+        /* Glossy Black Memory IC Chips */
+        for (int i = 0; i < 4; ++i) {
+            double x = 3.5 + i * 4.4;
+            cairo_pattern_t *ic = cairo_pattern_create_linear(x, 8.2, x, 14.2);
+            cairo_pattern_add_color_stop_rgb(ic, 0.0, 0.26, 0.28, 0.32);
+            cairo_pattern_add_color_stop_rgb(ic, 1.0, 0.10, 0.11, 0.14);
+            cairo_rounded_rect(cr, x, 8.2, 3.4, 5.8, 0.6);
+            cairo_set_source(cr, ic);
+            cairo_fill(cr);
+            cairo_pattern_destroy(ic);
+        }
+        /* Gold Edge Connector Pins */
+        cairo_set_source_rgb(cr, 0.95, 0.78, 0.25);
+        for (int i = 0; i < 9; ++i) {
+            if (i == 4) continue; /* Keying notch */
+            cairo_rectangle(cr, 3.0 + i * 2.05, 16.5, 1.3, 2.3);
+        }
+        cairo_fill(cr);
+    } else if (strcmp(kind, "disk") == 0) {
+        /* Brushed Aluminum HDD / NVMe Chassis */
+        cairo_pattern_t *body = cairo_pattern_create_linear(3, 3, 21, 21);
+        cairo_pattern_add_color_stop_rgb(body, 0.0, 0.78, 0.82, 0.88);
+        cairo_pattern_add_color_stop_rgb(body, 0.5, 0.52, 0.56, 0.63);
+        cairo_pattern_add_color_stop_rgb(body, 1.0, 0.30, 0.34, 0.40);
+        cairo_rounded_rect(cr, 3.5, 2.5, 17.0, 19.0, 2.6);
+        cairo_set_source(cr, body);
+        cairo_fill_preserve(cr);
+        cairo_set_source_rgb(cr, 0.22, 0.25, 0.30);
+        cairo_set_line_width(cr, 0.9);
+        cairo_stroke(cr);
+        /* Mirror Platter */
+        cairo_pattern_t *plat = cairo_pattern_create_radial(10.5, 9.0, 0.8, 12.0, 10.5, 5.8);
+        cairo_pattern_add_color_stop_rgb(plat, 0.0, 0.96, 0.98, 1.0);
+        cairo_pattern_add_color_stop_rgb(plat, 0.6, 0.60, 0.68, 0.78);
+        cairo_pattern_add_color_stop_rgb(plat, 1.0, 0.32, 0.38, 0.46);
+        cairo_arc(cr, 12.0, 10.5, 5.2, 0, 2.0 * M_PI);
+        cairo_set_source(cr, plat);
+        cairo_fill(cr);
+        cairo_pattern_destroy(plat);
+        cairo_arc(cr, 12.0, 10.5, 1.5, 0, 2.0 * M_PI);
+        cairo_set_source_rgb(cr, 0.16, 0.18, 0.22);
+        cairo_fill(cr);
+        /* Bottom Status Strip + Emerald LED */
+        cairo_rounded_rect(cr, 5.5, 17.4, 13.0, 2.4, 0.9);
+        cairo_set_source_rgb(cr, 0.14, 0.16, 0.20);
+        cairo_fill(cr);
+        cairo_arc(cr, 16.5, 18.6, 0.95, 0, 2.0 * M_PI);
+        cairo_set_source_rgb(cr, 0.20, 0.92, 0.55);
+        cairo_fill(cr);
+    } else if (strcmp(kind, "network") == 0) {
+        /* 3D Glossy Blue Globe */
+        cairo_pattern_t *globe = cairo_pattern_create_radial(9.0, 8.5, 1.0, 12.0, 12.0, 10.0);
+        cairo_pattern_add_color_stop_rgb(globe, 0.0, 0.45, 0.88, 1.0);
+        cairo_pattern_add_color_stop_rgb(globe, 0.55, 0.10, 0.52, 0.88);
+        cairo_pattern_add_color_stop_rgb(globe, 1.0, 0.05, 0.22, 0.52);
+        cairo_arc(cr, 12.0, 12.0, 9.2, 0, 2.0 * M_PI);
+        cairo_set_source(cr, globe);
+        cairo_fill(cr);
+        cairo_pattern_destroy(globe);
+        /* Meridian & Latitude Grid */
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.55);
+        cairo_set_line_width(cr, 1.0);
+        cairo_move_to(cr, 3.0, 12.0); cairo_line_to(cr, 21.0, 12.0);
+        cairo_move_to(cr, 4.5, 7.5);  cairo_line_to(cr, 19.5, 7.5);
+        cairo_move_to(cr, 4.5, 16.5); cairo_line_to(cr, 19.5, 16.5);
+        cairo_stroke(cr);
+        cairo_save(cr);
+        cairo_translate(cr, 12.0, 12.0);
+        cairo_scale(cr, 0.48, 1.0);
+        cairo_arc(cr, 0, 0, 9.0, 0, 2.0 * M_PI);
+        cairo_stroke(cr);
+        cairo_restore(cr);
+        /* Activity LED Dot */
+        cairo_arc(cr, 18.2, 18.2, 2.6, 0, 2.0 * M_PI);
+        cairo_set_source_rgb(cr, 0.20, 0.90, 0.52);
+        cairo_fill_preserve(cr);
+        cairo_set_source_rgb(cr, 0.08, 0.12, 0.18);
+        cairo_set_line_width(cr, 1.0);
+        cairo_stroke(cr);
+    } else if (strcmp(kind, "processes") == 0) {
+        /* Glossy 3D 4-Tile App Grid (Windows 11 Processes Style) */
+        double coords[4][2] = {{3.0, 3.0}, {13.0, 3.0}, {3.0, 13.0}, {13.0, 13.0}};
+        double col[4][3] = {{0.30, 0.80, 1.0}, {0.20, 0.65, 0.98}, {0.15, 0.55, 0.92}, {0.42, 0.85, 1.0}};
+        for (int i = 0; i < 4; ++i) {
+            cairo_pattern_t *p = cairo_pattern_create_linear(coords[i][0], coords[i][1], coords[i][0] + 8, coords[i][1] + 8);
+            cairo_pattern_add_color_stop_rgb(p, 0.0, col[i][0], col[i][1], col[i][2]);
+            cairo_pattern_add_color_stop_rgb(p, 1.0, col[i][0] * 0.55, col[i][1] * 0.60, col[i][2] * 0.80);
+            cairo_rounded_rect(cr, coords[i][0], coords[i][1], 8.0, 8.0, 2.0);
+            cairo_set_source(cr, p);
+            cairo_fill(cr);
+            cairo_pattern_destroy(p);
+        }
+    } else if (strcmp(kind, "performance") == 0) {
+        /* Glossy Telemetry Monitor + Glowing Cyan Pulse */
+        cairo_pattern_t *bezel = cairo_pattern_create_linear(2, 3, 22, 20);
+        cairo_pattern_add_color_stop_rgb(bezel, 0.0, 0.30, 0.36, 0.46);
+        cairo_pattern_add_color_stop_rgb(bezel, 1.0, 0.14, 0.17, 0.24);
+        cairo_rounded_rect(cr, 2.0, 3.5, 20.0, 16.5, 2.8);
+        cairo_set_source(cr, bezel);
+        cairo_fill(cr);
+        cairo_pattern_destroy(bezel);
+        cairo_rounded_rect(cr, 3.5, 5.0, 17.0, 13.5, 1.8);
+        cairo_set_source_rgb(cr, 0.06, 0.10, 0.16);
+        cairo_fill(cr);
+        cairo_set_source_rgb(cr, 0.25, 0.86, 1.0);
+        cairo_set_line_width(cr, 2.0);
+        cairo_set_line_join(cr, CAIRO_LINE_JOIN_ROUND);
+        cairo_move_to(cr, 4.5, 13.5);
+        cairo_line_to(cr, 8.0, 13.5);
+        cairo_line_to(cr, 10.2, 7.2);
+        cairo_line_to(cr, 13.4, 16.2);
+        cairo_line_to(cr, 15.8, 10.5);
+        cairo_line_to(cr, 19.5, 10.5);
+        cairo_stroke(cr);
+    } else if (strcmp(kind, "history") == 0) {
+        /* 3D Metallic Stopwatch / Clock */
+        cairo_pattern_t *rim = cairo_pattern_create_linear(3, 3, 21, 21);
+        cairo_pattern_add_color_stop_rgb(rim, 0.0, 0.85, 0.88, 0.93);
+        cairo_pattern_add_color_stop_rgb(rim, 1.0, 0.40, 0.45, 0.54);
+        cairo_arc(cr, 12.0, 12.5, 9.2, 0, 2.0 * M_PI);
+        cairo_set_source(cr, rim);
+        cairo_fill(cr);
+        cairo_pattern_destroy(rim);
+        cairo_arc(cr, 12.0, 12.5, 7.2, 0, 2.0 * M_PI);
+        cairo_set_source_rgb(cr, 0.10, 0.14, 0.22);
+        cairo_fill(cr);
+        cairo_set_source_rgb(cr, 0.35, 0.85, 1.0);
+        cairo_set_line_width(cr, 1.8);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_move_to(cr, 12.0, 12.5); cairo_line_to(cr, 12.0, 7.5);
+        cairo_move_to(cr, 12.0, 12.5); cairo_line_to(cr, 16.0, 14.2);
+        cairo_stroke(cr);
+    } else if (strcmp(kind, "startup") == 0) {
+        /* 3D Glossy Launch Rocket / Speedometer Gauge */
+        cairo_pattern_t *dial = cairo_pattern_create_radial(12.0, 14.0, 1.0, 12.0, 14.0, 9.5);
+        cairo_pattern_add_color_stop_rgb(dial, 0.0, 0.24, 0.32, 0.45);
+        cairo_pattern_add_color_stop_rgb(dial, 1.0, 0.11, 0.15, 0.22);
+        cairo_arc(cr, 12.0, 13.0, 9.2, 0, 2.0 * M_PI);
+        cairo_set_source(cr, dial);
+        cairo_fill(cr);
+        cairo_pattern_destroy(dial);
+        cairo_set_line_width(cr, 2.2);
+        cairo_set_source_rgb(cr, 0.22, 0.86, 0.56);
+        cairo_arc(cr, 12.0, 13.0, 6.8, M_PI * 0.85, M_PI * 1.65);
+        cairo_stroke(cr);
+        cairo_set_source_rgb(cr, 0.98, 0.62, 0.18);
+        cairo_arc(cr, 12.0, 13.0, 6.8, M_PI * 1.68, M_PI * 2.15);
+        cairo_stroke(cr);
+        /* Needle */
+        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        cairo_set_line_width(cr, 1.8);
+        cairo_move_to(cr, 12.0, 13.0); cairo_line_to(cr, 16.5, 8.8);
+        cairo_stroke(cr);
+        cairo_arc(cr, 12.0, 13.0, 1.8, 0, 2.0 * M_PI);
+        cairo_set_source_rgb(cr, 0.38, 0.82, 1.0);
+        cairo_fill(cr);
+    } else if (strcmp(kind, "users") == 0) {
+        /* 3D Studio-Lit User Avatar Bust */
+        cairo_pattern_t *u = cairo_pattern_create_linear(6, 3, 18, 21);
+        cairo_pattern_add_color_stop_rgb(u, 0.0, 0.62, 0.84, 1.0);
+        cairo_pattern_add_color_stop_rgb(u, 1.0, 0.22, 0.48, 0.82);
+        cairo_arc(cr, 12.0, 7.8, 4.3, 0, 2.0 * M_PI);
+        cairo_set_source(cr, u);
+        cairo_fill(cr);
+        cairo_new_path(cr);
+        cairo_arc(cr, 12.0, 22.0, 8.5, M_PI * 1.08, M_PI * 1.92);
+        cairo_close_path(cr);
+        cairo_set_source(cr, u);
+        cairo_fill(cr);
+        cairo_pattern_destroy(u);
+    } else if (strcmp(kind, "details") == 0) {
+        /* 3D Slate Document Card with Colored Data Rows */
+        cairo_pattern_t *doc = cairo_pattern_create_linear(4, 2, 20, 22);
+        cairo_pattern_add_color_stop_rgb(doc, 0.0, 0.88, 0.91, 0.96);
+        cairo_pattern_add_color_stop_rgb(doc, 1.0, 0.64, 0.70, 0.78);
+        cairo_rounded_rect(cr, 4.0, 2.2, 16.0, 19.6, 2.4);
+        cairo_set_source(cr, doc);
+        cairo_fill(cr);
+        cairo_pattern_destroy(doc);
+        cairo_set_source_rgb(cr, 0.10, 0.52, 0.88);
+        cairo_rounded_rect(cr, 6.5, 5.5, 11.0, 2.2, 0.8); cairo_fill(cr);
+        cairo_set_source_rgb(cr, 0.24, 0.30, 0.40);
+        cairo_rounded_rect(cr, 6.5, 9.8, 11.0, 1.8, 0.7); cairo_fill(cr);
+        cairo_rounded_rect(cr, 6.5, 13.4, 8.5, 1.8, 0.7); cairo_fill(cr);
+        cairo_rounded_rect(cr, 6.5, 17.0, 10.0, 1.8, 0.7); cairo_fill(cr);
+    } else if (strcmp(kind, "services") == 0 || strcmp(kind, "settings") == 0) {
+        /* 3D Brushed Steel Mechanical Gear */
+        int is_settings = (strcmp(kind, "settings") == 0);
+        cairo_save(cr);
+        cairo_translate(cr, 12.0, 12.0);
+        cairo_pattern_t *steel = cairo_pattern_create_linear(-9, -9, 9, 9);
+        if (is_settings) {
+            cairo_pattern_add_color_stop_rgb(steel, 0.0, 0.78, 0.86, 0.96);
+            cairo_pattern_add_color_stop_rgb(steel, 1.0, 0.36, 0.46, 0.62);
+        } else {
+            cairo_pattern_add_color_stop_rgb(steel, 0.0, 0.90, 0.92, 0.95);
+            cairo_pattern_add_color_stop_rgb(steel, 1.0, 0.44, 0.48, 0.56);
+        }
+        cairo_set_source(cr, steel);
+        for (int t = 0; t < 8; ++t) {
+            cairo_save(cr);
+            cairo_rotate(cr, t * (M_PI / 4.0));
+            cairo_rounded_rect(cr, -1.9, -9.8, 3.8, 4.2, 0.9);
+            cairo_fill(cr);
+            cairo_restore(cr);
+        }
+        cairo_arc(cr, 0, 0, 7.2, 0, 2.0 * M_PI);
+        cairo_fill(cr);
+        cairo_pattern_destroy(steel);
+        cairo_arc(cr, 0, 0, 3.3, 0, 2.0 * M_PI);
+        if (is_settings) cairo_set_source_rgb(cr, 0.22, 0.76, 0.98);
+        else cairo_set_source_rgb(cr, 0.13, 0.15, 0.20);
+        cairo_fill(cr);
+        cairo_restore(cr);
+    } else if (strcmp(kind, "run_task") == 0) {
+        /* Glossy 3D Emerald Play / Launch Badge */
+        cairo_pattern_t *g = cairo_pattern_create_radial(9.5, 9.0, 1.0, 12.0, 12.0, 10.0);
+        cairo_pattern_add_color_stop_rgb(g, 0.0, 0.36, 0.94, 0.62);
+        cairo_pattern_add_color_stop_rgb(g, 1.0, 0.08, 0.56, 0.34);
+        cairo_arc(cr, 12.0, 12.0, 9.4, 0, 2.0 * M_PI);
+        cairo_set_source(cr, g);
+        cairo_fill(cr);
+        cairo_pattern_destroy(g);
+        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        cairo_move_to(cr, 9.5, 7.5);
+        cairo_line_to(cr, 17.0, 12.0);
+        cairo_line_to(cr, 9.5, 16.5);
+        cairo_close_path(cr);
+        cairo_fill(cr);
+    } else if (strcmp(kind, "end_task") == 0) {
+        /* Glossy 3D Crimson Stop / Terminate Emblem */
+        cairo_pattern_t *r = cairo_pattern_create_radial(9.5, 9.0, 1.0, 12.0, 12.0, 10.0);
+        cairo_pattern_add_color_stop_rgb(r, 0.0, 0.98, 0.42, 0.44);
+        cairo_pattern_add_color_stop_rgb(r, 1.0, 0.68, 0.12, 0.16);
+        cairo_arc(cr, 12.0, 12.0, 9.4, 0, 2.0 * M_PI);
+        cairo_set_source(cr, r);
+        cairo_fill(cr);
+        cairo_pattern_destroy(r);
+        cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+        cairo_set_line_width(cr, 2.4);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_move_to(cr, 8.2, 8.2); cairo_line_to(cr, 15.8, 15.8);
+        cairo_move_to(cr, 15.8, 8.2); cairo_line_to(cr, 8.2, 15.8);
+        cairo_stroke(cr);
+    } else if (strcmp(kind, "efficiency") == 0) {
+        /* Glossy 3D Emerald Efficiency Leaf */
+        cairo_pattern_t *lf = cairo_pattern_create_linear(4, 19, 20, 4);
+        cairo_pattern_add_color_stop_rgb(lf, 0.0, 0.10, 0.58, 0.34);
+        cairo_pattern_add_color_stop_rgb(lf, 0.6, 0.26, 0.86, 0.50);
+        cairo_pattern_add_color_stop_rgb(lf, 1.0, 0.60, 0.96, 0.66);
+        cairo_move_to(cr, 5.0, 18.5);
+        cairo_curve_to(cr, 4.5, 9.5, 11.0, 4.0, 20.0, 4.2);
+        cairo_curve_to(cr, 19.8, 13.2, 14.0, 19.5, 5.0, 18.5);
+        cairo_close_path(cr);
+        cairo_set_source(cr, lf);
+        cairo_fill(cr);
+        cairo_pattern_destroy(lf);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.72);
+        cairo_set_line_width(cr, 1.4);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_move_to(cr, 4.2, 19.6);
+        cairo_line_to(cr, 15.8, 8.4);
+        cairo_stroke(cr);
+    } else if (strcmp(kind, "menu") == 0) {
+        /* Clean Silver Rounded Menu Bars */
+        cairo_set_source_rgb(cr, 0.88, 0.90, 0.94);
+        cairo_rounded_rect(cr, 3.0, 5.0, 18.0, 2.4, 1.2); cairo_fill(cr);
+        cairo_rounded_rect(cr, 3.0, 10.8, 18.0, 2.4, 1.2); cairo_fill(cr);
+        cairo_rounded_rect(cr, 3.0, 16.6, 18.0, 2.4, 1.2); cairo_fill(cr);
+    } else if (strcmp(kind, "terminal") == 0) {
+        /* Realistic Dark Glass Terminal Icon */
+        cairo_rounded_rect(cr, 2.2, 3.5, 19.6, 17.0, 2.8);
+        cairo_set_source_rgb(cr, 0.10, 0.13, 0.19);
+        cairo_fill_preserve(cr);
+        cairo_set_source_rgb(cr, 0.38, 0.46, 0.58);
+        cairo_set_line_width(cr, 1.0);
+        cairo_stroke(cr);
+        cairo_set_source_rgb(cr, 0.30, 0.88, 1.0);
+        cairo_set_line_width(cr, 2.0);
+        cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
+        cairo_move_to(cr, 6.0, 9.0); cairo_line_to(cr, 10.0, 12.2); cairo_line_to(cr, 6.0, 15.4);
+        cairo_stroke(cr);
+        cairo_set_source_rgb(cr, 0.92, 0.95, 1.0);
+        cairo_move_to(cr, 12.0, 15.4); cairo_line_to(cr, 17.2, 15.4);
+        cairo_stroke(cr);
+    } else if (strcmp(kind, "files") == 0) {
+        /* Realistic 3D Golden Folder */
+        cairo_pattern_t *fld = cairo_pattern_create_linear(2, 6, 22, 20);
+        cairo_pattern_add_color_stop_rgb(fld, 0.0, 0.98, 0.80, 0.32);
+        cairo_pattern_add_color_stop_rgb(fld, 1.0, 0.82, 0.56, 0.14);
+        cairo_rounded_rect(cr, 2.5, 4.5, 8.0, 4.0, 1.2);
+        cairo_set_source_rgb(cr, 0.86, 0.62, 0.18);
+        cairo_fill(cr);
+        cairo_rounded_rect(cr, 2.5, 7.0, 19.0, 13.2, 2.2);
+        cairo_set_source(cr, fld);
+        cairo_fill(cr);
+        cairo_pattern_destroy(fld);
+    } else if (strcmp(kind, "audio") == 0) {
+        /* 3D Metallic Speaker with Cyan Sound Waves */
+        cairo_set_source_rgb(cr, 0.78, 0.84, 0.92);
+        cairo_move_to(cr, 3.5, 9.2); cairo_line_to(cr, 7.8, 9.2);
+        cairo_line_to(cr, 13.0, 4.8); cairo_line_to(cr, 13.0, 19.2);
+        cairo_line_to(cr, 7.8, 14.8); cairo_line_to(cr, 3.5, 14.8);
+        cairo_close_path(cr);
+        cairo_fill(cr);
+        cairo_set_source_rgb(cr, 0.35, 0.85, 1.0);
+        cairo_set_line_width(cr, 1.8);
+        cairo_arc(cr, 13.5, 12.0, 4.0, -0.7, 0.7); cairo_stroke(cr);
+        cairo_arc(cr, 13.5, 12.0, 7.0, -0.75, 0.75); cairo_stroke(cr);
+    } else {
+        /* Realistic 3D Glossy Application Cube */
+        cairo_pattern_t *appg = cairo_pattern_create_linear(3, 3, 21, 21);
+        cairo_pattern_add_color_stop_rgb(appg, 0.0, 0.42, 0.66, 0.98);
+        cairo_pattern_add_color_stop_rgb(appg, 1.0, 0.18, 0.36, 0.72);
+        cairo_rounded_rect(cr, 3.0, 3.0, 18.0, 18.0, 4.2);
+        cairo_set_source(cr, appg);
+        cairo_fill(cr);
+        cairo_pattern_destroy(appg);
+        cairo_rounded_rect(cr, 6.2, 6.2, 11.6, 3.2, 1.0);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.85);
+        cairo_fill(cr);
+        cairo_rounded_rect(cr, 6.2, 11.2, 11.6, 6.4, 1.2);
+        cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.32);
+        cairo_fill(cr);
+    }
+
+    GdkPixbuf *pix = gdk_pixbuf_get_from_surface(surf, 0, 0, size, size);
+    cairo_destroy(cr);
+    cairo_surface_destroy(surf);
+    return pix;
+}
+
+static GdkPixbuf *get_cached_realistic_icon(Win11TaskManager *app, const char *kind, int size) {
+    char key[96];
+    snprintf(key, sizeof(key), "%s:%d", kind ? kind : "app", size);
+    if (app && app->icon_cache) {
+        GdkPixbuf *hit = (GdkPixbuf *)g_hash_table_lookup(app->icon_cache, key);
+        if (hit) return hit;
+    }
+    GdkPixbuf *pix = render_realistic_icon_pixbuf(kind ? kind : "app", size);
+    if (app && app->icon_cache && pix) {
+        g_hash_table_insert(app->icon_cache, g_strdup(key), pix);
+    }
+    return pix;
 }
 
 /* -----------------------------------------------------------------------------
@@ -739,12 +1157,12 @@ static void sample_system_telemetry(Win11TaskManager *app) {
  * ----------------------------------------------------------------------------- */
 static void draw_win11_rolling_graph(cairo_t *cr, double *data, int count, int w, int h,
                                      double r, double g, double b, double max_val, const char *unit_str) {
-    /* 1. Deep Obsidian Background & Crisp Frame */
-    cairo_set_source_rgb(cr, 0.055, 0.075, 0.125);
+    /* 1. Windows 11 Dark Graph Background & Subtle Frame */
+    cairo_set_source_rgb(cr, 0.106, 0.106, 0.106);
     cairo_paint(cr);
 
-    /* 2. Grid lines (Windows 11 / Obsidian style) */
-    cairo_set_source_rgba(cr, 0.22, 0.74, 0.97, 0.12);
+    /* 2. Grid lines (Windows 11 style) */
+    cairo_set_source_rgba(cr, 1.0, 1.0, 1.0, 0.08);
     cairo_set_line_width(cr, 1.0);
     /* 4 Horizontal Lines */
     for (int i = 1; i < 4; ++i) {
@@ -761,7 +1179,7 @@ static void draw_win11_rolling_graph(cairo_t *cr, double *data, int count, int w
     cairo_stroke(cr);
 
     /* Crisp Outer Graph Frame */
-    cairo_set_source_rgba(cr, 0.22, 0.30, 0.48, 0.8);
+    cairo_set_source_rgba(cr, 0.32, 0.32, 0.32, 0.9);
     cairo_set_line_width(cr, 1.0);
     cairo_rectangle(cr, 0.5, 0.5, w - 1.0, h - 1.0);
     cairo_stroke(cr);
@@ -863,10 +1281,10 @@ static gboolean on_draw_sparkline(GtkWidget *widget, cairo_t *cr, gpointer user_
         r = 0.96; g = 0.62; b = 0.04;
     }
 
-    cairo_set_source_rgb(cr, 0.055, 0.075, 0.125);
+    cairo_set_source_rgb(cr, 0.11, 0.11, 0.11);
     cairo_paint(cr);
 
-    cairo_set_source_rgba(cr, 0.22, 0.30, 0.48, 0.65);
+    cairo_set_source_rgba(cr, 0.28, 0.28, 0.28, 0.8);
     cairo_set_line_width(cr, 1.0);
     cairo_rectangle(cr, 0.5, 0.5, w - 1.0, h - 1.0);
     cairo_stroke(cr);
@@ -889,32 +1307,29 @@ static gboolean on_draw_sparkline(GtkWidget *widget, cairo_t *cr, gpointer user_
     return FALSE;
 }
 
-static const char *get_process_icon_name(const char *comm) {
-    if (!comm || !comm[0]) return "system-run";
+static const char *get_process_icon_kind(const char *comm) {
+    if (!comm || !comm[0]) return "app";
     if (strcasestr(comm, "term") || strcasestr(comm, "bash") || strcasestr(comm, "zsh") ||
         strcasestr(comm, "sh") || strcasestr(comm, "foot") || strcasestr(comm, "konsole"))
-        return "utilities-terminal";
-    if (strcasestr(comm, "chrom") || strcasestr(comm, "firefox") || strcasestr(comm, "browser"))
-        return "web-browser";
+        return "terminal";
+    if (strcasestr(comm, "chrom") || strcasestr(comm, "firefox") || strcasestr(comm, "browser") ||
+        strcasestr(comm, "network") || strcasestr(comm, "wpa") || strcasestr(comm, "ssh") || strcasestr(comm, "avahi"))
+        return "network";
     if (strcasestr(comm, "dolphin") || strcasestr(comm, "thunar") || strcasestr(comm, "files"))
-        return "system-file-manager";
+        return "files";
     if (strcasestr(comm, "pipewire") || strcasestr(comm, "wireplumber") || strcasestr(comm, "pulse") || strcasestr(comm, "audio"))
-        return "audio-card";
-    if (strcasestr(comm, "network") || strcasestr(comm, "wpa") || strcasestr(comm, "ssh") || strcasestr(comm, "avahi") || strcasestr(comm, "dns"))
-        return "network-wired";
+        return "audio";
     if (strcasestr(comm, "plasma") || strcasestr(comm, "kwin") || strcasestr(comm, "sddm") || strcasestr(comm, "xorg") || strcasestr(comm, "wayland"))
-        return "preferences-desktop-display";
-    if (strcasestr(comm, "steam") || strcasestr(comm, "lutris") || strcasestr(comm, "wine") || strcasestr(comm, "game") || strcasestr(comm, "mango"))
-        return "preferences-desktop-gaming";
+        return "processes";
     if (strcasestr(comm, "task-manager") || strcasestr(comm, "htop") || strcasestr(comm, "monitor"))
-        return "utilities-system-monitor";
+        return "performance";
     if (strcasestr(comm, "settings"))
-        return "preferences-system";
+        return "settings";
     if (strcasestr(comm, "systemd") || strcasestr(comm, "dbus") || strcasestr(comm, "udev") ||
         strcasestr(comm, "polkit") || strcasestr(comm, "cron") || strcasestr(comm, "kworker") ||
         strcasestr(comm, "daemon") || strcasestr(comm, "journal"))
-        return "preferences-system-services";
-    return "system-run";
+        return "services";
+    return "app";
 }
 
 /* -----------------------------------------------------------------------------
@@ -1043,21 +1458,21 @@ static void refresh_processes(Win11TaskManager *app) {
         double mem_mb = (rss_pages * 4096.0) / (1024.0 * 1024.0);
 
         /* Heat-map background colors (Windows 11 amber/coral scale) */
-        char cpu_bg[32] = "#141A2B";
-        char cpu_fg[32] = "#F1F5F9";
-        if (cpu_pct > 50.0) { strcpy(cpu_bg, "#6B1D1D"); strcpy(cpu_fg, "#FECACA"); }
-        else if (cpu_pct > 25.0) { strcpy(cpu_bg, "#5C2D12"); strcpy(cpu_fg, "#FED7AA"); }
-        else if (cpu_pct > 5.0) { strcpy(cpu_bg, "#3D2E14"); strcpy(cpu_fg, "#FDE68A"); }
+        char cpu_bg[32] = "#202020";
+        char cpu_fg[32] = "#F3F3F3";
+        if (cpu_pct > 55.0) { strcpy(cpu_bg, "#632222"); strcpy(cpu_fg, "#FFC4C4"); }
+        else if (cpu_pct > 25.0) { strcpy(cpu_bg, "#523017"); strcpy(cpu_fg, "#FFD3A8"); }
+        else if (cpu_pct > 5.0) { strcpy(cpu_bg, "#3B311B"); strcpy(cpu_fg, "#FCE49C"); }
 
-        char mem_bg[32] = "#141A2B";
-        char mem_fg[32] = "#F1F5F9";
-        if (mem_mb > 1024.0) { strcpy(mem_bg, "#5C2D12"); strcpy(mem_fg, "#FED7AA"); }
-        else if (mem_mb > 256.0) { strcpy(mem_bg, "#3D2E14"); strcpy(mem_fg, "#FDE68A"); }
+        char mem_bg[32] = "#202020";
+        char mem_fg[32] = "#F3F3F3";
+        if (mem_mb > 1024.0) { strcpy(mem_bg, "#523017"); strcpy(mem_fg, "#FFD3A8"); }
+        else if (mem_mb > 256.0) { strcpy(mem_bg, "#3B311B"); strcpy(mem_fg, "#FCE49C"); }
 
-        /* Status & Efficiency mode (real theme icons) */
-        const char *app_icon = get_process_icon_name(comm);
+        /* Status & Efficiency mode (3D realistic Cairo icons) */
+        GdkPixbuf *app_pix = get_cached_realistic_icon(app, get_process_icon_kind(comm), 18);
         const char *status_str = (nice_val >= 15) ? "Efficiency" : (state == 'R') ? "Running" : (state == 'S') ? "Sleeping" : (state == 'T') ? "Suspended" : "Idle";
-        const char *eff_icon = (nice_val >= 15) ? "battery" : "";
+        GdkPixbuf *eff_pix = (nice_val >= 15) ? get_cached_realistic_icon(app, "efficiency", 16) : NULL;
 
         /* Formatted strings */
         char cpu_str[32], mem_str[32], disk_str[32];
@@ -1094,10 +1509,10 @@ static void refresh_processes(Win11TaskManager *app) {
 
         if (found) {
             gtk_list_store_set(app->store_processes, &iter,
-                PROC_COL_APP_ICON, app_icon,
+                PROC_COL_APP_PIXBUF, app_pix,
                 PROC_COL_NAME, comm,
                 PROC_COL_STATUS, status_str,
-                PROC_COL_STATUS_ICON, eff_icon,
+                PROC_COL_STATUS_PIXBUF, eff_pix,
                 PROC_COL_CPU_VAL, cpu_pct,
                 PROC_COL_CPU_STR, cpu_str,
                 PROC_COL_MEM_VAL, mem_mb,
@@ -1117,10 +1532,10 @@ static void refresh_processes(Win11TaskManager *app) {
             gtk_list_store_append(app->store_processes, &iter);
             gtk_list_store_set(app->store_processes, &iter,
                 PROC_COL_PID, pid,
-                PROC_COL_APP_ICON, app_icon,
+                PROC_COL_APP_PIXBUF, app_pix,
                 PROC_COL_NAME, comm,
                 PROC_COL_STATUS, status_str,
-                PROC_COL_STATUS_ICON, eff_icon,
+                PROC_COL_STATUS_PIXBUF, eff_pix,
                 PROC_COL_CPU_VAL, cpu_pct,
                 PROC_COL_CPU_STR, cpu_str,
                 PROC_COL_MEM_VAL, mem_mb,
@@ -1633,25 +2048,25 @@ static GtkWidget *build_processes_page(Win11TaskManager *app) {
     /* Processes ListStore */
     app->store_processes = gtk_list_store_new(
         NUM_PROC_COLS,
-        G_TYPE_INT,     // PID
-        G_TYPE_STRING,  // APP_ICON
-        G_TYPE_STRING,  // NAME
-        G_TYPE_STRING,  // STATUS
-        G_TYPE_STRING,  // STATUS_ICON
-        G_TYPE_DOUBLE,  // CPU_VAL
-        G_TYPE_STRING,  // CPU_STR
-        G_TYPE_DOUBLE,  // MEM_VAL
-        G_TYPE_STRING,  // MEM_STR
-        G_TYPE_DOUBLE,  // DISK_VAL
-        G_TYPE_STRING,  // DISK_STR
-        G_TYPE_DOUBLE,  // NET_VAL
-        G_TYPE_STRING,  // NET_STR
-        G_TYPE_STRING,  // USER
-        G_TYPE_STRING,  // CMDLINE
-        G_TYPE_STRING,  // CPU_BG
-        G_TYPE_STRING,  // CPU_FG
-        G_TYPE_STRING,  // MEM_BG
-        G_TYPE_STRING   // MEM_FG
+        G_TYPE_INT,       // PID
+        GDK_TYPE_PIXBUF,  // APP_PIXBUF
+        G_TYPE_STRING,    // NAME
+        G_TYPE_STRING,    // STATUS
+        GDK_TYPE_PIXBUF,  // STATUS_PIXBUF
+        G_TYPE_DOUBLE,    // CPU_VAL
+        G_TYPE_STRING,    // CPU_STR
+        G_TYPE_DOUBLE,    // MEM_VAL
+        G_TYPE_STRING,    // MEM_STR
+        G_TYPE_DOUBLE,    // DISK_VAL
+        G_TYPE_STRING,    // DISK_STR
+        G_TYPE_DOUBLE,    // NET_VAL
+        G_TYPE_STRING,    // NET_STR
+        G_TYPE_STRING,    // USER
+        G_TYPE_STRING,    // CMDLINE
+        G_TYPE_STRING,    // CPU_BG
+        G_TYPE_STRING,    // CPU_FG
+        G_TYPE_STRING,    // MEM_BG
+        G_TYPE_STRING     // MEM_FG
     );
 
     app->filter_processes = GTK_TREE_MODEL_FILTER(gtk_tree_model_filter_new(GTK_TREE_MODEL(app->store_processes), NULL));
@@ -1662,15 +2077,15 @@ static GtkWidget *build_processes_page(Win11TaskManager *app) {
     gtk_style_context_add_class(gtk_widget_get_style_context(app->tree_processes), "treeview-win11");
 
     GtkCellRenderer *r_txt = gtk_cell_renderer_text_new();
-    g_object_set(r_txt, "xpad", 8, "ypad", 5, "foreground", "#F1F5F9", NULL);
+    g_object_set(r_txt, "xpad", 8, "ypad", 5, "foreground", "#F3F3F3", NULL);
 
-    /* 1. Name Column with Real Theme App Icon */
+    /* 1. Name Column with Realistic 3D App Icon */
     GtkCellRenderer *r_app_icon = gtk_cell_renderer_pixbuf_new();
-    g_object_set(r_app_icon, "xpad", 6, "stock-size", GTK_ICON_SIZE_MENU, NULL);
+    g_object_set(r_app_icon, "xpad", 6, NULL);
     GtkTreeViewColumn *col_name = gtk_tree_view_column_new();
     gtk_tree_view_column_set_title(col_name, "Name");
     gtk_tree_view_column_pack_start(col_name, r_app_icon, FALSE);
-    gtk_tree_view_column_add_attribute(col_name, r_app_icon, "icon-name", PROC_COL_APP_ICON);
+    gtk_tree_view_column_add_attribute(col_name, r_app_icon, "pixbuf", PROC_COL_APP_PIXBUF);
     gtk_tree_view_column_pack_start(col_name, r_txt, TRUE);
     gtk_tree_view_column_add_attribute(col_name, r_txt, "text", PROC_COL_NAME);
     gtk_tree_view_column_set_sort_column_id(col_name, PROC_COL_NAME);
@@ -1678,13 +2093,13 @@ static GtkWidget *build_processes_page(Win11TaskManager *app) {
     gtk_tree_view_column_set_min_width(col_name, 230);
     gtk_tree_view_append_column(GTK_TREE_VIEW(app->tree_processes), col_name);
 
-    /* 2. Status Column with Real Efficiency Icon */
+    /* 2. Status Column with Glossy 3D Efficiency Leaf */
     GtkCellRenderer *r_stat_icon = gtk_cell_renderer_pixbuf_new();
-    g_object_set(r_stat_icon, "xpad", 4, "stock-size", GTK_ICON_SIZE_MENU, NULL);
+    g_object_set(r_stat_icon, "xpad", 4, NULL);
     GtkTreeViewColumn *col_stat = gtk_tree_view_column_new();
     gtk_tree_view_column_set_title(col_stat, "Status");
     gtk_tree_view_column_pack_start(col_stat, r_stat_icon, FALSE);
-    gtk_tree_view_column_add_attribute(col_stat, r_stat_icon, "icon-name", PROC_COL_STATUS_ICON);
+    gtk_tree_view_column_add_attribute(col_stat, r_stat_icon, "pixbuf", PROC_COL_STATUS_PIXBUF);
     gtk_tree_view_column_pack_start(col_stat, r_txt, TRUE);
     gtk_tree_view_column_add_attribute(col_stat, r_txt, "text", PROC_COL_STATUS);
     gtk_tree_view_column_set_min_width(col_stat, 105);
@@ -1771,7 +2186,7 @@ static GtkWidget *build_performance_page(Win11TaskManager *app) {
     gtk_container_set_border_width(GTK_CONTAINER(left_rail), 8);
 
     const char *card_names[] = {"CPU", "Memory", "Disk 0", "Network"};
-    const char *card_icons[] = {"cpu", "media-memory", "drive-harddisk", "network-wired"};
+    const char *card_icons[] = {"cpu", "memory", "disk", "network"};
     for (int i = 0; i < NUM_PERF_METRICS; ++i) {
         GtkWidget *card = gtk_button_new();
         gtk_style_context_add_class(gtk_widget_get_style_context(card), "perf-card");
@@ -1780,8 +2195,8 @@ static GtkWidget *build_performance_page(Win11TaskManager *app) {
         app->btn_perf_cards[i] = card;
 
         GtkWidget *c_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 3);
-        GtkWidget *hdr_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
-        GtkWidget *c_icon = gtk_image_new_from_icon_name(card_icons[i], GTK_ICON_SIZE_MENU);
+        GtkWidget *hdr_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 7);
+        GtkWidget *c_icon = gtk_image_new_from_pixbuf(get_cached_realistic_icon(app, card_icons[i], 22));
         GtkWidget *l_name = gtk_label_new(card_names[i]);
         gtk_label_set_xalign(GTK_LABEL(l_name), 0.0);
         gtk_style_context_add_class(gtk_widget_get_style_context(l_name), "stat-label");
@@ -2015,11 +2430,11 @@ static GtkWidget *build_settings_page(Win11TaskManager *app) {
     return box;
 }
 
-/* Helper: Create a Fluent Button with Real Theme Icon + Label */
-static GtkWidget *create_icon_button(const char *icon_name, const char *label_text, GtkIconSize icon_size) {
+/* Helper: Create a Fluent Button with Realistic 3D Cairo Icon + Label */
+static GtkWidget *create_icon_button(Win11TaskManager *app, const char *icon_kind, const char *label_text, int icon_px) {
     GtkWidget *btn = gtk_button_new();
-    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 7);
-    GtkWidget *img = gtk_image_new_from_icon_name(icon_name, icon_size);
+    GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    GtkWidget *img = gtk_image_new_from_pixbuf(get_cached_realistic_icon(app, icon_kind, icon_px));
     gtk_box_pack_start(GTK_BOX(hbox), img, FALSE, FALSE, 0);
     if (label_text && label_text[0]) {
         GtkWidget *lbl = gtk_label_new(label_text);
@@ -2039,6 +2454,7 @@ static Win11TaskManager *win11_task_manager_create(void) {
     app->refresh_rate_ms = 1000;
     app->proc_samples = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
     app->app_histories = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+    app->icon_cache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_object_unref);
     app->nav_buttons = g_ptr_array_new();
     app->rail_expanded = TRUE;
 
@@ -2048,7 +2464,7 @@ static Win11TaskManager *win11_task_manager_create(void) {
     /* Top Level Window (Native KWin titlebar — zero CSD conflict) */
     app->window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(app->window), "AxisOS Task Manager");
-    gtk_window_set_icon_name(GTK_WINDOW(app->window), "utilities-system-monitor");
+    gtk_window_set_icon(GTK_WINDOW(app->window), get_cached_realistic_icon(app, "performance", 48));
     gtk_window_set_default_size(GTK_WINDOW(app->window), 1020, 650);
     gtk_window_set_position(GTK_WINDOW(app->window), GTK_WIN_POS_CENTER);
 
@@ -2056,17 +2472,17 @@ static Win11TaskManager *win11_task_manager_create(void) {
     GtkWidget *root_vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_add(GTK_CONTAINER(app->window), root_vbox);
 
-    /* Windows 11 Top Command Bar with Real Icons */
+    /* Windows 11 Top Command Bar with Realistic 3D Icons */
     GtkWidget *cmd_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_style_context_add_class(gtk_widget_get_style_context(cmd_bar), "command-bar");
 
-    app->btn_hamburger = create_icon_button("open-menu", NULL, GTK_ICON_SIZE_BUTTON);
+    app->btn_hamburger = create_icon_button(app, "menu", NULL, 18);
     gtk_widget_set_tooltip_text(app->btn_hamburger, "Toggle navigation panel");
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_hamburger), "fluent-btn");
     g_signal_connect(app->btn_hamburger, "clicked", G_CALLBACK(on_hamburger_clicked), app);
     gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_hamburger, FALSE, FALSE, 0);
 
-    GtkWidget *cmd_icon = gtk_image_new_from_icon_name("utilities-system-monitor", GTK_ICON_SIZE_LARGE_TOOLBAR);
+    GtkWidget *cmd_icon = gtk_image_new_from_pixbuf(get_cached_realistic_icon(app, "performance", 24));
     gtk_box_pack_start(GTK_BOX(cmd_bar), cmd_icon, FALSE, FALSE, 2);
 
     GtkWidget *cmd_title = gtk_label_new("Task Manager");
@@ -2079,19 +2495,19 @@ static Win11TaskManager *win11_task_manager_create(void) {
     g_signal_connect(app->search_entry, "search-changed", G_CALLBACK(on_search_changed), app);
     gtk_box_pack_start(GTK_BOX(cmd_bar), app->search_entry, TRUE, TRUE, 4);
 
-    /* Action Buttons with Real Papirus-Dark Icons */
-    app->btn_run_task = create_icon_button("list-add", "Run new task", GTK_ICON_SIZE_MENU);
+    /* Action Buttons with Realistic 3D Icons */
+    app->btn_run_task = create_icon_button(app, "run_task", "Run new task", 18);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_run_task), "fluent-btn");
     g_signal_connect(app->btn_run_task, "clicked", G_CALLBACK(on_run_task_clicked), app);
     gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_run_task, FALSE, FALSE, 0);
 
-    app->btn_end_task = create_icon_button("process-stop", "End task", GTK_ICON_SIZE_MENU);
+    app->btn_end_task = create_icon_button(app, "end_task", "End task", 18);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_end_task), "fluent-btn");
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_end_task), "fluent-btn-danger");
     g_signal_connect(app->btn_end_task, "clicked", G_CALLBACK(on_end_task_clicked), app);
     gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_end_task, FALSE, FALSE, 0);
 
-    app->btn_efficiency = create_icon_button("preferences-system-power-management", "Efficiency mode", GTK_ICON_SIZE_MENU);
+    app->btn_efficiency = create_icon_button(app, "efficiency", "Efficiency mode", 18);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->btn_efficiency), "fluent-btn");
     g_signal_connect(app->btn_efficiency, "clicked", G_CALLBACK(on_efficiency_mode_clicked), app);
     gtk_box_pack_start(GTK_BOX(cmd_bar), app->btn_efficiency, FALSE, FALSE, 0);
@@ -2102,29 +2518,29 @@ static Win11TaskManager *win11_task_manager_create(void) {
     GtkWidget *body_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     gtk_box_pack_start(GTK_BOX(root_vbox), body_hbox, TRUE, TRUE, 0);
 
-    /* Left Navigation Rail (Mica style with Real Theme Icons) */
+    /* Left Navigation Rail (Mica style with Realistic 3D Icons) */
     app->nav_rail = gtk_box_new(GTK_ORIENTATION_VERTICAL, 2);
     gtk_style_context_add_class(gtk_widget_get_style_context(app->nav_rail), "nav-rail");
     gtk_widget_set_size_request(app->nav_rail, 204, -1);
 
     typedef struct {
         const char *title;
-        const char *icon_name;
+        const char *icon_kind;
         const char *id;
     } NavItem;
 
     static const NavItem navs[] = {
-        {"Processes",    "preferences-system-windows",   "processes"},
-        {"Performance",  "utilities-system-monitor",     "performance"},
-        {"App history",  "document-open-recent",         "history"},
-        {"Startup apps", "system-run",                   "startup"},
-        {"Users",        "system-users",                 "users"},
-        {"Details",      "view-list-details",            "details"},
-        {"Services",     "preferences-system-services",  "services"}
+        {"Processes",    "processes",   "processes"},
+        {"Performance",  "performance", "performance"},
+        {"App history",  "history",     "history"},
+        {"Startup apps", "startup",     "startup"},
+        {"Users",        "users",       "users"},
+        {"Details",      "details",     "details"},
+        {"Services",     "services",    "services"}
     };
 
     for (size_t i = 0; i < sizeof(navs)/sizeof(navs[0]); ++i) {
-        GtkWidget *btn = create_icon_button(navs[i].icon_name, navs[i].title, GTK_ICON_SIZE_LARGE_TOOLBAR);
+        GtkWidget *btn = create_icon_button(app, navs[i].icon_kind, navs[i].title, 22);
         gtk_style_context_add_class(gtk_widget_get_style_context(btn), "nav-btn");
         gtk_widget_set_tooltip_text(btn, navs[i].title);
         g_object_set_data(G_OBJECT(btn), "page_id", (gpointer)navs[i].id);
@@ -2138,7 +2554,7 @@ static Win11TaskManager *win11_task_manager_create(void) {
     GtkWidget *spacer = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_box_pack_start(GTK_BOX(app->nav_rail), spacer, TRUE, TRUE, 0);
 
-    GtkWidget *btn_settings = create_icon_button("preferences-system", "Settings", GTK_ICON_SIZE_LARGE_TOOLBAR);
+    GtkWidget *btn_settings = create_icon_button(app, "settings", "Settings", 22);
     gtk_style_context_add_class(gtk_widget_get_style_context(btn_settings), "nav-btn");
     gtk_widget_set_tooltip_text(btn_settings, "Settings");
     g_object_set_data(G_OBJECT(btn_settings), "page_id", (gpointer)"settings");
@@ -2194,6 +2610,20 @@ int main(int argc, char *argv[]) {
         printf("Options:\n");
         printf("  --help, -h       Display this help message and exit\n");
         printf("  --summary, -s    Print instant system telemetry summary and exit\n");
+        return 0;
+    }
+
+    if (argc > 1 && strcmp(argv[1], "--verify-css") == 0) {
+        GtkCssProvider *p = gtk_css_provider_new();
+        GError *err = NULL;
+        if (!gtk_css_provider_load_from_data(p, WIN11_CSS, -1, &err)) {
+            fprintf(stderr, "CSS_FAIL: %s\n", err ? err->message : "unknown");
+            if (err) g_error_free(err);
+            g_object_unref(p);
+            return 1;
+        }
+        printf("CSS_OK: %zu bytes parsed by GTK 3 with 0 errors\n", strlen(WIN11_CSS));
+        g_object_unref(p);
         return 0;
     }
 
