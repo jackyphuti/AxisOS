@@ -97,7 +97,7 @@ if [ -x "$WORKSPACE_DIR/compositor/axis-compositor" ]; then
     cp -f "$WORKSPACE_DIR/compositor/axis-compositor" "$BUILD_DIR/config/includes.chroot/usr/local/bin/axis-compositor"
 fi
 
-# 5. Copy System Installation Engine & Real Disk Partitioner
+# 5. Copy System Installation Engine & Real Disk Partitione
 if [ -x "$WORKSPACE_DIR/os-build/scripts/axis-disk-info" ]; then
     cp -f "$WORKSPACE_DIR/os-build/scripts/axis-disk-info" "$BUILD_DIR/config/includes.chroot/usr/local/bin/"
 fi
@@ -400,7 +400,7 @@ if ! id -u axis >/dev/null 2>&1; then
     echo "axis:axis" | chpasswd
 fi
 
-# Ensure required hardware groups exist and axis user is member
+# Ensure required hardware groups exist and axis user is membe
 for grp in video render input audio plugdev users disk seat _seatd tty; do
     groupadd -f "$grp" 2>/dev/null || true
     usermod -aG "$grp" axis 2>/dev/null || true
@@ -443,7 +443,7 @@ if [ -d /var/lib/sddm ]; then
     chown -R sddm:sddm /var/lib/sddm 2>/dev/null || true
 fi
 
-# Passwordless sudo for axis user
+# Passwordless sudo for axis use
 mkdir -p /etc/sudoers.d
 echo "axis ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/axis
 chown root:root /etc/sudoers.d /etc/sudoers.d/axis 2>/dev/null || true
@@ -520,7 +520,7 @@ welcomeStyleCalamares: true
 welcomeExpandingLogo: true
 windowExpanding: normal
 windowSize: 850px,560px
-windowPlacement: center
+windowPlacement: cente
 
 strings:
     productName:         AxisOS Linux
@@ -556,7 +556,7 @@ if [ -f "$CAL_DIR/show.qml" ]; then
     sed -i 's/Welcome to Debian GNU\/Linux/Welcome to AxisOS Linux/g; s/Debian/AxisOS/g' "$CAL_DIR/show.qml" 2>/dev/null || true
 fi
 
-# Override Debian Calamares desktop launcher script to create single "Install AxisOS" launcher
+# Override Debian Calamares desktop launcher script to create single "Install AxisOS" launche
 cat << 'CAL_ICON_EOF' > /usr/bin/add-calamares-desktop-icon
 #!/bin/sh
 DESKTOP=$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")
@@ -745,6 +745,39 @@ systemctl set-default graphical.target 2>/dev/null || true
 
 # Ensure all binaries in /usr/local/bin are executable
 chmod 755 /usr/local/bin/* 2>/dev/null || true
+
+# Configure automatic AxisOS Triangle Logo + System Details on every interactive terminal
+cat << 'FETCH_PROF_EOF' > /etc/profile.d/axisos-fetch.sh
+if [ -t 1 ] && [ -x /usr/local/bin/axis-fetch ] && [ -z "${AXIS_FETCH_SHOWN:-}" ]; then
+    export AXIS_FETCH_SHOWN=1
+    /usr/local/bin/axis-fetch
+fi
+FETCH_PROF_EOF
+chmod 0644 /etc/profile.d/axisos-fetch.sh
+
+if [ -f /etc/bash.bashrc ] && ! grep -q "axis-fetch" /etc/bash.bashrc 2>/dev/null; then
+    cat << 'FETCH_BASH_EOF' >> /etc/bash.bashrc
+
+# AxisOS Terminal System Details & Logo Greeting
+if [ -t 1 ] && [ -x /usr/local/bin/axis-fetch ] && [ -z "${AXIS_FETCH_SHOWN:-}" ]; then
+    export AXIS_FETCH_SHOWN=1
+    /usr/local/bin/axis-fetch
+fi
+FETCH_BASH_EOF
+fi
+
+# Pre-configure Flathub remote for Flatpak (universal software support out-of-the-box)
+if command -v flatpak >/dev/null 2>&1; then
+    flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+fi
+
+# Pre-seed SDDM default session to Plasma (X11)
+mkdir -p /var/lib/sddm
+cat << 'SDDM_STATE_EOF' > /var/lib/sddm/state.conf
+[Last]
+Session=/usr/share/xsessions/plasma.desktop
+SDDM_STATE_EOF
+chown -R sddm:sddm /var/lib/sddm 2>/dev/null || true
 
 # Ensure squashfs-tools and offline GRUB/LUKS installer dependencies exist for Calamares
 if ! command -v unsquashfs >/dev/null 2>&1 || ! command -v grub-install >/dev/null 2>&1; then
