@@ -36,6 +36,7 @@ seatd
 libseat1
 sudo
 polkitd
+pkexec
 unattended-upgrades
 apt-listchanges
 

@@ -122,6 +122,7 @@ STATE_EOF
     if [ -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" ]; then
         cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /usr/share/sddm/themes/breeze/theme.conf.use
         cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /etc/sddm.conf.d/theme.conf.use
+        rm -f /usr/share/sddm/themes/breeze/theme.conf.use /etc/sddm.conf.d/theme.conf.use 2>/dev/null || true
     fi
 
     # 4. Sync AxisOS Obsidian KDE Plasma Theme, Global Theme, Colors & Layout
@@ -244,21 +245,82 @@ BASHRC_EOF
         sysctl --system >/dev/null 2>&1 || true
     fi
 
-    # 6. Enable Universal Flatpak + Flathub Support (System & User)
-    echo "[5/8] Configuring Flatpak & Flathub universal software support..."
+    # 6. Repair APT Repositories, dpkg, Polkit (pkexec) & Universal Flatpak/Flathub Support
+    echo "[5/8] Repairing APT sources, Polkit permissions, and Flatpak/Flathub support..."
     export DEBIAN_FRONTEND=noninteractive
-    if ! command -v flatpak >/dev/null 2>&1; then
-        apt-get update -qq 2>/dev/null || true
-        apt-get install -y flatpak 2>/dev/null || true
+
+    # Remove stale live-media/cdrom sources that break apt update/install
+    rm -f /etc/apt/sources.list.d/debian-live-media.list /etc/apt/sources.list.d/live.list 2>/dev/null || true
+    for src_f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+        [ -f "$src_f" ] || continue
+        if grep -qiE 'cdrom:|file:/|deb\.axisos\.org' "$src_f" 2>/dev/null; then
+            rm -f "$src_f" 2>/dev/null || true
+        fi
+    done
+
+    # Write clean, verified Debian 12 Bookworm APT repositories
+    cat << 'APT_EOF' > /etc/apt/sources.list
+# AxisOS / Debian 12 Bookworm Official Repositories
+deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware
+APT_EOF
+    chmod 0644 /etc/apt/sources.list
+
+    # Ensure required APT & log directories exist with proper permissions
+    mkdir -p /var/lib/apt/lists/partial /var/cache/apt/archives/partial /var/log/apt
+    chmod 0755 /var/lib/apt/lists /var/cache/apt/archives /var/log/apt
+    if id _apt >/dev/null 2>&1; then
+        chown _apt:root /var/lib/apt/lists/partial /var/cache/apt/archives/partial 2>/dev/null || true
+        chmod 0700 /var/lib/apt/lists/partial /var/cache/apt/archives/partial 2>/dev/null || true
+    fi
+
+    # Fix Polkit rules directory permissions (polkitd runs as UID polkitd, NOT root!)
+    mkdir -p /etc/polkit-1/rules.d
+    cat << 'POLKIT_EOF' > /etc/polkit-1/rules.d/10-axisos-admin.rules
+polkit.addRule(function(action, subject) {
+    if (subject.isInGroup("sudo") || subject.isInGroup("wheel") || subject.user == "axis") {
+        return polkit.Result.YES;
+    }
+});
+POLKIT_EOF
+    chown root:root /etc/polkit-1 /etc/polkit-1/rules.d /etc/polkit-1/rules.d/10-axisos-admin.rules 2>/dev/null || true
+    chmod 0755 /etc/polkit-1 /etc/polkit-1/rules.d 2>/dev/null || true
+    chmod 0644 /etc/polkit-1/rules.d/10-axisos-admin.rules 2>/dev/null || true
+    for suid_bin in /usr/bin/sudo /usr/bin/pkexec /usr/lib/polkit-1/polkit-agent-helper-1; do
+        if [ -f "$suid_bin" ]; then
+            chown root:root "$suid_bin" 2>/dev/null || true
+            chmod 4755 "$suid_bin" 2>/dev/null || true
+        fi
+    done
+    for user_home in /home/*; do
+        [ -d "$user_home" ] || continue
+        local uname_di
+        uname_dir="$(basename "$user_home")"
+        if [ "$uname_dir" != "axis" ] && id "$uname_dir" >/dev/null 2>&1; then
+            usermod -aG sudo "$uname_dir" 2>/dev/null || true
+        fi
+    done
+    systemctl restart polkit.service 2>/dev/null || true
+
+    # Recover any interrupted dpkg transactions and refresh APT package index
+    dpkg --configure -a 2>&1 || true
+    apt-get -o DPkg::Lock::Timeout=60 update || true
+    apt-get -o DPkg::Lock::Timeout=60 install -f -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" || true
+
+    if ! command -v flatpak >/dev/null 2>&1 || ! command -v pkexec >/dev/null 2>&1; then
+        apt-get -o DPkg::Lock::Timeout=60 install -y flatpak pkexec ca-certificates || true
     fi
     if command -v flatpak >/dev/null 2>&1; then
-        flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true
+        flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>&1 || true
+        flatpak remote-modify --system --enable flathub 2>/dev/null || true
         for user_home in /home/*; do
             [ -d "$user_home" ] || continue
             local uname_di
             uname_dir="$(basename "$user_home")"
             id "$uname_dir" >/dev/null 2>&1 || continue
-            su - "$uname_dir" -c "flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo" 2>/dev/null || true
+            su - "$uname_dir" -c "flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo && flatpak remote-modify --user --enable flathub" 2>/dev/null || true
         done
     fi
 
@@ -281,6 +343,7 @@ Nice=10
 IOSchedulingClass=idle
 SVC_EOF
 
+    rm -f /etc/systemd/system/axisos-ota.time 2>/dev/null || true
     cat << 'TMR_EOF' > /etc/systemd/system/axisos-ota.time
 [Unit]
 Description=Run AxisOS Over-The-Air System Update Every 2 Months
@@ -302,9 +365,9 @@ TMR_EOF
 
     # 8. Update Debian base system & security packages
     echo "[7/8] Updating Debian Bookworm base packages & security patches..."
-    apt-get update -qq 2>/dev/null || true
-    apt-get upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" 2>/dev/null || true
-    apt-get autoremove -y --purge 2>/dev/null || true
+    apt-get -o DPkg::Lock::Timeout=60 update || true
+    apt-get -o DPkg::Lock::Timeout=60 upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" || true
+    apt-get -o DPkg::Lock::Timeout=60 autoremove -y --purge 2>/dev/null || true
     apt-get clean 2>/dev/null || true
 
     date -u '+%Y-%m-%dT%H:%M:%SZ' > "$STATE_FILE"

@@ -360,11 +360,13 @@ fi
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/polkit-1/rules.d"
 cat << 'EOF' > "$BUILD_DIR/config/includes.chroot/etc/polkit-1/rules.d/10-axisos-admin.rules"
 polkit.addRule(function(action, subject) {
-    if (subject.isInGroup("sudo") || subject.user == "axis") {
+    if (subject.isInGroup("sudo") || subject.isInGroup("wheel") || subject.user == "axis") {
         return polkit.Result.YES;
     }
 });
 EOF
+chmod 0755 "$BUILD_DIR/config/includes.chroot/etc/polkit-1" "$BUILD_DIR/config/includes.chroot/etc/polkit-1/rules.d"
+chmod 0644 "$BUILD_DIR/config/includes.chroot/etc/polkit-1/rules.d/10-axisos-admin.rules"
 
 mkdir -p "$BUILD_DIR/config/includes.chroot/etc/xdg"
 if [ -d "$WORKSPACE_DIR/os-build/configs/wayland" ]; then
@@ -792,9 +794,15 @@ find /usr/share/locale -maxdepth 1 -mindepth 1 ! -name 'en*' ! -name 'locale.ali
 
 # Clean up any runtime/temporary directories before squashing
 rm -rf /run/* /run/user /tmp/* /var/tmp/* /var/log/* 2>/dev/null || true
-mkdir -p /run/lock
+mkdir -p /run/lock /var/log/apt /var/cache/apt/archives/partial /var/lib/apt/lists/partial
 chmod 1777 /tmp /var/tmp 2>/dev/null || true
-chmod 755 /run 2>/dev/null || true
+chmod 755 /run /var/log/apt /var/cache/apt/archives /var/lib/apt/lists 2>/dev/null || true
+if id _apt >/dev/null 2>&1; then
+    chown _apt:root /var/cache/apt/archives/partial /var/lib/apt/lists/partial 2>/dev/null || true
+    chmod 0700 /var/cache/apt/archives/partial /var/lib/apt/lists/partial 2>/dev/null || true
+fi
+chmod 0755 /etc/polkit-1 /etc/polkit-1/rules.d 2>/dev/null || true
+chmod 0644 /etc/polkit-1/rules.d/10-axisos-admin.rules 2>/dev/null || true
 EOF
 chmod +x "$BUILD_DIR/config/hooks/live/0050-setup-axisos.hook.chroot"
 

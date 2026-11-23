@@ -64,6 +64,7 @@ typedef struct {
     GtkWidget *status_label;
     GtkWidget *progress_bar;
     GtkWidget *action_btn;
+    GtkWidget *log_expander;
     GtkWidget *log_view;
     GtkTextBuffer *log_buffer;
 
@@ -150,8 +151,11 @@ static void on_mgr_child_exit(GPid pid, gint status, gpointer user_data) {
         gtk_label_set_text(GTK_LABEL(app->status_label), "Operation completed successfully.");
         append_mgr_log(app, "\n[SUCCESS] Operation completed.\n");
     } else {
-        gtk_label_set_text(GTK_LABEL(app->status_label), "Operation failed or was cancelled.");
-        append_mgr_log(app, "\n[ERROR] Operation failed.\n");
+        gtk_label_set_text(GTK_LABEL(app->status_label), "Operation failed — see Operation Log below.");
+        append_mgr_log(app, "\n[ERROR] Operation failed. Check the error output above.\n");
+        if (app->log_expander) {
+            gtk_expander_set_expanded(GTK_EXPANDER(app->log_expander), TRUE);
+        }
     }
     check_installed_packages();
     populate_store(app);
@@ -259,29 +263,48 @@ static void on_action_clicked(GtkButton *btn, gpointer user_data) {
     if (!app->selected_pkg || app->child_pid > 0) return;
 
     char *quoted = g_shell_quote(app->selected_pkg);
-    char cmd[1024];
+    const char *elev = (geteuid() == 0) ? "" : "pkexec ";
+    char cmd[2048];
     if (app->selected_installed) {
         if (strcmp(app->selected_source, "Flatpak") == 0) {
             snprintf(cmd, sizeof(cmd),
-                     "flatpak uninstall --user -y --noninteractive %s 2>/dev/null || pkexec flatpak uninstall --system -y --noninteractive %s",
-                     quoted, quoted);
+                     "flatpak uninstall --user -y --noninteractive %s 2>/dev/null || "
+                     "%sflatpak uninstall --system -y --noninteractive %s",
+                     quoted, elev, quoted);
         } else {
-            snprintf(cmd, sizeof(cmd), "pkexec env DEBIAN_FRONTEND=noninteractive apt-get remove -y %s", quoted);
+            snprintf(cmd, sizeof(cmd),
+                     "%s/bin/bash -c 'export DEBIAN_FRONTEND=noninteractive; dpkg --configure -a 2>/dev/null || true; "
+                     "apt-get -o DPkg::Lock::Timeout=60 remove -y -- \"$1\"' _ %s",
+                     elev, quoted);
         }
     } else {
         if (strcmp(app->selected_source, "Flatpak") == 0) {
             snprintf(cmd, sizeof(cmd),
-                     "if ! command -v flatpak >/dev/null 2>&1; then pkexec env DEBIAN_FRONTEND=noninteractive apt-get update && pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y flatpak; fi && "
-                     "flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo && "
-                     "flatpak install --user -y --noninteractive flathub %s", quoted);
+                     "if ! command -v flatpak >/dev/null 2>&1; then "
+                     "%s/bin/bash -c 'export DEBIAN_FRONTEND=noninteractive; dpkg --configure -a 2>/dev/null || true; "
+                     "apt-get -o DPkg::Lock::Timeout=60 update && apt-get -o DPkg::Lock::Timeout=60 install -y flatpak ca-certificates'; fi && "
+                     "{ flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true; "
+                     "flatpak remote-modify --user --enable flathub 2>/dev/null || true; "
+                     "flatpak install --user -y --noninteractive flathub %s; } || "
+                     "%s/bin/bash -c 'flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true; "
+                     "flatpak remote-modify --system --enable flathub 2>/dev/null || true; "
+                     "flatpak install --system -y --noninteractive flathub \"$1\"' _ %s",
+                     elev, quoted, elev, quoted);
         } else {
-            snprintf(cmd, sizeof(cmd), "pkexec env DEBIAN_FRONTEND=noninteractive apt-get update && pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y %s", quoted);
+            snprintf(cmd, sizeof(cmd),
+                     "%s/bin/bash -c 'export DEBIAN_FRONTEND=noninteractive; dpkg --configure -a 2>/dev/null || true; "
+                     "apt-get -o DPkg::Lock::Timeout=60 update && "
+                     "apt-get -o DPkg::Lock::Timeout=60 install -y --fix-broken -- \"$1\"' _ %s",
+                     elev, quoted);
         }
     }
     g_free(quoted);
 
+    if (app->log_expander) {
+        gtk_expander_set_expanded(GTK_EXPANDER(app->log_expander), TRUE);
+    }
     gtk_text_buffer_set_text(app->log_buffer, "", -1);
-    char start_msg[1280];
+    char start_msg[2304];
     snprintf(start_msg, sizeof(start_msg), ">>> Executing: %s\n\n", cmd);
     append_mgr_log(app, start_msg);
 
@@ -289,7 +312,7 @@ static void on_action_clicked(GtkButton *btn, gpointer user_data) {
     snprintf(st, sizeof(st), "%s %s...", app->selected_installed ? "Removing" : "Installing", app->selected_pkg);
     gtk_label_set_text(GTK_LABEL(app->status_label), st);
 
-    char wrapped[1536];
+    char wrapped[2560];
     snprintf(wrapped, sizeof(wrapped), "( %s ) 2>&1", cmd);
     gchar *argv[] = {"/bin/bash", "-c", wrapped, NULL};
 
@@ -493,16 +516,16 @@ int main(int argc, char *argv[]) {
     gtk_box_pack_start(GTK_BOX(main_box), app.progress_bar, FALSE, FALSE, 0);
 
     // Terminal log drawer
-    GtkWidget *expander = gtk_expander_new("Operation Log");
+    app.log_expander = gtk_expander_new("Operation Log");
     GtkWidget *log_scroll = gtk_scrolled_window_new(NULL, NULL);
-    gtk_widget_set_size_request(log_scroll, -1, 120);
+    gtk_widget_set_size_request(log_scroll, -1, 130);
     app.log_view = gtk_text_view_new();
     gtk_text_view_set_editable(GTK_TEXT_VIEW(app.log_view), FALSE);
     gtk_text_view_set_monospace(GTK_TEXT_VIEW(app.log_view), TRUE);
     app.log_buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(app.log_view));
     gtk_container_add(GTK_CONTAINER(log_scroll), app.log_view);
-    gtk_container_add(GTK_CONTAINER(expander), log_scroll);
-    gtk_box_pack_start(GTK_BOX(main_box), expander, FALSE, FALSE, 0);
+    gtk_container_add(GTK_CONTAINER(app.log_expander), log_scroll);
+    gtk_box_pack_start(GTK_BOX(main_box), app.log_expander, FALSE, FALSE, 0);
 
     populate_store(&app);
 

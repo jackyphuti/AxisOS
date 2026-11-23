@@ -308,12 +308,12 @@ static void run_shell_job(PkgInstallerApp *app, const char *display_title, const
     gtk_expander_set_expanded(GTK_EXPANDER(app->log_expander), TRUE);
     gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(app->progress_bar), 0.1);
 
-    char start_msg[1024];
+    char start_msg[2560];
     snprintf(start_msg, sizeof(start_msg), ">>> %s\n>>> Command: %s\n\n", display_title, shell_cmd);
     append_log(app, start_msg);
     gtk_label_set_text(GTK_LABEL(app->status_label), display_title);
 
-    char wrapped[2048];
+    char wrapped[3072];
     snprintf(wrapped, sizeof(wrapped), "( %s ) 2>&1", shell_cmd);
     gchar *argv[] = {"/bin/bash", "-c", wrapped, NULL};
 
@@ -334,37 +334,64 @@ static void run_shell_job(PkgInstallerApp *app, const char *display_title, const
 }
 
 static void install_software(PkgInstallerApp *app, const char *id, const char *source, gboolean is_remove) {
-    char cmd[1024];
+    char cmd[2048];
     char title[256];
     char *quoted = g_shell_quote(id);
+    const char *elev = (geteuid() == 0) ? "" : "pkexec ";
 
     if (g_str_has_suffix(id, ".deb")) {
         snprintf(title, sizeof(title), "Installing local .deb package: %s", id);
-        snprintf(cmd, sizeof(cmd), "pkexec env DEBIAN_FRONTEND=noninteractive apt-get update && pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y --allow-downgrades %s", quoted);
+        snprintf(cmd, sizeof(cmd),
+                 "%s/bin/bash -c 'export DEBIAN_FRONTEND=noninteractive; dpkg --configure -a 2>/dev/null || true; "
+                 "apt-get -o DPkg::Lock::Timeout=60 update || true; "
+                 "apt-get -o DPkg::Lock::Timeout=60 install -y --allow-downgrades -- \"$1\"' _ %s",
+                 elev, quoted);
     } else if (g_str_has_suffix(id, ".flatpakref") || g_str_has_suffix(id, ".flatpak")) {
         snprintf(title, sizeof(title), "Installing Flatpak bundle: %s", id);
-        snprintf(cmd, sizeof(cmd), "flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo && flatpak install --user -y --noninteractive %s", quoted);
+        snprintf(cmd, sizeof(cmd),
+                 "{ flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true; "
+                 "flatpak install --user -y --noninteractive %s; } || "
+                 "%s/bin/bash -c 'flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true; "
+                 "flatpak install --system -y --noninteractive \"$1\"' _ %s",
+                 quoted, elev, quoted);
     } else if (g_str_has_suffix(id, ".axis")) {
         snprintf(title, sizeof(title), "Installing Axis package: %s", id);
-        snprintf(cmd, sizeof(cmd), "pkexec /usr/local/bin/axis install %s", quoted);
+        snprintf(cmd, sizeof(cmd), "%s/usr/local/bin/axis install %s", elev, quoted);
     } else if (source && strcmp(source, "Flatpak") == 0) {
         if (is_remove) {
             snprintf(title, sizeof(title), "Removing Flatpak: %s", id);
-            snprintf(cmd, sizeof(cmd), "flatpak uninstall --user -y --noninteractive %s 2>/dev/null || pkexec flatpak uninstall --system -y --noninteractive %s", quoted, quoted);
+            snprintf(cmd, sizeof(cmd),
+                     "flatpak uninstall --user -y --noninteractive %s 2>/dev/null || "
+                     "%sflatpak uninstall --system -y --noninteractive %s",
+                     quoted, elev, quoted);
         } else {
             snprintf(title, sizeof(title), "Installing %s from Flathub (Flatpak)...", id);
             snprintf(cmd, sizeof(cmd),
-                     "if ! command -v flatpak >/dev/null 2>&1; then pkexec env DEBIAN_FRONTEND=noninteractive apt-get update && pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y flatpak; fi && "
-                     "flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo && "
-                     "flatpak install --user -y --noninteractive flathub %s", quoted);
+                     "if ! command -v flatpak >/dev/null 2>&1; then "
+                     "%s/bin/bash -c 'export DEBIAN_FRONTEND=noninteractive; dpkg --configure -a 2>/dev/null || true; "
+                     "apt-get -o DPkg::Lock::Timeout=60 update && apt-get -o DPkg::Lock::Timeout=60 install -y flatpak ca-certificates'; fi && "
+                     "{ flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true; "
+                     "flatpak remote-modify --user --enable flathub 2>/dev/null || true; "
+                     "flatpak install --user -y --noninteractive flathub %s; } || "
+                     "%s/bin/bash -c 'flatpak remote-add --if-not-exists --system flathub https://dl.flathub.org/repo/flathub.flatpakrepo 2>/dev/null || true; "
+                     "flatpak remote-modify --system --enable flathub 2>/dev/null || true; "
+                     "flatpak install --system -y --noninteractive flathub \"$1\"' _ %s",
+                     elev, quoted, elev, quoted);
         }
     } else {
         if (is_remove) {
             snprintf(title, sizeof(title), "Removing APT package: %s", id);
-            snprintf(cmd, sizeof(cmd), "pkexec env DEBIAN_FRONTEND=noninteractive apt-get remove -y %s", quoted);
+            snprintf(cmd, sizeof(cmd),
+                     "%s/bin/bash -c 'export DEBIAN_FRONTEND=noninteractive; dpkg --configure -a 2>/dev/null || true; "
+                     "apt-get -o DPkg::Lock::Timeout=60 remove -y -- \"$1\"' _ %s",
+                     elev, quoted);
         } else {
             snprintf(title, sizeof(title), "Installing %s via APT...", id);
-            snprintf(cmd, sizeof(cmd), "pkexec env DEBIAN_FRONTEND=noninteractive apt-get update && pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y %s", quoted);
+            snprintf(cmd, sizeof(cmd),
+                     "%s/bin/bash -c 'export DEBIAN_FRONTEND=noninteractive; dpkg --configure -a 2>/dev/null || true; "
+                     "apt-get -o DPkg::Lock::Timeout=60 update && "
+                     "apt-get -o DPkg::Lock::Timeout=60 install -y --fix-broken -- \"$1\"' _ %s",
+                     elev, quoted);
         }
     }
 
