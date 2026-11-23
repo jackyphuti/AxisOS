@@ -120,8 +120,8 @@ STATE_EOF
 
     mkdir -p /usr/share/sddm/themes/breeze /etc/sddm.conf.d
     if [ -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" ]; then
-        cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /usr/share/sddm/themes/breeze/theme.conf.use
-        cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /etc/sddm.conf.d/theme.conf.use
+        cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /usr/share/sddm/themes/breeze/theme.conf.user
+        cp -f "$SRC_DIR/os-build/configs/sddm/theme.conf.user" /etc/sddm.conf.d/theme.conf.user
         rm -f /usr/share/sddm/themes/breeze/theme.conf.use /etc/sddm.conf.d/theme.conf.use 2>/dev/null || true
     fi
 
@@ -169,7 +169,7 @@ STATE_EOF
     PREV_LAYOUT_REV="$(cat "$LAYOUT_REV_FILE" 2>/dev/null || true)"
     for user_home in /home/*; do
         [ -d "$user_home" ] || continue
-        local uname_di
+        local uname_dir
         uname_dir="$(basename "$user_home")"
         id "$uname_dir" >/dev/null 2>&1 || continue
 
@@ -413,7 +413,7 @@ PAM_KDE_EOF
     loginctl unlock-sessions 2>/dev/null || true
     for user_home in /home/*; do
         [ -d "$user_home" ] || continue
-        local uname_di
+        local uname_dir
         uname_dir="$(basename "$user_home")"
         if [ "$uname_dir" != "axis" ] && id "$uname_dir" >/dev/null 2>&1; then
             usermod -aG sudo "$uname_dir" 2>/dev/null || true
@@ -434,7 +434,7 @@ PAM_KDE_EOF
         flatpak remote-modify --system --enable flathub 2>/dev/null || true
         for user_home in /home/*; do
             [ -d "$user_home" ] || continue
-            local uname_di
+            local uname_dir
             uname_dir="$(basename "$user_home")"
             id "$uname_dir" >/dev/null 2>&1 || continue
             su - "$uname_dir" -c "flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo && flatpak remote-modify --user --enable flathub" 2>/dev/null || true
@@ -461,7 +461,7 @@ IOSchedulingClass=idle
 SVC_EOF
 
     rm -f /etc/systemd/system/axisos-ota.time 2>/dev/null || true
-    cat << 'TMR_EOF' > /etc/systemd/system/axisos-ota.time
+    cat << 'TMR_EOF' > /etc/systemd/system/axisos-ota.timer
 [Unit]
 Description=Run AxisOS Over-The-Air System Update Every 2 Months
 
