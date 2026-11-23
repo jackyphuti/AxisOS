@@ -16,37 +16,42 @@ typedef struct {
 } SoftItem;
 
 static SoftItem SOFTWARE_LIST[] = {
-    {"firefox", "Mozilla Firefox", "Internet", "APT", "Fast and privacy-first web browser", "firefox", FALSE},
-    {"chromium", "Chromium Web Browser", "Internet", "APT", "Open-source browser project", "chromium", FALSE},
-    {"thunderbird", "Mozilla Thunderbird", "Internet", "APT", "Full-featured email and news client", "thunderbird", FALSE},
-    {"discord", "Discord", "Internet", "Flatpak", "Voice, video and text chat platform", "discord", FALSE},
+    {"org.mozilla.firefox",         "Mozilla Firefox",       "Internet",       "Flatpak", "Fast and privacy-first web browser",          "firefox",              FALSE},
+    {"com.brave.Browser",           "Brave Browser",         "Internet",       "Flatpak", "Privacy-focused browser with ad-blocking",    "web-browser",          FALSE},
+    {"com.google.Chrome",           "Google Chrome",         "Internet",       "Flatpak", "Fast web browser by Google",                  "web-browser",          FALSE},
+    {"chromium",                    "Chromium Web Browser",  "Internet",       "APT",     "Open-source browser project (native APT)",    "chromium",             FALSE},
+    {"org.mozilla.Thunderbird",     "Mozilla Thunderbird",   "Internet",       "Flatpak", "Full-featured email and news client",         "thunderbird",          FALSE},
+    {"com.discordapp.Discord",      "Discord",               "Internet",       "Flatpak", "Voice, video and text chat platform",         "internet-chat",        FALSE},
+    {"org.telegram.desktop",        "Telegram Desktop",      "Internet",       "Flatpak", "Fast cloud desktop messenger",                "internet-chat",        FALSE},
 
-    {"steam", "Steam", "Games", "APT", "Digital distribution gaming platform", "steam", FALSE},
-    {"lutris", "Lutris", "Games", "APT", "Open gaming platform for Linux", "lutris", FALSE},
-    {"heroic", "Heroic Games Launcher", "Games", "Flatpak", "Epic and GOG launcher", "heroic", FALSE},
-    {"retroarch", "RetroArch", "Games", "Flatpak", "Multi-system emulator frontend", "retroarch", FALSE},
+    {"com.valvesoftware.Steam",     "Steam",                 "Games",          "Flatpak", "Valve digital gaming platform + Proton",      "applications-games",   FALSE},
+    {"net.lutris.Lutris",           "Lutris",                "Games",          "Flatpak", "Open gaming platform for Linux & Wine",       "applications-games",   FALSE},
+    {"com.heroicgameslauncher.hgl", "Heroic Games Launcher", "Games",          "Flatpak", "Epic, GOG & Amazon Games launcher",           "applications-games",   FALSE},
+    {"com.usebottles.bottles",      "Bottles",               "Games",          "Flatpak", "Run Windows apps & games in prefixes",        "applications-games",   FALSE},
+    {"net.davidotek.pupgui2",       "ProtonUp-Qt",           "Games",          "Flatpak", "Install GE-Proton & Wine-GE builds",          "applications-games",   FALSE},
+    {"org.libretro.RetroArch",      "RetroArch",             "Games",          "Flatpak", "Multi-system emulator frontend",              "applications-games",   FALSE},
 
-    {"code", "Visual Studio Code", "Development", "APT", "Code editing redefined", "visual-studio-code", FALSE},
-    {"git", "Git VCS", "Development", "APT", "Fast distributed version control", "git", FALSE},
-    {"neovim", "Neovim", "Development", "APT", "Vim-fork focused on extensibility", "nvim", FALSE},
-    {"sublime-text", "Sublime Text", "Development", "APT", "Sophisticated text editor for code", "sublime-text", FALSE},
+    {"com.visualstudio.code",       "Visual Studio Code",    "Development",    "Flatpak", "Code editing redefined",                      "applications-development", FALSE},
+    {"com.getpostman.Postman",      "Postman",               "Development",    "Flatpak", "API testing & development platform",          "applications-development", FALSE},
+    {"git",                         "Git VCS",               "Development",    "APT",     "Fast distributed version control",            "applications-development", FALSE},
+    {"neovim",                      "Neovim",                "Development",    "APT",     "Vim-fork focused on extensibility",           "utilities-terminal",   FALSE},
 
-    {"gimp", "GIMP", "Graphics", "APT", "GNU Image Manipulation Program", "gimp", FALSE},
-    {"inkscape", "Inkscape", "Graphics", "APT", "Professional vector graphics editor", "inkscape", FALSE},
-    {"blender", "Blender", "Graphics", "APT", "3D creation suite", "blender", FALSE},
-    {"krita", "Krita", "Graphics", "APT", "Digital painting software", "krita", FALSE},
+    {"org.gimp.GIMP",               "GIMP",                  "Graphics",       "Flatpak", "GNU Image Manipulation Program",              "applications-graphics", FALSE},
+    {"org.inkscape.Inkscape",       "Inkscape",              "Graphics",       "Flatpak", "Professional vector graphics editor",         "applications-graphics", FALSE},
+    {"org.blender.Blender",         "Blender",               "Graphics",       "Flatpak", "3D creation suite",                           "applications-graphics", FALSE},
+    {"org.kde.krita",               "Krita",                 "Graphics",       "Flatpak", "Digital painting software",                   "applications-graphics", FALSE},
 
-    {"vlc", "VLC Media Player", "Sound & Video", "APT", "Universal media player", "vlc", FALSE},
-    {"obs-studio", "OBS Studio", "Sound & Video", "APT", "Live streaming and video recording", "obs", FALSE},
-    {"audacity", "Audacity", "Sound & Video", "APT", "Audio recording and editing", "audacity", FALSE},
-    {"spotify-client", "Spotify", "Sound & Video", "APT", "Digital music streaming service", "spotify-client", FALSE},
+    {"org.videolan.VLC",            "VLC Media Player",      "Sound & Video",  "Flatpak", "Universal media player",                      "applications-multimedia", FALSE},
+    {"com.obsproject.Studio",       "OBS Studio",            "Sound & Video",  "Flatpak", "Live streaming and video recording",          "applications-multimedia", FALSE},
+    {"org.audacityteam.Audacity",   "Audacity",              "Sound & Video",  "Flatpak", "Audio recording and editing",                 "applications-multimedia", FALSE},
+    {"com.spotify.Client",          "Spotify",               "Sound & Video",  "Flatpak", "Digital music streaming service",             "applications-multimedia", FALSE},
 
-    {"libreoffice", "LibreOffice Suite", "Office", "APT", "Full-featured office suite", "libreoffice-main", FALSE},
-    {"evince", "Document Viewer", "Office", "APT", "View PDF and PostScript documents", "evince", FALSE},
+    {"org.libreoffice.LibreOffice", "LibreOffice Suite",     "Office",         "Flatpak", "Full-featured open-source office suite",      "applications-office",  FALSE},
+    {"org.onlyoffice.desktopeditors","ONLYOFFICE",           "Office",         "Flatpak", "MS Office-compatible office suite",           "applications-office",  FALSE},
 
-    {"gparted", "GParted", "Administration", "APT", "Partition devices and filesystems", "gparted", FALSE},
-    {"timeshift", "Timeshift", "Administration", "APT", "System restore tool using snapshots", "system-software-update", FALSE},
-    {"htop", "htop", "Administration", "APT", "Interactive process viewer", "utilities-terminal", FALSE},
+    {"gparted",                     "GParted",               "Administration", "APT",     "Partition devices and filesystems",           "drive-harddisk",       FALSE},
+    {"timeshift",                   "Timeshift",             "Administration", "APT",     "System restore tool using snapshots",         "system-software-update", FALSE},
+    {"htop",                        "htop",                  "Administration", "APT",     "Interactive process viewer",                  "utilities-terminal",   FALSE},
     {NULL, NULL, NULL, NULL, NULL, NULL, FALSE}
 };
 
@@ -81,11 +86,31 @@ enum {
 };
 
 static void check_installed_packages(void) {
-    for (int i = 0; SOFTWARE_LIST[i].id != NULL; ++i) {
-        char bin_path[256];
-        snprintf(bin_path, sizeof(bin_path), "/usr/bin/%s", SOFTWARE_LIST[i].id);
-        SOFTWARE_LIST[i].installed = (access(bin_path, X_OK) == 0);
+    GHashTable *inst = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
+    FILE *fp = popen("dpkg-query -W -f='${Status}\t${Package}\n' 2>/dev/null", "r");
+    if (fp) {
+        char line[256];
+        while (fgets(line, sizeof(line), fp)) {
+            if (strncmp(line, "install ok installed\t", 21) == 0) {
+                char *pkg = g_strstrip(line + 21);
+                if (pkg[0]) g_hash_table_insert(inst, g_strdup(pkg), GINT_TO_POINTER(1));
+            }
+        }
+        pclose(fp);
     }
+    fp = popen("flatpak list --app --columns=application 2>/dev/null", "r");
+    if (fp) {
+        char line[256];
+        while (fgets(line, sizeof(line), fp)) {
+            char *id = g_strstrip(line);
+            if (id[0]) g_hash_table_insert(inst, g_strdup(id), GINT_TO_POINTER(1));
+        }
+        pclose(fp);
+    }
+    for (int i = 0; SOFTWARE_LIST[i].id != NULL; ++i) {
+        SOFTWARE_LIST[i].installed = g_hash_table_contains(inst, SOFTWARE_LIST[i].id);
+    }
+    g_hash_table_destroy(inst);
 }
 
 static void append_mgr_log(SoftMgrApp *app, const char *msg) {
@@ -231,47 +256,52 @@ static void on_selection_changed(GtkTreeSelection *sel, gpointer user_data) {
 static void on_action_clicked(GtkButton *btn, gpointer user_data) {
     (void)btn;
     SoftMgrApp *app = (SoftMgrApp *)user_data;
-    if (!app->selected_pkg) return;
+    if (!app->selected_pkg || app->child_pid > 0) return;
 
-    char cmd[512];
+    char *quoted = g_shell_quote(app->selected_pkg);
+    char cmd[1024];
     if (app->selected_installed) {
-        // Remove
         if (strcmp(app->selected_source, "Flatpak") == 0) {
-            snprintf(cmd, sizeof(cmd), "pkexec flatpak uninstall -y '%s'", app->selected_pkg);
+            snprintf(cmd, sizeof(cmd),
+                     "flatpak uninstall --user -y --noninteractive %s 2>/dev/null || pkexec flatpak uninstall --system -y --noninteractive %s",
+                     quoted, quoted);
         } else {
-            snprintf(cmd, sizeof(cmd), "pkexec apt-get remove -y '%s'", app->selected_pkg);
+            snprintf(cmd, sizeof(cmd), "pkexec env DEBIAN_FRONTEND=noninteractive apt-get remove -y %s", quoted);
         }
     } else {
-        // Install
         if (strcmp(app->selected_source, "Flatpak") == 0) {
-            snprintf(cmd, sizeof(cmd), "pkexec flatpak install -y flathub '%s'", app->selected_pkg);
+            snprintf(cmd, sizeof(cmd),
+                     "if ! command -v flatpak >/dev/null 2>&1; then pkexec env DEBIAN_FRONTEND=noninteractive apt-get update && pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y flatpak; fi && "
+                     "flatpak remote-add --if-not-exists --user flathub https://dl.flathub.org/repo/flathub.flatpakrepo && "
+                     "flatpak install --user -y --noninteractive flathub %s", quoted);
         } else {
-            snprintf(cmd, sizeof(cmd), "pkexec apt-get install -y '%s' || pkexec axis install '%s'", app->selected_pkg, app->selected_pkg);
+            snprintf(cmd, sizeof(cmd), "pkexec env DEBIAN_FRONTEND=noninteractive apt-get update && pkexec env DEBIAN_FRONTEND=noninteractive apt-get install -y %s", quoted);
         }
     }
+    g_free(quoted);
 
     gtk_text_buffer_set_text(app->log_buffer, "", -1);
-    char start_msg[1024];
-    snprintf(start_msg, sizeof(start_msg), "Executing: %s\n\n", cmd);
+    char start_msg[1280];
+    snprintf(start_msg, sizeof(start_msg), ">>> Executing: %s\n\n", cmd);
     append_mgr_log(app, start_msg);
 
     char st[128];
     snprintf(st, sizeof(st), "%s %s...", app->selected_installed ? "Removing" : "Installing", app->selected_pkg);
     gtk_label_set_text(GTK_LABEL(app->status_label), st);
 
-    gchar **argv = NULL;
-    if (g_shell_parse_argv(cmd, NULL, &argv, NULL)) {
-        gint out_fd = -1;
-        if (g_spawn_async_with_pipes(NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
-                                     NULL, NULL, &app->child_pid, NULL, &out_fd, NULL, NULL)) {
-            GIOChannel *ch = g_io_channel_unix_new(out_fd);
-            g_io_channel_set_encoding(ch, NULL, NULL);
-            g_io_channel_set_flags(ch, G_IO_FLAG_NONBLOCK, NULL);
-            g_io_add_watch(ch, G_IO_IN | G_IO_HUP | G_IO_ERR, on_mgr_read_output, app);
-            g_io_channel_unref(ch);
-            g_child_watch_add(app->child_pid, on_mgr_child_exit, app);
-        }
-        g_strfreev(argv);
+    char wrapped[1536];
+    snprintf(wrapped, sizeof(wrapped), "( %s ) 2>&1", cmd);
+    gchar *argv[] = {"/bin/bash", "-c", wrapped, NULL};
+
+    gint out_fd = -1;
+    if (g_spawn_async_with_pipes(NULL, argv, NULL, G_SPAWN_DO_NOT_REAP_CHILD | G_SPAWN_SEARCH_PATH,
+                                 NULL, NULL, &app->child_pid, NULL, &out_fd, NULL, NULL)) {
+        GIOChannel *ch = g_io_channel_unix_new(out_fd);
+        g_io_channel_set_encoding(ch, NULL, NULL);
+        g_io_channel_set_flags(ch, G_IO_FLAG_NONBLOCK, NULL);
+        g_io_add_watch(ch, G_IO_IN | G_IO_HUP | G_IO_ERR, on_mgr_read_output, app);
+        g_io_channel_unref(ch);
+        g_child_watch_add(app->child_pid, on_mgr_child_exit, app);
     }
 }
 
