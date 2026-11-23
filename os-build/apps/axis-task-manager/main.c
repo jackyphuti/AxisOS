@@ -111,6 +111,10 @@ typedef struct {
     unsigned long long stime;
     unsigned long long read_bytes;
     unsigned long long write_bytes;
+    char user_name[64];
+    char cmdline[512];
+    GtkTreeIter iter;
+    gboolean has_iter;
 } ProcSample;
 
 /* App History tracking */
@@ -1398,22 +1402,7 @@ static void refresh_processes(Win11TaskManager *app) {
         /* Skip kernel threads if unchecked */
         if (!app->show_kernel_threads && (ppid == 2 || pid == 2)) continue;
 
-        /* UID */
-        uid_t uid = 0;
-        snprintf(path, sizeof(path), "/proc/%d/status", pid);
-        fp = fopen(path, "r");
-        if (fp) {
-            char sline[256];
-            while (fgets(sline, sizeof(sline), fp)) {
-                if (strncmp(sline, "Uid:", 4) == 0) {
-                    sscanf(sline + 4, "%u", &uid);
-                    break;
-                }
-            }
-            fclose(fp);
-        }
-        char user_name[64] = {0};
-        get_process_user_name(uid, user_name, sizeof(user_name));
+        ProcSample *prev = (ProcSample *)g_hash_table_lookup(app->proc_samples, GINT_TO_POINTER(pid));
 
         /* Read/Write IO */
         unsigned long long rd_bytes = 0, wr_bytes = 0;
@@ -1431,7 +1420,6 @@ static void refresh_processes(Win11TaskManager *app) {
         /* Calculate CPU % and IO rates */
         double cpu_pct = 0.0;
         double disk_rate = 0.0;
-        ProcSample *prev = (ProcSample *)g_hash_table_lookup(app->proc_samples, GINT_TO_POINTER(pid));
         if (prev) {
             unsigned long long d_jiffies = (utime + stime) - (prev->utime + prev->stime);
             long clk_tck = sysconf(_SC_CLK_TCK);
@@ -1447,12 +1435,29 @@ static void refresh_processes(Win11TaskManager *app) {
             prev->read_bytes = rd_bytes;
             prev->write_bytes = wr_bytes;
         } else {
-            ProcSample *s = g_new0(ProcSample, 1);
-            s->utime = utime;
-            s->stime = stime;
-            s->read_bytes = rd_bytes;
-            s->write_bytes = wr_bytes;
-            g_hash_table_insert(app->proc_samples, GINT_TO_POINTER(pid), s);
+            prev = g_new0(ProcSample, 1);
+            prev->utime = utime;
+            prev->stime = stime;
+            prev->read_bytes = rd_bytes;
+            prev->write_bytes = wr_bytes;
+
+            /* Fast UID via stat() on /proc/[pid] (1 syscall instead of reading /proc/[pid]/status) */
+            struct stat st;
+            snprintf(path, sizeof(path), "/proc/%d", pid);
+            uid_t uid = (stat(path, &st) == 0) ? st.st_uid : 0;
+            get_process_user_name(uid, prev->user_name, sizeof(prev->user_name));
+
+            /* Cache cmdline once per new PID */
+            snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
+            fp = fopen(path, "r");
+            if (fp) {
+                size_t n = fread(prev->cmdline, 1, sizeof(prev->cmdline) - 1, fp);
+                for (size_t i = 0; i < n; ++i) if (prev->cmdline[i] == '\0' && i + 1 < n) prev->cmdline[i] = ' ';
+                fclose(fp);
+            }
+            if (prev->cmdline[0] == '\0') strncpy(prev->cmdline, comm, sizeof(prev->cmdline) - 1);
+
+            g_hash_table_insert(app->proc_samples, GINT_TO_POINTER(pid), prev);
         }
 
         double mem_mb = (rss_pages * 4096.0) / (1024.0 * 1024.0);
@@ -1481,34 +1486,9 @@ static void refresh_processes(Win11TaskManager *app) {
         else snprintf(mem_str, sizeof(mem_str), "%.1f MB", mem_mb);
         snprintf(disk_str, sizeof(disk_str), "%.1f MB/s", disk_rate);
 
-        /* Read cmdline */
-        char cmdline[512] = {0};
-        snprintf(path, sizeof(path), "/proc/%d/cmdline", pid);
-        fp = fopen(path, "r");
-        if (fp) {
-            size_t n = fread(cmdline, 1, sizeof(cmdline) - 1, fp);
-            for (size_t i = 0; i < n; ++i) if (cmdline[i] == '\0' && i + 1 < n) cmdline[i] = ' ';
-            fclose(fp);
-        }
-        if (cmdline[0] == '\0') strncpy(cmdline, comm, sizeof(cmdline) - 1);
-
-        /* Find or insert in GtkListStore */
-        GtkTreeIter iter;
-        gboolean found = FALSE;
-        GtkTreeModel *model = GTK_TREE_MODEL(app->store_processes);
-        if (gtk_tree_model_get_iter_first(model, &iter)) {
-            do {
-                int r_pid = 0;
-                gtk_tree_model_get(model, &iter, PROC_COL_PID, &r_pid, -1);
-                if (r_pid == pid) {
-                    found = TRUE;
-                    break;
-                }
-            } while (gtk_tree_model_iter_next(model, &iter));
-        }
-
-        if (found) {
-            gtk_list_store_set(app->store_processes, &iter,
+        /* O(1) persistent iterator update in GtkListStore */
+        if (prev->has_iter) {
+            gtk_list_store_set(app->store_processes, &prev->iter,
                 PROC_COL_APP_PIXBUF, app_pix,
                 PROC_COL_NAME, comm,
                 PROC_COL_STATUS, status_str,
@@ -1521,16 +1501,17 @@ static void refresh_processes(Win11TaskManager *app) {
                 PROC_COL_DISK_STR, disk_str,
                 PROC_COL_NET_VAL, 0.0,
                 PROC_COL_NET_STR, "0.0 Mbps",
-                PROC_COL_USER, user_name,
-                PROC_COL_CMDLINE, cmdline,
+                PROC_COL_USER, prev->user_name,
+                PROC_COL_CMDLINE, prev->cmdline,
                 PROC_COL_CPU_BG, cpu_bg,
                 PROC_COL_CPU_FG, cpu_fg,
                 PROC_COL_MEM_BG, mem_bg,
                 PROC_COL_MEM_FG, mem_fg,
                 -1);
         } else {
-            gtk_list_store_append(app->store_processes, &iter);
-            gtk_list_store_set(app->store_processes, &iter,
+            gtk_list_store_append(app->store_processes, &prev->iter);
+            prev->has_iter = TRUE;
+            gtk_list_store_set(app->store_processes, &prev->iter,
                 PROC_COL_PID, pid,
                 PROC_COL_APP_PIXBUF, app_pix,
                 PROC_COL_NAME, comm,
@@ -1544,8 +1525,8 @@ static void refresh_processes(Win11TaskManager *app) {
                 PROC_COL_DISK_STR, disk_str,
                 PROC_COL_NET_VAL, 0.0,
                 PROC_COL_NET_STR, "0.0 Mbps",
-                PROC_COL_USER, user_name,
-                PROC_COL_CMDLINE, cmdline,
+                PROC_COL_USER, prev->user_name,
+                PROC_COL_CMDLINE, prev->cmdline,
                 PROC_COL_CPU_BG, cpu_bg,
                 PROC_COL_CPU_FG, cpu_fg,
                 PROC_COL_MEM_BG, mem_bg,
@@ -1864,12 +1845,16 @@ static void update_performance_view(Win11TaskManager *app) {
     }
 }
 
-/* Periodic Timer Callback (1s default) */
+/* Periodic Timer Callback (1s default) — only updates visible active view to minimize CPU */
 static gboolean on_refresh_tick(gpointer user_data) {
     Win11TaskManager *app = (Win11TaskManager *)user_data;
     sample_system_telemetry(app);
-    refresh_processes(app);
-    update_performance_view(app);
+    const char *vis = app->main_stack ? gtk_stack_get_visible_child_name(GTK_STACK(app->main_stack)) : NULL;
+    if (!vis || strcmp(vis, "processes") == 0) {
+        refresh_processes(app);
+    } else if (strcmp(vis, "performance") == 0) {
+        update_performance_view(app);
+    }
     return G_SOURCE_CONTINUE;
 }
 
@@ -2022,7 +2007,9 @@ static void on_nav_page_selected(GtkWidget *btn, gpointer user_data) {
     gtk_style_context_add_class(gtk_widget_get_style_context(btn), "active");
     gtk_stack_set_visible_child_name(GTK_STACK(app->main_stack), page_id);
 
-    if (strcmp(page_id, "details") == 0) refresh_details(app);
+    if (strcmp(page_id, "processes") == 0) refresh_processes(app);
+    else if (strcmp(page_id, "performance") == 0) update_performance_view(app);
+    else if (strcmp(page_id, "details") == 0) refresh_details(app);
     else if (strcmp(page_id, "startup") == 0) refresh_startup_apps(app);
     else if (strcmp(page_id, "services") == 0) refresh_services(app);
     else if (strcmp(page_id, "users") == 0) refresh_users(app);

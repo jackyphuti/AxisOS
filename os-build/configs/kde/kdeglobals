@@ -13,7 +13,7 @@ windowTitleFont=IBM Plex Sans,10,-1,5,75,0,0,0,0,0
 Theme=Papirus-Dark
 
 [KDE]
-AnimationDurationFactor=0.75
+AnimationDurationFactor=0.35
 LookAndFeelPackage=org.axisos.obsidian.desktop
 ShowDeleteCommand=true
 SingleClick=false

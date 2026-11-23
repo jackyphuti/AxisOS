@@ -197,7 +197,7 @@ STATE_EOF
     echo "$TARGET_LAYOUT_REV" > "$LAYOUT_REV_FILE"
 
     # 5. Update AxisOS Pure C native binaries & terminal logo greeting
-    echo "[4/8] Updating Pure C AxisOS applications (Task Manager, Terminal, Package Installer, Fetch)..."
+    echo "[4/8] Updating all Pure C11 AxisOS applications (-O3 LTO optimized)..."
     for app_bin in \
         "os-build/apps/axis-task-manager/axis-task-manager" \
         "os-build/apps/axis-welcome/axis-welcome" \
@@ -207,9 +207,27 @@ STATE_EOF
         "os-build/apps/axis-update-manager/axis-update-manager" \
         "os-build/apps/axis-package-installer/axis-package-installer" \
         "os-build/apps/axis-scheduler-manager/axis-scheduler-manager" \
+        "os-build/apps/axis-settings/axisos-settings-panel" \
+        "os-build/apps/axis-oobe/axis-oobe" \
+        "os-build/apps/axis-usb-daemon/axis-usb-daemon" \
         "os-build/apps/axis-fetch/axis-fetch" \
         "os-build/apps/axis-calc/axis-calc" \
-        "os-build/apps/axis-color-picker/axis-color-picker"; do
+        "os-build/apps/axis-color-picker/axis-color-picker" \
+        "os-build/scripts/axis-disk-info" \
+        "os-build/scripts/axis-game-boost" \
+        "os-build/scripts/axis-game-runner" \
+        "os-build/scripts/axis-switch-session" \
+        "os-build/scripts/axis-update-notifier" \
+        "os-build/scripts/axis-autotimezone" \
+        "os-build/scripts/gpu-autodetect" \
+        "os-build/scripts/axis-biometrics" \
+        "os-build/scripts/axis-fastboot-patch" \
+        "os-build/scripts/axis-captive-portal" \
+        "os-build/scripts/axis-rewind" \
+        "os-build/updater/axis-update" \
+        "pkg-mgr/bin/axis" \
+        "pkg-mgr/bin/axis_repo_builder" \
+        "shell-c/axisos-shell"; do
         if [ -f "$SRC_DIR/$app_bin" ]; then
             local bname
             bname="$(basename "$app_bin")"
@@ -218,6 +236,8 @@ STATE_EOF
         fi
     done
     ln -sf /usr/local/bin/nobara-welcome /usr/local/bin/axis-hardware-manager 2>/dev/null || true
+    ln -sf /usr/local/bin/axisos-settings-panel /usr/local/bin/axis-settings 2>/dev/null || true
+    ln -sf /usr/local/bin/axisos-shell /usr/local/bin/axis-shell 2>/dev/null || true
 
     # Configure automatic AxisOS Logo + System Details banner on every interactive terminal
     cat << 'FETCH_EOF' > /etc/profile.d/axisos-fetch.sh
@@ -240,10 +260,81 @@ BASHRC_EOF
     fi
 
     if [ -f "$SRC_DIR/os-build/configs/sysctl/99-axisos-gaming.conf" ]; then
-        mkdir -p /etc/sysctl.d
+        mkdir -p /etc/sysctl.d /etc/modules-load.d
+        echo "tcp_bbr" > /etc/modules-load.d/axisos-bbr.conf
+        modprobe tcp_bbr 2>/dev/null || true
         cp -f "$SRC_DIR/os-build/configs/sysctl/99-axisos-gaming.conf" /etc/sysctl.d/
         sysctl --system >/dev/null 2>&1 || true
     fi
+
+    # 5b. OS Speed, I/O Scheduler, ZRAM, CPU Governor & Fast-Boot Optimization
+    echo "    -> Applying kernel I/O schedulers, CPU governor, ZRAM, and fast-boot tuning..."
+
+    # Udev rule for low-latency NVMe / SSD / SATA I/O schedulers & read-ahead
+    mkdir -p /etc/udev/rules.d
+    cat << 'UDEV_IO_EOF' > /etc/udev/rules.d/60-axisos-ioscheduler.rules
+ACTION=="add|change", KERNEL=="nvme[0-9]*n[0-9]*", ATTR{queue/scheduler}="none", ATTR{queue/read_ahead_kb}="256", ATTR{queue/rq_affinity}="2"
+ACTION=="add|change", KERNEL=="sd[a-z]|mmcblk[0-9]*", ATTR{queue/rotational}=="0", ATTR{queue/scheduler}="mq-deadline", ATTR{queue/read_ahead_kb}="256", ATTR{queue/rq_affinity}="2"
+ACTION=="add|change", KERNEL=="sd[a-z]", ATTR{queue/rotational}=="1", ATTR{queue/scheduler}="bfq", ATTR{queue/read_ahead_kb}="512"
+UDEV_IO_EOF
+
+    # Apply block I/O tuning live
+    for blk in /sys/block/nvme* /sys/block/sd* /sys/block/vd* /sys/block/mmcblk*; do
+        [ -d "$blk/queue" ] || continue
+        echo 256 > "$blk/queue/read_ahead_kb" 2>/dev/null || true
+        echo 2 > "$blk/queue/rq_affinity" 2>/dev/null || true
+        echo 0 > "$blk/queue/add_random" 2>/dev/null || true
+        if [ -f "$blk/queue/rotational" ] && [ "$(cat "$blk/queue/rotational" 2>/dev/null)" = "0" ]; then
+            if grep -q "\[none\]\| none " "$blk/queue/scheduler" 2>/dev/null; then
+                echo none > "$blk/queue/scheduler" 2>/dev/null || true
+            elif grep -q "mq-deadline" "$blk/queue/scheduler" 2>/dev/null; then
+                echo mq-deadline > "$blk/queue/scheduler" 2>/dev/null || true
+            fi
+        fi
+    done
+
+    # Configure ZRAM compressed RAM swap (zstd, 50% RAM, priority 100)
+    cat << 'ZRAM_EOF' > /etc/default/zramswap
+ALGO=zstd
+PERCENT=50
+PRIORITY=100
+ZRAM_EOF
+    systemctl enable --now zramswap.service 2>/dev/null || true
+
+    # Persistent boot-time CPU governor & transparent hugepage tuning service
+    cat << 'PERF_SVC_EOF' > /etc/systemd/system/axisos-performance.service
+[Unit]
+Description=AxisOS Low-Latency CPU Governor & Memory Performance Tune
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'for g in /sys/devices/system/cpu/cpu*/cpufreq/scaling_governor; do [ -f "$g" ] && (echo schedutil > "$g" 2>/dev/null || echo performance > "$g" 2>/dev/null || true); done; for e in /sys/devices/system/cpu/cpu*/cpufreq/energy_performance_preference; do [ -f "$e" ] && (echo balance_performance > "$e" 2>/dev/null || echo performance > "$e" 2>/dev/null || true); done; [ -f /sys/kernel/mm/transparent_hugepage/enabled ] && echo madvise > /sys/kernel/mm/transparent_hugepage/enabled 2>/dev/null || true'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+PERF_SVC_EOF
+    systemctl daemon-reload 2>/dev/null || true
+    systemctl enable --now axisos-performance.service 2>/dev/null || true
+
+    # Disable heavy background indexers & slow boot wait services
+    rm -f /etc/xdg/autostart/baloo_file.desktop 2>/dev/null || true
+    killall -q baloo_file baloo_file_extractor 2>/dev/null || true
+    systemctl disable --now NetworkManager-wait-online.service systemd-networkd-wait-online.service 2>/dev/null || true
+
+    # Fast systemd shutdown/start timeouts & bounded journal size
+    mkdir -p /etc/systemd/system.conf.d /etc/systemd/journald.conf.d
+    cat << 'SYS_FAST_EOF' > /etc/systemd/system.conf.d/99-axisos-fast.conf
+[Manager]
+DefaultTimeoutStartSec=15s
+DefaultTimeoutStopSec=8s
+SYS_FAST_EOF
+    cat << 'JRN_FAST_EOF' > /etc/systemd/journald.conf.d/99-axisos-journal.conf
+[Journal]
+SystemMaxUse=64M
+RuntimeMaxUse=32M
+JRN_FAST_EOF
 
     # 6. Repair APT Repositories, dpkg, Polkit (pkexec) & Universal Flatpak/Flathub Support
     echo "[5/8] Repairing APT sources, Polkit permissions, and Flatpak/Flathub support..."

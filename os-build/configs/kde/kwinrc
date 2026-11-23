@@ -1,5 +1,5 @@
 [Compositing]
-AnimationSpeed=2
+AnimationSpeed=1
 Backend=OpenGL
 HiddenPreviews=5
 LatencyPolicy=Low
@@ -14,11 +14,11 @@ CornerBarrier=false
 EdgeBarrier=0
 
 [Effect-blur]
-BlurStrength=12
-NoiseStrength=2
+BlurStrength=10
+NoiseStrength=0
 
 [Effect-magiclamp]
-AnimationDuration=220
+AnimationDuration=120
 
 [Effect-overview]
 BorderActivate=9

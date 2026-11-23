@@ -5,6 +5,10 @@
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <sys/statvfs.h>
+#include <ifaddrs.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <net/if.h>
 #include <pwd.h>
 
 /**
@@ -132,13 +136,15 @@ static void read_telemetry(SystemTelemetry *t) {
         fclose(fp_up);
     }
 
-    /* 6. Installed Packages (dpkg) */
+    /* 6. Installed Packages (dpkg) — fast 64 KB buffered scan */
     FILE *fp_pkg = fopen("/var/lib/dpkg/status", "r");
     if (fp_pkg) {
+        static char pkg_iobuf[65536];
+        setvbuf(fp_pkg, pkg_iobuf, _IOFBF, sizeof(pkg_iobuf));
         char line[256];
         int count = 0;
         while (fgets(line, sizeof(line), fp_pkg)) {
-            if (strncmp(line, "Status: install ok installed", 28) == 0) count++;
+            if (line[0] == 'S' && strncmp(line, "Status: install ok installed", 28) == 0) count++;
         }
         fclose(fp_pkg);
         t->packages = count;
@@ -203,11 +209,25 @@ static void read_telemetry(SystemTelemetry *t) {
     }
     if (!t->cpu_model[0]) snprintf(t->cpu_model, sizeof(t->cpu_model), "x86_64 Processor");
 
-    /* 11. GPU Model */
-    FILE *fp_gpu = popen("lspci 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/.*: //g' | head -n1", "r");
-    if (fp_gpu) {
-        if (fgets(t->gpu_model, sizeof(t->gpu_model), fp_gpu)) trim_trailing(t->gpu_model);
-        pclose(fp_gpu);
+    /* 11. GPU Model (cached in /tmp/.axisos-gpu-cache for instant 0ms repeat startup) */
+    FILE *fp_gcache = fopen("/tmp/.axisos-gpu-cache", "r");
+    if (fp_gcache) {
+        if (fgets(t->gpu_model, sizeof(t->gpu_model), fp_gcache)) trim_trailing(t->gpu_model);
+        fclose(fp_gcache);
+    }
+    if (!t->gpu_model[0]) {
+        FILE *fp_gpu = popen("lspci 2>/dev/null | grep -iE 'vga|3d|display' | sed 's/.*: //g' | head -n1", "r");
+        if (fp_gpu) {
+            if (fgets(t->gpu_model, sizeof(t->gpu_model), fp_gpu)) trim_trailing(t->gpu_model);
+            pclose(fp_gpu);
+        }
+        if (t->gpu_model[0]) {
+            FILE *fp_gw = fopen("/tmp/.axisos-gpu-cache", "w");
+            if (fp_gw) {
+                fprintf(fp_gw, "%s\n", t->gpu_model);
+                fclose(fp_gw);
+            }
+        }
     }
     if (!t->gpu_model[0]) {
         char drv_buf[256] = {0};
@@ -244,11 +264,18 @@ static void read_telemetry(SystemTelemetry *t) {
         t->disk_used_gb = (total > free_b) ? (total - free_b) / (1024ULL * 1024ULL * 1024ULL) : 0;
     }
 
-    /* 14. Local IPv4 */
-    FILE *fp_ip = popen("hostname -I 2>/dev/null | awk '{print $1}'", "r");
-    if (fp_ip) {
-        if (fgets(t->local_ip, sizeof(t->local_ip), fp_ip)) trim_trailing(t->local_ip);
-        pclose(fp_ip);
+    /* 14. Local IPv4 — direct Pure C getifaddrs() (zero subprocesses) */
+    struct ifaddrs *ifaddr = NULL;
+    if (getifaddrs(&ifaddr) == 0) {
+        for (struct ifaddrs *ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+            if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET) continue;
+            if (ifa->ifa_flags & IFF_LOOPBACK) continue;
+            struct sockaddr_in *sin = (struct sockaddr_in *)ifa->ifa_addr;
+            if (inet_ntop(AF_INET, &sin->sin_addr, t->local_ip, sizeof(t->local_ip))) {
+                break;
+            }
+        }
+        freeifaddrs(ifaddr);
     }
     if (!t->local_ip[0]) snprintf(t->local_ip, sizeof(t->local_ip), "Offline / Loopback");
 }

@@ -380,7 +380,6 @@ static int term_damage(VTermRect rect, void *user) {
 }
 
 static int term_movecursor(VTermPos pos, VTermPos oldpos, int visible, void *user) {
-    (void)oldpos;
     TerminalTab *tab = (TerminalTab *)user;
     if (!tab) return 1;
 
@@ -389,7 +388,21 @@ static int term_movecursor(VTermPos pos, VTermPos oldpos, int visible, void *use
     tab->cursor_visible = visible;
 
     if (tab->drawing_area && gtk_widget_get_window(tab->drawing_area)) {
-        gtk_widget_queue_draw(tab->drawing_area);
+        GdkWindow *win = gtk_widget_get_window(tab->drawing_area);
+        GdkRectangle r_old = {
+            .x = (int)(oldpos.col * TERM_CHAR_WIDTH),
+            .y = (int)(oldpos.row * TERM_CHAR_HEIGHT),
+            .width = (int)(TERM_CHAR_WIDTH + 2),
+            .height = (int)(TERM_CHAR_HEIGHT + 2)
+        };
+        GdkRectangle r_new = {
+            .x = (int)(pos.col * TERM_CHAR_WIDTH),
+            .y = (int)(pos.row * TERM_CHAR_HEIGHT),
+            .width = (int)(TERM_CHAR_WIDTH + 2),
+            .height = (int)(TERM_CHAR_HEIGHT + 2)
+        };
+        gdk_window_invalidate_rect(win, &r_old, FALSE);
+        gdk_window_invalidate_rect(win, &r_new, FALSE);
     }
     return 1;
 }
@@ -410,11 +423,14 @@ static gboolean on_pty_read(GIOChannel *source, GIOCondition condition, gpointer
     (void)source;
 
     if (condition & (G_IO_IN | G_IO_PRI)) {
-        char buf[4096];
-        ssize_t bytes = read(tab->pty_fd, buf, sizeof(buf));
-        if (bytes > 0) {
+        char buf[32768];
+        int chunks = 0;
+        ssize_t bytes = 0;
+        while (chunks < 4 && (bytes = read(tab->pty_fd, buf, sizeof(buf))) > 0) {
             vterm_input_write(tab->vt, buf, (size_t)bytes);
-        } else if (bytes <= 0) {
+            chunks++;
+        }
+        if (chunks == 0 && bytes == 0) {
             return G_SOURCE_REMOVE;
         }
     }
@@ -538,9 +554,21 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
     cairo_select_font_face(cr, "Monospace", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
     cairo_set_font_size(cr, 13.0);
 
+    /* Dirty-rectangle clip bounds: only render cells intersecting the damaged region */
+    double cx1 = 0, cy1 = 0, cx2 = alloc.width, cy2 = alloc.height;
+    cairo_clip_extents(cr, &cx1, &cy1, &cx2, &cy2);
+    int r_start = (int)(cy1 / TERM_CHAR_HEIGHT) - 1;
+    int r_end   = (int)(cy2 / TERM_CHAR_HEIGHT) + 1;
+    int c_start = (int)(cx1 / TERM_CHAR_WIDTH) - 1;
+    int c_end   = (int)(cx2 / TERM_CHAR_WIDTH) + 1;
+    if (r_start < 0) r_start = 0;
+    if (r_end >= tab->rows) r_end = tab->rows - 1;
+    if (c_start < 0) c_start = 0;
+    if (c_end >= tab->cols) c_end = tab->cols - 1;
+
     VTermPos pos;
-    for (pos.row = 0; pos.row < tab->rows; ++pos.row) {
-        for (pos.col = 0; pos.col < tab->cols; ++pos.col) {
+    for (pos.row = r_start; pos.row <= r_end; ++pos.row) {
+        for (pos.col = c_start; pos.col <= c_end; ++pos.col) {
             double x = pos.col * TERM_CHAR_WIDTH;
             double y = pos.row * TERM_CHAR_HEIGHT;
             gboolean selected = cell_is_selected(tab, pos.row, pos.col);

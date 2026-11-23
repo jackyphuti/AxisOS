@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
 #include <sys/wait.h>
 
 typedef struct {
@@ -216,6 +217,17 @@ typedef struct {
     GPid child_pid;
 } PkgInstallerApp;
 
+static void scan_flatpak_dir_into_set(GHashTable *set, const char *dir_path) {
+    DIR *d = opendir(dir_path);
+    if (!d) return;
+    struct dirent *ent;
+    while ((ent = readdir(d)) != NULL) {
+        if (ent->d_name[0] == '.') continue;
+        g_hash_table_insert(set, g_strdup(ent->d_name), GINT_TO_POINTER(1));
+    }
+    closedir(d);
+}
+
 static void refresh_installed_set(PkgInstallerApp *app) {
     if (!app->installed_set) {
         app->installed_set = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
@@ -223,28 +235,34 @@ static void refresh_installed_set(PkgInstallerApp *app) {
         g_hash_table_remove_all(app->installed_set);
     }
 
-    /* 1. Scan installed APT packages via dpkg-query */
-    FILE *fp = popen("dpkg-query -W -f='${Status}\t${Package}\n' 2>/dev/null", "r");
+    /* 1. Fast native Pure C scan of /var/lib/dpkg/status (zero subprocess overhead) */
+    FILE *fp = fopen("/var/lib/dpkg/status", "r");
     if (fp) {
+        static char iobuf[65536];
+        setvbuf(fp, iobuf, _IOFBF, sizeof(iobuf));
         char line[256];
+        char cur_pkg[128] = {0};
         while (fgets(line, sizeof(line), fp)) {
-            if (strncmp(line, "install ok installed\t", 21) == 0) {
-                char *pkg = g_strstrip(line + 21);
-                if (pkg[0]) g_hash_table_insert(app->installed_set, g_strdup(pkg), GINT_TO_POINTER(1));
+            if (line[0] == 'P' && strncmp(line, "Package: ", 9) == 0) {
+                char *p = g_strstrip(line + 9);
+                snprintf(cur_pkg, sizeof(cur_pkg), "%s", p);
+            } else if (line[0] == 'S' && cur_pkg[0] && strncmp(line, "Status: install ok installed", 28) == 0) {
+                g_hash_table_insert(app->installed_set, g_strdup(cur_pkg), GINT_TO_POINTER(1));
+                cur_pkg[0] = '\0';
+            } else if (line[0] == '\n') {
+                cur_pkg[0] = '\0';
             }
         }
-        pclose(fp);
+        fclose(fp);
     }
 
-    /* 2. Scan installed Flatpak apps (both --system and --user) */
-    fp = popen("flatpak list --app --columns=application 2>/dev/null", "r");
-    if (fp) {
-        char line[256];
-        while (fgets(line, sizeof(line), fp)) {
-            char *id = g_strstrip(line);
-            if (id[0]) g_hash_table_insert(app->installed_set, g_strdup(id), GINT_TO_POINTER(1));
-        }
-        pclose(fp);
+    /* 2. Fast native Pure C scan of installed Flatpak apps (--system and --user) */
+    scan_flatpak_dir_into_set(app->installed_set, "/var/lib/flatpak/app");
+    const char *home = g_get_home_dir();
+    if (home && *home) {
+        char user_fp[512];
+        snprintf(user_fp, sizeof(user_fp), "%s/.local/share/flatpak/app", home);
+        scan_flatpak_dir_into_set(app->installed_set, user_fp);
     }
 
     for (int i = 0; CATALOG[i].id != NULL; ++i) {

@@ -1,6 +1,6 @@
 # AxisOS System Update Engine Makefile
 CC ?= gcc
-CFLAGS ?= -O2 -Wall -Wextra -pedantic -D_GNU_SOURCE -std=c11
+CFLAGS ?= -O3 -march=x86-64 -mtune=generic -flto=auto -fno-plt -fdata-sections -ffunction-sections -fomit-frame-pointer -pipe -Wall -Wextra -pedantic -D_GNU_SOURCE -std=c11 -Wl,-O2 -Wl,--gc-sections -Wl,--as-needed -s
 TARGET = axis-update
 DESTDIR ?=
 PREFIX ?= /usr

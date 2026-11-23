@@ -15,9 +15,9 @@ echo "  AxisOS 2.0 Pure C (-std=gnu11) Desktop & Operating System Suite    "
 echo "  Strict Language Policy: 100% Pure C / Zero C++ / Zero Qt / Zero Py "
 echo "======================================================================"
 
-# Standard compiler flags
+# High-performance Pure C11 compiler & linker flags (LTO + dead-section GC + PLT bypass)
 CC="gcc"
-CFLAGS="-std=gnu11 -O2 -Wall -Wextra -Wno-unused-result"
+CFLAGS="-std=gnu11 -O3 -march=x86-64 -mtune=generic -flto=auto -fno-plt -fdata-sections -ffunction-sections -fomit-frame-pointer -pipe -Wall -Wextra -Wno-unused-result -Wl,-O2 -Wl,--gc-sections -Wl,--as-needed -s"
 
 # 1. Compile axis-terminal (GTK 3 + libvterm + forkpty)
 echo "--> [1/12] Compiling axis-terminal..."
@@ -30,7 +30,7 @@ echo "--> [1/12] Compiling axis-terminal..."
 echo "--> [2/12] Compiling axis-installer..."
 (
     cd "$ROOT_DIR/os-build/apps/axis-installer"
-    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 gio-2.0) -o axis-installer
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 gio-2.0) -o axis-installe
 )
 
 # 3. Compile axis-settings (GTK 3 + GIO + GLib) -> axisos-settings-panel & axis-settings
@@ -45,7 +45,7 @@ echo "--> [3/12] Compiling axis-settings..."
 echo "--> [4/12] Compiling axis-task-manager..."
 (
     cd "$ROOT_DIR/os-build/apps/axis-task-manager"
-    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 cairo pangocairo) -lm -o axis-task-manager
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 cairo pangocairo) -lm -o axis-task-manage
 )
 
 # 5. Compile axis-oobe (GTK 3 + Cairo First-Boot Wizard)
@@ -67,14 +67,14 @@ echo "--> [6/12] Compiling nobara-welcome..."
 echo "--> [7/12] Compiling axis-package-installer..."
 (
     cd "$ROOT_DIR/os-build/apps/axis-package-installer"
-    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 gio-2.0) -o axis-package-installer
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 gio-2.0) -o axis-package-installe
 )
 
 # 8. Compile axis-scheduler-manager (GTK 3 Kernel Scheduler & Governor Manager)
 echo "--> [8/12] Compiling axis-scheduler-manager..."
 (
     cd "$ROOT_DIR/os-build/apps/axis-scheduler-manager"
-    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0) -o axis-scheduler-manager
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0) -o axis-scheduler-manage
 )
 
 # 9. Compile axis-welcome (GTK 3 Driver & Welcome Hub)
@@ -88,14 +88,14 @@ echo "--> [9/12] Compiling axis-welcome..."
 echo "--> [10/12] Compiling axis-software-manager..."
 (
     cd "$ROOT_DIR/os-build/apps/axis-software-manager"
-    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 gio-2.0) -o axis-software-manager
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 gio-2.0) -o axis-software-manage
 )
 
 # 11. Compile axis-update-manager (GTK 3 System Update Manager)
 echo "--> [11/12] Compiling axis-update-manager..."
 (
     cd "$ROOT_DIR/os-build/apps/axis-update-manager"
-    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 gio-2.0) -o axis-update-manager
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0 gio-2.0) -o axis-update-manage
 )
 
 # 12. Compile axis-usb-daemon (libudev USB Hotplug Monitor)
@@ -123,7 +123,7 @@ echo "--> [14/16] Compiling axis-calc..."
 echo "--> [15/16] Compiling axis-color-picker..."
 (
     cd "$ROOT_DIR/os-build/apps/axis-color-picker"
-    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0) -lm -o axis-color-picker
+    $CC $CFLAGS main.c $(pkg-config --cflags --libs gtk+-3.0) -lm -o axis-color-picke
 )
 
 # 16. Compile axis-disk-info (Pure C Storage & Disk Partitioner Telemetry)
@@ -139,11 +139,11 @@ echo "--> Compiling AxisOS System Daemons & Services..."
     cd "$ROOT_DIR/os-build/scripts"
     $CC $CFLAGS axis-game-boost.c -o axis-game-boost
     ln -sf axis-game-boost axis-game-boost.sh
-    $CC $CFLAGS axis-game-runner.c -o axis-game-runner
+    $CC $CFLAGS axis-game-runner.c -o axis-game-runne
     ln -sf axis-game-runner axis-game-runner.sh
     $CC $CFLAGS axis-switch-session.c -o axis-switch-session
     ln -sf axis-switch-session axis-switch-session.sh
-    $CC $CFLAGS axis-update-notifier.c -o axis-update-notifier
+    $CC $CFLAGS axis-update-notifier.c -o axis-update-notifie
     ln -sf axis-update-notifier axis-update-notifier.sh
     $CC $CFLAGS axis-autotimezone.c -o axis-autotimezone
     ln -sf axis-autotimezone axis-autotimezone.sh
@@ -184,6 +184,8 @@ if [ -d "$ROOT_DIR/compositor" ]; then
             echo "    Detected $WLR_PKG via pkg-config"
             make clean
             make -j"$(nproc 2>/dev/null || echo 2)"
+        elif [ -f "$ROOT_DIR/compositor/axis-compositor" ]; then
+            echo "    Using existing prebuilt axis-compositor binary"
         else
             echo "ERROR: wlroots (wlroots-0.18, wlroots-0.17, or wlroots) not found via pkg-config!"
             exit 1

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <dirent.h>
 
 typedef struct {
     const char *id;
@@ -14,6 +15,8 @@ typedef struct {
     const char *icon;
     gboolean installed;
 } SoftItem;
+
+static GdkPixbuf *CACHED_ICONS[64] = {0};
 
 static SoftItem SOFTWARE_LIST[] = {
     {"org.mozilla.firefox",         "Mozilla Firefox",       "Internet",       "Flatpak", "Fast and privacy-first web browser",          "firefox",              FALSE},
@@ -86,28 +89,50 @@ enum {
     NUM_COLS
 };
 
+static void scan_flatpak_app_dir(GHashTable *inst, const char *app_dir) {
+    DIR *d = opendir(app_dir);
+    if (!d) return;
+    struct dirent *ent;
+    while ((ent = readdir(d)) != NULL) {
+        if (ent->d_name[0] == '.') continue;
+        g_hash_table_insert(inst, g_strdup(ent->d_name), GINT_TO_POINTER(1));
+    }
+    closedir(d);
+}
+
 static void check_installed_packages(void) {
     GHashTable *inst = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
-    FILE *fp = popen("dpkg-query -W -f='${Status}\t${Package}\n' 2>/dev/null", "r");
+
+    /* Fast native Pure C scan of /var/lib/dpkg/status (zero subprocess overhead) */
+    FILE *fp = fopen("/var/lib/dpkg/status", "r");
     if (fp) {
+        static char iobuf[65536];
+        setvbuf(fp, iobuf, _IOFBF, sizeof(iobuf));
         char line[256];
+        char cur_pkg[128] = {0};
         while (fgets(line, sizeof(line), fp)) {
-            if (strncmp(line, "install ok installed\t", 21) == 0) {
-                char *pkg = g_strstrip(line + 21);
-                if (pkg[0]) g_hash_table_insert(inst, g_strdup(pkg), GINT_TO_POINTER(1));
+            if (line[0] == 'P' && strncmp(line, "Package: ", 9) == 0) {
+                char *p = g_strstrip(line + 9);
+                snprintf(cur_pkg, sizeof(cur_pkg), "%s", p);
+            } else if (line[0] == 'S' && cur_pkg[0] && strncmp(line, "Status: install ok installed", 28) == 0) {
+                g_hash_table_insert(inst, g_strdup(cur_pkg), GINT_TO_POINTER(1));
+                cur_pkg[0] = '\0';
+            } else if (line[0] == '\n') {
+                cur_pkg[0] = '\0';
             }
         }
-        pclose(fp);
+        fclose(fp);
     }
-    fp = popen("flatpak list --app --columns=application 2>/dev/null", "r");
-    if (fp) {
-        char line[256];
-        while (fgets(line, sizeof(line), fp)) {
-            char *id = g_strstrip(line);
-            if (id[0]) g_hash_table_insert(inst, g_strdup(id), GINT_TO_POINTER(1));
-        }
-        pclose(fp);
+
+    /* Fast native Pure C scan of Flatpak system & user app directories */
+    scan_flatpak_app_dir(inst, "/var/lib/flatpak/app");
+    const char *home = g_get_home_dir();
+    if (home && *home) {
+        char user_fp[512];
+        snprintf(user_fp, sizeof(user_fp), "%s/.local/share/flatpak/app", home);
+        scan_flatpak_app_dir(inst, user_fp);
     }
+
     for (int i = 0; SOFTWARE_LIST[i].id != NULL; ++i) {
         SOFTWARE_LIST[i].installed = g_hash_table_contains(inst, SOFTWARE_LIST[i].id);
     }
@@ -212,13 +237,15 @@ static void populate_store(SoftMgrApp *app) {
             }
         }
 
-        GdkPixbuf *pix = load_app_icon_safe(it->icon, it->category, 32);
+        if (i < 64 && !CACHED_ICONS[i]) {
+            CACHED_ICONS[i] = load_app_icon_safe(it->icon, it->category, 32);
+        }
 
         GtkTreeIter iter;
         gtk_list_store_append(app->store, &iter);
         gtk_list_store_set(
             app->store, &iter,
-            COL_ICON, pix,
+            COL_ICON, (i < 64) ? CACHED_ICONS[i] : NULL,
             COL_NAME, it->name,
             COL_CAT, it->category,
             COL_SRC, it->source,
@@ -228,7 +255,6 @@ static void populate_store(SoftMgrApp *app) {
             COL_INSTALLED, it->installed,
             -1
         );
-        if (pix) g_object_unref(pix);
     }
 }
 

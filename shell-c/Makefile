@@ -1,5 +1,5 @@
 CC ?= gcc
-CFLAGS ?= -std=gnu11 -Wall -Wextra -O2
+CFLAGS ?= -std=gnu11 -O3 -march=x86-64 -mtune=generic -flto=auto -fno-plt -fdata-sections -ffunction-sections -fomit-frame-pointer -pipe -Wall -Wextra -Wl,-O2 -Wl,--gc-sections -Wl,--as-needed -s
 PKG_CONFIG ?= pkg-config
 
 DEPS = gtk+-3.0 gtk-layer-shell-0 gio-2.0 libudev
