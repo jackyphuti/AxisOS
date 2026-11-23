@@ -34,6 +34,13 @@ typedef struct {
     int cursor_col;
     gboolean cursor_visible;
 
+    gboolean has_selection;
+    gboolean selecting;
+    int sel_start_row;
+    int sel_start_col;
+    int sel_end_row;
+    int sel_end_col;
+
     gpointer app;
 } TerminalTab;
 
@@ -41,8 +48,322 @@ typedef struct {
     GtkWidget *window;
     GtkWidget *header_bar;
     GtkWidget *notebook;
+    GtkWidget *status_label;
+    GtkWidget *popup_menu;
+    guint status_timeout_id;
     GList *tabs;
 } TerminalApp;
+
+static TerminalTab *create_new_tab(TerminalApp *app);
+static void send_to_pty(TerminalTab *tab, const char *data, size_t len);
+
+static gboolean on_clear_status_timeout(gpointer user_data) {
+    TerminalApp *app = (TerminalApp *)user_data;
+    if (app) {
+        if (app->status_label) {
+            gtk_label_set_text(GTK_LABEL(app->status_label), "");
+        }
+        app->status_timeout_id = 0;
+    }
+    return G_SOURCE_REMOVE;
+}
+
+static void show_status_hint(TerminalApp *app, const char *msg) {
+    if (!app || !app->status_label) return;
+    if (app->status_timeout_id) {
+        g_source_remove(app->status_timeout_id);
+        app->status_timeout_id = 0;
+    }
+    gtk_label_set_text(GTK_LABEL(app->status_label), msg ? msg : "");
+    if (msg && *msg) {
+        app->status_timeout_id = g_timeout_add(1600, on_clear_status_timeout, app);
+    }
+}
+
+static TerminalTab *get_active_tab(TerminalApp *app) {
+    if (!app || !app->notebook) return NULL;
+    gint cur = gtk_notebook_get_current_page(GTK_NOTEBOOK(app->notebook));
+    if (cur < 0) return NULL;
+    GtkWidget *page = gtk_notebook_get_nth_page(GTK_NOTEBOOK(app->notebook), cur);
+    for (GList *l = app->tabs; l != NULL; l = l->next) {
+        TerminalTab *t = (TerminalTab *)l->data;
+        if (t && t->drawing_area == page) {
+            return t;
+        }
+    }
+    return NULL;
+}
+
+static void clamp_cell(const TerminalTab *tab, double x, double y, int *out_row, int *out_col) {
+    int c = (int)(x / TERM_CHAR_WIDTH);
+    int r = (int)(y / TERM_CHAR_HEIGHT);
+    if (c < 0) c = 0;
+    if (c >= tab->cols) c = tab->cols - 1;
+    if (r < 0) r = 0;
+    if (r >= tab->rows) r = tab->rows - 1;
+    *out_row = r;
+    *out_col = c;
+}
+
+static void normalize_selection(const TerminalTab *tab, int *r1, int *c1, int *r2, int *c2) {
+    if (tab->sel_start_row < tab->sel_end_row ||
+        (tab->sel_start_row == tab->sel_end_row && tab->sel_start_col <= tab->sel_end_col)) {
+        *r1 = tab->sel_start_row;
+        *c1 = tab->sel_start_col;
+        *r2 = tab->sel_end_row;
+        *c2 = tab->sel_end_col;
+    } else {
+        *r1 = tab->sel_end_row;
+        *c1 = tab->sel_end_col;
+        *r2 = tab->sel_start_row;
+        *c2 = tab->sel_start_col;
+    }
+    if (*r1 < 0) *r1 = 0;
+    if (*c1 < 0) *c1 = 0;
+    if (*r2 >= tab->rows) *r2 = tab->rows - 1;
+    if (*c2 >= tab->cols) *c2 = tab->cols - 1;
+}
+
+static gboolean cell_is_selected(const TerminalTab *tab, int row, int col) {
+    if (!tab || !tab->has_selection) return FALSE;
+    int r1, c1, r2, c2;
+    normalize_selection(tab, &r1, &c1, &r2, &c2);
+    if (row < r1 || row > r2) return FALSE;
+    if (row == r1 && col < c1) return FALSE;
+    if (row == r2 && col > c2) return FALSE;
+    return TRUE;
+}
+
+static void clear_selection(TerminalTab *tab) {
+    if (!tab) return;
+    if (tab->has_selection || tab->selecting) {
+        tab->has_selection = FALSE;
+        tab->selecting = FALSE;
+        if (tab->drawing_area) {
+            gtk_widget_queue_draw(tab->drawing_area);
+        }
+    }
+}
+
+static gboolean is_word_char(uint32_t ch) {
+    if (ch == 0) return FALSE;
+    if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') || (ch >= '0' && ch <= '9')) {
+        return TRUE;
+    }
+    switch (ch) {
+        case '_': case '-': case '.': case '/': case '~':
+        case ':': case '@': case '+': case '=': case '%':
+            return TRUE;
+        default:
+            return ch >= 128;
+    }
+}
+
+static gchar *extract_selection_text(TerminalTab *tab) {
+    if (!tab || !tab->vts || !tab->has_selection) return NULL;
+
+    int r1, c1, r2, c2;
+    normalize_selection(tab, &r1, &c1, &r2, &c2);
+
+    GString *out = g_string_new(NULL);
+    GString *line = g_string_new(NULL);
+
+    for (int r = r1; r <= r2; ++r) {
+        g_string_truncate(line, 0);
+        int c_start = (r == r1) ? c1 : 0;
+        int c_end = (r == r2) ? c2 : (tab->cols - 1);
+
+        for (int c = c_start; c <= c_end; ++c) {
+            VTermPos pos = { .row = r, .col = c };
+            VTermScreenCell cell;
+            memset(&cell, 0, sizeof(cell));
+            if (vterm_screen_get_cell(tab->vts, pos, &cell) && cell.chars[0] != 0) {
+                for (int i = 0; i < VTERM_MAX_CHARS_PER_CELL && cell.chars[i] != 0; ++i) {
+                    char utf8[8] = {0};
+                    int len = g_unichar_to_utf8(cell.chars[i], utf8);
+                    if (len > 0) {
+                        g_string_append_len(line, utf8, len);
+                    }
+                }
+                if (cell.width > 1) {
+                    c += (cell.width - 1);
+                }
+            } else {
+                g_string_append_c(line, ' ');
+            }
+        }
+
+        while (line->len > 0 && line->str[line->len - 1] == ' ') {
+            g_string_truncate(line, line->len - 1);
+        }
+
+        g_string_append_len(out, line->str, (gssize)line->len);
+        if (r < r2) {
+            g_string_append_c(out, '\n');
+        }
+    }
+
+    g_string_free(line, TRUE);
+    if (out->len == 0) {
+        g_string_free(out, TRUE);
+        return NULL;
+    }
+    return g_string_free(out, FALSE);
+}
+
+static void copy_selection_to_clipboard(TerminalTab *tab, gboolean copy_to_clipboard) {
+    if (!tab) return;
+    gchar *text = extract_selection_text(tab);
+    if (!text) return;
+
+    GtkClipboard *primary = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
+    if (primary) {
+        gtk_clipboard_set_text(primary, text, -1);
+    }
+
+    if (copy_to_clipboard) {
+        GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+        if (cb) {
+            gtk_clipboard_set_text(cb, text, -1);
+            gtk_clipboard_store(cb);
+        }
+        show_status_hint((TerminalApp *)tab->app, "Copied to clipboard");
+    }
+
+    g_free(text);
+}
+
+static void paste_from_clipboard(TerminalTab *tab, GdkAtom selection) {
+    if (!tab) return;
+
+    GtkClipboard *cb = gtk_clipboard_get(selection);
+    gchar *text = cb ? gtk_clipboard_wait_for_text(cb) : NULL;
+
+    if ((!text || !*text) && selection == GDK_SELECTION_PRIMARY) {
+        g_free(text);
+        GtkClipboard *fallback = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+        text = fallback ? gtk_clipboard_wait_for_text(fallback) : NULL;
+    }
+
+    if (text && *text) {
+        /* Normalize CRLF -> LF so pasted Windows/web text does not double-enter */
+        GString *clean = g_string_sized_new(strlen(text));
+        for (const char *p = text; *p; ++p) {
+            if (p[0] == '\r' && p[1] == '\n') {
+                g_string_append_c(clean, '\n');
+                ++p;
+            } else {
+                g_string_append_c(clean, *p);
+            }
+        }
+        clear_selection(tab);
+        send_to_pty(tab, clean->str, clean->len);
+        g_string_free(clean, TRUE);
+        show_status_hint((TerminalApp *)tab->app, "Pasted");
+    }
+
+    g_free(text);
+    if (tab->drawing_area) {
+        gtk_widget_grab_focus(tab->drawing_area);
+    }
+}
+
+static void select_word_at(TerminalTab *tab, int row, int col) {
+    if (!tab || !tab->vts) return;
+    VTermPos pos = { .row = row, .col = col };
+    VTermScreenCell cell;
+    memset(&cell, 0, sizeof(cell));
+    vterm_screen_get_cell(tab->vts, pos, &cell);
+
+    gboolean target_word = is_word_char(cell.chars[0]);
+    int left = col;
+    int right = col;
+
+    while (left > 0) {
+        VTermPos lp = { .row = row, .col = left - 1 };
+        VTermScreenCell lc;
+        memset(&lc, 0, sizeof(lc));
+        vterm_screen_get_cell(tab->vts, lp, &lc);
+        if (is_word_char(lc.chars[0]) != target_word) break;
+        left--;
+    }
+    while (right + 1 < tab->cols) {
+        VTermPos rp = { .row = row, .col = right + 1 };
+        VTermScreenCell rc;
+        memset(&rc, 0, sizeof(rc));
+        vterm_screen_get_cell(tab->vts, rp, &rc);
+        if (is_word_char(rc.chars[0]) != target_word) break;
+        right++;
+    }
+
+    tab->sel_start_row = row;
+    tab->sel_start_col = left;
+    tab->sel_end_row = row;
+    tab->sel_end_col = right;
+    tab->has_selection = TRUE;
+    tab->selecting = FALSE;
+    copy_selection_to_clipboard(tab, FALSE);
+    if (tab->drawing_area) {
+        gtk_widget_queue_draw(tab->drawing_area);
+    }
+}
+
+static void select_line_at(TerminalTab *tab, int row) {
+    if (!tab || !tab->vts) return;
+    int last_col = tab->cols - 1;
+    while (last_col > 0) {
+        VTermPos p = { .row = row, .col = last_col };
+        VTermScreenCell c;
+        memset(&c, 0, sizeof(c));
+        if (vterm_screen_get_cell(tab->vts, p, &c) && c.chars[0] != 0 && c.chars[0] != ' ') {
+            break;
+        }
+        last_col--;
+    }
+
+    tab->sel_start_row = row;
+    tab->sel_start_col = 0;
+    tab->sel_end_row = row;
+    tab->sel_end_col = last_col;
+    tab->has_selection = TRUE;
+    tab->selecting = FALSE;
+    copy_selection_to_clipboard(tab, FALSE);
+    if (tab->drawing_area) {
+        gtk_widget_queue_draw(tab->drawing_area);
+    }
+}
+
+static void select_all_screen(TerminalTab *tab) {
+    if (!tab || !tab->vts) return;
+    int last_row = 0;
+    for (int r = tab->rows - 1; r >= 0; --r) {
+        gboolean row_non_empty = FALSE;
+        for (int c = 0; c < tab->cols; ++c) {
+            VTermPos p = { .row = r, .col = c };
+            VTermScreenCell cell;
+            memset(&cell, 0, sizeof(cell));
+            if (vterm_screen_get_cell(tab->vts, p, &cell) && cell.chars[0] != 0 && cell.chars[0] != ' ') {
+                row_non_empty = TRUE;
+                break;
+            }
+        }
+        if (row_non_empty) {
+            last_row = r;
+            break;
+        }
+    }
+
+    tab->sel_start_row = 0;
+    tab->sel_start_col = 0;
+    tab->sel_end_row = last_row;
+    tab->sel_end_col = tab->cols - 1;
+    tab->has_selection = TRUE;
+    tab->selecting = FALSE;
+    copy_selection_to_clipboard(tab, FALSE);
+    if (tab->drawing_area) {
+        gtk_widget_queue_draw(tab->drawing_area);
+    }
+}
 
 static int term_damage(VTermRect rect, void *user) {
     TerminalTab *tab = (TerminalTab *)user;
@@ -105,15 +426,15 @@ static gboolean on_pty_read(GIOChannel *source, GIOCondition condition, gpointer
 }
 
 static const char *CSS_TERMINAL =
-    "@define-color axis_base #141826;"
-    "@define-color axis_surface #1F2231;"
-    "@define-color axis_surface_raised #262A3D;"
-    "@define-color axis_outline #2E3349;"
-    "@define-color axis_accent #7D95FF;"
-    "@define-color axis_accent_btn_text #0F1422;"
+    "@define-color axis_base #0E1320;"
+    "@define-color axis_surface #171D2F;"
+    "@define-color axis_surface_raised #222B45;"
+    "@define-color axis_outline #2E3856;"
+    "@define-color axis_accent #38BDF8;"
+    "@define-color axis_accent_alt #7D95FF;"
     "@define-color axis_text #F2F3F7;"
-    "@define-color axis_text_muted #9EA3B5;"
-    "window, headerbar, notebook, notebook header, button {"
+    "@define-color axis_text_muted #94A3B8;"
+    "window, headerbar, notebook, notebook header, button, menu, menuitem {"
     "    background-image: none;"
     "    box-shadow: none;"
     "}"
@@ -126,6 +447,38 @@ static const char *CSS_TERMINAL =
     "    background-color: @axis_surface;"
     "    color: @axis_text;"
     "    border-bottom: 1px solid @axis_outline;"
+    "}"
+    ".axis-term-toolbar {"
+    "    background-color: @axis_surface;"
+    "    border-bottom: 1px solid @axis_outline;"
+    "    padding: 4px 8px;"
+    "}"
+    ".axis-term-btn {"
+    "    background-color: @axis_surface_raised;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 6px;"
+    "    padding: 4px 10px;"
+    "    font-size: 12px;"
+    "    font-weight: 500;"
+    "}"
+    ".axis-term-btn:hover {"
+    "    background-color: #2B3657;"
+    "    border-color: @axis_accent;"
+    "    color: #FFFFFF;"
+    "}"
+    ".axis-term-btn:active {"
+    "    background-color: #1A243F;"
+    "}"
+    ".axis-term-status {"
+    "    color: @axis_accent;"
+    "    font-size: 12px;"
+    "    font-weight: 600;"
+    "}"
+    ".axis-term-title {"
+    "    color: @axis_text_muted;"
+    "    font-size: 12px;"
+    "    font-weight: 600;"
     "}"
     "notebook, notebook stack {"
     "    background-color: @axis_base;"
@@ -145,6 +498,30 @@ static const char *CSS_TERMINAL =
     "    background-color: @axis_surface_raised;"
     "    color: @axis_text;"
     "    border-bottom: 2px solid @axis_accent;"
+    "}"
+    "menu {"
+    "    background-color: #171D2F;"
+    "    color: @axis_text;"
+    "    border: 1px solid @axis_outline;"
+    "    border-radius: 8px;"
+    "    padding: 4px;"
+    "}"
+    "menuitem {"
+    "    background-color: transparent;"
+    "    color: @axis_text;"
+    "    padding: 6px 14px;"
+    "    border-radius: 5px;"
+    "}"
+    "menuitem:hover {"
+    "    background-color: #263455;"
+    "    color: #FFFFFF;"
+    "}"
+    "menuitem:disabled {"
+    "    color: #64748B;"
+    "}"
+    "menu separator {"
+    "    background-color: @axis_outline;"
+    "    margin: 4px 6px;"
     "}";
 
 static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_data) {
@@ -164,17 +541,24 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
     VTermPos pos;
     for (pos.row = 0; pos.row < tab->rows; ++pos.row) {
         for (pos.col = 0; pos.col < tab->cols; ++pos.col) {
-            VTermScreenCell cell;
-            if (vterm_screen_get_cell(tab->vts, pos, &cell) && cell.chars[0]) {
-                double x = pos.col * TERM_CHAR_WIDTH;
-                double y = pos.row * TERM_CHAR_HEIGHT;
+            double x = pos.col * TERM_CHAR_WIDTH;
+            double y = pos.row * TERM_CHAR_HEIGHT;
+            gboolean selected = cell_is_selected(tab, pos.row, pos.col);
 
+            VTermScreenCell cell;
+            memset(&cell, 0, sizeof(cell));
+            gboolean has_cell = vterm_screen_get_cell(tab->vts, pos, &cell) != 0;
+
+            if (has_cell && cell.chars[0] != 0) {
                 vterm_screen_convert_color_to_rgb(tab->vts, &cell.bg);
                 vterm_screen_convert_color_to_rgb(tab->vts, &cell.fg);
 
-                // Cell background if specified (ignore default pitch black 0,0,0 so #141826 base shows)
-                if (VTERM_COLOR_IS_RGB(&cell.bg) &&
-                    !(cell.bg.rgb.red == 0 && cell.bg.rgb.green == 0 && cell.bg.rgb.blue == 0)) {
+                if (selected) {
+                    cairo_set_source_rgba(cr, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.36);
+                    cairo_rectangle(cr, x, y, TERM_CHAR_WIDTH, TERM_CHAR_HEIGHT);
+                    cairo_fill(cr);
+                } else if (VTERM_COLOR_IS_RGB(&cell.bg) &&
+                           !(cell.bg.rgb.red == 0 && cell.bg.rgb.green == 0 && cell.bg.rgb.blue == 0)) {
                     cairo_set_source_rgb(cr, cell.bg.rgb.red / 255.0,
                                          cell.bg.rgb.green / 255.0,
                                          cell.bg.rgb.blue / 255.0);
@@ -182,8 +566,9 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
                     cairo_fill(cr);
                 }
 
-                // Cell text color (#F2F3F7 default)
-                if (VTERM_COLOR_IS_RGB(&cell.fg)) {
+                if (selected) {
+                    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+                } else if (VTERM_COLOR_IS_RGB(&cell.fg)) {
                     cairo_set_source_rgb(cr, cell.fg.rgb.red / 255.0,
                                          cell.fg.rgb.green / 255.0,
                                          cell.fg.rgb.blue / 255.0);
@@ -197,11 +582,15 @@ static gboolean on_draw_terminal(GtkWidget *widget, cairo_t *cr, gpointer user_d
 
                 cairo_move_to(cr, x + 1.0, y + TERM_CHAR_HEIGHT - 4.0);
                 cairo_show_text(cr, utf8);
+            } else if (selected) {
+                cairo_set_source_rgba(cr, 56.0 / 255.0, 189.0 / 255.0, 248.0 / 255.0, 0.36);
+                cairo_rectangle(cr, x, y, TERM_CHAR_WIDTH, TERM_CHAR_HEIGHT);
+                cairo_fill(cr);
             }
         }
     }
 
-    // Draw cursor (#7D95FF AxisOS One UI Dark accent)
+    // Draw cursor (#7D95FF AxisOS accent)
     if (tab->cursor_visible) {
         double cx = tab->cursor_col * TERM_CHAR_WIDTH;
         double cy = tab->cursor_row * TERM_CHAR_HEIGHT;
@@ -220,29 +609,64 @@ static void send_to_pty(TerminalTab *tab, const char *data, size_t len) {
     }
 }
 
+static gboolean is_modifier_only_key(guint keyval) {
+    switch (keyval) {
+        case GDK_KEY_Shift_L: case GDK_KEY_Shift_R:
+        case GDK_KEY_Control_L: case GDK_KEY_Control_R:
+        case GDK_KEY_Alt_L: case GDK_KEY_Alt_R:
+        case GDK_KEY_Super_L: case GDK_KEY_Super_R:
+        case GDK_KEY_Meta_L: case GDK_KEY_Meta_R:
+        case GDK_KEY_Caps_Lock: case GDK_KEY_Num_Lock:
+            return TRUE;
+        default:
+            return FALSE;
+    }
+}
+
 static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
     (void)widget;
     TerminalTab *tab = (TerminalTab *)user_data;
     if (!tab) return FALSE;
 
+    if (is_modifier_only_key(event->keyval)) {
+        return FALSE;
+    }
+
     guint mod = event->state & gtk_accelerator_get_default_mod_mask();
 
+    /* Ctrl+Shift shortcuts */
     if ((mod & (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) == (GDK_CONTROL_MASK | GDK_SHIFT_MASK)) {
         if (event->keyval == GDK_KEY_T || event->keyval == GDK_KEY_t ||
             event->keyval == GDK_KEY_W || event->keyval == GDK_KEY_w) {
-            // New tab / close tab handled at window level
             return FALSE;
         }
+        if (event->keyval == GDK_KEY_C || event->keyval == GDK_KEY_c) {
+            copy_selection_to_clipboard(tab, TRUE);
+            return TRUE;
+        }
         if (event->keyval == GDK_KEY_V || event->keyval == GDK_KEY_v) {
-            GtkClipboard *cb = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
-            gchar *text = gtk_clipboard_wait_for_text(cb);
-            if (text && *text) {
-                send_to_pty(tab, text, strlen(text));
-                g_free(text);
-            }
+            paste_from_clipboard(tab, GDK_SELECTION_CLIPBOARD);
+            return TRUE;
+        }
+        if (event->keyval == GDK_KEY_A || event->keyval == GDK_KEY_a) {
+            select_all_screen(tab);
             return TRUE;
         }
     }
+
+    /* Classic X11/Linux shortcuts: Ctrl+Insert (Copy) & Shift+Insert (Paste) */
+    if ((mod & GDK_CONTROL_MASK) && !(mod & GDK_SHIFT_MASK) &&
+        (event->keyval == GDK_KEY_Insert || event->keyval == GDK_KEY_KP_Insert)) {
+        copy_selection_to_clipboard(tab, TRUE);
+        return TRUE;
+    }
+    if ((mod & GDK_SHIFT_MASK) && !(mod & GDK_CONTROL_MASK) &&
+        (event->keyval == GDK_KEY_Insert || event->keyval == GDK_KEY_KP_Insert)) {
+        paste_from_clipboard(tab, GDK_SELECTION_CLIPBOARD);
+        return TRUE;
+    }
+
+    clear_selection(tab);
 
     switch (event->keyval) {
         case GDK_KEY_Return:
@@ -325,11 +749,164 @@ static gboolean on_key_press(GtkWidget *widget, GdkEventKey *event, gpointer use
     return FALSE;
 }
 
+static void on_menu_copy(GtkMenuItem *item, gpointer user_data) {
+    (void)item;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    copy_selection_to_clipboard(tab, TRUE);
+    if (tab && tab->drawing_area) gtk_widget_grab_focus(tab->drawing_area);
+}
+
+static void on_menu_paste(GtkMenuItem *item, gpointer user_data) {
+    (void)item;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    paste_from_clipboard(tab, GDK_SELECTION_CLIPBOARD);
+}
+
+static void on_menu_select_all(GtkMenuItem *item, gpointer user_data) {
+    (void)item;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    select_all_screen(tab);
+    if (tab && tab->drawing_area) gtk_widget_grab_focus(tab->drawing_area);
+}
+
+static void on_menu_clear(GtkMenuItem *item, gpointer user_data) {
+    (void)item;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    if (!tab) return;
+    clear_selection(tab);
+    send_to_pty(tab, "\x0c", 1);
+    if (tab->drawing_area) gtk_widget_grab_focus(tab->drawing_area);
+}
+
+static void on_menu_new_tab(GtkMenuItem *item, gpointer user_data) {
+    (void)item;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    if (tab && tab->app) {
+        create_new_tab((TerminalApp *)tab->app);
+    }
+}
+
+static void show_context_menu(TerminalTab *tab, GdkEventButton *event) {
+    if (!tab || !tab->app) return;
+    TerminalApp *app = (TerminalApp *)tab->app;
+
+    if (app->popup_menu) {
+        gtk_widget_destroy(app->popup_menu);
+        app->popup_menu = NULL;
+    }
+
+    GtkWidget *menu = gtk_menu_new();
+    app->popup_menu = menu;
+
+    GtkWidget *mi_copy = gtk_menu_item_new_with_label("Copy   (Ctrl+Shift+C)");
+    gtk_widget_set_sensitive(mi_copy, tab->has_selection);
+    g_signal_connect(mi_copy, "activate", G_CALLBACK(on_menu_copy), tab);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi_copy);
+
+    GtkWidget *mi_paste = gtk_menu_item_new_with_label("Paste   (Ctrl+Shift+V)");
+    g_signal_connect(mi_paste, "activate", G_CALLBACK(on_menu_paste), tab);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi_paste);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    GtkWidget *mi_selall = gtk_menu_item_new_with_label("Select All   (Ctrl+Shift+A)");
+    g_signal_connect(mi_selall, "activate", G_CALLBACK(on_menu_select_all), tab);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi_selall);
+
+    GtkWidget *mi_clear = gtk_menu_item_new_with_label("Clear   (Ctrl+L)");
+    g_signal_connect(mi_clear, "activate", G_CALLBACK(on_menu_clear), tab);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi_clear);
+
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
+
+    GtkWidget *mi_newtab = gtk_menu_item_new_with_label("New Tab   (Ctrl+Shift+T)");
+    g_signal_connect(mi_newtab, "activate", G_CALLBACK(on_menu_new_tab), tab);
+    gtk_menu_shell_append(GTK_MENU_SHELL(menu), mi_newtab);
+
+    gtk_widget_show_all(menu);
+    gtk_menu_popup_at_pointer(GTK_MENU(menu), (const GdkEvent *)event);
+}
+
 static gboolean on_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
-    (void)event;
-    (void)user_data;
+    TerminalTab *tab = (TerminalTab *)user_data;
     gtk_widget_grab_focus(widget);
+    if (!tab) return FALSE;
+
+    int row = 0, col = 0;
+    clamp_cell(tab, event->x, event->y, &row, &col);
+
+    if (event->button == 1) {
+        if (event->type == GDK_3BUTTON_PRESS) {
+            select_line_at(tab, row);
+            return TRUE;
+        }
+        if (event->type == GDK_2BUTTON_PRESS) {
+            select_word_at(tab, row, col);
+            return TRUE;
+        }
+        if (event->type == GDK_BUTTON_PRESS) {
+            tab->selecting = TRUE;
+            tab->has_selection = FALSE;
+            tab->sel_start_row = row;
+            tab->sel_start_col = col;
+            tab->sel_end_row = row;
+            tab->sel_end_col = col;
+            gtk_widget_queue_draw(widget);
+            return TRUE;
+        }
+    } else if (event->button == 2 && event->type == GDK_BUTTON_PRESS) {
+        paste_from_clipboard(tab, GDK_SELECTION_PRIMARY);
+        return TRUE;
+    } else if (event->button == 3 && event->type == GDK_BUTTON_PRESS) {
+        show_context_menu(tab, event);
+        return TRUE;
+    }
+
     return FALSE;
+}
+
+static gboolean on_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpointer user_data) {
+    TerminalTab *tab = (TerminalTab *)user_data;
+    if (!tab || !tab->selecting) return FALSE;
+
+    int row = 0, col = 0;
+    clamp_cell(tab, event->x, event->y, &row, &col);
+
+    if (row != tab->sel_end_row || col != tab->sel_end_col || !tab->has_selection) {
+        tab->sel_end_row = row;
+        tab->sel_end_col = col;
+        tab->has_selection = TRUE;
+        gtk_widget_queue_draw(widget);
+    }
+    return TRUE;
+}
+
+static gboolean on_button_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+    (void)widget;
+    TerminalTab *tab = (TerminalTab *)user_data;
+    if (!tab) return FALSE;
+
+    if (event->button == 1 && tab->selecting) {
+        tab->selecting = FALSE;
+        if (tab->has_selection) {
+            copy_selection_to_clipboard(tab, FALSE);
+        }
+        return TRUE;
+    }
+    return FALSE;
+}
+
+static void on_drawing_area_realize(GtkWidget *widget, gpointer user_data) {
+    (void)user_data;
+    GdkWindow *win = gtk_widget_get_window(widget);
+    if (win) {
+        GdkDisplay *disp = gtk_widget_get_display(widget);
+        GdkCursor *cursor = gdk_cursor_new_from_name(disp, "text");
+        if (cursor) {
+            gdk_window_set_cursor(win, cursor);
+            g_object_unref(cursor);
+        }
+    }
 }
 
 static void on_tab_size_allocate(GtkWidget *widget, GdkRectangle *allocation, gpointer user_data) {
@@ -346,6 +923,7 @@ static void on_tab_size_allocate(GtkWidget *widget, GdkRectangle *allocation, gp
     if (new_cols != tab->cols || new_rows != tab->rows) {
         tab->cols = new_cols;
         tab->rows = new_rows;
+        clear_selection(tab);
         vterm_set_size(tab->vt, tab->rows, tab->cols);
 
         struct winsize ws = {
@@ -440,11 +1018,19 @@ static TerminalTab *create_new_tab(TerminalApp *app) {
 
     tab->drawing_area = gtk_drawing_area_new();
     gtk_widget_set_can_focus(tab->drawing_area, TRUE);
-    gtk_widget_set_events(tab->drawing_area, GDK_EXPOSURE_MASK | GDK_KEY_PRESS_MASK | GDK_BUTTON_PRESS_MASK);
+    gtk_widget_set_events(tab->drawing_area,
+                          GDK_EXPOSURE_MASK |
+                          GDK_KEY_PRESS_MASK |
+                          GDK_BUTTON_PRESS_MASK |
+                          GDK_BUTTON_RELEASE_MASK |
+                          GDK_POINTER_MOTION_MASK);
 
+    g_signal_connect(tab->drawing_area, "realize", G_CALLBACK(on_drawing_area_realize), tab);
     g_signal_connect(tab->drawing_area, "draw", G_CALLBACK(on_draw_terminal), tab);
     g_signal_connect(tab->drawing_area, "key-press-event", G_CALLBACK(on_key_press), tab);
     g_signal_connect(tab->drawing_area, "button-press-event", G_CALLBACK(on_button_press), tab);
+    g_signal_connect(tab->drawing_area, "motion-notify-event", G_CALLBACK(on_motion_notify), tab);
+    g_signal_connect(tab->drawing_area, "button-release-event", G_CALLBACK(on_button_release), tab);
     g_signal_connect(tab->drawing_area, "size-allocate", G_CALLBACK(on_tab_size_allocate), tab);
 
     // Tab title
@@ -472,6 +1058,25 @@ static void on_new_tab_btn_clicked(GtkButton *btn, gpointer user_data) {
     (void)btn;
     TerminalApp *app = (TerminalApp *)user_data;
     create_new_tab(app);
+}
+
+static void on_copy_btn_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    TerminalApp *app = (TerminalApp *)user_data;
+    TerminalTab *tab = get_active_tab(app);
+    if (tab) {
+        copy_selection_to_clipboard(tab, TRUE);
+        if (tab->drawing_area) gtk_widget_grab_focus(tab->drawing_area);
+    }
+}
+
+static void on_paste_btn_clicked(GtkButton *btn, gpointer user_data) {
+    (void)btn;
+    TerminalApp *app = (TerminalApp *)user_data;
+    TerminalTab *tab = get_active_tab(app);
+    if (tab) {
+        paste_from_clipboard(tab, GDK_SELECTION_CLIPBOARD);
+    }
 }
 
 static gboolean on_window_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data) {
@@ -557,13 +1162,40 @@ static void load_axis_theme(void) {
     g_object_unref(provider);
 
     GtkCssProvider *extra_prov = gtk_css_provider_new();
-    gtk_css_provider_load_from_data(extra_prov, CSS_TERMINAL, -1, NULL);
+    GError *css_err = NULL;
+    if (!gtk_css_provider_load_from_data(extra_prov, CSS_TERMINAL, -1, &css_err)) {
+        if (css_err) {
+            fprintf(stderr, "axis-terminal CSS warning: %s\n", css_err->message);
+            g_error_free(css_err);
+        }
+    }
     gtk_style_context_add_provider_for_screen(
         screen,
         GTK_STYLE_PROVIDER(extra_prov),
         GTK_STYLE_PROVIDER_PRIORITY_USER
     );
     g_object_unref(extra_prov);
+}
+
+static GtkWidget *make_toolbar_btn(const char *icon_name, const char *label_text, const char *tooltip) {
+    GtkWidget *btn = gtk_button_new();
+    gtk_widget_set_can_focus(btn, FALSE);
+    gtk_style_context_add_class(gtk_widget_get_style_context(btn), "axis-term-btn");
+    if (tooltip) {
+        gtk_widget_set_tooltip_text(btn, tooltip);
+    }
+
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
+    if (icon_name) {
+        GtkWidget *img = gtk_image_new_from_icon_name(icon_name, GTK_ICON_SIZE_MENU);
+        gtk_box_pack_start(GTK_BOX(box), img, FALSE, FALSE, 0);
+    }
+    if (label_text) {
+        GtkWidget *lbl = gtk_label_new(label_text);
+        gtk_box_pack_start(GTK_BOX(box), lbl, FALSE, FALSE, 0);
+    }
+    gtk_container_add(GTK_CONTAINER(btn), box);
+    return btn;
 }
 
 int main(int argc, char *argv[]) {
@@ -576,7 +1208,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
     if (argc > 1 && (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-v") == 0)) {
-        printf("axis-terminal 2.0.0 (Pure C11, GTK 3, libvterm)\n");
+        printf("axis-terminal 2.1.0 (Pure C11, GTK 3, libvterm, Copy/Paste)\n");
         return 0;
     }
     gtk_init(&argc, &argv);
@@ -602,15 +1234,29 @@ int main(int argc, char *argv[]) {
     gtk_container_add(GTK_CONTAINER(app.window), root_box);
 
     /* Sleek Internal Toolbar (KWin handles native titlebar cleanly) */
-    GtkWidget *top_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
-    gtk_container_set_border_width(GTK_CONTAINER(top_bar), 4);
-    GtkWidget *new_tab_btn = gtk_button_new_from_icon_name("list-add", GTK_ICON_SIZE_MENU);
-    gtk_widget_set_tooltip_text(new_tab_btn, "New Tab (Ctrl+Shift+T)");
+    GtkWidget *top_bar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_style_context_add_class(gtk_widget_get_style_context(top_bar), "axis-term-toolbar");
+
+    GtkWidget *new_tab_btn = make_toolbar_btn("list-add-symbolic", "New Tab", "New Tab (Ctrl+Shift+T)");
     g_signal_connect(new_tab_btn, "clicked", G_CALLBACK(on_new_tab_btn_clicked), &app);
-    gtk_box_pack_start(GTK_BOX(top_bar), new_tab_btn, FALSE, FALSE, 4);
+    gtk_box_pack_start(GTK_BOX(top_bar), new_tab_btn, FALSE, FALSE, 0);
+
+    GtkWidget *copy_btn = make_toolbar_btn("edit-copy-symbolic", "Copy", "Copy Selection (Ctrl+Shift+C or Ctrl+Insert)");
+    g_signal_connect(copy_btn, "clicked", G_CALLBACK(on_copy_btn_clicked), &app);
+    gtk_box_pack_start(GTK_BOX(top_bar), copy_btn, FALSE, FALSE, 0);
+
+    GtkWidget *paste_btn = make_toolbar_btn("edit-paste-symbolic", "Paste", "Paste from Clipboard (Ctrl+Shift+V, Shift+Insert, or Middle-Click)");
+    g_signal_connect(paste_btn, "clicked", G_CALLBACK(on_paste_btn_clicked), &app);
+    gtk_box_pack_start(GTK_BOX(top_bar), paste_btn, FALSE, FALSE, 0);
 
     GtkWidget *bar_lbl = gtk_label_new("AxisOS Terminal  •  Obsidian Pure C11");
-    gtk_box_pack_start(GTK_BOX(top_bar), bar_lbl, FALSE, FALSE, 4);
+    gtk_style_context_add_class(gtk_widget_get_style_context(bar_lbl), "axis-term-title");
+    gtk_box_pack_start(GTK_BOX(top_bar), bar_lbl, FALSE, FALSE, 10);
+
+    app.status_label = gtk_label_new("");
+    gtk_style_context_add_class(gtk_widget_get_style_context(app.status_label), "axis-term-status");
+    gtk_box_pack_end(GTK_BOX(top_bar), app.status_label, FALSE, FALSE, 6);
+
     gtk_box_pack_start(GTK_BOX(root_box), top_bar, FALSE, FALSE, 0);
 
     app.notebook = gtk_notebook_new();
@@ -624,6 +1270,15 @@ int main(int argc, char *argv[]) {
 
     gtk_widget_show_all(app.window);
     gtk_main();
+
+    if (app.status_timeout_id) {
+        g_source_remove(app.status_timeout_id);
+        app.status_timeout_id = 0;
+    }
+    if (app.popup_menu) {
+        gtk_widget_destroy(app.popup_menu);
+        app.popup_menu = NULL;
+    }
 
     return 0;
 }
