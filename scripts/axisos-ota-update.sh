@@ -28,7 +28,9 @@ main() {
     fi
 
     mkdir -p "$(dirname "$LOG_FILE")"
-    exec > >(tee -a "$LOG_FILE") 2>&1
+    if [ "${AXISOS_OTA_REEXEC:-0}" != "1" ]; then
+        exec > >(tee -a "$LOG_FILE") 2>&1
+    fi
 
     echo "======================================================================"
     echo "  AxisOS OTA System Update & Repair ($(date -u '+%Y-%m-%d %H:%M:%S UTC'))"
@@ -43,7 +45,7 @@ main() {
     # 2. Download latest AxisOS main archive
     local WORK_DIR
     WORK_DIR="$(mktemp -d /tmp/axisos-ota.XXXXXX)"
-    trap 'rm -rf "$WORK_DIR"' EXIT
+    trap "rm -rf '${WORK_DIR}'" EXIT
 
     echo "[1/8] Fetching latest AxisOS release channel (${REPO_OWNER}/${REPO_NAME}@${BRANCH})..."
     if ! curl -fsSL --retry 3 --connect-timeout 15 "$TARBALL_URL" -o "$WORK_DIR/axisos.tar.gz"; then
@@ -58,6 +60,22 @@ main() {
         echo "[AxisOS OTA] ERROR: Extracted archive is missing os-build/"
         exit 1
     fi
+
+    # If invoked as the installed OTA updater and a newer OTA engine was fetched,
+    # atomically update and re-exec immediately so the latest repairs run on the first pass.
+    case "$0" in
+        /usr/local/bin/axisos-ota-update|/usr/local/bin/axisos-update)
+            if [ "${AXISOS_OTA_REEXEC:-0}" != "1" ] && [ -f "$SRC_DIR/scripts/axisos-ota-update.sh" ] && ! cmp -s "$SRC_DIR/scripts/axisos-ota-update.sh" /usr/local/bin/axisos-ota-update 2>/dev/null; then
+                echo "    -> Updating AxisOS OTA engine to latest release and continuing..."
+                install -m 0755 "$SRC_DIR/scripts/axisos-ota-update.sh" /usr/local/bin/axisos-ota-update.new
+                mv -f /usr/local/bin/axisos-ota-update.new /usr/local/bin/axisos-ota-update
+                ln -sf /usr/local/bin/axisos-ota-update /usr/local/bin/axisos-update
+                rm -rf "$WORK_DIR"
+                export AXISOS_OTA_REEXEC=1
+                exec /usr/local/bin/axisos-ota-update "$@"
+            fi
+            ;;
+    esac
 
     # 3. Repair SDDM login freeze & session defaults
     echo "[2/8] Ensuring clean SDDM Plasma session defaults..."
@@ -368,6 +386,79 @@ APT_EOF
         chmod 0700 /var/lib/apt/lists/partial /var/cache/apt/archives/partial 2>/dev/null || true
     fi
 
+    # Repair / install official Microsoft VS Code APT GPG keyring BEFORE running apt-get update
+    # (prevents NO_PUBKEY EB3E94ADBE1229CF and 0-byte keyring failures in Software Manager / Discover / APT)
+    install -d -m 0755 /etc/apt/keyrings /etc/apt/sources.list.d
+    local ms_key_valid=0
+    local ms_tmp_dir="$WORK_DIR/ms-gpg"
+    mkdir -p "$ms_tmp_dir/gnupg"
+    chmod 700 "$ms_tmp_dir/gnupg"
+
+    # Remove any 0-byte / broken Microsoft keyrings and duplicate .sources definitions
+    rm -f /etc/apt/sources.list.d/vscode.sources 2>/dev/null || true
+    for stale_key in /etc/apt/keyrings/packages.microsoft.gpg /usr/share/keyrings/microsoft.gpg /usr/share/keyrings/packages.microsoft.gpg; do
+        if [ -e "$stale_key" ] && [ ! -s "$stale_key" ]; then
+            rm -f "$stale_key" 2>/dev/null || true
+        fi
+    done
+
+    # Ensure curl and gpg are present; temporarily clear broken VS Code repo files if tools are missing
+    if ! command -v gpg >/dev/null 2>&1 || ! command -v curl >/dev/null 2>&1; then
+        for src_f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+            [ -f "$src_f" ] || continue
+            if grep -qi 'packages\.microsoft\.com/repos/code' "$src_f" 2>/dev/null; then
+                rm -f "$src_f" 2>/dev/null || true
+            fi
+        done
+        apt-get -o DPkg::Lock::Timeout=60 update 2>/dev/null || true
+        apt-get -o DPkg::Lock::Timeout=60 install -y --no-install-recommends curl gpg ca-certificates apt-transport-https 2>/dev/null || true
+    fi
+
+    # Download, dearmor, and verify the Microsoft signing key in an isolated temp dir before installing
+    if command -v curl >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1; then
+        if curl -fsSL --retry 3 --connect-timeout 15 "https://packages.microsoft.com/keys/microsoft.asc" -o "$ms_tmp_dir/microsoft.asc" 2>/dev/null \
+            && [ -s "$ms_tmp_dir/microsoft.asc" ] \
+            && GNUPGHOME="$ms_tmp_dir/gnupg" gpg --batch --yes --dearmor -o "$ms_tmp_dir/packages.microsoft.gpg" "$ms_tmp_dir/microsoft.asc" 2>/dev/null \
+            && [ -s "$ms_tmp_dir/packages.microsoft.gpg" ] \
+            && GNUPGHOME="$ms_tmp_dir/gnupg" gpg --batch --show-keys --with-colons "$ms_tmp_dir/packages.microsoft.gpg" 2>/dev/null | grep -q '^pub:'; then
+            install -m 0644 -o root -g root "$ms_tmp_dir/packages.microsoft.gpg" /etc/apt/keyrings/packages.microsoft.gpg
+            if [ -d /usr/share/keyrings ]; then
+                install -m 0644 -o root -g root "$ms_tmp_dir/packages.microsoft.gpg" /usr/share/keyrings/microsoft.gpg
+            fi
+            ms_key_valid=1
+        fi
+    fi
+
+    # Fallback to an existing verified non-empty keyring if Microsoft key endpoint is temporarily unreachable
+    if [ "$ms_key_valid" -eq 0 ] && command -v gpg >/dev/null 2>&1; then
+        for existing_key in /etc/apt/keyrings/packages.microsoft.gpg /usr/share/keyrings/microsoft.gpg /usr/share/keyrings/packages.microsoft.gpg; do
+            if [ -s "$existing_key" ] && GNUPGHOME="$ms_tmp_dir/gnupg" gpg --batch --show-keys --with-colons "$existing_key" 2>/dev/null | grep -q '^pub:'; then
+                if [ "$existing_key" != "/etc/apt/keyrings/packages.microsoft.gpg" ]; then
+                    install -m 0644 -o root -g root "$existing_key" /etc/apt/keyrings/packages.microsoft.gpg
+                fi
+                if [ -d /usr/share/keyrings ] && [ "$existing_key" != "/usr/share/keyrings/microsoft.gpg" ]; then
+                    install -m 0644 -o root -g root "$existing_key" /usr/share/keyrings/microsoft.gpg
+                fi
+                ms_key_valid=1
+                break
+            fi
+        done
+    fi
+
+    # Deduplicate VS Code repo files and either write a clean signed entry or remove broken unsigned entries
+    for src_f in /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+        [ -f "$src_f" ] || continue
+        if grep -qi 'packages\.microsoft\.com/repos/code' "$src_f" 2>/dev/null; then
+            rm -f "$src_f" 2>/dev/null || true
+        fi
+    done
+    if [ "$ms_key_valid" -eq 1 ]; then
+        cat << 'VSCODE_EOF' > /etc/apt/sources.list.d/vscode.list
+deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
+VSCODE_EOF
+        chmod 0644 /etc/apt/sources.list.d/vscode.list
+    fi
+
     # Fix Polkit rules directory permissions (polkitd runs as UID polkitd, NOT root!)
     mkdir -p /etc/polkit-1/rules.d
     cat << 'POLKIT_EOF' > /etc/polkit-1/rules.d/10-axisos-admin.rules
@@ -445,13 +536,12 @@ PAM_KDE_EOF
     # 6b. Ensure Visual Studio Code (native APT) & Valve Steam (multiarch i386 + Vulkan) are installed
     echo "    -> Ensuring Visual Studio Code and Steam are installed..."
     if ! command -v code >/dev/null 2>&1; then
-        apt-get -o DPkg::Lock::Timeout=60 install -y --no-install-recommends curl gpg ca-certificates apt-transport-https 2>/dev/null || true
-        install -d -m 0755 /etc/apt/keyrings
-        if curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor --yes -o /etc/apt/keyrings/packages.microsoft.gpg 2>/dev/null; then
-            chmod 0644 /etc/apt/keyrings/packages.microsoft.gpg
-            echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
-            apt-get -o DPkg::Lock::Timeout=60 update || true
+        if [ "$ms_key_valid" -eq 1 ]; then
             apt-get -o DPkg::Lock::Timeout=60 install -y code || true
+            # Remove any duplicate vscode.sources created by the code package postinst
+            if [ -f /etc/apt/sources.list.d/vscode.list ] && [ -f /etc/apt/sources.list.d/vscode.sources ]; then
+                rm -f /etc/apt/sources.list.d/vscode.sources 2>/dev/null || true
+            fi
         fi
         if ! command -v code >/dev/null 2>&1 && command -v flatpak >/dev/null 2>&1; then
             flatpak install --system -y --noninteractive flathub com.visualstudio.code 2>&1 || true
@@ -512,6 +602,7 @@ TMR_EOF
     apt-get -o DPkg::Lock::Timeout=60 upgrade -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" || true
     apt-get -o DPkg::Lock::Timeout=60 autoremove -y --purge 2>/dev/null || true
     apt-get clean 2>/dev/null || true
+    systemctl try-restart packagekit.service 2>/dev/null || true
 
     date -u '+%Y-%m-%dT%H:%M:%SZ' > "$STATE_FILE"
 

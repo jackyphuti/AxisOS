@@ -1462,14 +1462,59 @@ chroot /mnt systemctl enable udisks2.service 2>/dev/null || true
 chroot /mnt systemctl enable usbmuxd.service 2>/dev/null || true
 chroot /mnt systemctl enable bluetooth.service 2>/dev/null || true
 
-# Pre-configure official Microsoft VS Code repository
+# Pre-configure official Microsoft VS Code repository ONLY when a verified non-empty GPG key is available
 mkdir -p /mnt/etc/apt/keyrings /mnt/etc/apt/sources.list.d
-if [[ -f /etc/apt/keyrings/packages.microsoft.gpg ]]; then
-    cp /etc/apt/keyrings/packages.microsoft.gpg /mnt/etc/apt/keyrings/packages.microsoft.gpg
+rm -f /mnt/etc/apt/sources.list.d/vscode.sources 2>/dev/null || true
+for stale_ms_key in /mnt/etc/apt/keyrings/packages.microsoft.gpg /mnt/usr/share/keyrings/microsoft.gpg; do
+    if [[ -e "$stale_ms_key" && ! -s "$stale_ms_key" ]]; then
+        rm -f "$stale_ms_key" 2>/dev/null || true
+    fi
+done
+
+MS_KEY_SRC=""
+MS_TMP_DIR="$(mktemp -d /tmp/axis-ms-gpg.XXXXXX)"
+mkdir -p "$MS_TMP_DIR/gnupg"
+chmod 700 "$MS_TMP_DIR/gnupg"
+for cand_key in /etc/apt/keyrings/packages.microsoft.gpg /usr/share/keyrings/microsoft.gpg /mnt/etc/apt/keyrings/packages.microsoft.gpg /mnt/usr/share/keyrings/microsoft.gpg; do
+    if [[ -s "$cand_key" ]]; then
+        if ! command -v gpg >/dev/null 2>&1 || GNUPGHOME="$MS_TMP_DIR/gnupg" gpg --batch --show-keys --with-colons "$cand_key" 2>/dev/null | grep -q '^pub:'; then
+            MS_KEY_SRC="$cand_key"
+            break
+        fi
+    fi
+done
+
+if [[ -z "$MS_KEY_SRC" ]] && command -v curl >/dev/null 2>&1 && command -v gpg >/dev/null 2>&1; then
+    if curl -fsSL --retry 2 --connect-timeout 10 "https://packages.microsoft.com/keys/microsoft.asc" -o "$MS_TMP_DIR/microsoft.asc" 2>/dev/null \
+        && [[ -s "$MS_TMP_DIR/microsoft.asc" ]] \
+        && GNUPGHOME="$MS_TMP_DIR/gnupg" gpg --batch --yes --dearmor -o "$MS_TMP_DIR/packages.microsoft.gpg" "$MS_TMP_DIR/microsoft.asc" 2>/dev/null \
+        && [[ -s "$MS_TMP_DIR/packages.microsoft.gpg" ]] \
+        && GNUPGHOME="$MS_TMP_DIR/gnupg" gpg --batch --show-keys --with-colons "$MS_TMP_DIR/packages.microsoft.gpg" 2>/dev/null | grep -q '^pub:'; then
+        MS_KEY_SRC="$MS_TMP_DIR/packages.microsoft.gpg"
+    fi
 fi
-cat << 'EOF' > /mnt/etc/apt/sources.list.d/vscode.list
+
+if [[ -n "$MS_KEY_SRC" && -s "$MS_KEY_SRC" ]]; then
+    if [[ "$MS_KEY_SRC" != "/mnt/etc/apt/keyrings/packages.microsoft.gpg" ]]; then
+        install -m 0644 "$MS_KEY_SRC" /mnt/etc/apt/keyrings/packages.microsoft.gpg
+    else
+        chmod 0644 /mnt/etc/apt/keyrings/packages.microsoft.gpg
+    fi
+    if [[ -d /mnt/usr/share/keyrings ]]; then
+        if [[ "$MS_KEY_SRC" != "/mnt/usr/share/keyrings/microsoft.gpg" ]]; then
+            install -m 0644 "$MS_KEY_SRC" /mnt/usr/share/keyrings/microsoft.gpg
+        else
+            chmod 0644 /mnt/usr/share/keyrings/microsoft.gpg
+        fi
+    fi
+    cat << 'EOF' > /mnt/etc/apt/sources.list.d/vscode.list
 deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main
 EOF
+    chmod 0644 /mnt/etc/apt/sources.list.d/vscode.list
+else
+    rm -f /mnt/etc/apt/sources.list.d/vscode.list /mnt/etc/apt/sources.list.d/vscode.sources 2>/dev/null || true
+fi
+rm -rf "$MS_TMP_DIR"
 
 # Enable apt-daily background timers
 report 90 "Installing and generating Microsoft-signed UEFI Secure Bootloader..."

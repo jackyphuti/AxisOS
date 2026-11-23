@@ -852,16 +852,49 @@ fi
 # Pre-install Visual Studio Code (official Microsoft APT repo) and Steam (Debian non-free + i386 Vulkan/Mesa)
 export DEBIAN_FRONTEND=noninteractive
 echo "nameserver 1.1.1.1" > /etc/resolv.conf 2>/dev/null || true
-if ! command -v code >/dev/null 2>&1; then
+install -d -m 0755 /etc/apt/keyrings /etc/apt/sources.list.d
+rm -f /etc/apt/sources.list.d/vscode.sources 2>/dev/null || true
+for stale_ms_key in /etc/apt/keyrings/packages.microsoft.gpg /usr/share/keyrings/microsoft.gpg; do
+    if [ -e "$stale_ms_key" ] && [ ! -s "$stale_ms_key" ]; then
+        rm -f "$stale_ms_key" 2>/dev/null || true
+    fi
+done
+if ! command -v curl >/dev/null 2>&1 || ! command -v gpg >/dev/null 2>&1; then
+    rm -f /etc/apt/sources.list.d/vscode.list 2>/dev/null || true
     apt-get update 2>/dev/null || true
     apt-get install -y --no-install-recommends curl gpg ca-certificates apt-transport-https 2>/dev/null || true
-    install -d -m 0755 /etc/apt/keyrings
-    if curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor --yes -o /etc/apt/keyrings/packages.microsoft.gpg 2>/dev/null; then
-        chmod 0644 /etc/apt/keyrings/packages.microsoft.gpg
-        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+fi
+MS_TMP_DIR="$(mktemp -d /tmp/axis-ms-gpg.XXXXXX)"
+mkdir -p "$MS_TMP_DIR/gnupg"
+chmod 700 "$MS_TMP_DIR/gnupg"
+MS_KEY_READY=0
+if curl -fsSL --retry 3 --connect-timeout 15 "https://packages.microsoft.com/keys/microsoft.asc" -o "$MS_TMP_DIR/microsoft.asc" 2>/dev/null \
+    && [ -s "$MS_TMP_DIR/microsoft.asc" ] \
+    && GNUPGHOME="$MS_TMP_DIR/gnupg" gpg --batch --yes --dearmor -o "$MS_TMP_DIR/packages.microsoft.gpg" "$MS_TMP_DIR/microsoft.asc" 2>/dev/null \
+    && [ -s "$MS_TMP_DIR/packages.microsoft.gpg" ] \
+    && GNUPGHOME="$MS_TMP_DIR/gnupg" gpg --batch --show-keys --with-colons "$MS_TMP_DIR/packages.microsoft.gpg" 2>/dev/null | grep -q '^pub:'; then
+    install -m 0644 "$MS_TMP_DIR/packages.microsoft.gpg" /etc/apt/keyrings/packages.microsoft.gpg
+    if [ -d /usr/share/keyrings ]; then
+        install -m 0644 "$MS_TMP_DIR/packages.microsoft.gpg" /usr/share/keyrings/microsoft.gpg
+    fi
+    MS_KEY_READY=1
+elif [ -s /etc/apt/keyrings/packages.microsoft.gpg ] && GNUPGHOME="$MS_TMP_DIR/gnupg" gpg --batch --show-keys --with-colons /etc/apt/keyrings/packages.microsoft.gpg 2>/dev/null | grep -q '^pub:'; then
+    if [ -d /usr/share/keyrings ]; then
+        install -m 0644 /etc/apt/keyrings/packages.microsoft.gpg /usr/share/keyrings/microsoft.gpg
+    fi
+    MS_KEY_READY=1
+fi
+rm -rf "$MS_TMP_DIR"
+if [ "$MS_KEY_READY" -eq 1 ]; then
+    echo "deb [arch=amd64,arm64,armhf signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" > /etc/apt/sources.list.d/vscode.list
+    chmod 0644 /etc/apt/sources.list.d/vscode.list
+    if ! command -v code >/dev/null 2>&1; then
         apt-get update 2>/dev/null || true
         apt-get install -y --no-install-recommends code 2>/dev/null || true
+        rm -f /etc/apt/sources.list.d/vscode.sources 2>/dev/null || true
     fi
+else
+    rm -f /etc/apt/sources.list.d/vscode.list /etc/apt/sources.list.d/vscode.sources 2>/dev/null || true
 fi
 if ! command -v steam >/dev/null 2>&1; then
     dpkg --add-architecture i386 2>/dev/null || true
